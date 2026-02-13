@@ -36,7 +36,8 @@ import {
     ActivitySquare,
     UserCog,
     Volume2,
-    MessageSquare
+    MessageSquare,
+    Info
 } from 'lucide-react'
 import { AdminUserTable } from '../components/AdminUserTable'
 import { RegularUserTable } from '../components/RegularUserTable'
@@ -50,7 +51,16 @@ export const SuperAdminDashboard = () => {
         serverHealth: '100% stable',
         dbSize: 0
     })
-    const [activeTab, setActiveTab] = useState<'tenants' | 'admins' | 'users' | 'rescue' | 'ai' | 'backups' | 'billing' | 'settings' | 'sounds'>('tenants')
+    const [activeTab, setActiveTabState] = useState<'tenants' | 'admins' | 'users' | 'rescue' | 'ai' | 'backups' | 'billing' | 'settings' | 'sounds'>(() => {
+        const saved = localStorage.getItem('godmode_active_tab')
+        return (saved as any) || 'tenants'
+    })
+
+    // Wrapper to persist activeTab to localStorage
+    const setActiveTab = (tab: 'tenants' | 'admins' | 'users' | 'rescue' | 'ai' | 'backups' | 'billing' | 'settings' | 'sounds') => {
+        localStorage.setItem('godmode_active_tab', tab)
+        setActiveTabState(tab)
+    }
     const [tenants, setTenants] = useState<any[]>([])
     const [allUsers, setAllUsers] = useState<any[]>([])
     const [recentLogs, setRecentLogs] = useState<any[]>([])
@@ -60,26 +70,70 @@ export const SuperAdminDashboard = () => {
     const [selectedUser, setSelectedUser] = useState<any>(null)
     const [paymentPreferenceId, setPaymentPreferenceId] = useState<string | null>(null)
 
-    // Config States
-    const [aiSettings, setAiSettings] = useState<any>({
-        openai_key: '',
-        gemini_key: '',
-        anthropic_key: ''
+    // Config States with localStorage persistence
+    const [aiSettings, setAiSettingsState] = useState<any>(() => {
+        const saved = localStorage.getItem('godmode_ai_settings')
+        if (saved && saved !== 'undefined') {
+            try {
+                return JSON.parse(saved)
+            } catch (e) {
+                console.warn('Failed to parse ai_settings from localStorage')
+            }
+        }
+        return {
+            openai_key: '',
+            gemini_key: '',
+            anthropic_key: ''
+        }
     })
-    const [billingSettings, setBillingSettings] = useState<any>({
-        mercadopago_public_key: '',
-        mercadopago_access_token: '',
-        auto_license_activation: 'true'
+    const setAiSettings = (settings: any) => {
+        localStorage.setItem('godmode_ai_settings', JSON.stringify(settings))
+        setAiSettingsState(settings)
+    }
+
+    const [billingSettings, setBillingSettingsState] = useState<any>(() => {
+        const saved = localStorage.getItem('godmode_billing_settings')
+        if (saved && saved !== 'undefined') {
+            try {
+                return JSON.parse(saved)
+            } catch (e) {
+                console.warn('Failed to parse billing_settings from localStorage')
+            }
+        }
+        return {
+            mercadopago_public_key: '',
+            mercadopago_access_token: '',
+            auto_license_activation: 'true'
+        }
     })
-    const [smtpSettings, setSmtpSettings] = useState<any>({
-        smtp_host: '',
-        smtp_port: '587',
-        smtp_user: '',
-        smtp_pass: '',
-        smtp_crypto: 'STARTTLS',
-        smtp_from_email: '',
-        smtp_from_name: 'NEMIA Notificaciones'
+    const setBillingSettings = (settings: any) => {
+        localStorage.setItem('godmode_billing_settings', JSON.stringify(settings))
+        setBillingSettingsState(settings)
+    }
+
+    const [smtpSettings, setSmtpSettingsState] = useState<any>(() => {
+        const saved = localStorage.getItem('godmode_smtp_settings')
+        if (saved && saved !== 'undefined') {
+            try {
+                return JSON.parse(saved)
+            } catch (e) {
+                console.warn('Failed to parse smtp_settings from localStorage')
+            }
+        }
+        return {
+            smtp_host: '',
+            smtp_port: '587',
+            smtp_user: '',
+            smtp_pass: '',
+            smtp_crypto: 'STARTTLS',
+            smtp_from_email: '',
+            smtp_from_name: 'NEMIA Notificaciones'
+        }
     })
+    const setSmtpSettings = (settings: any) => {
+        localStorage.setItem('godmode_smtp_settings', JSON.stringify(settings))
+        setSmtpSettingsState(settings)
+    }
 
     const [isSaving, setIsSaving] = useState(false)
     const [loading, setLoading] = useState(true)
@@ -87,10 +141,24 @@ export const SuperAdminDashboard = () => {
     const [generatedLicense, setGeneratedLicense] = useState('')
     const [backupStatus, setBackupStatus] = useState<'idle' | 'running' | 'success'>('idle')
     const [searchTerm, setSearchTerm] = useState('')
-    const [soundSettings, setSoundSettings] = useState<any>({
-        chat_sound_url: '/sounds/notification.mp3',
-        notification_sound_url: ''
+    const [soundSettings, setSoundSettingsState] = useState<any>(() => {
+        const saved = localStorage.getItem('godmode_sound_settings')
+        if (saved && saved !== 'undefined') {
+            try {
+                return JSON.parse(saved)
+            } catch (e) {
+                console.warn('Failed to parse sound_settings from localStorage')
+            }
+        }
+        return {
+            chat_sound_url: '/sounds/notification.mp3',
+            notification_sound_url: ''
+        }
     })
+    const setSoundSettings = (settings: any) => {
+        localStorage.setItem('godmode_sound_settings', JSON.stringify(settings))
+        setSoundSettingsState(settings)
+    }
     const [uploadingKey, setUploadingKey] = useState<string | null>(null)
     const [fetchError, setFetchError] = useState<string | null>(null)
 
@@ -144,8 +212,12 @@ export const SuperAdminDashboard = () => {
                 let dbSize = 0;
                 try {
                     const { data, error } = await supabase.rpc('get_database_size')
-                    if (!error) dbSize = data
-                } catch (e) { console.warn('DB Size check failed', e) }
+                    if (!error && data !== null) {
+                        dbSize = Math.round(data / (1024 * 1024)) // Convert to MB if returned in bytes
+                    }
+                } catch (e) {
+                    console.warn('DB Size check failed: Feature not yet implemented in DB or permission denied.')
+                }
 
                 const schools = tenantsList?.filter(t => t.type === 'SCHOOL').length || 0
                 const independents = tenantsList?.filter(t => t.type === 'INDEPENDENT').length || 0
@@ -179,23 +251,37 @@ export const SuperAdminDashboard = () => {
             if (data) {
                 const settings: any = {}
                 data.forEach(item => settings[item.key] = item.value)
-                setSmtpSettings((prev: any) => ({ ...prev, ...settings }))
+
+                // Only update if DB has values, otherwise keep localStorage values
+                setSmtpSettings((prev: any) => ({
+                    ...prev,
+                    ...(settings.smtp_host && { smtp_host: settings.smtp_host }),
+                    ...(settings.smtp_port && { smtp_port: settings.smtp_port }),
+                    ...(settings.smtp_user && { smtp_user: settings.smtp_user }),
+                    ...(settings.smtp_pass && { smtp_pass: settings.smtp_pass }),
+                    ...(settings.smtp_crypto && { smtp_crypto: settings.smtp_crypto }),
+                    ...(settings.smtp_from_email && { smtp_from_email: settings.smtp_from_email }),
+                    ...(settings.smtp_from_name && { smtp_from_name: settings.smtp_from_name })
+                }))
+
                 setAiSettings((prev: any) => ({
                     ...prev,
-                    openai_key: settings.openai_key || '',
-                    gemini_key: settings.gemini_key || '',
-                    anthropic_key: settings.anthropic_key || ''
+                    ...(settings.openai_key && { openai_key: settings.openai_key }),
+                    ...(settings.gemini_key && { gemini_key: settings.gemini_key }),
+                    ...(settings.anthropic_key && { anthropic_key: settings.anthropic_key })
                 }))
+
                 setBillingSettings((prev: any) => ({
                     ...prev,
-                    mercadopago_public_key: settings.mercadopago_public_key || '',
-                    mercadopago_access_token: settings.mercadopago_access_token || '',
-                    auto_license_activation: settings.auto_license_activation || 'true'
+                    ...(settings.mercadopago_public_key && { mercadopago_public_key: settings.mercadopago_public_key }),
+                    ...(settings.mercadopago_access_token && { mercadopago_access_token: settings.mercadopago_access_token }),
+                    ...(settings.auto_license_activation && { auto_license_activation: settings.auto_license_activation })
                 }))
+
                 setSoundSettings((prev: any) => ({
                     ...prev,
-                    chat_sound_url: settings.chat_sound_url || '/sounds/notification.mp3',
-                    notification_sound_url: settings.notification_sound_url || ''
+                    ...(settings.chat_sound_url && { chat_sound_url: settings.chat_sound_url }),
+                    ...(settings.notification_sound_url && { notification_sound_url: settings.notification_sound_url })
                 }))
             }
         }
@@ -307,12 +393,15 @@ export const SuperAdminDashboard = () => {
     const handleDeleteUser = async (id: string) => {
         if (!confirm('¿Estás seguro de mover este usuario a la papelera (Soft Delete)?')) return
         try {
-            const { error } = await supabase.from('profiles').update({ deleted_at: new Date().toISOString() }).eq('id', id)
+            // Use RPC instead of direct update to ensure email renaming in auth.users
+            const { error } = await supabase.rpc('soft_delete_account', { target_user_id: id })
+
             if (error) throw error
-            alert('Usuario desactivado correctamente.')
+            alert('Usuario movido a la papelera correctamente.')
             window.location.reload()
         } catch (e: any) {
-            alert('Error al eliminar usuario: ' + e.message)
+            console.error('Delete error:', e)
+            alert('Error al eliminar usuario: ' + (e.message || 'Error desconocido'))
         }
     }
 
@@ -740,6 +829,114 @@ export const SuperAdminDashboard = () => {
                                         <p className="text-red-100/70 text-xs font-medium italic mb-10 leading-relaxed">Permite regresar el núcleo operativo a una versión anterior estable en caso de inestabilidad post-parche.</p>
                                     </div>
                                     <button className="w-full py-6 bg-white text-rose-700 rounded-3xl font-black uppercase tracking-widest text-sm shadow-2xl hover:scale-[1.02] active:scale-95 transition-all">Regresar a Build v1.8.4 Stable</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'billing' && (
+                        <div className="max-w-4xl space-y-8 animate-in slide-in-from-right-8 duration-500">
+                            <div className="bg-slate-800 border border-slate-700 rounded-[2.5rem] p-10 relative overflow-hidden shadow-2xl">
+                                <CreditCard className="absolute top-0 right-0 w-64 h-64 text-rose-600/5 -mr-20 -mt-20 group-hover:scale-110 transition-transform duration-1000" />
+                                <h3 className="text-3xl font-black text-white italic uppercase mb-10 relative z-10">Mercado Pago Integration</h3>
+                                <div className="space-y-8 relative z-10">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div className="space-y-3">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Public Key (Frontend)</label>
+                                            <div className="relative group">
+                                                <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-rose-500 transition-colors" />
+                                                <input
+                                                    type="text"
+                                                    value={billingSettings.mercadopago_public_key}
+                                                    onChange={(e) => setBillingSettings({ ...billingSettings, mercadopago_public_key: e.target.value })}
+                                                    placeholder="APP_USR-..."
+                                                    className="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-12 pr-6 py-4 text-sm font-mono text-rose-400 focus:ring-2 focus:ring-rose-600 outline-none transition-all"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-3">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Access Token (Backend)</label>
+                                            <div className="relative group">
+                                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-rose-500 transition-colors" />
+                                                <input
+                                                    type="password"
+                                                    value={billingSettings.mercadopago_access_token}
+                                                    onChange={(e) => setBillingSettings({ ...billingSettings, mercadopago_access_token: e.target.value })}
+                                                    placeholder="APP_USR-..."
+                                                    className="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-12 pr-6 py-4 text-sm font-mono text-rose-400 focus:ring-2 focus:ring-rose-600 outline-none transition-all"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-slate-900/50 border border-slate-700 rounded-2xl p-6">
+                                        <div className="flex items-start gap-4">
+                                            <div className="p-3 bg-blue-500/10 rounded-xl">
+                                                <Info className="w-5 h-5 text-blue-400" />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-black text-white text-sm mb-2">Cómo obtener tus credenciales</h4>
+                                                <ol className="text-xs text-slate-400 space-y-1 list-decimal list-inside">
+                                                    <li>Visita <a href="https://www.mercadopago.com.mx/developers" target="_blank" className="text-blue-400 hover:underline">Mercado Pago Developers</a></li>
+                                                    <li>Crea una aplicación o selecciona una existente</li>
+                                                    <li>Copia el <strong className="text-white">Public Key</strong> y el <strong className="text-white">Access Token</strong></li>
+                                                    <li>Pega las credenciales aquí y guarda</li>
+                                                </ol>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between p-6 bg-slate-900/50 border border-slate-700 rounded-2xl">
+                                        <div className="flex items-center gap-3">
+                                            <Zap className="w-5 h-5 text-yellow-500" />
+                                            <div>
+                                                <p className="font-black text-white text-sm">Activación Automática de Licencias</p>
+                                                <p className="text-xs text-slate-500">Activar licencias PRO al confirmar pago</p>
+                                            </div>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={billingSettings.auto_license_activation === 'true'}
+                                                onChange={(e) => setBillingSettings({ ...billingSettings, auto_license_activation: e.target.checked ? 'true' : 'false' })}
+                                                className="sr-only peer"
+                                            />
+                                            <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-rose-900 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
+                                        </label>
+                                    </div>
+
+                                    <div className="flex justify-end pt-6 border-t border-slate-700">
+                                        <button onClick={() => handleSaveGroup('billing')} disabled={isSaving} className="bg-rose-600 hover:bg-rose-500 text-white px-12 py-4 rounded-2xl font-black italic tracking-tighter uppercase text-sm shadow-xl shadow-rose-900/40 transition-all flex items-center">
+                                            <Save className="w-4 h-4 mr-2" />
+                                            {isSaving ? 'Guardando...' : 'Guardar Configuración de Pagos'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Transactions List */}
+                            <div className="bg-slate-800 border border-slate-700 rounded-[2.5rem] p-10 shadow-2xl">
+                                <h3 className="text-2xl font-black text-white italic uppercase mb-6">Transacciones Recientes</h3>
+                                <div className="space-y-3">
+                                    {transactions.length > 0 ? (
+                                        transactions.map((tx: any) => (
+                                            <div key={tx.id} className="bg-slate-900/50 border border-slate-700 p-5 rounded-2xl flex justify-between items-center">
+                                                <div>
+                                                    <p className="font-black text-white text-sm">{tx.profiles?.first_name || 'Usuario'}</p>
+                                                    <p className="text-xs text-slate-500 font-mono">{tx.payment_id}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="font-black text-emerald-400">${tx.amount} MXN</p>
+                                                    <p className="text-xs text-slate-500">{new Date(tx.created_at).toLocaleDateString()}</p>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-center py-12 bg-slate-900/30 border-2 border-dashed border-slate-800 rounded-2xl">
+                                            <CreditCard className="w-12 h-12 text-slate-700 mx-auto mb-3" />
+                                            <p className="text-xs text-slate-600 font-black uppercase tracking-widest">No hay transacciones registradas</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { SpeedInsights } from "@vercel/speed-insights/react"
 import { LoginPage } from './features/auth/pages/LoginPage'
 import { RegisterPage } from './features/auth/pages/RegisterPage'
 import { DashboardLayout } from './components/layout/DashboardLayout'
@@ -90,8 +91,8 @@ function App() {
             <SuperAdminDashboard />
           </ProtectedRoute>
         } />
-        <Route path="/login" element={!session ? <LoginPage /> : <Navigate to="/" />} />
-        <Route path="/register" element={!session ? <RegisterPage /> : <Navigate to="/" />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
         <Route path="/select-role" element={session ? <RoleSelectionPage /> : <Navigate to="/login" />} />
         <Route
           path="/"
@@ -204,6 +205,7 @@ function App() {
           } />
         </Route>
       </Routes>
+      <SpeedInsights />
     </Router>
   )
 }

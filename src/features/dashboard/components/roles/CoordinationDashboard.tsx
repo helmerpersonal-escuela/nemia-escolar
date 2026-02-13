@@ -51,13 +51,19 @@ export const CoordinationDashboard = () => {
                 .limit(5)
 
             // 1b. Fetch School Details for CTE Config
-            const { data: schoolDetails } = await supabase
-                .from('school_details')
-                .select('cte_config')
-                .eq('tenant_id', tenant.id)
-                .maybeSingle()
+            try {
+                const { data: schoolDetails, error: detailsError } = await supabase
+                    .from('school_details')
+                    .select('*')
+                    .eq('tenant_id', tenant.id)
+                    .maybeSingle()
 
-            if (schoolDetails?.cte_config) setCteConfig(schoolDetails.cte_config)
+                if (!detailsError && schoolDetails?.cte_config) {
+                    setCteConfig(schoolDetails.cte_config)
+                }
+            } catch (err) {
+                // Ignore missing table/column errors
+            }
 
             if (error) throw error
 

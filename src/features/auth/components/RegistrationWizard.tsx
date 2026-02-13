@@ -64,7 +64,7 @@ export const RegistrationWizard = () => {
     const [formData, setFormData] = useState({
         // Step 1: School Info
         schoolName: '',
-        educationalLevel: 'PRIMARY',
+        educationalLevel: 'SECONDARY',
         cct: '',
         phone: '',
         address: '',
@@ -264,11 +264,8 @@ export const RegistrationWizard = () => {
                                     value={formData.educationalLevel}
                                     onChange={(e) => setFormData({ ...formData, educationalLevel: e.target.value })}
                                 >
-                                    <option value="PRESCHOOL">Preescolar</option>
-                                    <option value="PRIMARY">Primaria</option>
                                     <option value="SECONDARY">Secundaria</option>
-                                    <option value="HIGH_SCHOOL">Bachillerato</option>
-                                    <option value="UNIVERSITY">Universidad</option>
+                                    <option value="TELESECUNDARIA">Telesecundaria</option>
                                 </select>
                             </div>
                             <div>
@@ -329,7 +326,7 @@ export const RegistrationWizard = () => {
                     {currentStep === 3 && (
                         <div className="space-y-6">
                             <h2 className="text-xl font-semibold">Mis Materias</h2>
-                            <p className="text-sm text-gray-500">Selecciona las materias que impartes. Si eres maestro de grupo (Primaria), selecciona todas las de tu grado.</p>
+                            <p className="text-sm text-gray-500">Selecciona las materias que impartes en tu grado.</p>
 
                             <SubjectSelector
                                 educationalLevel={formData.educationalLevel}
@@ -347,7 +344,7 @@ export const RegistrationWizard = () => {
                             </div>
 
                             <div className="grid grid-cols-3 gap-3">
-                                {['1', '2', '3', '4', '5', '6'].map(grade => (
+                                {['1', '2', '3'].map(grade => (
                                     <button
                                         key={grade}
                                         onClick={() => toggleGrade(grade)}
@@ -458,10 +455,9 @@ export const RegistrationWizard = () => {
 
                 <div className="mt-8 flex justify-between pt-4 border-t border-gray-100">
                     <button
-                        onClick={async () => {
-                            if (confirm('¿Estás seguro de que quieres cancelar el registro? Se cerrará tu sesión.')) {
-                                await supabase.auth.signOut()
-                                navigate('/login')
+                        onClick={() => {
+                            if (confirm('¿Estás seguro de que quieres cancelar el registro actual? Podrás volver a elegir entre Docente Independiente o Institución.')) {
+                                navigate('/register')
                             }
                         }}
                         className="px-4 py-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"

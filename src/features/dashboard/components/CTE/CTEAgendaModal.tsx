@@ -36,9 +36,9 @@ export const CTEAgendaModal = ({ isOpen, onClose, canEdit = false }: CTEAgendaMo
         try {
             const { data, error } = await supabase
                 .from('school_details')
-                .select('cte_config')
+                .select('*')
                 .eq('tenant_id', tenant?.id)
-                .single()
+                .maybeSingle()
 
             if (error) throw error
 

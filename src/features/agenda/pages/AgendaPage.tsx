@@ -11,6 +11,8 @@ import { useRef } from 'react'
 export const AgendaPage = () => {
     const { data: tenant } = useTenant()
     const { profile } = useProfile()
+    const userRole = (tenant as any)?.role || profile?.role
+    const isIndependent = (tenant as any)?.type === 'INDEPENDENT'
     const [currentDate, setCurrentDate] = useState(new Date())
     const [events, setEvents] = useState<any[]>([])
     const [importing, setImporting] = useState(false)
@@ -347,7 +349,7 @@ export const AgendaPage = () => {
                                 accept=".ics"
                                 className="hidden"
                             />
-                            {['DIRECTOR', 'ADMIN'].includes(profile?.role || '') && (
+                            {(['DIRECTOR', 'ADMIN', 'INDEPENDENT_TEACHER'].includes(userRole || '') || isIndependent) && (
                                 <button
                                     onClick={() => fileInputRef.current?.click()}
                                     disabled={importing}
@@ -361,7 +363,7 @@ export const AgendaPage = () => {
                                     Importar
                                 </button>
                             )}
-                            {['DIRECTOR', 'ADMIN'].includes(profile?.role || '') && (
+                            {(['DIRECTOR', 'ADMIN', 'INDEPENDENT_TEACHER'].includes(userRole || '') || isIndependent) && (
                                 <button
                                     onClick={async () => {
                                         const title = window.prompt('Título del evento escolar:')
@@ -553,7 +555,7 @@ export const AgendaPage = () => {
                                     Agregar Evento Personal
                                 </button>
 
-                                {['DIRECTOR', 'ADMIN'].includes(profile?.role || '') && (
+                                {(['DIRECTOR', 'ADMIN', 'INDEPENDENT_TEACHER'].includes(userRole || '') || isIndependent) && (
                                     <button
                                         onClick={() => {
                                             handleAddSchoolEvent(focusedDate)
@@ -652,7 +654,7 @@ export const AgendaPage = () => {
 
                             <div className="p-3 md:p-4 bg-gray-50 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-3 shrink-0">
                                 <div className="w-full md:w-auto flex justify-center md:justify-start">
-                                    {(selectedEvent.type === 'PERSONAL' || (['SEP', 'DIRECTION'].includes(selectedEvent.type) && ['DIRECTOR', 'ADMIN'].includes(profile?.role || ''))) && (
+                                    {(selectedEvent.type === 'PERSONAL' || (['SEP', 'DIRECTION'].includes(selectedEvent.type) && (['DIRECTOR', 'ADMIN', 'INDEPENDENT_TEACHER'].includes(userRole || '') || isIndependent))) && (
                                         <button
                                             onClick={() => handleDeleteEvent(selectedEvent)}
                                             className="flex items-center px-4 py-2 text-rose-600 hover:bg-rose-50 rounded-xl text-xs font-bold uppercase tracking-wider transition-all"

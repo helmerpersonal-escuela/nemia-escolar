@@ -76,7 +76,7 @@ const NATIONAL_STRATEGIES = [
     { id: 'genero', name: 'Estrategia Nacional para la Igualdad de Género' }
 ]
 
-const NIVELES_CATALOG = ['PREESCOLAR', 'PRIMARIA', 'SECUNDARIA', 'TELESECUNDARIA']
+const NIVELES_CATALOG = ['SECUNDARIA', 'TELESECUNDARIA']
 const MODALIDADES_CATALOG = ['GENERAL', 'INDÍGENA', 'TÉCNICA', 'TELESECUNDARIA']
 const SOSTENIMIENTO_CATALOG = ['FEDERAL', 'ESTATAL', 'PARTICULAR']
 const TURNOS_CATALOG = ['MATUTINO', 'VESPERTINO', 'NOCTURNO', 'TIEMPO COMPLETO']
@@ -87,18 +87,10 @@ const ESTADOS_CATALOG = [
     'TAMAULIPAS', 'TLAXCALA', 'VERACRUZ', 'YUCATÁN', 'ZACATECAS'
 ]
 
-const getPhase = (level: string, grades: string): number => {
+const getPhase = (level: string): number => {
     const lvl = level.toUpperCase()
-    if (lvl === 'INICIAL') return 1
-    if (lvl === 'PREESCOLAR') return 2
     if (lvl === 'SECUNDARIA' || lvl === 'TELESECUNDARIA') return 6
-
-    // Primaria
-    if (grades.includes('1') || grades.includes('2')) return 3
-    if (grades.includes('3') || grades.includes('4')) return 4
-    if (grades.includes('5') || grades.includes('6')) return 5
-
-    return 3 // Default Primaria
+    return 6 // Default to Phase 6 for Secundaria
 }
 
 export const AnalyticalProgramEditorPage = () => {
@@ -131,7 +123,7 @@ export const AnalyticalProgramEditorPage = () => {
         school_data: {
             name: '',
             cct: '',
-            level: 'Primaria',
+            level: 'Secundaria',
             modality: 'General',
             support: 'Federal',
             grades: '',
@@ -195,7 +187,7 @@ export const AnalyticalProgramEditorPage = () => {
     const [syntheticCatalog, setSyntheticCatalog] = useState<any[]>([])
     const [cycles, setCycles] = useState<any[]>([])
 
-    const currentPhase = getPhase(formData.school_data.level, formData.school_data.grades)
+    const currentPhase = getPhase(formData.school_data.level)
 
     useEffect(() => {
         const fetchSynthetic = async () => {
@@ -272,22 +264,12 @@ export const AnalyticalProgramEditorPage = () => {
                 console.log('Initializing NEW program mode')
                 // Pre-fill school data from tenant and aggregation
                 const levelMap: Record<string, string> = {
-                    'PRESCHOOL': 'Preescolar',
-                    'PRIMARY': 'Primaria',
                     'SECONDARY': 'Secundaria',
-                    'HIGH_SCHOOL': 'Bachillerato',
-                    'UNIVERSIDAD': 'Universidad',
-                    'UNIVERSITY': 'Universidad',
-                    'PREESCOLAR': 'Preescolar',
-                    'PRIMARIA': 'Primaria',
-                    'SECUNDARIA': 'Secundaria',
-                    'TELESECUNDARIA': 'Telesecundaria',
-                    'BACHILLERATO': 'Bachillerato',
-                    'INICIAL': 'Inicial'
+                    'TELESECUNDARIA': 'Telesecundaria'
                 }
 
                 const educationalLevel = schoolDetails?.educational_level || tenant.educationalLevel as string || ''
-                const mappedLevel = levelMap[educationalLevel.toUpperCase()] || educationalLevel || 'Primaria'
+                const mappedLevel = levelMap[educationalLevel.toUpperCase()] || educationalLevel || 'Secundaria'
 
                 // Default cycle to the newest one if available
                 const defaultCycle = cyclesRes.data && cyclesRes.data.length > 0 ? cyclesRes.data[0].id : ''
@@ -920,9 +902,11 @@ export const AnalyticalProgramEditorPage = () => {
                     Volver Listado
                 </button>
                 <div className="flex items-center space-x-4">
-                    <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
-                        Sesión Permanente NEM
-                    </span>
+                    {!isIndependent && (
+                        <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
+                            Sesión Permanente NEM
+                        </span>
+                    )}
                     {isDirectorOrAdmin && (
                         <button
                             onClick={() => handleSave()}
@@ -1994,7 +1978,7 @@ export const AnalyticalProgramEditorPage = () => {
                                             }`}
                                     >
                                         <Save className="w-4 h-4 mr-2" />
-                                        Finalizar y Cerrar Sesión CTE
+                                        {isIndependent ? 'Finalizar y Guardar Programa' : 'Finalizar y Cerrar Sesión CTE'}
                                     </button>
                                 )}
                             </div>

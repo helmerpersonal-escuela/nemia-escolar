@@ -31,7 +31,7 @@ export const SubjectSelector = ({ educationalLevel, selectedSubjects, onChange, 
             const { data } = await supabase
                 .from('subject_catalog')
                 .select('*')
-                .or(`educational_level.eq.${educationalLevel},educational_level.eq.BOTH`)
+                .or(`educational_level.eq.${educationalLevel}${educationalLevel === 'TELESECUNDARIA' ? ',educational_level.eq.SECONDARY' : ''},educational_level.eq.BOTH`)
                 .order('field_of_study')
 
             if (data) setAvailableSubjects(data)

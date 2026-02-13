@@ -126,12 +126,6 @@ export const RubricAIModal = ({ isOpen, onClose, onGenerate }: RubricAIModalProp
                             className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 bg-white"
                         >
                             <option value="">Seleccionar grado...</option>
-                            <option value="1° Primaria">1° Primaria</option>
-                            <option value="2° Primaria">2° Primaria</option>
-                            <option value="3° Primaria">3° Primaria</option>
-                            <option value="4° Primaria">4° Primaria</option>
-                            <option value="5° Primaria">5° Primaria</option>
-                            <option value="6° Primaria">6° Primaria</option>
                             <option value="1° Secundaria">1° Secundaria</option>
                             <option value="2° Secundaria">2° Secundaria</option>
                             <option value="3° Secundaria">3° Secundaria</option>

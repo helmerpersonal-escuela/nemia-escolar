@@ -484,6 +484,11 @@ export const DashboardLayout = () => {
     const workspaceType = (tenant as any)?.type || 'SCHOOL'
     let currentRole: string = (tenant as any)?.role || 'TEACHER'
 
+    // Robust Role Enforcement for Independent Workspaces
+    if (workspaceType === 'INDEPENDENT') {
+        currentRole = 'INDEPENDENT_TEACHER'
+    }
+
     // Robust Role Fallback: If it's an Independent workspace, always ensure Teacher context
     // REMOVED: We now have a dedicated INDEPENDENT_TEACHER menu support
     // if (workspaceType === 'INDEPENDENT' && currentRole !== 'TEACHER') {

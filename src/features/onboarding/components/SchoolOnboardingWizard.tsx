@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
 import {
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react'
 
 export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void }) => {
+    const navigate = useNavigate()
     const { data: tenant } = useTenant()
     const [step, setStep] = useState(0)
     const [loading, setLoading] = useState(false)
@@ -52,7 +54,7 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
         },
 
         // 4. Academic
-        educational_level: 'SECUNDARIA TÉCNICA',
+        educational_level: 'SECONDARY',
         curriculum_plan: 'PLAN 2022 (NEM)',
         workshops: [] as string[],
         current_cycle_start: '2025-08-25',
@@ -389,10 +391,8 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                                     value={formData.educational_level}
                                     onChange={v => setFormData({ ...formData, educational_level: v })}
                                     options={[
-                                        { label: 'Secundaria General', value: 'SECUNDARIA GENERAL' },
-                                        { label: 'Secundaria Técnica', value: 'SECUNDARIA TÉCNICA' },
-                                        { label: 'Telesecundaria', value: 'TELESECUNDARIA' },
-                                        { label: 'Bachillerato', value: 'BACHILLERATO' }
+                                        { label: 'Secundaria', value: 'SECONDARY' },
+                                        { label: 'Telesecundaria', value: 'TELESECUNDARIA' }
                                     ]}
                                 />
                                 <SelectField
@@ -496,13 +496,25 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
 
                     {/* Navigation */}
                     <div className="mt-16 flex justify-between items-center bg-slate-50/80 -mx-12 -mb-12 p-8 border-t border-slate-100">
-                        <button
-                            onClick={() => setStep(step - 1)}
-                            disabled={step === 0}
-                            className={`flex items-center font-black text-sm uppercase tracking-widest px-8 py-4 rounded-2xl transition-all ${step === 0 ? 'opacity-0' : 'text-slate-400 hover:text-slate-600 hover:bg-white'}`}
-                        >
-                            <ArrowLeft className="w-5 h-5 mr-3" /> Atrás
-                        </button>
+                        {step === 0 ? (
+                            <button
+                                onClick={() => {
+                                    if (confirm('¿Deseas cancelar la configuración institucional y volver a la selección de modo?')) {
+                                        navigate('/register')
+                                    }
+                                }}
+                                className="flex items-center font-black text-sm uppercase tracking-widest px-8 py-4 rounded-2xl text-red-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                            >
+                                <ArrowLeft className="w-5 h-5 mr-3" /> Cancelar
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => setStep(step - 1)}
+                                className="flex items-center font-black text-sm uppercase tracking-widest px-8 py-4 rounded-2xl text-slate-400 hover:text-slate-600 hover:bg-white transition-all"
+                            >
+                                <ArrowLeft className="w-5 h-5 mr-3" /> Atrás
+                            </button>
+                        )}
                         <button
                             onClick={handleSaveStep}
                             className="bg-blue-600 hover:bg-blue-500 text-white font-black text-sm uppercase tracking-widest px-12 py-5 rounded-[2rem] shadow-2xl shadow-blue-200 transition-all active:scale-95 flex items-center"

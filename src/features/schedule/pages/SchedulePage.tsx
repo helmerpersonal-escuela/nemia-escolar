@@ -11,12 +11,14 @@ import { ScheduleSettingsForm } from '../components/ScheduleSettingsForm'
 export const SchedulePage = () => {
     const { data: tenant } = useTenant()
     const { profile } = useProfile()
+    const userRole = (tenant as any)?.role || profile?.role
+    const isIndependent = (tenant as any)?.type === 'INDEPENDENT'
     const [isEditing, setIsEditing] = useState(false)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
-    const isTeacher = profile?.role === 'TEACHER' || profile?.role === 'INDEPENDENT_TEACHER'
-    const isStaff = ['ADMIN', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD', 'SCHOOL_CONTROL', 'INDEPENDENT_TEACHER'].includes(profile?.role || '')
+    const isTeacher = userRole === 'TEACHER' || userRole === 'INDEPENDENT_TEACHER' || isIndependent
+    const isStaff = ['ADMIN', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD', 'SCHOOL_CONTROL', 'INDEPENDENT_TEACHER'].includes(userRole || '') || isIndependent
 
     const [viewType, setViewType] = useState<'GROUP' | 'TEACHER'>('GROUP')
     const [selectedGroupId, setSelectedGroupId] = useState<string>('')
@@ -98,6 +100,7 @@ export const SchedulePage = () => {
 
             if (isTeacher && !selectedGroupId && viewType === 'GROUP') {
                 // Default teacher view filter
+                if (!profile?.id) return []
                 const { data: assignments } = await supabase
                     .from('group_subjects')
                     .select('group_id, subject_catalog_id, custom_name')

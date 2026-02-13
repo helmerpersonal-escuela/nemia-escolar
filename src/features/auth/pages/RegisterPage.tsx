@@ -131,24 +131,32 @@ export const RegisterPage = () => {
         }
     }
 
-    if (Capacitor.isNativePlatform()) {
+
+
+    // UPDATE: User requested to restrict registration to Web only.
+    // We check if it IS a native platform (iOS/Android) and block it.
+    const isNativeApp = Capacitor.isNativePlatform();
+
+    if (isNativeApp) {
         return (
             <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
                 <div className="bg-white rounded-[2.5rem] p-8 max-w-md w-full text-center shadow-2xl">
                     <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
                         <School className="w-10 h-10 text-indigo-600" />
                     </div>
-                    <h2 className="text-2xl font-black text-slate-900 mb-3">Registro Web Requerido</h2>
+                    <h2 className="text-2xl font-black text-slate-900 mb-3">Registro en Web Requerido</h2>
                     <p className="text-slate-500 font-medium mb-8 leading-relaxed">
-                        Para garantizar la seguridad y configuración correcta de tu institución, el registro de nuevas cuentas debe realizarse desde nuestra plataforma web.
+                        Para garantizar una mejor experiencia de configuración, el registro de nuevas cuentas debe realizarse desde nuestra plataforma web.
+                        <br /><br />
+                        <span className="text-xs text-slate-400">Si ya tienes cuenta, puedes iniciar sesión aquí.</span>
                     </p>
 
                     <button
-                        onClick={() => window.open('https://nemia.com/registro', '_system')}
+                        onClick={() => window.open('https://nemia.lat/registro', '_system')}
                         className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold text-lg shadow-lg shadow-indigo-200 hover:scale-[1.02] transition-transform flex items-center justify-center gap-2"
                     >
                         <User className="w-5 h-5" />
-                        Crear Cuenta en Web
+                        Ir al Portal Web
                     </button>
 
                     <div className="mt-6 pt-6 border-t border-gray-100">
@@ -198,6 +206,24 @@ export const RegisterPage = () => {
                                         ? 'Crea un ambiente de trabajo independiente o institucional'
                                         : 'Selecciona cómo deseas utilizar la plataforma'}
                                 </p>
+                                {isLoggedIn && (
+                                    <div className="mt-4 p-3 bg-gray-100/50 rounded-2xl border border-gray-100 flex items-center justify-between">
+                                        <div className="text-left">
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Sesión actual</p>
+                                            <p className="text-sm font-bold text-gray-700 truncate max-w-[150px]">{formData.email}</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                await supabase.auth.signOut();
+                                                window.location.reload();
+                                            }}
+                                            className="text-xs font-black text-indigo-600 hover:text-indigo-700 bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100 transition-all hover:scale-105 active:scale-95"
+                                        >
+                                            Cerrar Sesión
+                                        </button>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="grid grid-cols-1 gap-6">
@@ -278,9 +304,23 @@ export const RegisterPage = () => {
                                         </p>
                                     </div>
                                 ) : (
-                                    <p className="text-slate-500 text-sm font-medium">
-                                        {isLoggedIn ? 'Esta configuración será independiente de tus otros espacios' : 'Completa tus datos para comenzar'}
-                                    </p>
+                                    <div>
+                                        <p className="text-slate-500 text-sm font-medium">
+                                            {isLoggedIn ? 'Esta configuración será independiente de tus otros espacios' : 'Completa tus datos para comenzar'}
+                                        </p>
+                                        {isLoggedIn && (
+                                            <button
+                                                type="button"
+                                                onClick={async () => {
+                                                    await supabase.auth.signOut();
+                                                    window.location.reload();
+                                                }}
+                                                className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-2 hover:underline"
+                                            >
+                                                ¿No eres tú? Cerrar sesión
+                                            </button>
+                                        )}
+                                    </div>
                                 )}
                             </div>
 
@@ -336,7 +376,7 @@ export const RegisterPage = () => {
                                         required
                                         disabled={!!invitationInfo}
                                         className="block w-full pl-12 pr-4 py-3 bg-white border-2 border-gray-100 rounded-xl text-gray-900 font-bold placeholder-gray-300 focus:outline-none focus:border-indigo-500 transition-all uppercase disabled:bg-gray-50 disabled:text-gray-400"
-                                        placeholder={mode === 'INDEPENDENT' ? "ESC. PRIMARIA BENITO JUÁREZ" : "INSTITUTO CULTURAL"}
+                                        placeholder={mode === 'INDEPENDENT' ? "SECUNDARIA TÉCNICA" : "INSTITUTO SECUNDARIO"}
                                         value={formData.organizationName}
                                         onChange={handleChange}
                                     />

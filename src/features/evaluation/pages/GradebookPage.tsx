@@ -240,6 +240,15 @@ export const GradebookPage = () => {
     }, [tenant?.id, groupId, subjectId])
 
     useEffect(() => {
+        if (activeTab === 'ATTENDANCE' && students.length > 0 && !loading) {
+            const hasExisting = attendance.some(a => a.date === attendanceDate && (subjectId ? a.subject_id === subjectId : !a.subject_id))
+            if (!hasExisting && Object.keys(pendingAttendance).length === 0) {
+                handleMarkAllPresent()
+            }
+        }
+    }, [activeTab, attendance, attendanceDate, students, loading])
+
+    useEffect(() => {
         const tab = searchParams.get('tab')
         if (tab && (tab === 'EVALUATION' || tab === 'ATTENDANCE' || tab === 'REPORTS')) {
             setActiveTab(tab as any)
@@ -865,15 +874,20 @@ export const GradebookPage = () => {
                         <div className="flex items-center space-x-2">
                             {activeTab === 'ATTENDANCE' && (
                                 <button
-                                    onClick={profile?.is_demo ? undefined : handleMarkAllPresent}
-                                    className={`px-4 py-2 rounded-xl transition-all font-bold text-sm mr-2 flex items-center ${profile?.is_demo
-                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                            : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                    onClick={profile?.is_demo ? undefined : saveAttendance}
+                                    disabled={isSavingAttendance || Object.keys(pendingAttendance).length === 0 || profile?.is_demo}
+                                    className={`px-4 py-2 rounded-xl transition-all font-bold text-sm mr-2 flex items-center shadow-sm ${isSavingAttendance || Object.keys(pendingAttendance).length === 0 || profile?.is_demo
+                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-100'
+                                        : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:scale-105 active:scale-95'
                                         }`}
                                     title={profile?.is_demo ? "No disponible en modo demo" : ""}
                                 >
-                                    <Users className="w-4 h-4 mr-2" />
-                                    Marcar Todos Presentes
+                                    {isSavingAttendance ? (
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                                    ) : (
+                                        <Save className="w-4 h-4 mr-2" />
+                                    )}
+                                    {isSavingAttendance ? 'Guardando...' : 'Guardar Pase de Lista'}
                                 </button>
                             )}
                             <div className="relative">
@@ -1212,25 +1226,6 @@ export const GradebookPage = () => {
                     />
                 )
             }
-            {/* Floating Save Button for Attendance */}
-            {activeTab === 'ATTENDANCE' && !periods.find(p => p.id === selectedPeriodId)?.is_closed && (
-                <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-10 duration-500">
-                    <button
-                        onClick={profile?.is_demo ? undefined : saveAttendance}
-                        disabled={isSavingAttendance || Object.keys(pendingAttendance).length === 0 || profile?.is_demo}
-                        className={`flex items-center px-6 py-4 rounded-full shadow-2xl transition-all font-bold text-lg disabled:opacity-50 disabled:scale-100 disabled:shadow-none ring-4 ring-white/50 ${profile?.is_demo ? 'bg-gray-400 text-gray-200 cursor-not-allowed' : 'bg-gray-900 text-white hover:bg-gray-800 hover:scale-105'
-                            }`}
-                        title={profile?.is_demo ? "Guardado deshabilitado en modo demo" : ""}
-                    >
-                        {isSavingAttendance ? (
-                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-3" />
-                        ) : (
-                            <Save className="w-5 h-5 mr-2" />
-                        )}
-                        {isSavingAttendance ? 'Guardando...' : 'Guardar Pase de Lista'}
-                    </button>
-                </div>
-            )}
         </div >
     )
 }

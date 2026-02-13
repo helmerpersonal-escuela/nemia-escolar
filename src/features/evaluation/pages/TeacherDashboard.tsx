@@ -214,26 +214,28 @@ export const TeacherDashboard = () => {
 
                     <div className="flex flex-wrap gap-3">
                         <button
-                            onClick={() => setIsReportModalOpen(true)}
-                            className="bg-white text-slate-900 px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-3 shadow-xl group border border-slate-100"
-                        >
-                            <Printer className="w-4 h-4 text-blue-600 group-hover:rotate-12 transition-transform" />
-                            Reporte Alumno
-                        </button>
-                        <button
                             onClick={() => navigate('/groups')}
-                            className="bg-blue-600 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-3 shadow-xl group"
+                            className="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-3 shadow-xl group"
                         >
                             <BookOpen className="w-4 h-4 group-hover:scale-110 transition-transform" />
                             Libreta
                         </button>
                         <button
-                            onClick={() => setIsAgendaModalOpen(true)}
-                            className="bg-indigo-600 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center gap-3 shadow-xl group"
+                            onClick={() => setIsReportModalOpen(true)}
+                            className="bg-white text-slate-900 px-4 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-3 shadow-xl group border border-slate-100"
                         >
-                            <ClipboardList className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                            Agenda CTE
+                            <Printer className="w-4 h-4 text-blue-600 group-hover:rotate-12 transition-transform" />
+                            Informe Alumno
                         </button>
+                        {tenant?.type !== 'INDEPENDENT' && (
+                            <button
+                                onClick={() => setIsAgendaModalOpen(true)}
+                                className="bg-indigo-600 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center gap-3 shadow-xl group"
+                            >
+                                <ClipboardList className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                                Agenda CTE
+                            </button>
+                        )}
                     </div>
                 </div>
             </header>

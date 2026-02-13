@@ -71,15 +71,29 @@ serve(async (req) => {
         // 5. Store Transaction in Supabase
         // Extract metadata
         const metadata = payment.metadata || {}
-        const externalRef = payment.external_reference || "" // Format: USER_ID|TENANT_ID
+        const externalRef = payment.external_reference || ""
 
         let userId = null
         let tenantId = null
+        let planType = 'basic'
+        let isTrial = false
+        let trialDays = 0
 
-        if (externalRef.includes('|')) {
-            const parts = externalRef.split('|')
-            userId = parts[0]
-            tenantId = parts[1]
+        // Try to parse as JSON (new format)
+        try {
+            const refData = JSON.parse(externalRef)
+            userId = refData.userId
+            tenantId = refData.tenantId
+            planType = refData.planType || 'basic'
+            isTrial = refData.isTrial || false
+            trialDays = refData.trialDays || 0
+        } catch (e) {
+            // Fallback to old format: USER_ID|TENANT_ID
+            if (externalRef.includes('|')) {
+                const parts = externalRef.split('|')
+                userId = parts[0]
+                tenantId = parts[1]
+            }
         }
 
         if (!userId) {
@@ -92,13 +106,19 @@ serve(async (req) => {
             const now = new Date();
             const oneYearLater = new Date(new Date().setFullYear(now.getFullYear() + 1));
 
-            // Upsert Subscription
+            // Determine subscription status based on trial
+            const subscriptionStatus = isTrial ? 'trialing' : 'active'
+            const periodEnd = isTrial
+                ? new Date(new Date().setDate(now.getDate() + trialDays))
+                : oneYearLater
+
+            // Upsert Subscription with plan_type
             const { data: sub, error: subError } = await supabaseClient.from('subscriptions').upsert({
                 user_id: userId,
-                status: 'active',
-                plan_type: 'ANNUAL',
+                status: subscriptionStatus,
+                plan_type: planType, // 'basic' or 'pro'
                 current_period_start: now.toISOString(),
-                current_period_end: oneYearLater.toISOString(),
+                current_period_end: periodEnd.toISOString(),
                 mercadopago_customer_id: payment.payer?.id?.toString(),
                 updated_at: now.toISOString()
             }, { onConflict: 'user_id' }).select().single();

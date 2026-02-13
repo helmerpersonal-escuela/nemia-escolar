@@ -142,7 +142,14 @@ export const IndependentDashboard = () => {
                         </h1>
                     </div>
 
-                    <div className="flex flex-wrap gap-3">
+                    <div className="flex flex-wrap gap-4">
+                        <button
+                            onClick={() => navigate('/gradebook')}
+                            className="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center gap-3 shadow-xl shadow-indigo-500/20 group"
+                        >
+                            <CheckSquare className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                            Libreta
+                        </button>
                         <button
                             onClick={() => {
                                 if (profile?.is_demo) {
@@ -151,17 +158,10 @@ export const IndependentDashboard = () => {
                                 }
                                 setIsReportModalOpen(true)
                             }}
-                            className="bg-white text-slate-900 px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-50 transition-all flex items-center gap-3 shadow-xl group"
+                            className="bg-white text-slate-900 px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-3 shadow-xl group border border-slate-100"
                         >
                             <Printer className="w-4 h-4 text-indigo-600 group-hover:rotate-12 transition-transform" />
-                            Reporte para Padres
-                        </button>
-                        <button
-                            onClick={() => navigate('/groups')}
-                            className="bg-indigo-600 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center gap-3 shadow-xl group"
-                        >
-                            <BookOpen className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                            Mis Materias
+                            Informe Alumno
                         </button>
                     </div>
                 </div>

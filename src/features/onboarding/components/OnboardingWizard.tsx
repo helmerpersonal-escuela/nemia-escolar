@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
-import { Check, Users, Calendar, BookOpen, AlertCircle, Trash2, Plus, ArrowRight, School, Clock, Loader2, Coffee } from 'lucide-react'
+
+import { Check, Calendar, BookOpen, AlertCircle, Trash2, Plus, ArrowRight, School, Clock, Loader2, Coffee, ArrowLeft, CreditCard, Zap, Gift, X } from 'lucide-react'
+import { PaymentModule } from '../../../components/payment/PaymentModule'
 
 export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => {
+    const navigate = useNavigate()
     const { data: tenant } = useTenant()
-    const [step, setStep] = useState(0) // 0: School Details, 1: Cycle, 2: Groups, 3: Subjects, 4: Schedule
+    const [step, setStep] = useState(0) // 0: School Details, 1: Cycle, 2: Schedule, 3: Payment
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -14,7 +18,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
     // Step 0: School Details
     const [schoolData, setSchoolData] = useState({
         name: '',
-        educationalLevel: 'PRIMARY' as 'PRESCHOOL' | 'PRIMARY' | 'SECONDARY' | 'HIGH_SCHOOL',
+        educationalLevel: 'SECONDARY' as 'SECONDARY' | 'TELESECUNDARIA',
         cct: '',
         shift: 'MORNING' // 'MORNING', 'AFTERNOON', 'FULL_TIME'
     })
@@ -27,24 +31,26 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
     })
     const [activeYearId, setActiveYearId] = useState<string | null>(null)
 
-    // Step 2: Groups
+    // Groups will be created after onboarding based on subscription limits
     const [createdGroups, setCreatedGroups] = useState<any[]>([])
-    const [bulkGrade, setBulkGrade] = useState('1')
-    const [bulkSections, setBulkSections] = useState('A')
 
-    // Step 3: Subjects
+    // Step 2: Subjects
     const [subjectCatalog, setSubjectCatalog] = useState<any[]>([])
     const [groupSubjects, setGroupSubjects] = useState<Record<string, string[]>>({})
     // Map of groupId -> catalogId -> customDetail
     const [subjectSpecs, setSubjectSpecs] = useState<Record<string, Record<string, string>>>({})
 
-    // Step 4: Schedule
+    // Step 3: Schedule
     const [scheduleSettings, setScheduleSettings] = useState({
         startTime: '08:00',
         endTime: '14:00',
         moduleDuration: 50,
         breaks: [] as Array<{ name: string, start_time: string, end_time: string }>
     })
+
+    // Payment Modal
+    const [showPaymentModal, setShowPaymentModal] = useState(false)
+    const [currentPreferenceId, setCurrentPreferenceId] = useState('')
 
     // --- EFFECTS ---
 
@@ -53,7 +59,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
             setSchoolData(prev => ({
                 ...prev,
                 name: tenant.name?.toUpperCase() || '',
-                educationalLevel: (tenant.educationalLevel as any) || 'PRIMARY',
+                educationalLevel: (tenant.educationalLevel as any) || 'SECONDARY',
                 cct: tenant.cct || ''
             }))
         }
@@ -127,44 +133,8 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                 if (error) throw error
                 setActiveYearId(data.id)
             }
+            // Skip to subjects (step 2) since groups are created after onboarding
             setStep(2)
-        } catch (err: any) {
-            setError(err.message)
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    const handleAddGroup = async () => {
-        if (!activeYearId) return
-        setLoading(true)
-        try {
-            const { data, error } = await supabase.from('groups').insert({
-                tenant_id: tenant?.id,
-                academic_year_id: activeYearId,
-                grade: bulkGrade,
-                section: bulkSections.toUpperCase(),
-                shift: schoolData.shift
-            }).select().maybeSingle()
-
-            if (error) throw error
-            setCreatedGroups(prev => [...prev, data])
-
-            const nextSection = String.fromCharCode(bulkSections.charCodeAt(0) + 1)
-            if (/[A-Z]/.test(nextSection)) setBulkSections(nextSection)
-
-        } catch (err: any) {
-            setError(err.message)
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    const handleDeleteGroup = async (id: string) => {
-        setLoading(true)
-        try {
-            await supabase.from('groups').delete().eq('id', id)
-            setCreatedGroups(prev => prev.filter(g => g.id !== id))
         } catch (err: any) {
             setError(err.message)
         } finally {
@@ -249,10 +219,10 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                 }
             }
 
-            setStep(4)
+            setStep(2) // Go to schedule (step 2)
         } catch (err: any) {
             console.error(err)
-            setStep(4)
+            setStep(2) // Go to schedule even on error
         } finally {
             setLoading(false)
         }
@@ -279,7 +249,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
         }))
     }
 
-    const handleFinish = async () => {
+    const handleSaveSchedule = async () => {
         setLoading(true)
         try {
             await supabase.from('schedule_settings').upsert({
@@ -289,14 +259,79 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                 module_duration: scheduleSettings.moduleDuration,
                 breaks: scheduleSettings.breaks
             })
-
-            await supabase.from('tenants').update({ onboarding_completed: true }).eq('id', tenant?.id)
-            onComplete()
+            setStep(3) // Move to payment step (step 3)
         } catch (err) {
             console.error(err)
+            setError('Error al guardar la configuración de horarios')
         } finally {
             setLoading(false)
         }
+    }
+
+    const handleStartFreeTrial = async () => {
+        setLoading(true)
+        try {
+            const { data: { user } } = await supabase.auth.getUser()
+            const response = await supabase.functions.invoke('create-payment-preference', {
+                body: {
+                    title: 'Licencia Básica Anual - Prueba Gratuita 30 Días',
+                    price: 399, // Actual price (will be charged after trial)
+                    quantity: 1,
+                    userId: user?.id,
+                    tenantId: tenant?.id,
+                    planType: 'basic',
+                    isTrial: true,
+                    trialDays: 30
+                }
+            })
+
+            if (response.error) throw response.error
+
+            const { preferenceId } = response.data
+            // Show payment modal instead of redirecting
+            setCurrentPreferenceId(preferenceId)
+            setShowPaymentModal(true)
+        } catch (error: any) {
+            console.error('Error creating trial preference:', error)
+            setError('Error al iniciar el periodo de prueba: ' + error.message)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleActivateSubscription = async () => {
+        setLoading(true)
+        try {
+            const { data: { user } } = await supabase.auth.getUser()
+            const response = await supabase.functions.invoke('create-payment-preference', {
+                body: {
+                    title: 'Licencia PRO Anual - Sistema Escolar',
+                    price: 599,
+                    quantity: 1,
+                    userId: user?.id,
+                    tenantId: tenant?.id,
+                    planType: 'pro'
+                }
+            })
+
+            if (response.error) throw response.error
+
+            const { preferenceId } = response.data
+            // Show payment modal instead of redirecting
+            setCurrentPreferenceId(preferenceId)
+            setShowPaymentModal(true)
+        } catch (error: any) {
+            console.error('Error creating preference:', error)
+            setError('Error al iniciar el proceso de pago: ' + error.message)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handlePaymentSuccess = async () => {
+        // Mark onboarding as completed
+        await supabase.from('tenants').update({ onboarding_completed: true }).eq('id', tenant?.id)
+        onComplete()
     }
 
     return (
@@ -335,7 +370,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                     <div className="animate-in fade-in slide-in-from-right duration-500 max-w-lg mx-auto">
                         <div className="text-center mb-10">
                             <div className="inline-flex items-center justify-center p-4 bg-blue-100 rounded-3xl text-blue-600 mb-4">
-                                {tenant?.type === 'INDEPENDENT' ? <Users className="w-8 h-8" /> : <School className="w-8 h-8" />}
+                                <School className="w-8 h-8" />
                             </div>
                             <h2 className="text-3xl font-black text-gray-900 leading-tight">
                                 {tenant?.type === 'INDEPENDENT' ? 'Personaliza tu Espacio Docente' : 'Configuración de la Institución'}
@@ -357,25 +392,26 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                                     value={schoolData.name}
                                     onChange={(e) => setSchoolData({ ...schoolData, name: e.target.value.toUpperCase() })}
                                     className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-gray-800"
-                                    placeholder={tenant?.type === 'INDEPENDENT' ? 'EJ: MIS CLASES PARTICULARES' : 'EJ: ESCUELA PRIMARIA BENITO JUAREZ'}
+                                    placeholder={tenant?.type === 'INDEPENDENT' ? 'EJ: MIS CLASES PARTICULARES' : 'EJ: ESCUELA SECUNDARIA TÉCNICA'}
                                 />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                                <div>
+                                <div className="md:col-span-2">
                                     <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">
                                         Nivel Educativo
                                     </label>
-                                    <select
-                                        value={schoolData.educationalLevel}
-                                        onChange={(e) => setSchoolData({ ...schoolData, educationalLevel: e.target.value as any })}
-                                        className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-gray-800 appearance-none"
-                                    >
-                                        <option value="PRESCHOOL">Preescolar</option>
-                                        <option value="PRIMARY">Primaria</option>
-                                        <option value="SECONDARY">Secundaria</option>
-                                        <option value="HIGH_SCHOOL">Preparatoria</option>
-                                    </select>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {['SECONDARY', 'TELESECUNDARIA'].map(l => (
+                                            <button
+                                                key={l}
+                                                onClick={() => setSchoolData({ ...schoolData, educationalLevel: l as any })}
+                                                className={`py-4 rounded-2xl border-2 text-sm font-black transition-all ${schoolData.educationalLevel === l ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-md shadow-indigo-100' : 'border-slate-100 text-slate-400 hover:border-slate-200'}`}
+                                            >
+                                                {l === 'SECONDARY' ? 'Secundaria' : 'Telesecundaria'}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">
@@ -402,24 +438,23 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                                     <option value="FULL_TIME">Tiempo Completo</option>
                                 </select>
                             </div>
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold text-slate-500 uppercase ml-1">Nivel Educativo</label>
-                                <div className="grid grid-cols-2 gap-3">
-                                    {['PRESCHOOL', 'PRIMARY', 'SECONDARY', 'HIGH_SCHOOL'].map(l => (
-                                        <button
-                                            key={l}
-                                            onClick={() => setSchoolData({ ...schoolData, educationalLevel: l as any })}
-                                            className={`py-4 rounded-2xl border-2 text-sm font-black transition-all ${schoolData.educationalLevel === l ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-md shadow-indigo-100' : 'border-slate-100 text-slate-400 hover:border-slate-200'}`}
-                                        >
-                                            {l === 'PRESCHOOL' ? 'Preescolar' : l === 'PRIMARY' ? 'Primaria' : l === 'SECONDARY' ? 'Secundaria' : 'Bachillerato'}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
 
-                            <button onClick={handleUpdateSchool} className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black text-lg mt-4 hover:bg-indigo-700 shadow-xl shadow-indigo-200 hover:-translate-y-0.5 active:translate-y-0 transition-all uppercase tracking-widest flex items-center justify-center gap-3">
-                                Continuar <ArrowRight className="w-5 h-5" />
-                            </button>
+
+                            <div className="flex gap-4 mt-6">
+                                <button
+                                    onClick={() => {
+                                        if (confirm('¿Deseas cancelar la configuración y volver a la selección de modo?')) {
+                                            navigate('/register')
+                                        }
+                                    }}
+                                    className="flex-1 py-5 bg-white border-2 border-slate-100 text-slate-400 rounded-2xl font-black text-lg hover:border-red-100 hover:text-red-500 transition-all uppercase tracking-widest flex items-center justify-center gap-3"
+                                >
+                                    <ArrowLeft className="w-5 h-5" /> Cancelar
+                                </button>
+                                <button onClick={handleUpdateSchool} className="flex-[2] py-5 bg-indigo-600 text-white rounded-2xl font-black text-lg hover:bg-indigo-700 shadow-xl shadow-indigo-200 hover:-translate-y-0.5 active:translate-y-0 transition-all uppercase tracking-widest flex items-center justify-center gap-3">
+                                    Continuar <ArrowRight className="w-5 h-5" />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -453,169 +488,13 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                                 </div>
                             </div>
                             <button onClick={handleCreateYear} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-lg mt-4 hover:bg-blue-700 shadow-xl shadow-blue-200 hover:-translate-y-0.5 active:translate-y-0 transition-all uppercase tracking-widest flex items-center justify-center gap-3">
-                                Configurar Grupos <ArrowRight className="w-5 h-5" />
+                                Continuar <ArrowRight className="w-5 h-5" />
                             </button>
                         </div>
                     </div>
                 )}
 
                 {step === 2 && (
-                    <div className="animate-in fade-in slide-in-from-right duration-500 max-w-lg mx-auto">
-                        <div className="text-center mb-8">
-                            <div className="inline-flex p-4 bg-emerald-50 rounded-[2rem] text-emerald-600 mb-4 border-2 border-emerald-100">
-                                <Users className="w-10 h-10" />
-                            </div>
-                            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Mis Grupos</h2>
-                            <p className="text-slate-500 font-medium">Agrega los grupos que estarán a tu cargo</p>
-                        </div>
-
-                        <div className="bg-slate-50/80 p-6 rounded-[2rem] mb-8 flex items-end gap-3 border border-slate-100">
-                            <div className="flex-1 space-y-1">
-                                <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Grado</label>
-                                <select value={bulkGrade} onChange={e => setBulkGrade(e.target.value)} className="w-full p-4 rounded-2xl border border-slate-200 font-black bg-white appearance-none text-slate-700">
-                                    {[1, 2, 3, 4, 5, 6].map(g => <option key={g} value={g}>{g}° Grado</option>)}
-                                </select>
-                            </div>
-                            <div className="flex-1 space-y-1">
-                                <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Sección</label>
-                                <input value={bulkSections} onChange={e => setBulkSections(e.target.value.toUpperCase())} className="w-full p-4 rounded-2xl border border-slate-200 font-black text-center bg-white" maxLength={1} />
-                            </div>
-                            <button onClick={handleAddGroup} className="p-4 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 shadow-lg shadow-emerald-100 transition-all hover:scale-105 active:scale-95">
-                                <Plus className="w-8 h-8" />
-                            </button>
-                        </div>
-
-                        <div className="space-y-3 mb-8 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
-                            {createdGroups.map(g => (
-                                <div key={g.id} className="group flex justify-between items-center p-5 bg-white border-2 border-slate-50 rounded-2xl shadow-sm hover:border-emerald-200 hover:shadow-md transition-all">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-black text-xl">
-                                            {g.grade}{g.section}
-                                        </div>
-                                        <div>
-                                            <span className="font-black text-slate-800 text-lg uppercase">{g.grade}° de {schoolData.educationalLevel === 'PRIMARY' ? 'Primaria' : 'Secundaria'}</span>
-                                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">{g.shift === 'MORNING' ? 'Turno Matutino' : 'Turno Vespertino'}</p>
-                                        </div>
-                                    </div>
-                                    <button onClick={() => handleDeleteGroup(g.id)} className="p-2 text-slate-300 hover:text-red-500 transition-colors">
-                                        <Trash2 className="w-5 h-5" />
-                                    </button>
-                                </div>
-                            ))}
-                            {createdGroups.length === 0 && (
-                                <div className="text-center py-12 border-2 border-dashed border-slate-100 rounded-[2rem]">
-                                    <p className="text-slate-400 font-bold italic">Agrega tu primer grupo para continuar</p>
-                                </div>
-                            )}
-                        </div>
-
-                        <button onClick={() => setStep(3)} disabled={createdGroups.length === 0} className="w-full py-5 bg-emerald-600 text-white rounded-2xl font-black text-lg shadow-xl shadow-emerald-100 disabled:opacity-50 transition-all">
-                            Siguiente ({createdGroups.length} {createdGroups.length === 1 ? 'Grupo' : 'Grupos'})
-                        </button>
-                    </div>
-                )}
-
-                {step === 3 && (
-                    <div className="animate-in fade-in slide-in-from-right duration-500">
-                        <div className="text-center mb-8">
-                            <div className="inline-flex p-4 bg-purple-50 rounded-[2rem] text-purple-600 mb-4 border-2 border-purple-100">
-                                <BookOpen className="w-10 h-10" />
-                            </div>
-                            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Contenidos y Materias</h2>
-                            <p className="text-slate-500 font-medium">Asigna las disciplinas a cada grupo</p>
-                        </div>
-
-                        <div className="flex justify-center mb-10">
-                            <button onClick={handleAssignAllSubjects} className="px-6 py-3 bg-indigo-50 text-indigo-700 rounded-full font-black text-sm hover:bg-indigo-100 transition-all flex items-center gap-2 border border-indigo-200">
-                                ✨ Carga Rápida NEM (Asignar materias oficiales)
-                            </button>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[450px] overflow-y-auto pr-4 custom-scrollbar">
-                            {createdGroups.map(g => {
-                                const assignedIds = groupSubjects[g.id] || []
-                                return (
-                                    <div key={g.id} className="p-6 bg-slate-50/50 border-2 border-slate-100 rounded-[2rem] space-y-4">
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-black text-slate-700">
-                                                {g.grade}{g.section}
-                                            </div>
-                                            <h3 className="font-black text-slate-800 text-lg uppercase tracking-tight">{g.grade}° "{g.section}"</h3>
-                                        </div>
-
-                                        <div className="space-y-4">
-                                            <div className="relative">
-                                                <select
-                                                    onChange={(e) => {
-                                                        if (e.target.value) {
-                                                            const current = groupSubjects[g.id] || []
-                                                            if (!current.includes(e.target.value)) {
-                                                                setGroupSubjects({ ...groupSubjects, [g.id]: [...current, e.target.value] })
-                                                            }
-                                                        }
-                                                    }}
-                                                    className="w-full p-4 rounded-xl border border-slate-200 bg-white font-bold text-sm text-slate-600 outline-none focus:border-indigo-400 appearance-none"
-                                                >
-                                                    <option value="">+ Agregar Materia</option>
-                                                    {subjectCatalog.map(s => (
-                                                        <option key={s.id} value={s.id}>{s.name}</option>
-                                                    ))}
-                                                </select>
-                                                <Plus className="absolute right-4 top-4 w-4 h-4 text-slate-400 pointer-events-none" />
-                                            </div>
-
-                                            <div className="flex flex-wrap gap-2">
-                                                {assignedIds.map(subId => {
-                                                    const catalogItem = subjectCatalog.find(s => s.id === subId)
-                                                    const requiresSpec = catalogItem?.requires_specification
-                                                    return (
-                                                        <div key={subId} className="w-full bg-white p-4 rounded-xl border border-slate-100 shadow-sm space-y-3">
-                                                            <div className="flex justify-between items-center">
-                                                                <span className="text-sm font-black text-slate-700 uppercase">{catalogItem?.name}</span>
-                                                                <button
-                                                                    onClick={() => {
-                                                                        const filtered = assignedIds.filter(id => id !== subId)
-                                                                        setGroupSubjects({ ...groupSubjects, [g.id]: filtered })
-                                                                    }}
-                                                                    className="text-red-300 hover:text-red-500"
-                                                                >
-                                                                    <Trash2 className="w-4 h-4" />
-                                                                </button>
-                                                            </div>
-                                                            {requiresSpec && (
-                                                                <input
-                                                                    type="text"
-                                                                    placeholder="Ej: Carpintería, Informática, Danza..."
-                                                                    value={subjectSpecs[g.id]?.[subId] || ''}
-                                                                    onChange={(e) => {
-                                                                        setSubjectSpecs({
-                                                                            ...subjectSpecs,
-                                                                            [g.id]: {
-                                                                                ...(subjectSpecs[g.id] || {}),
-                                                                                [subId]: e.target.value.toUpperCase()
-                                                                            }
-                                                                        })
-                                                                    }}
-                                                                    className="w-full text-xs p-3 border-2 border-indigo-50 bg-indigo-50/30 rounded-lg focus:border-indigo-200 focus:outline-none font-bold placeholder:text-indigo-300"
-                                                                />
-                                                            )}
-                                                        </div>
-                                                    )
-                                                })}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )
-                            })}
-                        </div>
-
-                        <button onClick={handleSaveSubjects} className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black text-lg mt-10 shadow-xl shadow-indigo-100 hover:bg-indigo-700">
-                            Configurar Horario <ArrowRight className="w-5 h-5 inline-block ml-2" />
-                        </button>
-                    </div>
-                )}
-
-                {step === 4 && (
                     <div className="animate-in fade-in slide-in-from-right duration-500">
                         <div className="text-center mb-10">
                             <div className="inline-flex p-4 bg-orange-50 rounded-[2rem] text-orange-600 mb-4 border-2 border-orange-100">
@@ -696,13 +575,168 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                             </div>
                         </div>
 
-                        <button onClick={handleFinish} className="w-full py-6 bg-slate-900 text-white rounded-[2rem] font-black text-xl mt-12 hover:bg-black shadow-2xl shadow-slate-300 transform hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-4 tracking-widest uppercase">
-                            🎉 Finalizar Configuración y Entrar
+                        <button onClick={handleSaveSchedule} className="w-full py-6 bg-indigo-600 text-white rounded-[2rem] font-black text-xl mt-12 hover:bg-indigo-700 shadow-2xl shadow-indigo-300 transform hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-4 tracking-widest uppercase">
+                            Continuar <ArrowRight className="w-6 h-6" />
                         </button>
                     </div>
                 )}
 
+                {step === 3 && (
+                    <div className="animate-in fade-in slide-in-from-right duration-500 max-w-2xl mx-auto">
+                        <div className="text-center mb-10">
+                            <div className="inline-flex p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-[2rem] text-indigo-600 mb-4 border-2 border-indigo-100">
+                                <CreditCard className="w-10 h-10" />
+                            </div>
+                            <h2 className="text-3xl font-black text-slate-900 tracking-tight">¡Ya casi terminamos!</h2>
+                            <p className="text-slate-500 font-medium mt-2">Elige cómo quieres comenzar tu experiencia</p>
+                        </div>
+
+                        {error && (
+                            <div className="mb-6 p-4 bg-red-50 border-2 border-red-200 rounded-2xl flex items-start gap-3">
+                                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                                <p className="text-sm text-red-700 font-medium">{error}</p>
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                            {/* Free Trial Option - Basic Plan */}
+                            <div className="relative group">
+                                <div className="absolute -inset-1 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-[2rem] opacity-20 group-hover:opacity-30 transition-opacity"></div>
+                                <div className="relative bg-white p-8 rounded-[2rem] border-2 border-blue-100 hover:border-blue-300 transition-all h-full flex flex-col">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="p-3 bg-blue-50 rounded-2xl">
+                                            <Gift className="w-8 h-8 text-blue-600" />
+                                        </div>
+                                        <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-black rounded-full uppercase tracking-wider">Básico</span>
+                                    </div>
+                                    <h3 className="text-2xl font-black text-slate-900 mb-2">Prueba Gratuita</h3>
+                                    <p className="text-slate-600 text-sm font-medium mb-6 flex-grow">
+                                        <span className="font-black text-blue-600">30 días gratis</span>, luego $399 MXN/año. Hasta 2 grupos. Cancela cuando quieras.
+                                    </p>
+                                    <ul className="space-y-3 mb-6">
+                                        <li className="flex items-start gap-2 text-sm">
+                                            <Check className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                                            <span className="text-slate-700 font-medium">Hasta 2 grupos (50 estudiantes c/u)</span>
+                                        </li>
+                                        <li className="flex items-start gap-2 text-sm">
+                                            <Check className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                                            <span className="text-slate-700 font-medium">Tarjeta requerida (sin cargo inmediato)</span>
+                                        </li>
+                                        <li className="flex items-start gap-2 text-sm">
+                                            <Check className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                                            <span className="text-slate-700 font-medium">Cobro automático después de 30 días</span>
+                                        </li>
+                                    </ul>
+                                    <button
+                                        onClick={handleStartFreeTrial}
+                                        className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-lg hover:bg-blue-700 shadow-lg shadow-blue-200 transform hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <Gift className="w-5 h-5" />
+                                        Iniciar Prueba de 30 Días
+                                    </button>
+                                    <p className="text-xs text-center text-slate-500 mt-2 font-medium">
+                                        Pago de $0 hoy, luego $399 MXN después de 30 días
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Pro Subscription Option */}
+                            <div className="relative group">
+                                <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-[2rem] opacity-30 group-hover:opacity-40 transition-opacity"></div>
+                                <div className="relative bg-gradient-to-br from-indigo-50 to-purple-50 p-8 rounded-[2rem] border-2 border-indigo-200 hover:border-indigo-300 transition-all h-full flex flex-col">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="p-3 bg-indigo-100 rounded-2xl">
+                                            <Zap className="w-8 h-8 text-indigo-600" />
+                                        </div>
+                                        <span className="px-3 py-1 bg-indigo-600 text-white text-xs font-black rounded-full uppercase tracking-wider">Pro</span>
+                                    </div>
+                                    <h3 className="text-2xl font-black text-slate-900 mb-2">Activar Ahora</h3>
+                                    <p className="text-slate-700 text-sm font-medium mb-6 flex-grow">
+                                        Activa tu suscripción PRO y obtén <span className="font-black text-indigo-600">hasta 5 grupos</span> con acceso ilimitado inmediato.
+                                    </p>
+                                    <ul className="space-y-3 mb-6">
+                                        <li className="flex items-start gap-2 text-sm">
+                                            <Check className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" />
+                                            <span className="text-slate-700 font-medium">Hasta 5 grupos (50 estudiantes c/u)</span>
+                                        </li>
+                                        <li className="flex items-start gap-2 text-sm">
+                                            <Check className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" />
+                                            <span className="text-slate-700 font-medium">Soporte prioritario 24/7</span>
+                                        </li>
+                                        <li className="flex items-start gap-2 text-sm">
+                                            <Check className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" />
+                                            <span className="text-slate-700 font-medium">Actualizaciones y mejoras continuas</span>
+                                        </li>
+                                    </ul>
+                                    <div className="mb-4 p-4 bg-white/70 rounded-xl border border-indigo-100">
+                                        <div className="flex items-baseline justify-center gap-2">
+                                            <span className="text-4xl font-black text-indigo-600">$599</span>
+                                            <span className="text-slate-500 font-bold text-sm">MXN / año</span>
+                                        </div>
+                                        <p className="text-center text-xs text-slate-500 font-medium mt-1">Pago único anual</p>
+                                    </div>
+                                    <button
+                                        onClick={handleActivateSubscription}
+                                        className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-black text-lg hover:from-indigo-700 hover:to-purple-700 shadow-xl shadow-indigo-300 transform hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <Zap className="w-5 h-5" />
+                                        Activar Suscripción PRO
+                                    </button>
+                                    <p className="text-xs text-center text-slate-500 mt-2 font-medium">
+                                        Pago único de $599 MXN hoy
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div className="text-center">
+                            <p className="text-xs text-slate-400 font-medium">
+                                🔒 Conexión segura con <span className="font-black text-slate-600">Mercado Pago</span>
+                            </p>
+                            <p className="text-xs text-slate-400 font-medium mt-1">
+                                Puedes cambiar tu plan en cualquier momento desde Configuración
+                            </p>
+                        </div>
+                    </div>
+                )}
+
             </div>
+
+            {/* Custom Payment Overlay using PaymentModule */}
+            {showPaymentModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-[2rem] shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-gray-100 animate-in zoom-in-95 duration-200 relative">
+                        <div className="flex items-center justify-between p-6 border-b border-gray-100 sticky top-0 bg-white z-10">
+                            <div>
+                                <h2 className="text-xl font-black text-slate-900">Finalizar Suscripción</h2>
+                                <p className="text-xs text-slate-500 font-medium mt-1">Procesando pago seguro</p>
+                            </div>
+                            <button
+                                onClick={() => setShowPaymentModal(false)}
+                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="p-6">
+                            <PaymentModule
+                                preferenceId={currentPreferenceId}
+                                onReady={() => console.log("Payment Brick Ready")}
+                                onError={(error: any) => console.error("Payment Brick Error", error)}
+                            />
+                        </div>
+
+                        <div className="p-4 border-t border-gray-100 bg-gray-50 rounded-b-[2rem]">
+                            <p className="text-xs text-center text-slate-400 font-medium">
+                                Esta transacción está protegida con encriptación de grado bancario.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
+

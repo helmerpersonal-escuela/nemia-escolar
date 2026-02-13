@@ -51,7 +51,7 @@ export const EditGroupModal = ({ isOpen, onClose, onSuccess, group }: EditGroupM
                 const { data: catSubs } = await supabase
                     .from('subject_catalog')
                     .select('*')
-                    .eq('educational_level', tenant.educationalLevel || 'PRIMARY')
+                    .eq('educational_level', tenant.educationalLevel || 'SECONDARY')
 
                 subjectsToChoose = (catSubs || []).map((s: any) => ({
                     id: s.id,
@@ -108,14 +108,8 @@ export const EditGroupModal = ({ isOpen, onClose, onSuccess, group }: EditGroupM
     if (!isOpen) return null
 
     const getGradeOptions = () => {
-        const level = tenant?.educationalLevel || 'PRIMARY'
-        switch (level) {
-            case 'PRESCHOOL': return ['1', '2', '3']
-            case 'PRIMARY': return ['1', '2', '3', '4', '5', '6']
-            case 'SECONDARY': return ['1', '2', '3']
-            case 'HIGH_SCHOOL': return ['1', '2', '3', '4', '5', '6']
-            default: return ['1', '2', '3', '4', '5', '6']
-        }
+        // Only return 1-3 as we are restricted to Secundaria and Telesecundaria
+        return ['1', '2', '3']
     }
 
     const handleSubmit = async (e: React.FormEvent) => {

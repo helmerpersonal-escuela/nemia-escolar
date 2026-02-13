@@ -2,6 +2,8 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import Webcam from 'react-webcam'
 import { Camera, X, User, Phone, Mail, MapPin, Briefcase, HeartPulse, AlertCircle, FileText, Zap } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
+import { useSubscriptionLimits } from '../../../hooks/useSubscriptionLimits'
+import { UpgradeModal } from '../../../components/UpgradeModal'
 
 type Guardian = {
     firstName: string
@@ -69,6 +71,9 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
     const [invitingTutor, setInvitingTutor] = useState(false)
     const [invitationSent, setInvitationSent] = useState(false)
     const [invitedProfileId, setInvitedProfileId] = useState<string | null>(null)
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+    const [currentStudentCount, setCurrentStudentCount] = useState(0)
+    const limits = useSubscriptionLimits()
 
     // Form States
     const [student, setStudent] = useState<StudentForm>({
@@ -166,6 +171,20 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
         }
     }, [isOpen, studentId])
 
+    // Fetch current student count for this group
+    useEffect(() => {
+        if (isOpen && groupId && !studentId) {
+            const fetchStudentCount = async () => {
+                const { count } = await supabase
+                    .from('students')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('group_id', groupId)
+                if (count !== null) setCurrentStudentCount(count)
+            }
+            fetchStudentCount()
+        }
+    }, [isOpen, groupId, studentId])
+
     const capture = useCallback(() => {
         const imageSrc = webcamRef.current?.getScreenshot()
         if (imageSrc) {
@@ -227,6 +246,12 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
     const handleSubmit = async () => {
         if (!student.firstName || !student.lastNamePaternal || !student.lastNameMaternal) {
             alert('Nombre y Apellidos del alumno son obligatorios')
+            return
+        }
+
+        // Check student limit only when creating new student (not editing)
+        if (!studentId && currentStudentCount >= limits.maxStudentsPerGroup) {
+            setShowUpgradeModal(true)
             return
         }
 
@@ -621,6 +646,15 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                     @apply pl-10;
                 }
             `}</style>
+
+            <UpgradeModal
+                isOpen={showUpgradeModal}
+                onClose={() => setShowUpgradeModal(false)}
+                currentPlan={limits.planType}
+                currentGroups={limits.currentGroups}
+                maxGroups={limits.maxGroups}
+                reason="students"
+            />
         </div>
     )
 }

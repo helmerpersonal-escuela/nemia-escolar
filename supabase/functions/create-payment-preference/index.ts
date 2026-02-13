@@ -15,7 +15,7 @@ serve(async (req) => {
     }
 
     try {
-        const { title, price, quantity, tenantId, userId } = await req.json()
+        const { title, price, quantity, tenantId, userId, planType, isTrial, trialDays } = await req.json()
 
         // 2. Initialize Supabase
         const supabaseClient = createClient(
@@ -42,7 +42,15 @@ serve(async (req) => {
         }
 
         // 4. Create Preference in Mercado Pago
-        // Debug: Log the payload
+        // Include planType in external_reference for webhook processing
+        const externalRef = JSON.stringify({
+            userId,
+            tenantId,
+            planType: planType || 'basic',
+            isTrial: isTrial || false,
+            trialDays: trialDays || 0
+        })
+
         const payload = {
             items: [
                 {
@@ -52,7 +60,7 @@ serve(async (req) => {
                     currency_id: 'MXN'
                 }
             ],
-            external_reference: `${userId}|${tenantId}`,
+            external_reference: externalRef,
             back_urls: {
                 success: "https://www.google.com?status=success",
                 failure: "https://www.google.com?status=failure",

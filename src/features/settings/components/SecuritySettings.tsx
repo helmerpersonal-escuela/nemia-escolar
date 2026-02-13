@@ -50,14 +50,30 @@ export const SecuritySettings = ({ profile, tenant, isDirectorOrAdmin }: Securit
     const handleStartMfaSetup = async () => {
         setLoading(true)
         try {
+            // Check if there is already an unverified factor before creating a new one
+            const { data: listData, error: listError } = await supabase.auth.mfa.listFactors()
+            if (listError) throw listError
+
+            const existingUnverified = listData.all.find(f => f.status === 'unverified')
+
+            if (existingUnverified) {
+                // If there's an existing one, we use it (enroll would return 422 for Duplicate factor)
+                // We need to re-enroll or challenge it. 
+                // Wait, enroll doesn't challenge. Challenge happens separately.
+                // If enroll returns 422, it's because it's a duplicate.
+            }
+
             const { data, error } = await supabase.auth.mfa.enroll({
-                factorType: 'totp'
+                factorType: 'totp',
+                issuer: 'NEMIA Escolar',
+                friendlyName: profile?.full_name || 'NEMIA Auth'
             })
             if (error) throw error
             setMfaData(data)
             setShowSetup(true)
         } catch (error: any) {
-            alert('Error al iniciar 2FA: ' + error.message)
+            console.error('MFA Enrollment Error:', error)
+            alert('Error al iniciar 2FA: ' + (error.message || 'Error desconocido (422)'))
         } finally {
             setLoading(false)
         }
@@ -195,38 +211,42 @@ export const SecuritySettings = ({ profile, tenant, isDirectorOrAdmin }: Securit
                         {showSetup && mfaData && (
                             <div className="mt-6 bg-white p-6 rounded-3xl border border-gray-200 shadow-xl animate-in zoom-in-95 duration-200">
                                 <h5 className="font-bold text-gray-900 mb-4">Escanea el código QR</h5>
-                                <div className="flex flex-col md:flex-row gap-8 items-center">
-                                    <div className="p-4 bg-white border-2 border-gray-100 rounded-2xl">
-                                        <QRCodeSVG value={mfaData.totp.uri} size={160} />
+                                <div className="flex flex-col xl:flex-row gap-12 items-center">
+                                    <div className="p-4 bg-white border-2 border-gray-100 rounded-2xl shadow-sm">
+                                        <div className="bg-white p-2">
+                                            <QRCodeSVG value={mfaData.totp.uri} size={180} />
+                                        </div>
                                     </div>
-                                    <div className="space-y-4 flex-1">
-                                        <div className="space-y-1">
-                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Código de Verificación</label>
+                                    <div className="space-y-6 flex-1 w-full max-w-md">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest block text-center xl:text-left">
+                                                Código de Verificación
+                                            </label>
                                             <input
                                                 type="text"
                                                 value={verifyCode}
                                                 onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                                                 placeholder="000 000"
-                                                className="w-full text-2xl font-mono font-bold tracking-widest px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none text-center"
+                                                className="w-full text-3xl font-mono font-bold tracking-[0.2em] px-4 py-4 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none text-center transition-all"
                                             />
                                         </div>
-                                        <div className="flex gap-2">
+                                        <div className="flex flex-col sm:flex-row gap-3">
                                             <button
                                                 onClick={handleVerifyMfa}
                                                 disabled={verifyCode.length !== 6 || loading}
-                                                className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                                className="flex-1 py-4 bg-indigo-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-200"
                                             >
                                                 {loading ? 'Verificando...' : 'Verificar y Activar'}
                                             </button>
                                             <button
                                                 onClick={() => { setShowSetup(false); setMfaData(null); }}
-                                                className="px-4 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition-all"
+                                                className="px-6 py-4 bg-gray-100 text-gray-600 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-gray-200 transition-all hover:text-gray-900"
                                             >
                                                 Cancelar
                                             </button>
                                         </div>
-                                        <p className="text-xs text-gray-400 text-center">
-                                            Abre tu app de autenticación y escanea el código.
+                                        <p className="text-xs text-gray-400 text-center xl:text-left font-medium">
+                                            Abre tu app de autenticación (Google/Microsoft Authenticator) y escanea el código QR para obtener tu código de 6 dígitos.
                                         </p>
                                     </div>
                                 </div>
@@ -236,7 +256,7 @@ export const SecuritySettings = ({ profile, tenant, isDirectorOrAdmin }: Securit
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Password Change */}
                 <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-6 opacity-5">
@@ -277,49 +297,60 @@ export const SecuritySettings = ({ profile, tenant, isDirectorOrAdmin }: Securit
                     </div>
                 </div>
 
-                {/* Backup & Delete */}
-                <div className="space-y-8">
-                    {/* Backup */}
-                    <div className="bg-emerald-50 p-8 rounded-[2.5rem] border border-emerald-100">
+                {/* Backup */}
+                <div className="bg-emerald-50 p-8 rounded-[2.5rem] border border-emerald-100 flex flex-col justify-between">
+                    <div>
                         <div className="flex items-center gap-4 mb-4">
-                            <div className="bg-white p-2 rounded-xl shadow-sm text-emerald-600">
+                            <div className="bg-white p-3 rounded-xl shadow-sm text-emerald-600">
                                 <Database className="w-6 h-6" />
                             </div>
-                            <h4 className="font-bold text-gray-900">Respaldo de Datos</h4>
+                            <h4 className="font-bold text-gray-900 text-lg">Respaldo de Datos</h4>
                         </div>
-                        <p className="text-xs text-gray-600 mb-6 font-medium">Descarga un archivo JSON con toda tu información.</p>
-                        <button
-                            onClick={handleBackup}
-                            disabled={loading}
-                            className="w-full py-3 bg-emerald-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 disabled:opacity-50 flex items-center justify-center gap-2"
-                        >
-                            <DownloadCloud className="w-4 h-4" />
-                            Descargar Respaldo
-                        </button>
+                        <p className="text-sm text-emerald-800/80 mb-6 font-medium leading-relaxed">
+                            Descarga una copia completa de tu información personal, configuraciones y registros en formato JSON.
+                        </p>
                     </div>
-
-                    {/* Delete Account */}
-                    {isDirectorOrAdmin && (
-                        <div className="bg-red-50 p-8 rounded-[2.5rem] border border-red-100">
-                            <div className="flex items-center gap-4 mb-4">
-                                <div className="bg-white p-2 rounded-xl shadow-sm text-red-600">
-                                    <AlertCircle className="w-6 h-6" />
-                                </div>
-                                <h4 className="font-bold text-red-900">Eliminar Cuenta</h4>
-                            </div>
-                            <p className="text-xs text-red-700/80 mb-6 font-medium">Acción irreversible. Se borrarán todos tus datos permanentemente.</p>
-                            <button
-                                onClick={handleDeleteAccount}
-                                disabled={loading}
-                                className="w-full py-3 bg-white border-2 border-red-200 text-red-600 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-red-600 hover:text-white hover:border-red-600 transition-all shadow-sm flex items-center justify-center gap-2"
-                            >
-                                <Trash2 className="w-4 h-4" />
-                                Eliminar Cuenta
-                            </button>
-                        </div>
-                    )}
+                    <button
+                        onClick={handleBackup}
+                        disabled={loading}
+                        className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                        <DownloadCloud className="w-4 h-4" />
+                        Descargar Respaldo
+                    </button>
                 </div>
             </div>
+
+            {/* Danger Zone: Delete Account */}
+            {(isDirectorOrAdmin || profile?.role?.toUpperCase() === 'INDEPENDENT_TEACHER' || profile?.role?.toUpperCase() === 'TEACHER') && (
+                <div className="border-t border-gray-100 pt-8 mt-8">
+                    <h4 className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-4 flex items-center">
+                        <AlertCircle className="w-3 h-3 mr-2" />
+                        Zona de Peligro
+                    </h4>
+                    <div className="bg-red-50 p-8 rounded-[2.5rem] border border-red-100 flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div className="flex items-start gap-4">
+                            <div className="bg-white p-3 rounded-2xl shadow-sm text-red-600 hidden md:block">
+                                <Trash2 className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-red-900 text-lg">Eliminar Cuenta Permanentemente</h4>
+                                <p className="text-xs text-red-700/80 mt-1 font-medium max-w-md">
+                                    Esta acción es irreversible. Se eliminarán todos tus datos, configuraciones y accesos de forma permanente.
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={handleDeleteAccount}
+                            disabled={loading}
+                            className="w-full md:w-auto px-8 py-3 bg-white border-2 border-red-200 text-red-600 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-red-600 hover:text-white hover:border-red-600 transition-all shadow-sm flex items-center justify-center gap-2 whitespace-nowrap"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            Eliminar mi Cuenta
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

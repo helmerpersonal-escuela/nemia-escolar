@@ -65,7 +65,7 @@ export const useProfile = () => {
             if (error) throw error
             return data
         },
-        staleTime: 1000 * 60 * 10, // 10 minutes cache
+        staleTime: 1000 * 30, // 30 seconds
     })
 
     const updateProfile = useMutation({

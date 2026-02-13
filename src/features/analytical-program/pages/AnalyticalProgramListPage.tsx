@@ -94,10 +94,12 @@ export const AnalyticalProgramListPage = () => {
             <div className="flex justify-between items-center mb-12">
                 <div>
                     <h1 className="text-3xl font-black text-gray-900 tracking-tighter">Programas Analíticos (NEM)</h1>
-                    <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mt-2 flex items-center">
-                        <span className="w-2 h-2 bg-indigo-500 rounded-full mr-2 animate-pulse" />
-                        Sesión Permanente de CTE
-                    </p>
+                    {!isIndependent && (
+                        <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mt-2 flex items-center">
+                            <span className="w-2 h-2 bg-indigo-500 rounded-full mr-2 animate-pulse" />
+                            Sesión Permanente de CTE
+                        </p>
+                    )}
                 </div>
                 <div className="flex space-x-4">
                     {isDirectorOrAdmin && (
@@ -218,9 +220,14 @@ export const AnalyticalProgramListPage = () => {
                     <Info className="w-6 h-6" />
                 </div>
                 <div>
-                    <h4 className="font-black text-amber-900 uppercase text-xs tracking-widest mb-2">Nota del Colectivo</h4>
+                    <h4 className="font-black text-amber-900 uppercase text-xs tracking-widest mb-2">
+                        {isIndependent ? 'Nota de Seguimiento' : 'Nota del Colectivo'}
+                    </h4>
                     <p className="text-sm font-bold text-amber-800/80 leading-relaxed">
-                        El Programa Analítico es un documento de trabajo vivo que se construye y ajusta permanentemente en las sesiones de CTE. Es la base para la planeación didáctica de todos los docentes de la institución.
+                        {isIndependent
+                            ? 'El Programa Analítico es un documento de trabajo vivo que se construye y ajusta conforme avanzas en el ciclo escolar. Es la base para tu planeación didáctica diaria.'
+                            : 'El Programa Analítico es un documento de trabajo vivo que se construye y ajusta permanentemente en las sesiones de CTE. Es la base para la planeación didáctica de todos los docentes de la institución.'
+                        }
                     </p>
                 </div>
             </div>

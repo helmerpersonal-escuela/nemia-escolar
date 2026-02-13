@@ -374,7 +374,7 @@ export const StaffManager = () => {
                             </div>
                             <div className="flex items-center relative z-10">
                                 <img
-                                    src={member.avatar_url || `https://ui-avatars.com/api/?name=${member.first_name}+${member.last_name_paternal}&background=random`}
+                                    src={member.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${member.first_name}+${member.last_name_paternal}`}
                                     className="w-12 h-12 rounded-[1.25rem] mr-4 shadow-sm"
                                     alt="avatar"
                                 />

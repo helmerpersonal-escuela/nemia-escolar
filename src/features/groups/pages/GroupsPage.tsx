@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Users, School, Trash2, Edit, AlertTriangle, ArrowRight, BookOpen, GraduationCap, ClipboardList } from 'lucide-react'
 import { EditGroupModal } from '../components/EditGroupModal'
+import { UpgradeModal } from '../../../components/UpgradeModal'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
 import { useProfile } from '../../../hooks/useProfile'
+import { useSubscriptionLimits } from '../../../hooks/useSubscriptionLimits'
 
 type Group = {
     id: string
@@ -28,9 +30,11 @@ export const GroupsPage = () => {
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isModifyingGroup, setIsModifyingGroup] = useState<Group | null>(null)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false)
     const queryClient = useQueryClient()
     const { data: tenant } = useTenant()
     const { profile } = useProfile()
+    const limits = useSubscriptionLimits()
 
     const isTeacher = profile?.role === 'TEACHER'
     const isStaff = ['ADMIN', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD', 'SCHOOL_CONTROL'].includes(profile?.role || '')
@@ -169,6 +173,7 @@ export const GroupsPage = () => {
         },
         onSuccess: (data) => {
             queryClient.invalidateQueries({ queryKey: ['groups'] })
+            limits.refreshLimits() // Refresh limits after creating group
             setIsModalOpen(false)
             setFormData({ grade: '1', section: 'A', shift: 'MORNING', selectedSubjects: [] })
             navigate(`/groups/${data.id}`, { state: { openAddStudent: true } })
@@ -225,10 +230,26 @@ export const GroupsPage = () => {
                         <p className="mt-2 text-gray-600 font-medium ml-1">
                             Selecciona una materia para gestionar tu libreta de calificaciones.
                         </p>
+                        {!limits.isLoading && (
+                            <div className="mt-3 flex items-center gap-2">
+                                <span className="text-sm font-bold text-slate-500">
+                                    {limits.currentGroups} / {limits.maxGroups} grupos usados
+                                </span>
+                                <span className="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs font-black rounded-full uppercase">
+                                    {limits.planType === 'basic' ? 'Básico' : 'Pro'}
+                                </span>
+                            </div>
+                        )}
                     </div>
                     {isStaff && (
                         <button
-                            onClick={() => setIsModalOpen(true)}
+                            onClick={() => {
+                                if (!limits.canAddGroup) {
+                                    setShowUpgradeModal(true)
+                                    return
+                                }
+                                setIsModalOpen(true)
+                            }}
                             className="inline-flex justify-center items-center px-6 py-3 border border-transparent shadow-lg shadow-blue-200 text-sm font-bold rounded-xl text-white bg-blue-600 hover:bg-blue-700 hover:scale-105 transition-all"
                         >
                             <Plus className="h-5 w-5 mr-2" />
@@ -254,7 +275,13 @@ export const GroupsPage = () => {
                     </p>
                     {!isTeacher && (
                         <button
-                            onClick={() => setIsModalOpen(true)}
+                            onClick={() => {
+                                if (!limits.canAddGroup) {
+                                    setShowUpgradeModal(true)
+                                    return
+                                }
+                                setIsModalOpen(true)
+                            }}
                             className="inline-flex items-center px-6 py-3 border border-transparent shadow-lg text-sm font-bold rounded-xl text-white bg-blue-600 hover:bg-blue-700 transition-all hover:scale-105"
                         >
                             <Plus className="h-5 w-5 mr-2" />
@@ -469,6 +496,15 @@ export const GroupsPage = () => {
                     group={isModifyingGroup}
                 />
             )}
+
+            <UpgradeModal
+                isOpen={showUpgradeModal}
+                onClose={() => setShowUpgradeModal(false)}
+                currentPlan={limits.planType}
+                currentGroups={limits.currentGroups}
+                maxGroups={limits.maxGroups}
+                reason="groups"
+            />
         </div>
     )
 }

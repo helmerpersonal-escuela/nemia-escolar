@@ -356,7 +356,7 @@ Esta acción NO se puede deshacer.`
                                     student={{ ...selectedStudent, group: { grade: group.grade, section: group.section } }}
                                     school={{
                                         name: tenant.name || 'Escuela',
-                                        educational_level: tenant.educationalLevel || 'Primaria',
+                                        educational_level: tenant.educationalLevel || 'Secundaria',
                                         cct: tenant.cct || 'SC',
                                         logo_url: '/logo-placeholder.png'
                                     }}

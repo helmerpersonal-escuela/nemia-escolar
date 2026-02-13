@@ -83,7 +83,7 @@ export const SettingsPage = () => {
         cct: '',
         phone: '',
         address: '',
-        educational_level: 'PRIMARY',
+        educational_level: 'SECONDARY',
         location_lat: 19.4326,
         location_lng: -99.1332,
         ai_config: { apiKey: '' },
@@ -187,15 +187,27 @@ export const SettingsPage = () => {
                         // Fetch School Details (for technologies/workshops) - ONLY if role is relevant
                         let schoolDetails = null
                         if (['TEACHER', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD', 'INDEPENDENT_TEACHER'].includes(effectiveRole)) {
-                            const { data } = await supabase
-                                .from('school_details')
-                                .select('workshops, cte_config')
-                                .eq('tenant_id', tenantData.id)
-                                .maybeSingle()
-                            schoolDetails = data
+                            try {
+                                const { data, error } = await supabase
+                                    .from('school_details')
+                                    .select('*')
+                                    .eq('tenant_id', tenantData.id)
+                                    .maybeSingle()
 
-                            if (data?.cte_config) {
-                                setTenant(prev => ({ ...prev, cte_config: data.cte_config }))
+                                if (error) {
+                                    // Ignore 400 errors caused by missing columns/table
+                                    if (error.code !== 'PGRST100' && error.code !== '42703' && error.code !== '400') {
+                                        console.error('Error fetching school details:', error)
+                                    }
+                                } else {
+                                    schoolDetails = data
+                                    if (data?.cte_config) {
+                                        setTenant(prev => ({ ...prev, cte_config: data.cte_config }))
+                                    }
+                                }
+                            } catch (err) {
+                                // Silently fail if table/columns don't exist
+                                console.warn('Could not fetch school_details (likely missing table/columns)')
                             }
                         }
 
@@ -564,18 +576,7 @@ export const SettingsPage = () => {
                             </div>
                         )}
 
-                        {/* Danger Zone */}
-                        {(isDirectorOrAdmin || isSuperAdmin) && (
-                            <div className="pt-4 border-t border-gray-50 px-4">
-                                <button
-                                    onClick={() => setActiveTab('security')}
-                                    className="w-full text-[10px] font-black text-rose-400 hover:text-rose-600 transition-colors uppercase tracking-[0.15em] flex items-center"
-                                >
-                                    <Trash2 className="w-3 h-3 mr-2" />
-                                    Eliminar Cuenta
-                                </button>
-                            </div>
-                        )}
+
                     </div>
                 </aside>
 
@@ -590,7 +591,7 @@ export const SettingsPage = () => {
                                     <div className="mb-10 flex flex-col md:flex-row items-center gap-8 bg-gray-50 p-8 rounded-3xl border border-gray-100">
                                         <div className="relative group">
                                             <img
-                                                src={profile.avatar_url || `https://ui-avatars.com/api/?name=${profile.first_name}+${profile.last_name_paternal}`}
+                                                src={profile.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${profile.first_name}+${profile.last_name_paternal}`}
                                                 alt="Avatar"
                                                 className="w-32 h-32 rounded-full bg-white shadow-xl border-4 border-white object-cover group-hover:scale-105 transition-transform duration-300"
                                             />
@@ -770,11 +771,8 @@ export const SettingsPage = () => {
                                                 onChange={(e) => setTenant({ ...tenant, educational_level: e.target.value })}
                                                 className={`w-full px-5 py-3.5 bg-gray-50 border border-transparent rounded-2xl text-gray-900 font-bold focus:bg-white focus:border-blue-500 transition-all outline-none ${isStaffReadOnly ? 'cursor-not-allowed text-gray-500 appearance-none' : ''}`}
                                             >
-                                                <option value="PRESCHOOL">Preescolar</option>
-                                                <option value="PRIMARY">Primaria</option>
                                                 <option value="SECONDARY">Secundaria</option>
-                                                <option value="HIGH_SCHOOL">Bachillerato</option>
-                                                <option value="UNIVERSITY">Universidad</option>
+                                                <option value="TELESECUNDARIA">Telesecundaria</option>
                                             </select>
                                         </div>
                                         <div className="col-span-2">
@@ -1144,7 +1142,7 @@ export const SettingsPage = () => {
                                 <SecuritySettings
                                     profile={profile}
                                     tenant={tenant}
-                                    isDirectorOrAdmin={isDirectorOrAdmin || isSuperAdmin}
+                                    isDirectorOrAdmin={isDirectorOrAdmin || isSuperAdmin || profile?.role?.toUpperCase() === 'INDEPENDENT_TEACHER' || profile?.role?.toUpperCase() === 'TEACHER'}
                                 />
                             )}
 
@@ -1268,6 +1266,11 @@ export const SettingsPage = () => {
                                         </div>
                                     </div>
                                 </div>
+                            )}
+
+                            {/* BILLING TAB */}
+                            {activeTab === 'billing' && (
+                                <BillingSection />
                             )}
 
                             {/* SECURITY TAB */}

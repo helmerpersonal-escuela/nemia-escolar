@@ -60,7 +60,7 @@ export const useTenant = () => {
                     name: tenant.name,
                     educationalLevel: tenant.educational_level,
                     type: tenant.type as 'SCHOOL' | 'INDEPENDENT',
-                    role: 'TEACHER', // Safe default
+                    role: tenant.type === 'INDEPENDENT' ? 'INDEPENDENT_TEACHER' : 'TEACHER', // Robust default
                     fullName: profile.full_name,
                     firstName: profile.first_name,
                     lastNamePaternal: profile.last_name_paternal,
@@ -80,7 +80,7 @@ export const useTenant = () => {
             // ROBUST INDEPENDENT CHECK: 
             // If the workspace is independent, the user MUST be treated as INDEPENDENT_TEACHER
             // regardless of what the old profiles table says.
-            if (tenant.type === 'INDEPENDENT') {
+            if (tenant.type?.toUpperCase() === 'INDEPENDENT') {
                 finalRole = 'INDEPENDENT_TEACHER'
             }
 
@@ -108,7 +108,7 @@ export const useTenant = () => {
                 aiConfig: tenant.ai_config
             }
         },
-        staleTime: 1000 * 60 * 5,
+        staleTime: 1000 * 30, // 30 seconds
     })
 }
 
