@@ -1,0 +1,211 @@
+export const FASE6_CONTENTS = {
+    lenguajes: {
+        espanol: [
+            "La diversidad de lenguas y su uso en la comunicación familiar, escolar y comunitaria.",
+            "La diversidad étnica, cultural y lingüística de México a favor de una sociedad intercultural.",
+            "Las lenguas como manifestación de la identidad y del sentido de pertenencia.",
+            "El dinamismo de las lenguas y su relevancia como patrimonio cultural.",
+            "La función creativa del español en la expresión de necesidades e intereses comunitarios.",
+            "Los elementos y los recursos estéticos de la lengua española en la literatura oral y escrita.",
+            "Textos literarios escritos en español o traducidos.",
+            "Creaciones literarias tradicionales y contemporáneas.",
+            "Recursos literarios en lengua española para expresar sensaciones, emociones, sentimientos e ideas vinculados con las familias, la escuela y la comunidad.",
+            "Los géneros periodísticos y sus recursos para comunicar sucesos significativos familiares, escolares, comunitarios y sociales.",
+            "Comunicación asertiva y dialógica para erradicar expresiones de violencia.",
+            "Mensajes para promover una vida saludable, expresados en medios comunitarios o masivos de comunicación.",
+            "Textos de divulgación científica.",
+            "Manifestaciones culturales y artísticas que favorecen una sociedad incluyente."
+        ],
+        ingles: [
+            "La diversidad lingüística y sus formas de expresión en México y el mundo.",
+            "La identidad y cultura de pueblos de habla inglesa.",
+            "Las manifestaciones culturales, lingüísticas y artísticas en inglés, a favor de la interculturalidad.",
+            "El uso del inglés para expresar necesidades, intereses y problemas de la comunidad.",
+            "Elementos y recursos estéticos del inglés.",
+            "Manifestaciones artísticas y culturales del inglés.",
+            "Creaciones literarias tradicionales y contemporáneas en inglés.",
+            "El inglés para expresar sensaciones, emociones, sentimientos e ideas vinculados con las familias, la escuela y la comunidad.",
+            "Relatos en inglés para expresar sucesos significativos familiares, escolares, comunitarios y sociales.",
+            "Comunicación asertiva y dialógica en inglés, para erradicar la violencia en las familias y la escuela.",
+            "Mensajes en inglés en medios de comunicación masiva, que promueven una vida saludable.",
+            "El uso del inglés en la construcción de mensajes a favor de la inclusión.",
+            "El uso del inglés en las manifestaciones culturales y artísticas, que favorecen la construcción de una sociedad incluyente."
+        ],
+        lengua_indigena_materna: [
+            "La diversidad de lenguas indígenas y su uso en la comunicación familiar, escolar y comunitaria.",
+            "La diversidad étnica, cultural y lingüística de México en peligro.",
+            "Las lenguas indígenas como manifestación de la identidad y del sentido de pertenencia.",
+            "El dinamismo de las lenguas indígenas y su relevancia como patrimonio cultural.",
+            "Creaciones literarias tradicionales y contemporáneas en la lengua indígena (variante lingüística) de su contexto.",
+            "Estudio de la lengua indígena (variante lingüística) del contexto a través de prácticas sociales relacionadas con el territorio como espacio vital I.",
+            "Estudio de la lengua indígena (variante lingüística) del contexto a través de prácticas sociales relacionadas con la tierra como madre y como territorio II.",
+            "Estudio de la lengua indígena (variante lingüística) del contexto a través de prácticas sociales relacionadas con el trabajo comunitario (tequio) como construcción de relaciones sociales I.",
+            "Estudio de la lengua indígena (variante lingüística) del contexto a través de prácticas sociales relacionadas con el trabajo comunitario (tequio) como construcción de relaciones sociales II.",
+            "Estudio de la lengua indígena (variante lingüística) del contexto a través de prácticas sociales en torno a la milpa como sistema de significación material y simbólica.",
+            "Estudio de la lengua indígena (variante lingüística) del contexto a través de prácticas sociales relacionadas con la ritualidad como expresión comunal.",
+            "Estudio de la lengua indígena (variante lingüística) del contexto a través de prácticas sociales relacionadas con la fiesta como expresión comunal.",
+            "Estudio de la lengua indígena (variante lingüística) del contexto a través de prácticas sociales que se consideren relevantes.",
+            "Estudio de la lengua indígena (variante lingüística) del contexto en sus componentes estructurales."
+        ],
+        lengua_indigena_segunda: [
+            "La diversidad lingüística y sus formas de expresión en México y el mundo.",
+            "La identidad y cultura de la lengua indígena (variante lingüística) del contexto escolar.",
+            "Las manifestaciones culturales, lingüísticas y artísticas en la lengua indígena (variante lingüística) del contexto, a favor de la interculturalidad.",
+            "El uso de la lengua indígena (variante lingüística) del contexto para expresarse necesidades, intereses y problemas de la comunidad.",
+            "Creaciones literarias tradicionales y contemporáneas en la lengua indígena (variante lingüística) de su contexto.",
+            "La lengua indígena (variante lingüística) de su contexto para expresar sensaciones, emociones, sentimientos e ideas vinculados con las familias, la escuela y la comunidad.",
+            "Comunicación asertiva y dialógica en la lengua indígena (variante lingüística) de su contexto, para sensibilizar sobre la erradicación del racismo y la discriminación.",
+            "El uso de la lengua indígena (variante lingüística) de su contexto, en la construcción de mensajes a favor de la inclusión.",
+            "El uso de la lengua indígena (variante lingüística) de su contexto, en las manifestaciones culturales y artísticas que favorecen la construcción de una sociedad incluyente.",
+            "La lengua indígena (variante lingüística) del contexto a través de una práctica cultural que se considere relevante, ya sea de la comunidad de origen o de nuevas prácticas I.",
+            "La lengua indígena (variante lingüística) del contexto a través de una práctica cultural que se considere relevante, ya sea de la comunidad de origen o de nuevas prácticas II.",
+            "La lengua indígena (variante lingüística) del contexto a través de una práctica cultural que se considere relevante, ya sea de la comunidad de origen o de nuevas prácticas III.",
+            "La lengua indígena (variante lingüística) del contexto a través de una práctica cultural que se considere relevante, ya sea de la comunidad de origen o de nuevas prácticas IV."
+        ],
+        artes: [
+            "Diversidad de lenguajes artísticos en la riqueza pluricultural de México y del mundo.",
+            "Manifestaciones culturales y artísticas que conforman la diversidad étnica, cultural y lingüística.",
+            "Identidad y sentido de pertenencia en manifestaciones artísticas.",
+            "Patrimonio cultural de la comunidad en manifestaciones artísticas que fomentan la identidad y el sentido de pertenencia.",
+            "Los lenguajes artísticos en la expresión de problemas de la comunidad.",
+            "Elementos de las artes y recursos estéticos apreciados en el entorno natural y social, así como en diversas manifestaciones artísticas.",
+            "Valor estético de la naturaleza, de la vida cotidiana y de diferentes manifestaciones culturales y artísticas.",
+            "Creaciones artísticas que tienen su origen en textos literarios.",
+            "Expresión artística de sensaciones, emociones, sentimientos e ideas, a partir de experiencias familiares, escolares o comunitarias.",
+            "Memoria colectiva representada por medios artísticos, para registrar experiencias comunitarias.",
+            "Procesos creativos que ponen en práctica la comunicación dialógica, como estrategia para erradicar expresiones de violencia.",
+            "Vida saludable expresada a través de mensajes construidos con elementos de las artes, para difundirlos por distintos medios de comunicación.",
+            "Sistemas alternativos y aumentativos de comunicación como herramientas creativas que favorecen la inclusión.",
+            "Manifestaciones artísticas que emplean sistemas alternativos y aumentativos de comunicación, elaboradas por personas en condición de discapacidad y/o diseñadas para ellas."
+        ]
+    },
+    saberes: {
+        matematicas: [
+            "Expresión de fracciones como decimales y de decimales como fracciones.",
+            "Extensión de los números a positivos y negativos y su orden.",
+            "Extensión del significado de las operaciones y sus relaciones inversas.",
+            "Regularidades y Patrones.",
+            "Introducción al álgebra.",
+            "Ecuaciones lineales y cuadráticas.",
+            "Funciones.",
+            "Rectas y ángulos.",
+            "Construcción y propiedades de las figuras planas y cuerpos.",
+            "Circunferencia, círculo y esfera.",
+            "Medición y cálculo en diferentes contextos.",
+            "Obtención y representación de información.",
+            "Interpretación de la información a través de medidas de tendencia central y de dispersión.",
+            "Azar y probabilidad."
+        ],
+        biologia: [
+            "Funcionamiento del cuerpo humano coordinado por los sistemas nervioso y endocrino.",
+            "Salud sexual y reproductiva: prevención de infecciones de transmisión sexual y del embarazo en adolescentes.",
+            "Prevención de enfermedades relacionadas con la alimentación y el consumo de alimentos ultraprocesados.",
+            "La diversidad de saberes e intercambio de conocimientos acerca de los seres vivos y las relaciones con el medio ambiente.",
+            "Los procesos vitales de los seres vivos: nutrición, relación con el medio y reproducción.",
+            "La biodiversidad como expresión del cambio de los seres vivos en el tiempo.",
+            "El calentamiento global como una consecuencia de la alteración de los ciclos biogeoquímicos en los ecosistemas.",
+            "Importancia del microscopio para el conocimiento de la unidad y la diversidad de los seres vivos.",
+            "Las vacunas: su relevancia en el control de algunas enfermedades infecciosas."
+        ],
+        fisica: [
+            "El pensamiento científico, una forma de plantear y solucionar problemas y su incidencia en la transformación de la sociedad.",
+            "Unidades y medidas utilizados en Física.",
+            "Estructura, propiedades y características de la materia.",
+            "Estados de agregación de la materia.",
+            "Interacciones en fenómenos relacionados con la fuerza y el movimiento.",
+            "Principios de Pascal y de Arquímedes.",
+            "Saberes y prácticas para el aprovechamiento de energías y la sustentabilidad.",
+            "Interacciones de la electricidad y el magnetismo.",
+            "Composición del Universo y Sistema Solar.",
+            "Fenómenos, procesos y factores asociados al cambio climático."
+        ],
+        quimica: [
+            "Los hitos que contribuyeron al avance del conocimiento científico y tecnológico en el ámbito nacional e internacional, así como su relación en la satisfacción de necesidades humanas y sus implicaciones en la naturaleza.",
+            "Las propiedades extensivas e intensivas, como una forma de identificar sustancias y materiales de uso común, así como el aprovechamiento en actividades experimentales.",
+            "Composición de las mezclas y su clasificación en homogéneas y heterogéneas, así como métodos de separación (evaporación, decantación, filtración, extracción, sublimación, cromatografía y cristalización) aplicados en diferentes contextos.",
+            "Importancia de la concentración de sustancias en mezclas de productos de uso cotidiano.",
+            "Presencia de contaminantes y su concentración, relacionada con la degradación y contaminación ambiental en la comunidad.",
+            "Mezclas, compuestos y elementos representados con el modelo corpuscular de la materia en sólidos, líquidos y gases, así como su caracterización mediante actividades experimentales.",
+            "La Tabla periódica: criterios de clasificación de los elementos químicos y sus propiedades (electronegatividad, energía de ionización y radio atómico).",
+            "Los alimentos como fuente de energía química: carbohidratos, proteínas y lípidos.",
+            "Las reacciones químicas: manifestaciones, transformaciones y representaciones con base en la Ley de conservación de la materia y la energía.",
+            "Propiedades de ácidos y bases, reacciones de neutralización y modelo de Arrhenius.",
+            "Las reacciones de óxido-reducción (redox): identificación del número de oxidación y de agentes oxidantes y reductores."
+        ]
+    },
+    etica: {
+        geografia: [
+            "El espacio geográfico como una construcción social y colectiva.",
+            "Las categorías de análisis espacial y representaciones del espacio geográfico.",
+            "La distribución y dinámica de las aguas continentales y oceánicas en la Tierra.",
+            "La relación de las placas tectónicas con el relieve, la sismicidad y el vulcanismo.",
+            "Los riesgos de desastre, su relación con los procesos naturales y la vulnerabilidad de la población en lugares específicos.",
+            "Crecimiento, distribución, composición y migración de la población.",
+            "Los procesos productivos y sus consecuencias ambientales y sociales en la comunidad, México y el mundo.",
+            "Las prácticas de producción, distribución y consumo sustentables como alternativas para preservar el medio ambiente y asegurar el bienestar de las generaciones presentes y futuras.",
+            "Las desigualdades socioeconómicas en México y el mundo, y sus efectos en la calidad de vida de las personas.",
+            "Los conflictos territoriales actuales en México y el mundo, y sus implicaciones ambientales y sociales.",
+            "El suelo, recurso estratégico para la seguridad alimentaria y la vida en el planeta."
+        ],
+        historia: [
+            "Los albores de la humanidad: los pueblos antiguos del mundo y su devenir.",
+            "La conformación de las metrópolis y los sistemas de dominación.",
+            "Las gestas de resistencia y los movimientos independentistas.",
+            "Las revoluciones modernas y sus tendencias.",
+            "Las tensiones en el siglo XX.",
+            "La construcción histórica de las ideas sobre las juventudes e infancias.",
+            "Las mujeres y sus historias.",
+            "Las luchas de las mujeres por sus derechos.",
+            "Relaciones de poder y lucha por los derechos de grupos históricamente discriminados o subrepresentados.",
+            "Discriminación, racismo, sexismo y prejuicios como construcciones históricas.",
+            "Movilidades humanas, migraciones y nuevos escenarios para la vida.",
+            "Amor, amistad, familias y relaciones entre las personas en la historia."
+        ],
+        formacion_civica: [
+            "Los retos sociales y ambientales en la comunidad, en México y el mundo.",
+            "La diversidad de grupos sociales y culturales en México.",
+            "Grupos sociales y culturales en la conformación de las identidades juveniles.",
+            "Los derechos humanos en México y en el mundo como valores compartidos por las sociedades actuales.",
+            "Movimientos sociales y políticos por los derechos humanos en el mundo y en México.",
+            "Consecuencias de la desigualdad en la calidad de vida de las personas y comunidades.",
+            "Normas, leyes, instituciones y organizaciones encargadas de proteger, defender y exigir la aplicación de los derechos humanos en la convivencia diaria.",
+            "El conflicto en la convivencia humana desde la cultura de paz.",
+            "La cultura de paz y la creación de ambientes que garanticen el respeto a la vida y la dignidad del ser humano.",
+            "Personas, grupos y organizaciones a favor de la cultura de paz.",
+            "Principios éticos como referente para un desarrollo sustentable.",
+            "Igualdad sustantiva en el marco de la interculturalidad, la inclusión y la perspectiva de género.",
+            "Medidas de protección y mecanismos de denuncia en el rechazo a la violencia de género, sexual y la trata de personas.",
+            "Principios y valores de la cultura democrática como forma de gobierno y de vida.",
+            "Proyectos como un recurso para atender problemáticas de la comunidad desde una ciudadanía democrática.",
+            "Instituciones, organizaciones y mecanismos de representación democrática.",
+            "Defensa del derecho al acceso a la protección de datos personales, a la información, la transparencia y la rendición de cuentas en un gobierno democrático.",
+            "El derecho a la salud y la prevención en el consumo de drogas."
+        ]
+    },
+    humano: {
+        tecnologia: [
+            "Herramientas, máquinas e instrumentos, como extensión corporal, en la satisfacción continua de intereses y necesidades humanas.",
+            "Materiales, procesos técnicos y comunidad.",
+            "Usos e implicaciones de la energía en los procesos técnicos.",
+            "Factores que inciden en los procesos técnicos.",
+            "Procesos técnicos.",
+            "Comunicación y representación técnica.",
+            "Pensamiento estratégico y creativo en la resolución de problemas.",
+            "Evaluación de sistemas tecnológicos."
+        ],
+        educacion_socioemocional: [
+            "Formas de ser, pensar, actuar y relacionarse.",
+            "Los sentimientos y su influencia en la toma de decisiones.",
+            "Construcción del proyecto de vida.",
+            "Prevención de situaciones de riesgo.",
+            "Educación Integral en Sexualidad."
+        ],
+        educacion_fisica: [
+            "Capacidades, habilidades y destrezas motrices.",
+            "Potencialidades cognitivas, expresivas, motrices, creativas y de relación.",
+            "Estilos de vida activos y saludables.",
+            "Pensamiento lúdico, estratégico y creativo.",
+            "Interacción motriz."
+        ]
+    }
+}

@@ -1,0 +1,18 @@
+﻿src/features/admin/pages/SuperAdminDashboard.tsx(7,5): error TS6133: 'Database' is declared but its value is never read.
+src/features/auth/components/RegistrationWizard.tsx(1,20): error TS6133: 'useEffect' is declared but its value is never read.
+src/features/auth/components/RegistrationWizard.tsx(4,47): error TS6133: 'Users' is declared but its value is never read.
+src/features/auth/components/RegistrationWizard.tsx(50,6): error TS6196: 'Subject' is declared but never used.
+src/features/auth/components/RegistrationWizard.tsx(58,11): error TS6133: 'navigate' is declared but its value is never read.
+src/features/auth/pages/RegisterPage.tsx(29,27): error TS6133: 'authData' is declared but its value is never read.
+src/features/evaluation/pages/GradebookPage.tsx(61,12): error TS6133: 'editingAssignment' is declared but its value is never read.
+src/features/evaluation/pages/TeacherDashboard.tsx(33,12): error TS6133: 'hasGroups' is declared but its value is never read.
+src/features/reports/components/StudentSelectorModal.tsx(18,12): error TS6133: 'selectedGroupId' is declared but its value is never read.
+src/features/rubrics/pages/RubricEditorPage.tsx(2,20): error TS6133: 'useEffect' is declared but its value is never read.
+src/features/rubrics/pages/RubricEditorPage.tsx(29,11): error TS6133: 'id' is declared but its value is never read.
+src/features/rubrics/pages/RubricEditorPage.tsx(35,18): error TS6133: 'setType' is declared but its value is never read.
+src/features/rubrics/pages/RubricEditorPage.tsx(52,12): error TS6133: 'loading' is declared but its value is never read.
+src/features/rubrics/pages/RubricEditorPage.tsx(52,21): error TS6133: 'setLoading' is declared but its value is never read.
+src/utils/check_permissions.ts(2,26): error TS2307: Cannot find module './lib/supabase' or its corresponding type declarations.
+src/utils/seed_data.ts(19,7): error TS6133: 'MODULES_PER_WEEK' is declared but its value is never read.
+tsconfig.app.json(23,5): error TS5023: Unknown compiler option 'erasableSyntaxOnly'.
+tsconfig.node.json(21,5): error TS5023: Unknown compiler option 'erasableSyntaxOnly'.

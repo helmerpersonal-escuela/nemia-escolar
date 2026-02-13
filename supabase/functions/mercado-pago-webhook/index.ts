@@ -1,0 +1,149 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+
+const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+console.log("Mercado Pago Webhook Initialized")
+
+serve(async (req) => {
+    // 1. Handle CORS preflight request
+    if (req.method === 'OPTIONS') {
+        return new Response('ok', { headers: corsHeaders })
+    }
+
+    try {
+        const url = new URL(req.url)
+        const topic = url.searchParams.get('topic') || url.searchParams.get('type') // payment or merchant_order
+        const id = url.searchParams.get('id') || url.searchParams.get('data.id')
+
+        if (!id) {
+            return new Response(JSON.stringify({ message: "No ID provided" }), {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                status: 200,
+            })
+        }
+
+        // 2. Initialize Supabase Admin Client
+        const supabaseClient = createClient(
+            Deno.env.get('SUPABASE_URL') ?? '',
+            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+            {
+                auth: {
+                    persistSession: false,
+                    autoRefreshToken: false,
+                    detectSessionInUrl: false
+                }
+            }
+        )
+
+        // 3. Get MP Access Token from DB
+        const { data: settings } = await supabaseClient
+            .from('system_settings')
+            .select('value')
+            .eq('key', 'mercadopago_access_token')
+            .single()
+
+        const accessToken = settings?.value
+
+        if (!accessToken) {
+            console.error("Missing MP Access Token")
+            // Return 200 anyway to stop MP from retrying if we are broken
+            return new Response(JSON.stringify({ error: "Configuration Error" }), { status: 200 })
+        }
+
+        // 4. Fetch Payment Details from Mercado Pago
+        const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${id}`, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        })
+
+        if (!mpRes.ok) {
+            console.error("MP API Error", await mpRes.text())
+            return new Response(JSON.stringify({ error: "MP API Error" }), { status: 200 })
+        }
+
+        const payment = await mpRes.json()
+
+        // 5. Store Transaction in Supabase
+        // Extract metadata
+        const metadata = payment.metadata || {}
+        const externalRef = payment.external_reference || "" // Format: USER_ID|TENANT_ID
+
+        let userId = null
+        let tenantId = null
+
+        if (externalRef.includes('|')) {
+            const parts = externalRef.split('|')
+            userId = parts[0]
+            tenantId = parts[1]
+        }
+
+        if (!userId) {
+            console.error("No User ID in external reference")
+            return new Response(JSON.stringify({ message: "No User ID" }), { status: 200 })
+        }
+
+        // 6. Handle Subscription & Transaction
+        if (payment.status === 'approved') {
+            const now = new Date();
+            const oneYearLater = new Date(new Date().setFullYear(now.getFullYear() + 1));
+
+            // Upsert Subscription
+            const { data: sub, error: subError } = await supabaseClient.from('subscriptions').upsert({
+                user_id: userId,
+                status: 'active',
+                plan_type: 'ANNUAL',
+                current_period_start: now.toISOString(),
+                current_period_end: oneYearLater.toISOString(),
+                mercadopago_customer_id: payment.payer?.id?.toString(),
+                updated_at: now.toISOString()
+            }, { onConflict: 'user_id' }).select().single();
+
+            if (subError) {
+                console.error("Subscription Error:", subError);
+            }
+
+            // Record Transaction
+            const { error: txError } = await supabaseClient.from('payment_transactions').upsert({
+                subscription_id: sub?.id,
+                user_id: userId,
+                tenant_id: tenantId,
+                amount: payment.transaction_amount,
+                currency: payment.currency_id,
+                status: 'approved',
+                provider: 'MERCADO_PAGO',
+                provider_payment_id: String(payment.id),
+                meta: payment
+            }, { onConflict: 'provider_payment_id' });
+
+            if (txError) console.error("Transaction Error:", txError);
+        } else {
+            // Log failed/pending transaction
+            await supabaseClient.from('payment_transactions').upsert({
+                user_id: userId,
+                tenant_id: tenantId,
+                amount: payment.transaction_amount,
+                currency: payment.currency_id,
+                status: payment.status, // rejected, pending, etc
+                provider: 'MERCADO_PAGO',
+                provider_payment_id: String(payment.id),
+                meta: payment
+            }, { onConflict: 'provider_payment_id' });
+        }
+
+        return new Response(JSON.stringify({ message: "Processed" }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+        })
+
+    } catch (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400,
+        })
+    }
+})

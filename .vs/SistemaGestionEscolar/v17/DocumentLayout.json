@@ -1,0 +1,326 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\SistemaGestionEscolar\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|c:\\sistemagestionescolar\\pages\\sugerencias\\sugerenciasmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|solutionrelative:pages\\sugerencias\\sugerenciasmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|c:\\sistemagestionescolar\\pages\\ia\\diagnostico.cshtml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|solutionrelative:pages\\ia\\diagnostico.cshtml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|c:\\sistemagestionescolar\\pages\\tareas\\create.cshtml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|solutionrelative:pages\\tareas\\create.cshtml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|c:\\sistemagestionescolar\\pages\\ia\\diagnostico.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|solutionrelative:pages\\ia\\diagnostico.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|c:\\sistemagestionescolar\\models\\diagnostico.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|solutionrelative:models\\diagnostico.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|c:\\sistemagestionescolar\\models\\evento.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|solutionrelative:models\\evento.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|c:\\sistemagestionescolar\\models\\materia.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|solutionrelative:models\\materia.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|c:\\sistemagestionescolar\\models\\tarea.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|solutionrelative:models\\tarea.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|c:\\sistemagestionescolar\\models\\alumno.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|solutionrelative:models\\alumno.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|c:\\sistemagestionescolar\\pages\\planeacion\\create.cshtml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|solutionrelative:pages\\planeacion\\create.cshtml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|c:\\sistemagestionescolar\\models\\seeddata.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|solutionrelative:models\\seeddata.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|c:\\sistemagestionescolar\\models\\planeacion.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|solutionrelative:models\\planeacion.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|c:\\sistemagestionescolar\\models\\evaluacion.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|solutionrelative:models\\evaluacion.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|c:\\sistemagestionescolar\\models\\docentemateria.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|solutionrelative:models\\docentemateria.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|c:\\sistemagestionescolar\\models\\asistencia.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|solutionrelative:models\\asistencia.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|c:\\sistemagestionescolar\\models\\applicationuser.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|solutionrelative:models\\applicationuser.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|c:\\sistemagestionescolar\\services\\aiservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|solutionrelative:services\\aiservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|c:\\sistemagestionescolar\\data\\applicationdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9FC1CD51-4749-59F7-691A-B12FAA933FA1}|SistemaGestionEscolar.csproj|solutionrelative:data\\applicationdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "SugerenciasModel.cs",
+              "DocumentMoniker": "C:\\SistemaGestionEscolar\\Pages\\Sugerencias\\SugerenciasModel.cs",
+              "RelativeDocumentMoniker": "Pages\\Sugerencias\\SugerenciasModel.cs",
+              "ToolTip": "C:\\SistemaGestionEscolar\\Pages\\Sugerencias\\SugerenciasModel.cs*",
+              "RelativeToolTip": "Pages\\Sugerencias\\SugerenciasModel.cs*",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABIAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-05T18:43:32.698Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "Diagnostico.cshtml",
+              "DocumentMoniker": "C:\\SistemaGestionEscolar\\Pages\\IA\\Diagnostico.cshtml",
+              "RelativeDocumentMoniker": "Pages\\IA\\Diagnostico.cshtml",
+              "ToolTip": "C:\\SistemaGestionEscolar\\Pages\\IA\\Diagnostico.cshtml",
+              "RelativeToolTip": "Pages\\IA\\Diagnostico.cshtml",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-11-05T18:27:31.131Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Create.cshtml.cs",
+              "DocumentMoniker": "C:\\SistemaGestionEscolar\\Pages\\Tareas\\Create.cshtml.cs",
+              "RelativeDocumentMoniker": "Pages\\Tareas\\Create.cshtml.cs",
+              "ToolTip": "C:\\SistemaGestionEscolar\\Pages\\Tareas\\Create.cshtml.cs",
+              "RelativeToolTip": "Pages\\Tareas\\Create.cshtml.cs",
+              "ViewState": "AgIAADMAAAAAAAAAAAAwwD0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-05T18:06:06.068Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Diagnostico.cshtml.cs",
+              "DocumentMoniker": "C:\\SistemaGestionEscolar\\Pages\\IA\\Diagnostico.cshtml.cs",
+              "RelativeDocumentMoniker": "Pages\\IA\\Diagnostico.cshtml.cs",
+              "ToolTip": "C:\\SistemaGestionEscolar\\Pages\\IA\\Diagnostico.cshtml.cs",
+              "RelativeToolTip": "Pages\\IA\\Diagnostico.cshtml.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABUAAABAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-03T19:13:12.017Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "Evento.cs",
+              "DocumentMoniker": "C:\\SistemaGestionEscolar\\Models\\Evento.cs",
+              "RelativeDocumentMoniker": "Models\\Evento.cs",
+              "ToolTip": "C:\\SistemaGestionEscolar\\Models\\Evento.cs",
+              "RelativeToolTip": "Models\\Evento.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-03T19:21:31.56Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "Alumno.cs",
+              "DocumentMoniker": "C:\\SistemaGestionEscolar\\Models\\Alumno.cs",
+              "RelativeDocumentMoniker": "Models\\Alumno.cs",
+              "ToolTip": "C:\\SistemaGestionEscolar\\Models\\Alumno.cs",
+              "RelativeToolTip": "Models\\Alumno.cs",
+              "ViewState": "AgIAAAYAAAAAAAAAAAAzwA0AAABCAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-03T19:16:13.512Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "Materia.cs",
+              "DocumentMoniker": "C:\\SistemaGestionEscolar\\Models\\Materia.cs",
+              "RelativeDocumentMoniker": "Models\\Materia.cs",
+              "ToolTip": "C:\\SistemaGestionEscolar\\Models\\Materia.cs",
+              "RelativeToolTip": "Models\\Materia.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAABDAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-03T19:17:56.187Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "Tarea.cs",
+              "DocumentMoniker": "C:\\SistemaGestionEscolar\\Models\\Tarea.cs",
+              "RelativeDocumentMoniker": "Models\\Tarea.cs",
+              "ToolTip": "C:\\SistemaGestionEscolar\\Models\\Tarea.cs",
+              "RelativeToolTip": "Models\\Tarea.cs",
+              "ViewState": "AgIAAAIAAAAAAAAAAAAAABAAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-03T19:19:07.419Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Diagnostico.cs",
+              "DocumentMoniker": "C:\\SistemaGestionEscolar\\Models\\Diagnostico.cs",
+              "RelativeDocumentMoniker": "Models\\Diagnostico.cs",
+              "ToolTip": "C:\\SistemaGestionEscolar\\Models\\Diagnostico.cs",
+              "RelativeToolTip": "Models\\Diagnostico.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAA+AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-03T19:17:30.865Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "Create.cshtml.cs",
+              "DocumentMoniker": "C:\\SistemaGestionEscolar\\Pages\\Planeacion\\Create.cshtml.cs",
+              "RelativeDocumentMoniker": "Pages\\Planeacion\\Create.cshtml.cs",
+              "ToolTip": "C:\\SistemaGestionEscolar\\Pages\\Planeacion\\Create.cshtml.cs",
+              "RelativeToolTip": "Pages\\Planeacion\\Create.cshtml.cs",
+              "ViewState": "AgIAABIAAAAAAAAAAAAkwB4AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-05T18:04:42.033Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "Evaluacion.cs",
+              "DocumentMoniker": "C:\\SistemaGestionEscolar\\Models\\Evaluacion.cs",
+              "RelativeDocumentMoniker": "Models\\Evaluacion.cs",
+              "ToolTip": "C:\\SistemaGestionEscolar\\Models\\Evaluacion.cs",
+              "RelativeToolTip": "Models\\Evaluacion.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-03T19:18:45.855Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "DocenteMateria.cs",
+              "DocumentMoniker": "C:\\SistemaGestionEscolar\\Models\\DocenteMateria.cs",
+              "RelativeDocumentMoniker": "Models\\DocenteMateria.cs",
+              "ToolTip": "C:\\SistemaGestionEscolar\\Models\\DocenteMateria.cs",
+              "RelativeToolTip": "Models\\DocenteMateria.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-03T19:18:20.375Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "Planeacion.cs",
+              "DocumentMoniker": "C:\\SistemaGestionEscolar\\Models\\Planeacion.cs",
+              "RelativeDocumentMoniker": "Models\\Planeacion.cs",
+              "ToolTip": "C:\\SistemaGestionEscolar\\Models\\Planeacion.cs",
+              "RelativeToolTip": "Models\\Planeacion.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-03T19:21:57.636Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "SeedData.cs",
+              "DocumentMoniker": "C:\\SistemaGestionEscolar\\Models\\SeedData.cs",
+              "RelativeDocumentMoniker": "Models\\SeedData.cs",
+              "ToolTip": "C:\\SistemaGestionEscolar\\Models\\SeedData.cs",
+              "RelativeToolTip": "Models\\SeedData.cs",
+              "ViewState": "AgIAAEYAAAAAAAAAAAAQwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-03T19:15:32.481Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "Asistencia.cs",
+              "DocumentMoniker": "C:\\SistemaGestionEscolar\\Models\\Asistencia.cs",
+              "RelativeDocumentMoniker": "Models\\Asistencia.cs",
+              "ToolTip": "C:\\SistemaGestionEscolar\\Models\\Asistencia.cs",
+              "RelativeToolTip": "Models\\Asistencia.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-03T19:17:08.484Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
+              "Title": "ApplicationUser.cs",
+              "DocumentMoniker": "C:\\SistemaGestionEscolar\\Models\\ApplicationUser.cs",
+              "RelativeDocumentMoniker": "Models\\ApplicationUser.cs",
+              "ToolTip": "C:\\SistemaGestionEscolar\\Models\\ApplicationUser.cs",
+              "RelativeToolTip": "Models\\ApplicationUser.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-03T19:16:36.419Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
+              "Title": "AIService.cs",
+              "DocumentMoniker": "C:\\SistemaGestionEscolar\\Services\\AIService.cs",
+              "RelativeDocumentMoniker": "Services\\AIService.cs",
+              "ToolTip": "C:\\SistemaGestionEscolar\\Services\\AIService.cs",
+              "RelativeToolTip": "Services\\AIService.cs",
+              "ViewState": "AgIAAA8AAAAAAAAAAAA1wCUAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-03T19:12:44.797Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 17,
+              "Title": "ApplicationDbContext.cs",
+              "DocumentMoniker": "C:\\SistemaGestionEscolar\\Data\\ApplicationDbContext.cs",
+              "RelativeDocumentMoniker": "Data\\ApplicationDbContext.cs",
+              "ToolTip": "C:\\SistemaGestionEscolar\\Data\\ApplicationDbContext.cs",
+              "RelativeToolTip": "Data\\ApplicationDbContext.cs",
+              "ViewState": "AgIAAAcAAAAAAAAAAAAAwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-03T19:19:31.006Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
