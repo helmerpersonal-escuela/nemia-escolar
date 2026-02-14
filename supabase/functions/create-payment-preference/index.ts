@@ -65,9 +65,9 @@ serve(async (req) => {
             ],
             external_reference: externalRef,
             back_urls: {
-                success: `${frontendUrl}/onboarding/success`,
-                failure: `${frontendUrl}/onboarding/failure`,
-                pending: `${frontendUrl}/onboarding/pending`
+                success: `${frontendUrl}/onboarding`,
+                failure: `${frontendUrl}/onboarding`,
+                pending: `${frontendUrl}/onboarding`
             },
             auto_return: "approved"
         }
