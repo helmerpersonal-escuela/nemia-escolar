@@ -6,7 +6,7 @@ import { DashboardLayout } from './components/layout/DashboardLayout'
 import { DashboardPage } from './features/dashboard/pages/DashboardPage'
 import { GroupsPage } from './features/groups/pages/GroupsPage'
 import { GroupDetailsPage } from './features/groups/pages/GroupDetailsPage'
-import { RegistrationWizard } from './features/auth/components/RegistrationWizard'
+import { OnboardingWizard } from './features/onboarding/components/OnboardingWizard'
 import { SettingsPage } from './features/settings/pages/SettingsPage'
 import { SchedulePage } from './features/schedule/pages/SchedulePage'
 import { AgendaPage } from './features/agenda/pages/AgendaPage'
@@ -110,7 +110,7 @@ function App() {
           <Route path="teacher-dashboard" element={<TeacherDashboard />} />
           <Route path="groups" element={<GroupsPage />} />
           <Route path="groups/:groupId" element={<GroupDetailsPage />} />
-          <Route path="onboarding" element={<RegistrationWizard />} />
+          <Route path="onboarding/*" element={<OnboardingWizard onComplete={() => window.location.href = '/'} />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="schedule" element={<SchedulePage />} />
           <Route path="agenda" element={<AgendaPage />} />

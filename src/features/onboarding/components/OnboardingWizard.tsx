@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
 
@@ -54,6 +55,10 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
 
     // --- EFFECTS ---
 
+
+    // Query Params for Payment Callback
+    const [searchParams] = useSearchParams()
+
     useEffect(() => {
         if (tenant) {
             setSchoolData(prev => ({
@@ -64,6 +69,18 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
             }))
         }
     }, [tenant])
+
+    useEffect(() => {
+        const status = searchParams.get('status')
+        const paymentDetails = searchParams.get('payment_id')
+
+        if (status === 'approved' && paymentDetails) {
+            handlePaymentSuccess()
+        } else if (status === 'failure' || status === 'rejected') {
+            setError('El pago no fue procesado. Por favor intente nuevamente.')
+            setStep(3) // Go back to payment step
+        }
+    }, [searchParams])
 
     useEffect(() => {
         const loadCatalog = async () => {
