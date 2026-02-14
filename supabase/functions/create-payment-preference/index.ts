@@ -51,6 +51,9 @@ serve(async (req) => {
             trialDays: trialDays || 0
         })
 
+
+        const frontendUrl = Deno.env.get('FRONTEND_URL') || 'http://localhost:5173'
+
         const payload = {
             items: [
                 {
@@ -62,9 +65,9 @@ serve(async (req) => {
             ],
             external_reference: externalRef,
             back_urls: {
-                success: "https://www.google.com?status=success",
-                failure: "https://www.google.com?status=failure",
-                pending: "https://www.google.com?status=pending"
+                success: `${frontendUrl}/onboarding/success`,
+                failure: `${frontendUrl}/onboarding/failure`,
+                pending: `${frontendUrl}/onboarding/pending`
             },
             auto_return: "approved"
         }

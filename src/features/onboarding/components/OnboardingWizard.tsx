@@ -287,7 +287,13 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
 
             if (response.error) throw response.error
 
+
             const { preferenceId } = response.data
+
+            if (!preferenceId) {
+                throw new Error("No se pudo iniciar el proceso de pago. Intente nuevamente.")
+            }
+
             // Show payment modal instead of redirecting
             setCurrentPreferenceId(preferenceId)
             setShowPaymentModal(true)
@@ -316,7 +322,13 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
 
             if (response.error) throw response.error
 
+
             const { preferenceId } = response.data
+
+            if (!preferenceId) {
+                throw new Error("No se pudo iniciar el proceso de pago. Intente nuevamente.")
+            }
+
             // Show payment modal instead of redirecting
             setCurrentPreferenceId(preferenceId)
             setShowPaymentModal(true)
