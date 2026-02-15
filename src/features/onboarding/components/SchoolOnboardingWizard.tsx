@@ -35,63 +35,76 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
     const [error, setError] = useState<string | null>(null)
 
     // --- FORM STATE ---
-    const [formData, setFormData] = useState({
-        // 1. Identity
-        official_name: '',
-        cct: '',
-        shift: 'MORNING' as 'MORNING' | 'AFTERNOON' | 'FULL_TIME',
-        zone: '',
-        sector: '',
-        regime: 'PÚBLICO (FEDERAL)',
+    const [formData, setFormData] = useState(() => {
+        const saved = sessionStorage.getItem('nemia_school_onboarding_data')
+        return saved ? JSON.parse(saved) : {
+            // 1. Identity
+            official_name: '',
+            cct: '',
+            shift: 'MORNING' as 'MORNING' | 'AFTERNOON' | 'FULL_TIME',
+            zone: '',
+            sector: '',
+            regime: 'PÚBLICO (FEDERAL)',
 
-        // 2. Location
-        address_street: '',
-        address_neighborhood: '',
-        address_zip_code: '',
-        address_municipality: '',
-        address_state: '',
+            // 2. Location
+            address_street: '',
+            address_neighborhood: '',
+            address_zip_code: '',
+            address_municipality: '',
+            address_state: '',
 
-        // 3. Contact
-        phone: '',
-        email: '',
-        social_media: {
-            website: '',
-            facebook: '',
-            instagram: '',
-            twitter: ''
-        },
+            // 3. Contact
+            phone: '',
+            email: '',
+            social_media: {
+                website: '',
+                facebook: '',
+                instagram: '',
+                twitter: ''
+            },
 
-        // 4. Academic
-        educational_level: 'SECONDARY',
-        curriculum_plan: 'PLAN 2022 (NEM)',
-        workshops: [] as string[],
-        current_cycle_start: '2025-08-25',
-        current_cycle_end: '2026-07-15',
+            // 4. Academic
+            educational_level: 'SECONDARY',
+            curriculum_plan: 'PLAN 2022 (NEM)',
+            workshops: [] as string[],
+            current_cycle_start: '2025-08-25',
+            current_cycle_end: '2026-07-15',
 
-        // 5. Auth & Logos
-        director_name: '',
-        director_curp: '',
-        logo_url: '',
-        header_logo_url: '',
-        digital_seal_url: ''
+            // 5. Auth & Logos
+            director_name: '',
+            director_curp: '',
+            logo_url: '',
+            header_logo_url: '',
+            digital_seal_url: ''
+        }
     })
 
     const [newWorkshop, setNewWorkshop] = useState('')
+
+    // NEW: Sync persistence
+    useEffect(() => {
+        sessionStorage.setItem('nemia_school_onboarding_data', JSON.stringify(formData))
+    }, [formData])
 
     useEffect(() => {
         sessionStorage.setItem('nemia_school_onboarding_step', step.toString())
     }, [step])
 
     useEffect(() => {
-        if (tenant) {
+        if (tenant && !sessionStorage.getItem('nemia_school_onboarding_data')) {
             setFormData(prev => ({
                 ...prev,
-                official_name: tenant.name || '',
+                official_name: tenant.name?.toUpperCase() || '',
                 cct: tenant.cct || '',
                 logo_url: tenant.logoUrl || ''
             }))
         }
     }, [tenant])
+
+    const clearPersistence = () => {
+        sessionStorage.removeItem('nemia_school_onboarding_step')
+        sessionStorage.removeItem('nemia_school_onboarding_data')
+    }
 
     const handleSaveStep = async () => {
         if (step < 4) {
@@ -132,6 +145,7 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
 
             if (tenantError) throw tenantError
 
+            clearPersistence()
             onComplete()
         } catch (err: any) {
             setError(err.message)
@@ -232,8 +246,7 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                                         if (tid) {
                                             await supabase.from('tenants').update({ onboarding_completed: true }).eq('id', tid)
                                             queryClient.clear()
-                                            sessionStorage.removeItem('nemia_onboarding_step')
-                                            sessionStorage.removeItem('nemia_school_onboarding_step')
+                                            clearPersistence()
                                             window.location.href = '/'
                                         } else {
                                             alert("No se pudo identificar tu espacio. Por favor recarga la página.")

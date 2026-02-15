@@ -19,30 +19,52 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    const [schoolData, setSchoolData] = useState({
-        name: '',
-        educationalLevel: 'SECONDARY' as 'SECONDARY' | 'TELESECUNDARIA',
-        cct: '',
-        shift: 'MORNING'
+    const [schoolData, setSchoolData] = useState(() => {
+        const saved = sessionStorage.getItem('nemia_onboarding_school_data')
+        return saved ? JSON.parse(saved) : {
+            name: '',
+            educationalLevel: 'SECONDARY' as 'SECONDARY' | 'TELESECUNDARIA',
+            cct: '',
+            shift: 'MORNING'
+        }
     })
 
-    const [yearData, setYearData] = useState({
-        name: new Date().getMonth() > 6 ? `CICLO ${new Date().getFullYear()}-${new Date().getFullYear() + 1}` : `CICLO ${new Date().getFullYear() - 1}-${new Date().getFullYear()}`,
-        startDate: new Date().getMonth() > 6 ? `${new Date().getFullYear()}-08-26` : `${new Date().getFullYear() - 1}-08-26`,
-        endDate: new Date().getMonth() > 6 ? `${new Date().getFullYear() + 1}-07-16` : `${new Date().getFullYear()}-07-16`
+    const [yearData, setYearData] = useState(() => {
+        const saved = sessionStorage.getItem('nemia_onboarding_year_data')
+        return saved ? JSON.parse(saved) : {
+            name: new Date().getMonth() > 6 ? `CICLO ${new Date().getFullYear()}-${new Date().getFullYear() + 1}` : `CICLO ${new Date().getFullYear() - 1}-${new Date().getFullYear()}`,
+            startDate: new Date().getMonth() > 6 ? `${new Date().getFullYear()}-08-26` : `${new Date().getFullYear() - 1}-08-26`,
+            endDate: new Date().getMonth() > 6 ? `${new Date().getFullYear() + 1}-07-16` : `${new Date().getFullYear()}-07-16`
+        }
     })
 
-    const [scheduleSettings, setScheduleSettings] = useState({
-        startTime: '08:00',
-        endTime: '14:00',
-        moduleDuration: 50,
-        breaks: [] as Array<{ name: string, start_time: string, end_time: string }>
+    const [scheduleSettings, setScheduleSettings] = useState(() => {
+        const saved = sessionStorage.getItem('nemia_onboarding_schedule_data')
+        return saved ? JSON.parse(saved) : {
+            startTime: '08:00',
+            endTime: '14:00',
+            moduleDuration: 50,
+            breaks: [] as Array<{ name: string, start_time: string, end_time: string }>
+        }
     })
 
     const [searchParams] = useSearchParams()
 
+    // NEW: Sync persistence
     useEffect(() => {
-        if (tenant) {
+        sessionStorage.setItem('nemia_onboarding_school_data', JSON.stringify(schoolData))
+    }, [schoolData])
+
+    useEffect(() => {
+        sessionStorage.setItem('nemia_onboarding_year_data', JSON.stringify(yearData))
+    }, [yearData])
+
+    useEffect(() => {
+        sessionStorage.setItem('nemia_onboarding_schedule_data', JSON.stringify(scheduleSettings))
+    }, [scheduleSettings])
+
+    useEffect(() => {
+        if (tenant && !sessionStorage.getItem('nemia_onboarding_school_data')) {
             setSchoolData(prev => ({
                 ...prev,
                 name: tenant.name?.toUpperCase() || '',
@@ -63,6 +85,13 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
             setStep(3)
         }
     }, [searchParams])
+
+    const clearPersistence = () => {
+        sessionStorage.removeItem('nemia_onboarding_step')
+        sessionStorage.removeItem('nemia_onboarding_school_data')
+        sessionStorage.removeItem('nemia_onboarding_year_data')
+        sessionStorage.removeItem('nemia_onboarding_schedule_data')
+    }
 
     const handleUpdateSchool = async () => {
         if (!schoolData.name || (tenant?.type !== 'INDEPENDENT' && !schoolData.cct)) {
@@ -230,7 +259,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                                     if (tid) {
                                         await supabase.from('tenants').update({ onboarding_completed: true }).eq('id', tid)
                                         queryClient.clear()
-                                        sessionStorage.removeItem('nemia_onboarding_step')
+                                        clearPersistence()
                                         window.location.href = '/'
                                     }
                                 } catch (e) { console.error(e) } finally { setLoading(false) }
