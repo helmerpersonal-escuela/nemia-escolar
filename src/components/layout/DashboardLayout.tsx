@@ -290,23 +290,6 @@ export const DashboardLayout = () => {
         }
     }
 
-    // Only show global loading if we have NO data. 
-    // This prevents unmounting child pages (like editors) during background refetches
-    if ((isTenantLoading && !tenant) || (isProfileLoading && !profile)) {
-        return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-6 shadow-xl shadow-blue-100"></div>
-                    <p className="text-gray-900 font-bold text-lg animate-pulse tracking-tight">Cargando tu espacio...</p>
-                    <p className="text-gray-400 text-xs mt-2 font-medium">Validando configuración de seguridad</p>
-                </div>
-            </div>
-        )
-    }
-
-    // If we're not loading and don't have core data, handle it (e.g., error boundary or login)
-    if (!tenant || !profile) return null;
-
     const handleLogout = async () => {
         await supabase.auth.signOut()
         window.location.href = '/login'
@@ -316,7 +299,7 @@ export const DashboardLayout = () => {
         navigate('/select-role')
     }
 
-    // Nuclear Fix Overlay
+    // Nuclear Fix Overlay - Prioritized over loading to show instant feedback after payment
     if (isSynchronizing || syncError || isApprovedParam) {
         return (
             <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
@@ -352,6 +335,23 @@ export const DashboardLayout = () => {
             </div>
         )
     }
+
+    // Only show global loading if we have NO data. 
+    // This prevents unmounting child pages (like editors) during background refetches
+    if ((isTenantLoading && !tenant) || (isProfileLoading && !profile)) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-6 shadow-xl shadow-blue-100"></div>
+                    <p className="text-gray-900 font-bold text-lg animate-pulse tracking-tight">Cargando tu espacio...</p>
+                    <p className="text-gray-400 text-xs mt-2 font-medium">Validando configuración de seguridad</p>
+                </div>
+            </div>
+        )
+    }
+
+    // If we're not loading and don't have core data, handle it (e.g., error boundary or login)
+    if (!tenant || !profile) return null;
 
     // Force Onboarding if needed
     if (showOnboarding) {
