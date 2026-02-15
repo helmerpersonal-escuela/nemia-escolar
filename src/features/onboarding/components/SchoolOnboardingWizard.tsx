@@ -123,6 +123,31 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
         sessionStorage.removeItem('nemia_payment_syncing')
     }
 
+    const handleCancelRegistration = async () => {
+        if (confirm('¿Estás seguro de cancelar tu registro? Toda tu información será eliminada para liberar tu correo.')) {
+            setLoading(true)
+            try {
+                // Call RPC to delete own account
+                const { error } = await supabase.rpc('delete_own_account')
+                if (error) throw error
+
+                // Sign out just in case
+                await supabase.auth.signOut()
+
+                // Clear storage
+                clearPersistence()
+                localStorage.clear()
+
+                // Redirect to login
+                window.location.href = '/login'
+            } catch (err: any) {
+                console.error('Error canceling registration:', err)
+                alert('Error al cancelar: ' + err.message)
+                setLoading(false)
+            }
+        }
+    }
+
     const handleSaveStep = async () => {
         if (step < 4) {
             setStep(step + 1)
@@ -239,48 +264,6 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                 <div className="p-8 md:p-12">
                     {/* STEP INDICATOR AND EMERGENCY BAR */}
                     <div className="mb-10">
-                        {/* EMERGENCY RECOVERY BANNER (Visible on all steps if needed) */}
-                        <div className="mb-6 bg-slate-900 border border-slate-700/50 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg">
-                                    <ShieldCheck className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <p className="text-white text-xs font-black uppercase tracking-widest">¿Ya realizaste tu pago?</p>
-                                    <p className="text-slate-400 text-[10px] font-medium">Usa este botón si sigues viendo esta pantalla tras pagar</p>
-                                </div>
-                            </div>
-                            <button
-                                onClick={async () => {
-                                    setLoading(true)
-                                    try {
-                                        let tid = tenant?.id
-                                        if (!tid) {
-                                            const { data: { user } } = await supabase.auth.getUser()
-                                            const { data: p } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).maybeSingle()
-                                            tid = p?.tenant_id
-                                        }
-                                        if (tid) {
-                                            await supabase.from('tenants').update({ onboarding_completed: true }).eq('id', tid)
-                                            queryClient.clear()
-                                            clearPersistence()
-                                            window.location.href = '/'
-                                        } else {
-                                            alert("No se pudo identificar tu espacio. Por favor recarga la página.")
-                                        }
-                                    } catch (e) {
-                                        console.error(e)
-                                    } finally {
-                                        setLoading(false)
-                                    }
-                                }}
-                                disabled={loading}
-                                className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-emerald-900/20 hover:bg-emerald-500 active:scale-95 transition-all flex items-center justify-center gap-2 whitespace-nowrap"
-                            >
-                                {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
-                                Sincronizar mi suscripción ahora
-                            </button>
-                        </div>
 
                         <div className="max-w-2xl mx-auto">
                             {/* Error Alert */}
@@ -587,11 +570,7 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                             <div className="mt-16 flex justify-between items-center bg-slate-50/80 -mx-12 -mb-12 p-8 border-t border-slate-100">
                                 {step === 0 ? (
                                     <button
-                                        onClick={() => {
-                                            if (confirm('¿Deseas cancelar la configuración institucional y volver a la selección de modo?')) {
-                                                navigate('/register')
-                                            }
-                                        }}
+                                        onClick={handleCancelRegistration}
                                         className="flex items-center font-black text-sm uppercase tracking-widest px-8 py-4 rounded-2xl text-red-400 hover:text-red-500 hover:bg-red-50 transition-all"
                                     >
                                         <ArrowLeft className="w-5 h-5 mr-3" /> Cancelar

@@ -2,7 +2,7 @@ import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { Capacitor } from '@capacitor/core'
-import { School, User, Loader2, ArrowLeft, Mail, Lock, Building2, BookOpen } from 'lucide-react'
+import { School, User, Loader2, ArrowLeft, Mail, Lock, Building2, BookOpen, Check, X } from 'lucide-react'
 
 type RegistrationMode = 'INDEPENDENT' | 'SCHOOL' | 'JOIN' | null
 
@@ -20,6 +20,7 @@ export const RegisterPage = () => {
     const [formData, setFormData] = useState({
         email: '',
         password: '',
+        confirmPassword: '',
         firstName: '',
         lastNamePaternal: '',
         lastNameMaternal: '',
@@ -71,9 +72,39 @@ export const RegisterPage = () => {
         }
     }
 
+    const validateEmail = (email: string) => {
+        const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+        return re.test(String(email).toLowerCase())
+    }
+
+    // Password Validation State
+    const passwordCriteria = {
+        length: formData.password.length >= 8,
+        uppercase: /[A-Z]/.test(formData.password),
+        number: /[0-9]/.test(formData.password),
+        special: /[^A-Za-z0-9]/.test(formData.password)
+    }
+
+    const isPasswordValid = Object.values(passwordCriteria).every(Boolean)
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!mode) return
+
+        if (!validateEmail(formData.email)) {
+            alert("Por favor ingresa un correo electrónico válido")
+            return
+        }
+
+        if (!isPasswordValid) {
+            alert("La contraseña no cumple con los requisitos de seguridad")
+            return
+        }
+
+        if (formData.password !== formData.confirmPassword) {
+            alert("Las contraseñas no coinciden")
+            return
+        }
 
         setLoading(true)
         try {
@@ -418,6 +449,42 @@ export const RegisterPage = () => {
                                         value={formData.password}
                                         onChange={handleChange}
                                     />
+                                </div>
+                                <div className="space-y-2 mb-4">
+                                    <div className="flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-widest">
+                                        <span className={`flex items-center gap-1 ${passwordCriteria.length ? 'text-emerald-600' : 'text-gray-400'}`}>
+                                            {passwordCriteria.length ? <Check className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border border-gray-300" />} Min 8 caracteres
+                                        </span>
+                                        <span className={`flex items-center gap-1 ${passwordCriteria.uppercase ? 'text-emerald-600' : 'text-gray-400'}`}>
+                                            {passwordCriteria.uppercase ? <Check className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border border-gray-300" />} 1 Mayúscula
+                                        </span>
+                                        <span className={`flex items-center gap-1 ${passwordCriteria.number ? 'text-emerald-600' : 'text-gray-400'}`}>
+                                            {passwordCriteria.number ? <Check className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border border-gray-300" />} 1 Número
+                                        </span>
+                                        <span className={`flex items-center gap-1 ${passwordCriteria.special ? 'text-emerald-600' : 'text-gray-400'}`}>
+                                            {passwordCriteria.special ? <Check className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border border-gray-300" />} 1 Símbolo
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="relative group">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                        <Lock className="h-5 w-5 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
+                                    </div>
+                                    <input
+                                        name="confirmPassword"
+                                        type="password"
+                                        required
+                                        className={`clay-input block w-full pl-11 pr-4 py-3 font-bold text-gray-900 outline-none ${formData.confirmPassword && formData.password !== formData.confirmPassword ? 'border-red-300 focus:border-red-500' : ''}`}
+                                        placeholder="Confirmar contraseña"
+                                        value={formData.confirmPassword}
+                                        onChange={handleChange}
+                                    />
+                                    {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                                        <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-red-500 text-xs font-bold uppercase">
+                                            No coinciden
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

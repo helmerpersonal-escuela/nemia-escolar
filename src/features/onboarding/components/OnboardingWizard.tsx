@@ -110,6 +110,31 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
         sessionStorage.removeItem('nemia_payment_syncing')
     }
 
+    const handleCancelRegistration = async () => {
+        if (confirm('¿Estás seguro de cancelar tu registro? Toda tu información será eliminada para liberar tu correo.')) {
+            setLoading(true)
+            try {
+                // Call RPC to delete own account
+                const { error } = await supabase.rpc('delete_own_account')
+                if (error) throw error
+
+                // Sign out just in case
+                await supabase.auth.signOut()
+
+                // Clear storage
+                clearPersistence()
+                localStorage.clear()
+
+                // Redirect to login
+                window.location.href = '/login'
+            } catch (err: any) {
+                console.error('Error canceling registration:', err)
+                alert('Error al cancelar: ' + err.message)
+                setLoading(false)
+            }
+        }
+    }
+
     const handleUpdateSchool = async () => {
         if (!schoolData.name || (tenant?.type !== 'INDEPENDENT' && !schoolData.cct)) {
             setError('Por favor completa los datos obligatorios.')
@@ -221,11 +246,15 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
         }
     }
 
+    const [newBreak, setNewBreak] = useState({ name: 'RECESO', start: '10:00', end: '10:30' })
+
     const handleAddBreak = () => {
-        setScheduleSettings((prev: any) => ({
-            ...prev,
-            breaks: [...prev.breaks, { name: 'RECESO', start_time: '10:00', end_time: '10:30' }]
-        }))
+        if (newBreak.start && newBreak.end) {
+            setScheduleSettings((prev: any) => ({
+                ...prev,
+                breaks: [...prev.breaks, { name: newBreak.name.toUpperCase(), start_time: newBreak.start, end_time: newBreak.end }]
+            }))
+        }
     }
 
     return (
@@ -253,41 +282,6 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                 </div>
 
                 <div className="p-8 md:p-12">
-                    <div className="mb-8 bg-slate-900 border border-slate-700/50 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl relative z-20">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg">
-                                <ShieldCheck className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <p className="text-white text-[10px] font-black uppercase tracking-widest">¿Ya realizaste tu pago?</p>
-                                <p className="text-slate-400 text-[9px] font-medium">Usa este botón si sigues viendo esta pantalla tras pagar</p>
-                            </div>
-                        </div>
-                        <button
-                            onClick={async () => {
-                                setLoading(true)
-                                try {
-                                    let tid = tenant?.id
-                                    if (!tid) {
-                                        const { data: { user } } = await supabase.auth.getUser()
-                                        const { data: p } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).maybeSingle()
-                                        tid = p?.tenant_id
-                                    }
-                                    if (tid) {
-                                        await supabase.from('tenants').update({ onboarding_completed: true }).eq('id', tid)
-                                        queryClient.clear()
-                                        clearPersistence()
-                                        window.location.href = '/'
-                                    }
-                                } catch (e) { console.error(e) } finally { setLoading(false) }
-                            }}
-                            disabled={loading}
-                            className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg hover:bg-emerald-500 transition-all flex items-center justify-center gap-2"
-                        >
-                            {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
-                            Sincronizar mi suscripción ahora
-                        </button>
-                    </div>
 
                     {loading && (
                         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
@@ -328,6 +322,9 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                                 <button onClick={handleUpdateSchool} className="clay-button w-full py-5 bg-indigo-500 text-white rounded-2xl font-black text-lg hover:bg-indigo-600 flex items-center justify-center gap-3 uppercase tracking-widest">
                                     Continuar <ArrowRight className="w-5 h-5" />
                                 </button>
+                                <button onClick={handleCancelRegistration} className="w-full mt-4 py-4 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 rounded-2xl transition-all flex items-center justify-center gap-2">
+                                    <Trash2 className="w-4 h-4" /> Cancelar y Eliminar Cuenta
+                                </button>
                             </div>
                         </div>
                     )}
@@ -364,7 +361,23 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                                     <input type="number" value={scheduleSettings.moduleDuration} onChange={e => setScheduleSettings({ ...scheduleSettings, moduleDuration: Number(e.target.value) })} className="clay-input w-full p-3 text-center" />
                                 </div>
                                 <div className="space-y-4">
-                                    <button onClick={handleAddBreak} className="p-3 bg-orange-100 text-orange-600 rounded-xl w-full font-black uppercase text-xs">Agregar Receso</button>
+                                    <div className="p-4 bg-orange-50/50 rounded-2xl border border-orange-100 mb-4">
+                                        <div className="grid grid-cols-2 gap-2 mb-2">
+                                            <div>
+                                                <label className="text-[10px] font-black text-orange-400 uppercase">Inicio</label>
+                                                <input type="time" value={newBreak.start} onChange={e => setNewBreak({ ...newBreak, start: e.target.value })} className="w-full p-2 rounded-xl border border-orange-200 text-xs font-bold text-orange-800" />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] font-black text-orange-400 uppercase">Fin</label>
+                                                <input type="time" value={newBreak.end} onChange={e => setNewBreak({ ...newBreak, end: e.target.value })} className="w-full p-2 rounded-xl border border-orange-200 text-xs font-bold text-orange-800" />
+                                            </div>
+                                        </div>
+                                        <button onClick={handleAddBreak} className="w-full py-2 bg-orange-500 text-white rounded-xl font-black uppercase text-[10px] shadow-lg shadow-orange-200 hover:bg-orange-600 transition-all">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <Plus className="w-3 h-3" /> Agregar Receso
+                                            </div>
+                                        </button>
+                                    </div>
                                     {scheduleSettings.breaks.map((b: any, i: number) => (
                                         <div key={i} className="p-4 bg-white border-2 border-orange-50 rounded-2xl flex justify-between items-center capitalize font-bold text-slate-600">
                                             {b.name} ({b.start_time} - {b.end_time})
