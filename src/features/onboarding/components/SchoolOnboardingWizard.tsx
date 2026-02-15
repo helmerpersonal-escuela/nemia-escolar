@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
+import { queryClient } from '../../../lib/queryClient'
 import {
     School,
     MapPin,
@@ -16,13 +17,20 @@ import {
     Globe,
     Instagram,
     Facebook,
-    Twitter
+    Twitter,
+    Zap
 } from 'lucide-react'
 
 export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void }) => {
     const navigate = useNavigate()
     const { data: tenant } = useTenant()
-    const [step, setStep] = useState(0)
+
+    // Persistence: load initial step from storage if available
+    const [step, setStep] = useState(() => {
+        const saved = sessionStorage.getItem('nemia_school_onboarding_step')
+        return saved ? parseInt(saved, 10) : 0
+    })
+
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -69,6 +77,10 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
     })
 
     const [newWorkshop, setNewWorkshop] = useState('')
+
+    useEffect(() => {
+        sessionStorage.setItem('nemia_school_onboarding_step', step.toString())
+    }, [step])
 
     useEffect(() => {
         if (tenant) {
@@ -194,334 +206,383 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                 </div>
 
                 <div className="p-8 md:p-12">
-                    {/* Error Alert */}
-                    {error && (
-                        <div className="mb-8 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 font-bold flex items-center shadow-sm">
-                            <ArrowLeft className="w-5 h-5 mr-3" />
-                            {error}
-                        </div>
-                    )}
-
-                    {/* Step 0: Identity */}
-                    {step === 0 && (
-                        <div className="animate-in fade-in slide-in-from-right duration-500">
-                            <SectionHeader
-                                title="Identidad Institucional"
-                                description="Datos fiscales y legales que identifican al plantel ante las autoridades."
-                                icon={School}
-                                color="blue"
-                            />
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <InputField
-                                    label="Nombre Oficial del Plantel"
-                                    value={formData.official_name}
-                                    onChange={v => setFormData({ ...formData, official_name: v })}
-                                    placeholder='Ej: "ESCUELA SECUNDARIA TÉCNICA NO. 12"'
-                                />
-                                <InputField
-                                    label="CCT (Clave Centro de Trabajo)"
-                                    value={formData.cct}
-                                    onChange={v => setFormData({ ...formData, cct: v })}
-                                    placeholder="00XXX0000X"
-                                />
-                                <SelectField
-                                    label="Turno"
-                                    value={formData.shift}
-                                    onChange={v => setFormData({ ...formData, shift: v as any })}
-                                    options={[
-                                        { label: 'Matutino', value: 'MORNING' },
-                                        { label: 'Vespertino', value: 'AFTERNOON' },
-                                        { label: 'Tiempo Completo', value: 'FULL_TIME' }
-                                    ]}
-                                />
-                                <InputField
-                                    label="Zona Escolar"
-                                    value={formData.zone}
-                                    onChange={v => setFormData({ ...formData, zone: v })}
-                                    placeholder="Ej: 054"
-                                />
-                                <InputField
-                                    label="Sector"
-                                    value={formData.sector}
-                                    onChange={v => setFormData({ ...formData, sector: v })}
-                                    placeholder="Ej: 01"
-                                />
-                                <SelectField
-                                    label="Régimen"
-                                    value={formData.regime}
-                                    onChange={v => setFormData({ ...formData, regime: v })}
-                                    options={[
-                                        { label: 'Público (Federal)', value: 'PÚBLICO (FEDERAL)' },
-                                        { label: 'Público (Estatal)', value: 'PÚBLICO (ESTATAL)' },
-                                        { label: 'Transferido', value: 'TRANSFERIDO' },
-                                        { label: 'Particular / Privado', value: 'PARTICULAR' }
-                                    ]}
-                                />
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Step 1: Location */}
-                    {step === 1 && (
-                        <div className="animate-in fade-in slide-in-from-right duration-500">
-                            <SectionHeader
-                                title="Ubicación Geográfica"
-                                description="Dirección oficial para geolocalización y documentos administrativos."
-                                icon={MapPin}
-                                color="emerald"
-                            />
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="md:col-span-2">
-                                    <InputField
-                                        label="Calle y Número (Exterior/Interior)"
-                                        value={formData.address_street}
-                                        onChange={v => setFormData({ ...formData, address_street: v })}
-                                        placeholder="Ej: Av. Reforma S/N"
-                                    />
+                    {/* STEP INDICATOR AND EMERGENCY BAR */}
+                    <div className="mb-10">
+                        {/* EMERGENCY RECOVERY BANNER (Visible on all steps if needed) */}
+                        <div className="mb-6 bg-slate-900 border border-slate-700/50 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg">
+                                    <ShieldCheck className="w-5 h-5" />
                                 </div>
-                                <InputField
-                                    label="Colonia o Localidad"
-                                    value={formData.address_neighborhood}
-                                    onChange={v => setFormData({ ...formData, address_neighborhood: v })}
-                                    placeholder="Ej: Centro"
-                                />
-                                <InputField
-                                    label="Código Postal"
-                                    value={formData.address_zip_code}
-                                    onChange={v => setFormData({ ...formData, address_zip_code: v })}
-                                    placeholder="00000"
-                                />
-                                <InputField
-                                    label="Municipio"
-                                    value={formData.address_municipality}
-                                    onChange={v => setFormData({ ...formData, address_municipality: v })}
-                                    placeholder="Ej: Guadalajara"
-                                />
-                                <InputField
-                                    label="Estado"
-                                    value={formData.address_state}
-                                    onChange={v => setFormData({ ...formData, address_state: v })}
-                                    placeholder="Ej: Jalisco"
-                                />
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Step 2: Contact */}
-                    {step === 2 && (
-                        <div className="animate-in fade-in slide-in-from-right duration-500">
-                            <SectionHeader
-                                title="Contacto y Comunicación"
-                                description="Canales oficiales para vinculación con la SEP y la comunidad."
-                                icon={PhoneCall}
-                                color="purple"
-                            />
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <InputField
-                                    label="Teléfono Institucional"
-                                    value={formData.phone}
-                                    onChange={v => setFormData({ ...formData, phone: v })}
-                                    placeholder="(000) 000-0000"
-                                />
-                                <InputField
-                                    label="Correo Electrónico Oficial"
-                                    value={formData.email}
-                                    onChange={v => setFormData({ ...formData, email: v })}
-                                    placeholder="correo@escuela.gob.mx"
-                                />
-                                <div className="md:col-span-2">
-                                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center">
-                                        <Globe className="w-4 h-4 mr-2" /> Redes Sociales y Sitios
-                                    </h4>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="relative">
-                                            <Globe className="absolute left-4 top-4 w-5 h-5 text-slate-300" />
-                                            <input
-                                                value={formData.social_media.website}
-                                                onChange={e => setFormData({ ...formData, social_media: { ...formData.social_media, website: e.target.value } })}
-                                                className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-slate-100 focus:border-purple-400 outline-none font-bold text-slate-700"
-                                                placeholder="Sitio Web (Opcional)"
-                                            />
-                                        </div>
-                                        <div className="relative">
-                                            <Facebook className="absolute left-4 top-4 w-5 h-5 text-slate-300" />
-                                            <input
-                                                value={formData.social_media.facebook}
-                                                onChange={e => setFormData({ ...formData, social_media: { ...formData.social_media, facebook: e.target.value } })}
-                                                className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-slate-100 focus:border-purple-400 outline-none font-bold text-slate-700"
-                                                placeholder="Facebook Profile"
-                                            />
-                                        </div>
-                                        <div className="relative">
-                                            <Instagram className="absolute left-4 top-4 w-5 h-5 text-slate-300" />
-                                            <input
-                                                value={formData.social_media.instagram}
-                                                onChange={e => setFormData({ ...formData, social_media: { ...formData.social_media, instagram: e.target.value } })}
-                                                className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-slate-100 focus:border-purple-400 outline-none font-bold text-slate-700"
-                                                placeholder="Instagram Handle"
-                                            />
-                                        </div>
-                                        <div className="relative">
-                                            <Twitter className="absolute left-4 top-4 w-5 h-5 text-slate-300" />
-                                            <input
-                                                value={formData.social_media.twitter}
-                                                onChange={e => setFormData({ ...formData, social_media: { ...formData.social_media, twitter: e.target.value } })}
-                                                className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-slate-100 focus:border-purple-400 outline-none font-bold text-slate-700"
-                                                placeholder="Twitter / X"
-                                            />
-                                        </div>
-                                    </div>
+                                <div>
+                                    <p className="text-white text-xs font-black uppercase tracking-widest">¿Ya realizaste tu pago?</p>
+                                    <p className="text-slate-400 text-[10px] font-medium">Usa este botón si sigues viendo esta pantalla tras pagar</p>
                                 </div>
                             </div>
-                        </div>
-                    )}
-
-                    {/* Step 3: Academic */}
-                    {step === 3 && (
-                        <div className="animate-in fade-in slide-in-from-right duration-500">
-                            <SectionHeader
-                                title="Configuración Académica"
-                                description="Programas de estudio, tecnologías y fechas clave del ciclo."
-                                icon={BookOpen}
-                                color="orange"
-                            />
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <SelectField
-                                    label="Nivel Educativo"
-                                    value={formData.educational_level}
-                                    onChange={v => setFormData({ ...formData, educational_level: v })}
-                                    options={[
-                                        { label: 'Secundaria', value: 'SECONDARY' },
-                                        { label: 'Telesecundaria', value: 'TELESECUNDARIA' }
-                                    ]}
-                                />
-                                <SelectField
-                                    label="Plan de Estudios"
-                                    value={formData.curriculum_plan}
-                                    onChange={v => setFormData({ ...formData, curriculum_plan: v })}
-                                    options={[
-                                        { label: 'Plan 2022 (NEM)', value: 'PLAN 2022 (NEM)' },
-                                        { label: 'Plan 2017 (Aprendizajes Clave)', value: 'PLAN 2017' },
-                                        { label: 'Plan 2011', value: 'PLAN 2011' }
-                                    ]}
-                                />
-                                <div className="space-y-4">
-                                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Ciclo Escolar Actual</label>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1">
-                                            <span className="text-[10px] font-bold text-slate-400 ml-1">INICIO</span>
-                                            <input type="date" value={formData.current_cycle_start} onChange={e => setFormData({ ...formData, current_cycle_start: e.target.value })} className="w-full p-4 rounded-2xl border-2 border-slate-100 font-bold text-slate-700" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <span className="text-[10px] font-bold text-slate-400 ml-1">FIN</span>
-                                            <input type="date" value={formData.current_cycle_end} onChange={e => setFormData({ ...formData, current_cycle_end: e.target.value })} className="w-full p-4 rounded-2xl border-2 border-slate-100 font-bold text-slate-700" />
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="space-y-4">
-                                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Tecnologías / Talleres</label>
-                                    <div className="flex gap-2">
-                                        <input
-                                            value={newWorkshop}
-                                            onChange={e => setNewWorkshop(e.target.value)}
-                                            onKeyPress={e => e.key === 'Enter' && handleAddWorkshop()}
-                                            placeholder="Añadir Taller (Ej: Carpintería)"
-                                            className="flex-grow p-4 rounded-2xl border-2 border-slate-100 font-bold outline-none focus:border-orange-400 text-sm"
-                                        />
-                                        <button onClick={handleAddWorkshop} className="p-4 bg-orange-600 text-white rounded-2xl shadow-lg shadow-orange-100 active:scale-95 transition-all">
-                                            <Check className="w-6 h-6" />
-                                        </button>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2">
-                                        {formData.workshops.map((w, i) => (
-                                            <span key={i} className="px-4 py-2 bg-orange-50 text-orange-700 rounded-full text-xs font-black flex items-center border border-orange-100">
-                                                {w}
-                                                <button onClick={() => handleRemoveWorkshop(i)} className="ml-2 hover:text-red-500">×</button>
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Step 4: Auth & Logos */}
-                    {step === 4 && (
-                        <div className="animate-in fade-in slide-in-from-right duration-500">
-                            <SectionHeader
-                                title="Representación y Autorización"
-                                description="Datos de dirección y personalización de boletas oficiales."
-                                icon={ShieldCheck}
-                                color="indigo"
-                            />
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <InputField
-                                    label="Nombre del Director(a)"
-                                    value={formData.director_name}
-                                    onChange={v => setFormData({ ...formData, director_name: v })}
-                                    placeholder="Ej: Profr. Juan Pérez López"
-                                />
-                                <InputField
-                                    label="CURP del Director"
-                                    value={formData.director_curp}
-                                    onChange={v => setFormData({ ...formData, director_curp: v })}
-                                    placeholder="XXXX000000XXXXXX00"
-                                />
-                                <div className="md:col-span-2">
-                                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1 mb-4 block">Identidad Visual y Sellos</label>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        <LogoUpload
-                                            label="Logotipo del Plantel"
-                                            hint="Formato PNG, sugerido 500x500"
-                                            url={formData.logo_url}
-                                            onUpload={u => setFormData({ ...formData, logo_url: u })}
-                                        />
-                                        <LogoUpload
-                                            label="Logo Institucional (SEP)"
-                                            hint="Imagen oficial del gobierno"
-                                            url={formData.header_logo_url}
-                                            onUpload={u => setFormData({ ...formData, header_logo_url: u })}
-                                        />
-                                        <LogoUpload
-                                            label="Sello Digital Educativo"
-                                            hint="Para validación de boletas"
-                                            url={formData.digital_seal_url}
-                                            onUpload={u => setFormData({ ...formData, digital_seal_url: u })}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Navigation */}
-                    <div className="mt-16 flex justify-between items-center bg-slate-50/80 -mx-12 -mb-12 p-8 border-t border-slate-100">
-                        {step === 0 ? (
                             <button
-                                onClick={() => {
-                                    if (confirm('¿Deseas cancelar la configuración institucional y volver a la selección de modo?')) {
-                                        navigate('/register')
+                                onClick={async () => {
+                                    setLoading(true)
+                                    try {
+                                        let tid = tenant?.id
+                                        if (!tid) {
+                                            const { data: { user } } = await supabase.auth.getUser()
+                                            const { data: p } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).maybeSingle()
+                                            tid = p?.tenant_id
+                                        }
+                                        if (tid) {
+                                            await supabase.from('tenants').update({ onboarding_completed: true }).eq('id', tid)
+                                            queryClient.clear()
+                                            sessionStorage.removeItem('nemia_onboarding_step')
+                                            sessionStorage.removeItem('nemia_school_onboarding_step')
+                                            window.location.href = '/'
+                                        } else {
+                                            alert("No se pudo identificar tu espacio. Por favor recarga la página.")
+                                        }
+                                    } catch (e) {
+                                        console.error(e)
+                                    } finally {
+                                        setLoading(false)
                                     }
                                 }}
-                                className="flex items-center font-black text-sm uppercase tracking-widest px-8 py-4 rounded-2xl text-red-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                                disabled={loading}
+                                className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-emerald-900/20 hover:bg-emerald-500 active:scale-95 transition-all flex items-center justify-center gap-2 whitespace-nowrap"
                             >
-                                <ArrowLeft className="w-5 h-5 mr-3" /> Cancelar
+                                {loading ? <Loader2 className="w-3.4 h-3.4 animate-spin" /> : <Zap className="w-3.4 h-3.4" />}
+                                Sincronizar mi suscripción ahora
                             </button>
-                        ) : (
-                            <button
-                                onClick={() => setStep(step - 1)}
-                                className="flex items-center font-black text-sm uppercase tracking-widest px-8 py-4 rounded-2xl text-slate-400 hover:text-slate-600 hover:bg-white transition-all"
-                            >
-                                <ArrowLeft className="w-5 h-5 mr-3" /> Atrás
-                            </button>
-                        )}
-                        <button
-                            onClick={handleSaveStep}
-                            className="bg-blue-600 hover:bg-blue-500 text-white font-black text-sm uppercase tracking-widest px-12 py-5 rounded-[2rem] shadow-2xl shadow-blue-200 transition-all active:scale-95 flex items-center"
-                        >
-                            {step === steps.length - 1 ? '🎉 Finalizar Registro' : 'Siguiente Paso'}
-                            <ArrowRight className="w-5 h-5 ml-3" />
-                        </button>
+                        </div>
+
+                        <div className="max-w-2xl mx-auto">
+                            {/* Error Alert */}
+                            {error && (
+                                <div className="mb-8 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 font-bold flex items-center shadow-sm">
+                                    <ArrowLeft className="w-5 h-5 mr-3" />
+                                    {error}
+                                </div>
+                            )}
+
+                            {/* Step 0: Identity */}
+                            {step === 0 && (
+                                <div className="animate-in fade-in slide-in-from-right duration-500">
+                                    <SectionHeader
+                                        title="Identidad Institucional"
+                                        description="Datos fiscales y legales que identifican al plantel ante las autoridades."
+                                        icon={School}
+                                        color="blue"
+                                    />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <InputField
+                                            label="Nombre Oficial del Plantel"
+                                            value={formData.official_name}
+                                            onChange={v => setFormData({ ...formData, official_name: v })}
+                                            placeholder='Ej: "ESCUELA SECUNDARIA TÉCNICA NO. 12"'
+                                        />
+                                        <InputField
+                                            label="CCT (Clave Centro de Trabajo)"
+                                            value={formData.cct}
+                                            onChange={v => setFormData({ ...formData, cct: v })}
+                                            placeholder="00XXX0000X"
+                                        />
+                                        <SelectField
+                                            label="Turno"
+                                            value={formData.shift}
+                                            onChange={v => setFormData({ ...formData, shift: v as any })}
+                                            options={[
+                                                { label: 'Matutino', value: 'MORNING' },
+                                                { label: 'Vespertino', value: 'AFTERNOON' },
+                                                { label: 'Tiempo Completo', value: 'FULL_TIME' }
+                                            ]}
+                                        />
+                                        <InputField
+                                            label="Zona Escolar"
+                                            value={formData.zone}
+                                            onChange={v => setFormData({ ...formData, zone: v })}
+                                            placeholder="Ej: 054"
+                                        />
+                                        <InputField
+                                            label="Sector"
+                                            value={formData.sector}
+                                            onChange={v => setFormData({ ...formData, sector: v })}
+                                            placeholder="Ej: 01"
+                                        />
+                                        <SelectField
+                                            label="Régimen"
+                                            value={formData.regime}
+                                            onChange={v => setFormData({ ...formData, regime: v })}
+                                            options={[
+                                                { label: 'Público (Federal)', value: 'PÚBLICO (FEDERAL)' },
+                                                { label: 'Público (Estatal)', value: 'PÚBLICO (ESTATAL)' },
+                                                { label: 'Transferido', value: 'TRANSFERIDO' },
+                                                { label: 'Particular / Privado', value: 'PARTICULAR' }
+                                            ]}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Step 1: Location */}
+                            {step === 1 && (
+                                <div className="animate-in fade-in slide-in-from-right duration-500">
+                                    <SectionHeader
+                                        title="Ubicación Geográfica"
+                                        description="Dirección oficial para geolocalización y documentos administrativos."
+                                        icon={MapPin}
+                                        color="emerald"
+                                    />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div className="md:col-span-2">
+                                            <InputField
+                                                label="Calle y Número (Exterior/Interior)"
+                                                value={formData.address_street}
+                                                onChange={v => setFormData({ ...formData, address_street: v })}
+                                                placeholder="Ej: Av. Reforma S/N"
+                                            />
+                                        </div>
+                                        <InputField
+                                            label="Colonia o Localidad"
+                                            value={formData.address_neighborhood}
+                                            onChange={v => setFormData({ ...formData, address_neighborhood: v })}
+                                            placeholder="Ej: Centro"
+                                        />
+                                        <InputField
+                                            label="Código Postal"
+                                            value={formData.address_zip_code}
+                                            onChange={v => setFormData({ ...formData, address_zip_code: v })}
+                                            placeholder="00000"
+                                        />
+                                        <InputField
+                                            label="Municipio"
+                                            value={formData.address_municipality}
+                                            onChange={v => setFormData({ ...formData, address_municipality: v })}
+                                            placeholder="Ej: Guadalajara"
+                                        />
+                                        <InputField
+                                            label="Estado"
+                                            value={formData.address_state}
+                                            onChange={v => setFormData({ ...formData, address_state: v })}
+                                            placeholder="Ej: Jalisco"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Step 2: Contact */}
+                            {step === 2 && (
+                                <div className="animate-in fade-in slide-in-from-right duration-500">
+                                    <SectionHeader
+                                        title="Contacto y Comunicación"
+                                        description="Canales oficiales para vinculación con la SEP y la comunidad."
+                                        icon={PhoneCall}
+                                        color="purple"
+                                    />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <InputField
+                                            label="Teléfono Institucional"
+                                            value={formData.phone}
+                                            onChange={v => setFormData({ ...formData, phone: v })}
+                                            placeholder="(000) 000-0000"
+                                        />
+                                        <InputField
+                                            label="Correo Electrónico Oficial"
+                                            value={formData.email}
+                                            onChange={v => setFormData({ ...formData, email: v })}
+                                            placeholder="correo@escuela.gob.mx"
+                                        />
+                                        <div className="md:col-span-2">
+                                            <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center">
+                                                <Globe className="w-4 h-4 mr-2" /> Redes Sociales y Sitios
+                                            </h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="relative">
+                                                    <Globe className="absolute left-4 top-4 w-5 h-5 text-slate-300" />
+                                                    <input
+                                                        value={formData.social_media.website}
+                                                        onChange={e => setFormData({ ...formData, social_media: { ...formData.social_media, website: e.target.value } })}
+                                                        className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-slate-100 focus:border-purple-400 outline-none font-bold text-slate-700"
+                                                        placeholder="Sitio Web (Opcional)"
+                                                    />
+                                                </div>
+                                                <div className="relative">
+                                                    <Facebook className="absolute left-4 top-4 w-5 h-5 text-slate-300" />
+                                                    <input
+                                                        value={formData.social_media.facebook}
+                                                        onChange={e => setFormData({ ...formData, social_media: { ...formData.social_media, facebook: e.target.value } })}
+                                                        className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-slate-100 focus:border-purple-400 outline-none font-bold text-slate-700"
+                                                        placeholder="Facebook Profile"
+                                                    />
+                                                </div>
+                                                <div className="relative">
+                                                    <Instagram className="absolute left-4 top-4 w-5 h-5 text-slate-300" />
+                                                    <input
+                                                        value={formData.social_media.instagram}
+                                                        onChange={e => setFormData({ ...formData, social_media: { ...formData.social_media, instagram: e.target.value } })}
+                                                        className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-slate-100 focus:border-purple-400 outline-none font-bold text-slate-700"
+                                                        placeholder="Instagram Handle"
+                                                    />
+                                                </div>
+                                                <div className="relative">
+                                                    <Twitter className="absolute left-4 top-4 w-5 h-5 text-slate-300" />
+                                                    <input
+                                                        value={formData.social_media.twitter}
+                                                        onChange={e => setFormData({ ...formData, social_media: { ...formData.social_media, twitter: e.target.value } })}
+                                                        className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-slate-100 focus:border-purple-400 outline-none font-bold text-slate-700"
+                                                        placeholder="Twitter / X"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Step 3: Academic */}
+                            {step === 3 && (
+                                <div className="animate-in fade-in slide-in-from-right duration-500">
+                                    <SectionHeader
+                                        title="Configuración Académica"
+                                        description="Programas de estudio, tecnologías y fechas clave del ciclo."
+                                        icon={BookOpen}
+                                        color="orange"
+                                    />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <SelectField
+                                            label="Nivel Educativo"
+                                            value={formData.educational_level}
+                                            onChange={v => setFormData({ ...formData, educational_level: v })}
+                                            options={[
+                                                { label: 'Secundaria', value: 'SECONDARY' },
+                                                { label: 'Telesecundaria', value: 'TELESECUNDARIA' }
+                                            ]}
+                                        />
+                                        <SelectField
+                                            label="Plan de Estudios"
+                                            value={formData.curriculum_plan}
+                                            onChange={v => setFormData({ ...formData, curriculum_plan: v })}
+                                            options={[
+                                                { label: 'Plan 2022 (NEM)', value: 'PLAN 2022 (NEM)' },
+                                                { label: 'Plan 2017 (Aprendizajes Clave)', value: 'PLAN 2017' },
+                                                { label: 'Plan 2011', value: 'PLAN 2011' }
+                                            ]}
+                                        />
+                                        <div className="space-y-4">
+                                            <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Ciclo Escolar Actual</label>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-1">
+                                                    <span className="text-[10px] font-bold text-slate-400 ml-1">INICIO</span>
+                                                    <input type="date" value={formData.current_cycle_start} onChange={e => setFormData({ ...formData, current_cycle_start: e.target.value })} className="w-full p-4 rounded-2xl border-2 border-slate-100 font-bold text-slate-700" />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <span className="text-[10px] font-bold text-slate-400 ml-1">FIN</span>
+                                                    <input type="date" value={formData.current_cycle_end} onChange={e => setFormData({ ...formData, current_cycle_end: e.target.value })} className="w-full p-4 rounded-2xl border-2 border-slate-100 font-bold text-slate-700" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-4">
+                                            <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Tecnologías / Talleres</label>
+                                            <div className="flex gap-2">
+                                                <input
+                                                    value={newWorkshop}
+                                                    onChange={e => setNewWorkshop(e.target.value)}
+                                                    onKeyPress={e => e.key === 'Enter' && handleAddWorkshop()}
+                                                    placeholder="Añadir Taller (Ej: Carpintería)"
+                                                    className="flex-grow p-4 rounded-2xl border-2 border-slate-100 font-bold outline-none focus:border-orange-400 text-sm"
+                                                />
+                                                <button onClick={handleAddWorkshop} className="p-4 bg-orange-600 text-white rounded-2xl shadow-lg shadow-orange-100 active:scale-95 transition-all">
+                                                    <Check className="w-6 h-6" />
+                                                </button>
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {formData.workshops.map((w, i) => (
+                                                    <span key={i} className="px-4 py-2 bg-orange-50 text-orange-700 rounded-full text-xs font-black flex items-center border border-orange-100">
+                                                        {w}
+                                                        <button onClick={() => handleRemoveWorkshop(i)} className="ml-2 hover:text-red-500">×</button>
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Step 4: Auth & Logos */}
+                            {step === 4 && (
+                                <div className="animate-in fade-in slide-in-from-right duration-500">
+                                    <SectionHeader
+                                        title="Representación y Autorización"
+                                        description="Datos de dirección y personalización de boletas oficiales."
+                                        icon={ShieldCheck}
+                                        color="indigo"
+                                    />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <InputField
+                                            label="Nombre del Director(a)"
+                                            value={formData.director_name}
+                                            onChange={v => setFormData({ ...formData, director_name: v })}
+                                            placeholder="Ej: Profr. Juan Pérez López"
+                                        />
+                                        <InputField
+                                            label="CURP del Director"
+                                            value={formData.director_curp}
+                                            onChange={v => setFormData({ ...formData, director_curp: v })}
+                                            placeholder="XXXX000000XXXXXX00"
+                                        />
+                                        <div className="md:col-span-2">
+                                            <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1 mb-4 block">Identidad Visual y Sellos</label>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                                <LogoUpload
+                                                    label="Logotipo del Plantel"
+                                                    hint="Formato PNG, sugerido 500x500"
+                                                    url={formData.logo_url}
+                                                    onUpload={u => setFormData({ ...formData, logo_url: u })}
+                                                />
+                                                <LogoUpload
+                                                    label="Logo Institucional (SEP)"
+                                                    hint="Imagen oficial del gobierno"
+                                                    url={formData.header_logo_url}
+                                                    onUpload={u => setFormData({ ...formData, header_logo_url: u })}
+                                                />
+                                                <LogoUpload
+                                                    label="Sello Digital Educativo"
+                                                    hint="Para validación de boletas"
+                                                    url={formData.digital_seal_url}
+                                                    onUpload={u => setFormData({ ...formData, digital_seal_url: u })}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Navigation */}
+                            <div className="mt-16 flex justify-between items-center bg-slate-50/80 -mx-12 -mb-12 p-8 border-t border-slate-100">
+                                {step === 0 ? (
+                                    <button
+                                        onClick={() => {
+                                            if (confirm('¿Deseas cancelar la configuración institucional y volver a la selección de modo?')) {
+                                                navigate('/register')
+                                            }
+                                        }}
+                                        className="flex items-center font-black text-sm uppercase tracking-widest px-8 py-4 rounded-2xl text-red-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                                    >
+                                        <ArrowLeft className="w-5 h-5 mr-3" /> Cancelar
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={() => setStep(step - 1)}
+                                        className="flex items-center font-black text-sm uppercase tracking-widest px-8 py-4 rounded-2xl text-slate-400 hover:text-slate-600 hover:bg-white transition-all"
+                                    >
+                                        <ArrowLeft className="w-5 h-5 mr-3" /> Atrás
+                                    </button>
+                                )}
+                                <button
+                                    onClick={handleSaveStep}
+                                    className="bg-blue-600 hover:bg-blue-500 text-white font-black text-sm uppercase tracking-widest px-12 py-5 rounded-[2rem] shadow-2xl shadow-blue-200 transition-all active:scale-95 flex items-center"
+                                >
+                                    {step === steps.length - 1 ? '🎉 Finalizar Registro' : 'Siguiente Paso'}
+                                    <ArrowRight className="w-5 h-5 ml-3" />
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -615,8 +676,6 @@ const LogoUpload = ({ label, hint, url, onUpload }: LogoUploadProps) => {
         const file = e.target.files?.[0]
         if (!file) return
 
-        // In a real app, upload to Supabase Storage here
-        // For now, simulate with a data URL or just show placeholder action
         const reader = new FileReader()
         reader.onload = (event) => {
             onUpload(event.target?.result as string)

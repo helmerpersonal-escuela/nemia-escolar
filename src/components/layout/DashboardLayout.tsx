@@ -160,7 +160,8 @@ export const DashboardLayout = () => {
     const { isOnline, pendingCount, isSyncing } = useOfflineSync()
 
     // Derived states
-    const isApprovedParam = new URLSearchParams(location.search).get('status') === 'approved'
+    // Use window.location.search directly to be absolute even across re-renders
+    const isApprovedParam = new URLSearchParams(window.location.search).get('status') === 'approved'
     const showOnboarding = tenant ? (tenant.onboardingCompleted === false && !isApprovedParam) : false
 
     // Attendance Reminder Hook
@@ -337,8 +338,9 @@ export const DashboardLayout = () => {
     }
 
     // Only show global loading if we have NO data. 
-    // This prevents unmounting child pages (like editors) during background refetches
-    if ((isTenantLoading && !tenant) || (isProfileLoading && !profile)) {
+    // This prevents unmounting child pages (like editors or the wizard) during background refetches (e.g. on window resize/focus)
+    const isActuallyLoading = (isTenantLoading && !tenant) || (isProfileLoading && !profile);
+    if (isActuallyLoading) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">

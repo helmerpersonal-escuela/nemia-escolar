@@ -13,7 +13,13 @@ import { Capacitor } from '@capacitor/core'
 export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => {
     const navigate = useNavigate()
     const { data: tenant } = useTenant()
-    const [step, setStep] = useState(0) // 0: School Details, 1: Cycle, 2: Schedule, 3: Payment
+
+    // Persistence: load initial step from storage if available
+    const [step, setStep] = useState(() => {
+        const saved = sessionStorage.getItem('nemia_onboarding_step')
+        return saved ? parseInt(saved, 10) : 0
+    })
+
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -74,6 +80,10 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
             }))
         }
     }, [tenant])
+
+    useEffect(() => {
+        sessionStorage.setItem('nemia_onboarding_step', step.toString())
+    }, [step])
 
     useEffect(() => {
         const status = searchParams.get('status')

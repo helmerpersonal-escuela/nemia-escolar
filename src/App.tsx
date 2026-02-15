@@ -62,7 +62,7 @@ function App() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
 
-  console.log("NEMIA_SYNC_PROD_V3_DEPLOYED")
+  console.log("NEMIA_SYNC_PROD_V4_ULTRA_FORCE_21:07")
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
