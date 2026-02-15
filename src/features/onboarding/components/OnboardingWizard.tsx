@@ -62,6 +62,8 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
     // Query Params for Payment Callback
     const [searchParams] = useSearchParams()
 
+    const isApprovedParam = new URLSearchParams(window.location.search).get('status') === 'approved'
+
     useEffect(() => {
         if (tenant) {
             setSchoolData(prev => ({
@@ -442,6 +444,13 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                 <h1 className="text-3xl font-black text-slate-900 tracking-tight">
                     Configuración Inicial
                 </h1>
+                {/* GLOBAL EMERGENCY ALERT - Visible on any step if approved param exists */}
+                {isApprovedParam && (
+                    <div className="mt-4 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-center gap-3">
+                        <Zap className="w-5 h-5 text-emerald-600 animate-pulse" />
+                        <p className="text-emerald-700 text-xs font-black uppercase tracking-tight">Detectamos tu pago. Usa el botón al final de la página para activar.</p>
+                    </div>
+                )}
                 <p className="text-slate-500 mt-2 font-medium">
                     Ayúdanos a configurar tu escuela para brindarte la mejor experiencia profesional.
                 </p>
@@ -591,6 +600,40 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                                 </button>
                             </div>
                         </div>
+                    </div>
+                )}
+
+                {/* EMERGENCY BUTTON REPLICATED FOR ALL STEPS */}
+                {step > 0 && step < 4 && (
+                    <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+                        <p className="text-gray-400 text-[10px] font-medium mb-2">¿Ya pagaste pero sigues aquí?</p>
+                        <button
+                            onClick={async () => {
+                                setLoading(true)
+                                try {
+                                    let tid = tenant?.id
+                                    if (!tid) {
+                                        const { data: { user } } = await supabase.auth.getUser()
+                                        const { data: p } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).maybeSingle()
+                                        tid = p?.tenant_id
+                                    }
+                                    if (tid) {
+                                        await supabase.from('tenants').update({ onboarding_completed: true }).eq('id', tid)
+                                        queryClient.clear()
+                                        window.location.href = '/'
+                                    } else {
+                                        alert("No se pudo identificar tu cuenta. Por favor recarga e intenta de nuevo.")
+                                    }
+                                } catch (e: any) {
+                                    alert("Error al sincronizar: " + e.message)
+                                } finally {
+                                    setLoading(false)
+                                }
+                            }}
+                            className="text-indigo-600 font-extrabold text-[10px] uppercase tracking-[0.2em] hover:text-indigo-800 transition-colors"
+                        >
+                            Sincronizar mi suscripción ahora
+                        </button>
                     </div>
                 )}
 
