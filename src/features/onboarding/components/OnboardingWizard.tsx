@@ -52,20 +52,31 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
 
     // NEW: Sync persistence
     useEffect(() => {
-        sessionStorage.setItem('nemia_onboarding_school_data', JSON.stringify(schoolData))
+        // Only save if we have actual data or if it's intentionally cleared
+        if (schoolData.name || schoolData.cct) {
+            sessionStorage.setItem('nemia_onboarding_school_data', JSON.stringify(schoolData))
+        }
     }, [schoolData])
 
     useEffect(() => {
-        sessionStorage.setItem('nemia_onboarding_year_data', JSON.stringify(yearData))
+        if (yearData.name) {
+            sessionStorage.setItem('nemia_onboarding_year_data', JSON.stringify(yearData))
+        }
     }, [yearData])
 
     useEffect(() => {
-        sessionStorage.setItem('nemia_onboarding_schedule_data', JSON.stringify(scheduleSettings))
+        if (scheduleSettings.startTime) {
+            sessionStorage.setItem('nemia_onboarding_schedule_data', JSON.stringify(scheduleSettings))
+        }
     }, [scheduleSettings])
 
     useEffect(() => {
-        if (tenant && !sessionStorage.getItem('nemia_onboarding_school_data')) {
-            setSchoolData(prev => ({
+        // If storage is EMPTY or only contains the DEFAULT skeleton, try to seed from tenant
+        const saved = sessionStorage.getItem('nemia_onboarding_school_data')
+        const isDefault = !saved || JSON.parse(saved).name === ''
+
+        if (tenant && isDefault) {
+            setSchoolData((prev: any) => ({
                 ...prev,
                 name: tenant.name?.toUpperCase() || '',
                 educationalLevel: (tenant.educationalLevel as any) || 'SECONDARY',
@@ -80,6 +91,11 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
 
     useEffect(() => {
         const status = searchParams.get('status')
+        if (status === 'approved') {
+            // NEW: Set a persistent syncing flag so DashboardLayout knows to keep the overlay
+            // even if URL params are lost during redirects/refreshes.
+            sessionStorage.setItem('nemia_payment_syncing', 'true')
+        }
         if (status === 'failure' || status === 'rejected') {
             setError('El pago no fue procesado. Por favor intente nuevamente.')
             setStep(3)
@@ -91,6 +107,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
         sessionStorage.removeItem('nemia_onboarding_school_data')
         sessionStorage.removeItem('nemia_onboarding_year_data')
         sessionStorage.removeItem('nemia_onboarding_schedule_data')
+        sessionStorage.removeItem('nemia_payment_syncing')
     }
 
     const handleUpdateSchool = async () => {
@@ -205,7 +222,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
     }
 
     const handleAddBreak = () => {
-        setScheduleSettings(prev => ({
+        setScheduleSettings((prev: any) => ({
             ...prev,
             breaks: [...prev.breaks, { name: 'RECESO', start_time: '10:00', end_time: '10:30' }]
         }))
@@ -348,10 +365,10 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                                 </div>
                                 <div className="space-y-4">
                                     <button onClick={handleAddBreak} className="p-3 bg-orange-100 text-orange-600 rounded-xl w-full font-black uppercase text-xs">Agregar Receso</button>
-                                    {scheduleSettings.breaks.map((b, i) => (
+                                    {scheduleSettings.breaks.map((b: any, i: number) => (
                                         <div key={i} className="p-4 bg-white border-2 border-orange-50 rounded-2xl flex justify-between items-center capitalize font-bold text-slate-600">
                                             {b.name} ({b.start_time} - {b.end_time})
-                                            <button onClick={() => setScheduleSettings(prev => ({ ...prev, breaks: prev.breaks.filter((_, idx) => idx !== i) }))} className="text-red-400">×</button>
+                                            <button onClick={() => setScheduleSettings((prev: any) => ({ ...prev, breaks: prev.breaks.filter((_: any, idx: number) => idx !== i) }))} className="text-red-400">×</button>
                                         </div>
                                     ))}
                                 </div>

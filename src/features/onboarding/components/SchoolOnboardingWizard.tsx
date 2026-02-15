@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
 import { queryClient } from '../../../lib/queryClient'
@@ -80,10 +80,14 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
     })
 
     const [newWorkshop, setNewWorkshop] = useState('')
+    const [searchParams] = useSearchParams()
 
     // NEW: Sync persistence
     useEffect(() => {
-        sessionStorage.setItem('nemia_school_onboarding_data', JSON.stringify(formData))
+        // Only save if we have actual data
+        if (formData.official_name || formData.cct) {
+            sessionStorage.setItem('nemia_school_onboarding_data', JSON.stringify(formData))
+        }
     }, [formData])
 
     useEffect(() => {
@@ -91,8 +95,20 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
     }, [step])
 
     useEffect(() => {
-        if (tenant && !sessionStorage.getItem('nemia_school_onboarding_data')) {
-            setFormData(prev => ({
+        // Handle persistent syncing flag
+        const status = searchParams.get('status')
+        if (status === 'approved') {
+            sessionStorage.setItem('nemia_payment_syncing', 'true')
+        }
+    }, [searchParams])
+
+    useEffect(() => {
+        // If storage is EMPTY or only contains the DEFAULT skeleton, try to seed from tenant
+        const saved = sessionStorage.getItem('nemia_school_onboarding_data')
+        const isDefault = !saved || JSON.parse(saved).official_name === ''
+
+        if (tenant && isDefault) {
+            setFormData((prev: any) => ({
                 ...prev,
                 official_name: tenant.name?.toUpperCase() || '',
                 cct: tenant.cct || '',
@@ -104,6 +120,7 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
     const clearPersistence = () => {
         sessionStorage.removeItem('nemia_school_onboarding_step')
         sessionStorage.removeItem('nemia_school_onboarding_data')
+        sessionStorage.removeItem('nemia_payment_syncing')
     }
 
     const handleSaveStep = async () => {
@@ -164,7 +181,7 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
 
     const handleAddWorkshop = () => {
         if (newWorkshop.trim()) {
-            setFormData(prev => ({
+            setFormData((prev: any) => ({
                 ...prev,
                 workshops: [...prev.workshops, newWorkshop.trim().toUpperCase()]
             }))
@@ -173,9 +190,9 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
     }
 
     const handleRemoveWorkshop = (index: number) => {
-        setFormData(prev => ({
+        setFormData((prev: any) => ({
             ...prev,
-            workshops: prev.workshops.filter((_, i) => i !== index)
+            workshops: prev.workshops.filter((_: any, i: number) => i !== index)
         }))
     }
 
@@ -260,7 +277,7 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                                 disabled={loading}
                                 className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-emerald-900/20 hover:bg-emerald-500 active:scale-95 transition-all flex items-center justify-center gap-2 whitespace-nowrap"
                             >
-                                {loading ? <Loader2 className="w-3.4 h-3.4 animate-spin" /> : <Zap className="w-3.4 h-3.4" />}
+                                {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
                                 Sincronizar mi suscripción ahora
                             </button>
                         </div>
@@ -505,7 +522,7 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                                                 </button>
                                             </div>
                                             <div className="flex flex-wrap gap-2">
-                                                {formData.workshops.map((w, i) => (
+                                                {formData.workshops.map((w: any, i: number) => (
                                                     <span key={i} className="px-4 py-2 bg-orange-50 text-orange-700 rounded-full text-xs font-black flex items-center border border-orange-100">
                                                         {w}
                                                         <button onClick={() => handleRemoveWorkshop(i)} className="ml-2 hover:text-red-500">×</button>

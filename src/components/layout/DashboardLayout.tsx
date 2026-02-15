@@ -162,7 +162,8 @@ export const DashboardLayout = () => {
     // Derived states
     // Use window.location.search directly to be absolute even across re-renders
     const isApprovedParam = new URLSearchParams(window.location.search).get('status') === 'approved'
-    const showOnboarding = tenant ? (tenant.onboardingCompleted === false && !isApprovedParam) : false
+    const isSyncPersistent = sessionStorage.getItem('nemia_payment_syncing') === 'true'
+    const showOnboarding = tenant ? (tenant.onboardingCompleted === false && !isApprovedParam && !isSyncPersistent) : false
 
     // Attendance Reminder Hook
     useAttendanceReminder()
@@ -186,19 +187,20 @@ export const DashboardLayout = () => {
         }
     }, [])
 
-    // --- NUCLEAR FIX: PROACTIVE ONBOARDING COMPLETION ---
     useEffect(() => {
         const checkPaymentStatus = async () => {
             const params = new URLSearchParams(window.location.search)
             const status = params.get('status')
 
-            if (status === 'approved' && !isSynchronizing) {
+            // Trigger sync if we have the param OR the persistent flag
+            if ((status === 'approved' || isSyncPersistent) && !isSynchronizing) {
                 console.log("DASHBOARD_LAYOUT: Nuclear Fix Triggered")
                 setIsSynchronizing(true)
 
                 try {
                     // Try to get tenantId from external_reference (most reliable)
                     let targetTenantId = tenant?.id
+                    // ... rest of logic stays similar but we use the targetTenantId to finish ...
                     const extRef = params.get('external_reference')
                     if (extRef) {
                         try {
@@ -273,6 +275,13 @@ export const DashboardLayout = () => {
         checkPaymentStatus()
     }, [location.search, tenant?.id])
 
+    // Cleanup sync flag if onboarding is completed
+    useEffect(() => {
+        if (tenant?.onboardingCompleted === true) {
+            sessionStorage.removeItem('nemia_payment_syncing')
+        }
+    }, [tenant?.onboardingCompleted])
+
     const loadRoles = async () => {
         try {
             const { data: { user } } = await supabase.auth.getUser()
@@ -301,7 +310,7 @@ export const DashboardLayout = () => {
     }
 
     // Nuclear Fix Overlay - Prioritized over loading to show instant feedback after payment
-    if (isSynchronizing || syncError || isApprovedParam) {
+    if (isSynchronizing || syncError || isApprovedParam || isSyncPersistent) {
         return (
             <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
                 <div className="max-w-md w-full bg-white rounded-[3rem] p-10 shadow-2xl border-4 border-emerald-50 text-center animate-in zoom-in duration-500">

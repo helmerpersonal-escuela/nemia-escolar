@@ -25,12 +25,13 @@ export const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
     }
 
     // If on onboarding or settings, allow access (so they can configure or pay)
-    // ALSO: If we have an approved payment status, we MUST let it pass to DashboardLayout so it can sync
+    // ALSO: If we have an approved payment status OR are in persistent sync, we MUST let it pass
     const params = new URLSearchParams(location.search)
     const isApproved = params.get('status') === 'approved'
+    const isSyncPersistent = sessionStorage.getItem('nemia_payment_syncing') === 'true'
     const exemptPaths = ['/onboarding', '/settings', '/paywall']
 
-    if (exemptPaths.includes(location.pathname) || isApproved) {
+    if (exemptPaths.includes(location.pathname) || isApproved || isSyncPersistent) {
         return children ? <>{children}</> : <Outlet />
     }
 
