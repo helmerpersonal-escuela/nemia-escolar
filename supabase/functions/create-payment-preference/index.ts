@@ -52,9 +52,9 @@ serve(async (req) => {
 
         const frontendUrl = Deno.env.get('FRONTEND_URL') || 'http://localhost:5173'
 
-        let successUrl = `${frontendUrl}/onboarding?status=approved`
-        let failureUrl = `${frontendUrl}/onboarding?status=failure`
-        let pendingUrl = `${frontendUrl}/onboarding?status=pending`
+        let successUrl = `${frontendUrl}/?status=approved`
+        let failureUrl = `${frontendUrl}/?status=failure`
+        let pendingUrl = `${frontendUrl}/?status=pending`
 
         if (platform === 'android' || platform === 'ios') {
             successUrl = `nemia://onboarding?status=approved`

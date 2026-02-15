@@ -82,6 +82,27 @@ function App() {
   }, [])
 
   useEffect(() => {
+    // Check for payment callback params in the URL (Root Fallback Strategy)
+    const handlePaymentCallback = () => {
+      const params = new URLSearchParams(window.location.search)
+      const status = params.get('status')
+      const paymentId = params.get('payment_id')
+
+      // Only run this check if we are at the root path to avoid conflicts
+      if (window.location.pathname === '/' && status) {
+        console.log('Payment callback detected at root, redirecting to onboarding...')
+        if (status === 'approved') {
+          navigate(`/onboarding?status=approved${paymentId ? `&payment_id=${paymentId}` : ''}`)
+        } else {
+          navigate('/onboarding?status=failure')
+        }
+      }
+    }
+
+    handlePaymentCallback()
+  }, [navigate])
+
+  useEffect(() => {
     // Deep Linking Listener
     import('@capacitor/app').then(({ App: CapApp }) => {
       CapApp.addListener('appUrlOpen', (data) => {
