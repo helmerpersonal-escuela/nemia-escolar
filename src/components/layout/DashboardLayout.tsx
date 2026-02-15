@@ -240,7 +240,7 @@ export const DashboardLayout = () => {
 
                         if (updateError) throw updateError
 
-                        // Clear cache aggressively to force fresh fetch on next load
+                        // Clear cache aggressively
                         queryClient.clear()
 
                         // Clean URL
@@ -249,18 +249,22 @@ export const DashboardLayout = () => {
                         window.history.replaceState({}, '', url.toString())
 
                         // Small delay for DB propagation
-                        await new Promise(resolve => setTimeout(resolve, 2000))
+                        await new Promise(resolve => setTimeout(resolve, 3000))
 
-                        // Force hard redirect to home - this is the most reliable way to clear all state
+                        // Force hard redirect to home - ensures everything is fresh
                         window.location.href = '/'
                     } else {
-                        throw new Error("No se pudo identificar tu cuenta escolar.")
+                        throw new Error("No se pudo identificar tu cuenta escolar automáticamente.")
                     }
                 } catch (err: any) {
                     console.error("DASHBOARD_LAYOUT: Sync error:", err)
-                    setSyncError(err.message)
+                    setSyncError(err.message || "Error desconocido al activar suscripción")
                 } finally {
-                    setIsSynchronizing(false)
+                    // We don't hide the overlay on error so the user sees the message
+                    // and doesn't get redirected to Step 1 instantly
+                    if (!syncError) {
+                        setIsSynchronizing(false)
+                    }
                 }
             }
         }
@@ -313,7 +317,7 @@ export const DashboardLayout = () => {
     }
 
     // Nuclear Fix Overlay
-    if (isSynchronizing || syncError) {
+    if (isSynchronizing || syncError || isApprovedParam) {
         return (
             <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
                 <div className="max-w-md w-full bg-white rounded-[3rem] p-10 shadow-2xl border-4 border-emerald-50 text-center animate-in zoom-in duration-500">

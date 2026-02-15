@@ -72,8 +72,16 @@ function App() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session)
-      if (event === 'SIGNED_OUT' || event === 'SIGNED_IN') {
+      if (event === 'SIGNED_OUT') {
         queryClient.clear()
+      }
+      if (event === 'SIGNED_IN') {
+        queryClient.clear()
+        // If we have payment params, stay on current URL or go home preserving them
+        const search = window.location.search
+        if (search.includes('status=')) {
+          navigate(`/${search}`, { replace: true })
+        }
       }
     })
 
@@ -139,7 +147,7 @@ function App() {
         } />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route path="/select-role" element={session ? <RoleSelectionPage /> : <Navigate to="/login" />} />
+        <Route path="/select-role" element={session ? <RoleSelectionPage /> : <Navigate to={`/login${window.location.search}`} replace />} />
         <Route
           path="/"
           element={
@@ -148,7 +156,7 @@ function App() {
                 <DashboardLayout />
               </SubscriptionGuard>
             ) : (
-              <Navigate to="/login" />
+              <Navigate to={`/login${window.location.search}`} replace />
             )
           }
         >

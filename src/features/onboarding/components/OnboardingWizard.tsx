@@ -557,6 +557,39 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                                     Continuar <ArrowRight className="w-5 h-5" />
                                 </button>
                             </div>
+
+                            {/* EMERGENCY RECOVERY LINK */}
+                            <div className="mt-12 pt-8 border-t border-gray-100/50 text-center">
+                                <p className="text-gray-400 text-xs font-medium mb-3">¿Ya realizaste tu pago pero sigues viendo esta pantalla?</p>
+                                <button
+                                    onClick={async () => {
+                                        setLoading(true)
+                                        try {
+                                            let tid = tenant?.id
+                                            if (!tid) {
+                                                const { data: { user } } = await supabase.auth.getUser()
+                                                const { data: p } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).maybeSingle()
+                                                tid = p?.tenant_id
+                                            }
+                                            if (tid) {
+                                                console.log("EMERGENCY_SYNC: Forcing activation for tenant:", tid)
+                                                await supabase.from('tenants').update({ onboarding_completed: true }).eq('id', tid)
+                                                queryClient.clear()
+                                                window.location.href = '/'
+                                            } else {
+                                                alert("No pudimos identificar tu cuenta escolar. Prueba cerrando sesión e iniciando de nuevo.")
+                                            }
+                                        } catch (e: any) {
+                                            alert("Error al sincronizar: " + e.message)
+                                        } finally {
+                                            setLoading(false)
+                                        }
+                                    }}
+                                    className="text-indigo-600 font-extrabold text-[10px] uppercase tracking-[0.2em] hover:text-indigo-800 transition-colors"
+                                >
+                                    Sincronizar mi suscripción ahora
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}
