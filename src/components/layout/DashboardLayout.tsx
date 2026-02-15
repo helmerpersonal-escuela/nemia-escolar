@@ -160,7 +160,8 @@ export const DashboardLayout = () => {
     const { isOnline, pendingCount, isSyncing } = useOfflineSync()
 
     // Derived states
-    const showOnboarding = tenant ? tenant.onboardingCompleted === false : false
+    const isApprovedParam = new URLSearchParams(location.search).get('status') === 'approved'
+    const showOnboarding = tenant ? (tenant.onboardingCompleted === false && !isApprovedParam) : false
 
     // Attendance Reminder Hook
     useAttendanceReminder()
@@ -200,17 +201,22 @@ export const DashboardLayout = () => {
                     const extRef = params.get('external_reference')
                     if (extRef) {
                         try {
+                            // Case 1: JSON encoded string (legacy)
                             const parsed = JSON.parse(extRef)
                             if (parsed.tenantId) {
                                 targetTenantId = parsed.tenantId
-                                console.log("DASHBOARD_LAYOUT: Extracted targetTenantId from URL:", targetTenantId)
+                                console.log("DASHBOARD_LAYOUT: Extracted targetTenantId from JSON:", targetTenantId)
                             }
                         } catch (e) {
-                            console.error("Failed to parse external_reference:", e)
+                            // Case 2: Direct UUID string
+                            if (extRef.length > 20) {
+                                targetTenantId = extRef
+                                console.log("DASHBOARD_LAYOUT: Extracted targetTenantId from direct string:", targetTenantId)
+                            }
                         }
                     }
 
-                    // Fallback to current user's profile if still missing
+                    // Fallback to current user's profile metadata if still missing
                     if (!targetTenantId) {
                         const { data: { user } } = await supabase.auth.getUser()
                         if (user) {
@@ -219,7 +225,9 @@ export const DashboardLayout = () => {
                                 .select('tenant_id')
                                 .eq('id', user.id)
                                 .maybeSingle()
+
                             targetTenantId = profileData?.tenant_id
+                            console.log("DASHBOARD_LAYOUT: Fallback targetTenantId from profile:", targetTenantId)
                         }
                     }
 

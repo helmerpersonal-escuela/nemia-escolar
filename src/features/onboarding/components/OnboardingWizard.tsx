@@ -5,7 +5,7 @@ import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
 import { queryClient } from '../../../lib/queryClient'
 
-import { Check, Calendar, BookOpen, AlertCircle, Trash2, Plus, ArrowRight, School, Clock, Loader2, Coffee, ArrowLeft, CreditCard, Zap, Gift, X } from 'lucide-react'
+import { Check, Calendar, BookOpen, AlertCircle, Trash2, Plus, ArrowRight, School, Clock, Loader2, Coffee, ArrowLeft, CreditCard, Zap, Gift, X, ShieldCheck } from 'lucide-react'
 import { Browser } from '@capacitor/browser'
 import { Capacitor } from '@capacitor/core'
 // import { PaymentModule } from '../../../components/payment/PaymentModule'
@@ -400,13 +400,42 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
             {/* Header */}
             <div className="text-center mb-10 relative z-10">
                 {new URLSearchParams(window.location.search).get('status') === 'approved' && (
-                    <div className="mb-8 p-6 bg-emerald-50 border-2 border-emerald-200 rounded-[2rem] text-center animate-bounce">
-                        <p className="text-emerald-700 font-black mb-4">¡PAGO DETECTADO CORRECTAMENTE!</p>
+                    <div className="mb-8 p-8 bg-emerald-50 border-4 border-emerald-200 rounded-[2.5rem] text-center shadow-xl animate-in zoom-in duration-500">
+                        <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Zap className="w-8 h-8 animate-pulse" />
+                        </div>
+                        <p className="text-emerald-900 font-black text-xl mb-2">¡PAGO CONFIRMADO!</p>
+                        <p className="text-emerald-600 font-medium mb-6 text-sm">Detectamos tu pago exitoso. Si el sistema no te redirige automáticamente, usa el botón de abajo:</p>
                         <button
-                            onClick={() => onComplete()}
-                            className="px-8 py-3 bg-emerald-600 text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-lg shadow-emerald-200"
+                            onClick={async () => {
+                                setLoading(true)
+                                try {
+                                    // Manual Sync Logic (Failsafe)
+                                    let tid = tenant?.id
+                                    if (!tid) {
+                                        const { data: { user } } = await supabase.auth.getUser()
+                                        const { data: p } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).maybeSingle()
+                                        tid = p?.tenant_id
+                                    }
+
+                                    if (tid) {
+                                        await supabase.from('tenants').update({ onboarding_completed: true }).eq('id', tid)
+                                        queryClient.clear()
+                                        window.location.href = '/'
+                                    } else {
+                                        alert("No se pudo identificar tu cuenta. Por favor recarga la página.")
+                                    }
+                                } catch (e) {
+                                    console.error(e)
+                                } finally {
+                                    setLoading(false)
+                                }
+                            }}
+                            disabled={loading}
+                            className="w-full sm:w-auto px-10 py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-lg shadow-emerald-200 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 mx-auto"
                         >
-                            Entrar al Portal Ahora
+                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                            Activar Mi Cuenta Ahora
                         </button>
                     </div>
                 )}
