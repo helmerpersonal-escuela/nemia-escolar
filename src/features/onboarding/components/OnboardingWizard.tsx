@@ -444,13 +444,6 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                 <h1 className="text-3xl font-black text-slate-900 tracking-tight">
                     Configuración Inicial
                 </h1>
-                {/* GLOBAL EMERGENCY ALERT - Visible on any step if approved param exists */}
-                {isApprovedParam && (
-                    <div className="mt-4 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-center gap-3">
-                        <Zap className="w-5 h-5 text-emerald-600 animate-pulse" />
-                        <p className="text-emerald-700 text-xs font-black uppercase tracking-tight">Detectamos tu pago. Usa el botón al final de la página para activar.</p>
-                    </div>
-                )}
                 <p className="text-slate-500 mt-2 font-medium">
                     Ayúdanos a configurar tu escuela para brindarte la mejor experiencia profesional.
                 </p>
@@ -467,6 +460,37 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
             </div>
 
             <div className="clay-card min-h-[500px] p-8 md:p-12 relative overflow-hidden">
+                {/* SUPER VISIBLE EMERGENCY SYNC BANNER */}
+                <div className="mb-8 p-6 bg-indigo-50 border-2 border-indigo-100 rounded-[2rem] text-center shadow-lg animate-in fade-in duration-1000">
+                    <p className="text-indigo-900 font-black text-sm mb-3 underline decoration-indigo-200 underline-offset-4 uppercase tracking-widest">¿Ya realizaste tu pago?</p>
+                    <button
+                        onClick={async () => {
+                            setLoading(true)
+                            try {
+                                let tid = tenant?.id
+                                if (!tid) {
+                                    const { data: { user } } = await supabase.auth.getUser()
+                                    const { data: p } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).maybeSingle()
+                                    tid = p?.tenant_id
+                                }
+                                if (tid) {
+                                    await supabase.from('tenants').update({ onboarding_completed: true }).eq('id', tid)
+                                    queryClient.clear()
+                                    window.location.href = '/'
+                                } else {
+                                    alert("No pudimos identificar tu cuenta. Recarga e intenta de nuevo.")
+                                }
+                            } catch (e: any) {
+                                alert("Error: " + e.message)
+                            } finally {
+                                setLoading(false)
+                            }
+                        }}
+                        className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-md hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 mx-auto"
+                    >
+                        <ShieldCheck className="w-4 h-4" /> Activar Mi Cuenta Manualmente
+                    </button>
+                </div>
                 {loading && (
                     <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
                         <div className="p-4 bg-white rounded-3xl shadow-xl border border-indigo-50 animate-bounce">
@@ -566,74 +590,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                                     Continuar <ArrowRight className="w-5 h-5" />
                                 </button>
                             </div>
-
-                            {/* EMERGENCY RECOVERY LINK */}
-                            <div className="mt-12 pt-8 border-t border-gray-100/50 text-center">
-                                <p className="text-gray-400 text-xs font-medium mb-3">¿Ya realizaste tu pago pero sigues viendo esta pantalla?</p>
-                                <button
-                                    onClick={async () => {
-                                        setLoading(true)
-                                        try {
-                                            let tid = tenant?.id
-                                            if (!tid) {
-                                                const { data: { user } } = await supabase.auth.getUser()
-                                                const { data: p } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).maybeSingle()
-                                                tid = p?.tenant_id
-                                            }
-                                            if (tid) {
-                                                console.log("EMERGENCY_SYNC: Forcing activation for tenant:", tid)
-                                                await supabase.from('tenants').update({ onboarding_completed: true }).eq('id', tid)
-                                                queryClient.clear()
-                                                window.location.href = '/'
-                                            } else {
-                                                alert("No pudimos identificar tu cuenta escolar. Prueba cerrando sesión e iniciando de nuevo.")
-                                            }
-                                        } catch (e: any) {
-                                            alert("Error al sincronizar: " + e.message)
-                                        } finally {
-                                            setLoading(false)
-                                        }
-                                    }}
-                                    className="text-indigo-600 font-extrabold text-[10px] uppercase tracking-[0.2em] hover:text-indigo-800 transition-colors"
-                                >
-                                    Sincronizar mi suscripción ahora
-                                </button>
-                            </div>
                         </div>
-                    </div>
-                )}
-
-                {/* EMERGENCY BUTTON REPLICATED FOR ALL STEPS */}
-                {step > 0 && step < 4 && (
-                    <div className="mt-8 pt-6 border-t border-gray-100 text-center">
-                        <p className="text-gray-400 text-[10px] font-medium mb-2">¿Ya pagaste pero sigues aquí?</p>
-                        <button
-                            onClick={async () => {
-                                setLoading(true)
-                                try {
-                                    let tid = tenant?.id
-                                    if (!tid) {
-                                        const { data: { user } } = await supabase.auth.getUser()
-                                        const { data: p } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).maybeSingle()
-                                        tid = p?.tenant_id
-                                    }
-                                    if (tid) {
-                                        await supabase.from('tenants').update({ onboarding_completed: true }).eq('id', tid)
-                                        queryClient.clear()
-                                        window.location.href = '/'
-                                    } else {
-                                        alert("No se pudo identificar tu cuenta. Por favor recarga e intenta de nuevo.")
-                                    }
-                                } catch (e: any) {
-                                    alert("Error al sincronizar: " + e.message)
-                                } finally {
-                                    setLoading(false)
-                                }
-                            }}
-                            className="text-indigo-600 font-extrabold text-[10px] uppercase tracking-[0.2em] hover:text-indigo-800 transition-colors"
-                        >
-                            Sincronizar mi suscripción ahora
-                        </button>
                     </div>
                 )}
 
