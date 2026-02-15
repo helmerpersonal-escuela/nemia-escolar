@@ -141,8 +141,8 @@ export const RegisterPage = () => {
         return (
             <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
                 <div className="bg-white rounded-[2.5rem] p-8 max-w-md w-full text-center shadow-2xl">
-                    <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                        <School className="w-10 h-10 text-indigo-600" />
+                    <div className="w-24 h-24 bg-indigo-50 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner">
+                        <School className="w-12 h-12 text-indigo-600 inflatable-icon" />
                     </div>
                     <h2 className="text-2xl font-black text-slate-900 mb-3">Registro en Web Requerido</h2>
                     <p className="text-slate-500 font-medium mb-8 leading-relaxed">
@@ -153,7 +153,7 @@ export const RegisterPage = () => {
 
                     <button
                         onClick={() => window.open('https://nemia.lat/registro', '_system')}
-                        className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold text-lg shadow-lg shadow-indigo-200 hover:scale-[1.02] transition-transform flex items-center justify-center gap-2"
+                        className="clay-button w-full py-4 bg-indigo-600 text-white rounded-xl font-black text-lg shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2"
                     >
                         <User className="w-5 h-5" />
                         Ir al Portal Web
@@ -177,8 +177,8 @@ export const RegisterPage = () => {
                 <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?q=80&w=1974&auto=format&fit=crop')] bg-cover bg-center opacity-40 grayscale mix-blend-multiply" />
 
                 <div className="relative z-20 max-w-xl px-12 text-center text-white">
-                    <div className="w-20 h-20 bg-white/10 backdrop-blur-md rounded-3xl flex items-center justify-center mx-auto mb-8 border border-white/20 shadow-2xl">
-                        <BookOpen className="w-10 h-10 text-white" />
+                    <div className="w-24 h-24 bg-white/10 backdrop-blur-md rounded-[2rem] flex items-center justify-center mx-auto mb-8 border-2 border-white/20 shadow-2xl">
+                        <BookOpen className="w-12 h-12 text-white inflatable-icon" />
                     </div>
                     <h1 className="text-4xl font-black mb-6 tracking-tight leading-tight">
                         Únete a la Revolución <br />
@@ -191,8 +191,12 @@ export const RegisterPage = () => {
             </div>
 
             {/* Right Side - Form */}
-            <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-gray-50/50">
-                <div className="max-w-xl w-full animate-in fade-in slide-in-from-right-8 duration-500">
+            <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-gradient-to-b from-purple-50 to-white relative overflow-hidden">
+                {/* Mobile Background Elements */}
+                <div className="absolute top-[-10%] right-[-10%] w-72 h-72 bg-purple-300/40 rounded-full blur-3xl lg:hidden pointer-events-none mix-blend-multiply"></div>
+                <div className="absolute bottom-[-10%] left-[-10%] w-72 h-72 bg-indigo-300/40 rounded-full blur-3xl lg:hidden pointer-events-none mix-blend-multiply"></div>
+
+                <div className="clay-card max-w-xl w-full animate-in fade-in slide-in-from-right-8 duration-500 p-8 md:p-10 relative z-10">
 
                     {!mode ? (
                         /* Mode Selection */
@@ -229,13 +233,13 @@ export const RegisterPage = () => {
                             <div className="grid grid-cols-1 gap-6">
                                 <button
                                     onClick={() => setMode('INDEPENDENT')}
-                                    className="relative group p-8 bg-white border-2 border-gray-100 rounded-3xl hover:border-indigo-500 hover:shadow-xl hover:-translate-y-1 transition-all text-left flex items-start"
+                                    className="relative group p-8 bg-white border-2 border-gray-100 rounded-[2rem] hover:border-indigo-500 hover:shadow-2xl hover:shadow-indigo-100 hover:-translate-y-1 transition-all text-left flex items-start"
                                 >
-                                    <div className="p-4 bg-indigo-50 rounded-2xl text-indigo-600 mr-6 group-hover:scale-110 transition-transform">
-                                        <User className="w-8 h-8" />
+                                    <div className="p-4 bg-indigo-50 rounded-2xl text-indigo-600 mr-6 group-hover:scale-110 transition-transform shadow-inner">
+                                        <User className="w-8 h-8 inflatable-icon" />
                                     </div>
                                     <div>
-                                        <h3 className="text-lg font-black text-slate-900 mb-1">Docente Independiente</h3>
+                                        <h3 className="text-xl font-black text-slate-900 mb-1">Docente Independiente</h3>
                                         <p className="text-sm text-slate-500 font-medium leading-relaxed">
                                             Gestiona tus propios grupos, calificaciones y planeaciones de forma privada. Ideal para profesores frente a grupo.
                                         </p>
@@ -247,13 +251,13 @@ export const RegisterPage = () => {
 
                                 <button
                                     onClick={() => setMode('SCHOOL')}
-                                    className="relative group p-8 bg-white border-2 border-gray-100 rounded-3xl hover:border-purple-500 hover:shadow-xl hover:-translate-y-1 transition-all text-left flex items-start"
+                                    className="relative group p-8 bg-white border-2 border-gray-100 rounded-[2rem] hover:border-purple-500 hover:shadow-2xl hover:shadow-purple-100 hover:-translate-y-1 transition-all text-left flex items-start"
                                 >
-                                    <div className="p-4 bg-purple-50 rounded-2xl text-purple-600 mr-6 group-hover:scale-110 transition-transform">
-                                        <School className="w-8 h-8" />
+                                    <div className="p-4 bg-purple-50 rounded-2xl text-purple-600 mr-6 group-hover:scale-110 transition-transform shadow-inner">
+                                        <School className="w-8 h-8 inflatable-icon" />
                                     </div>
                                     <div>
-                                        <h3 className="text-lg font-black text-slate-900 mb-1">Institución Educativa</h3>
+                                        <h3 className="text-xl font-black text-slate-900 mb-1">Institución Educativa</h3>
                                         <p className="text-sm text-slate-500 font-medium leading-relaxed">
                                             Administra múltiples docentes, grupos y personal. Panel directivo centralizado para toda la escuela.
                                         </p>
@@ -284,8 +288,8 @@ export const RegisterPage = () => {
                             </button>
 
                             <div className="text-center mb-8">
-                                <div className="inline-block p-3 rounded-2xl bg-indigo-50 text-indigo-600 mb-4">
-                                    {mode === 'INDEPENDENT' ? <User className="w-8 h-8" /> : <School className="w-8 h-8" />}
+                                <div className="inline-block p-4 rounded-[2rem] bg-indigo-50 text-indigo-600 mb-6 shadow-inner">
+                                    {mode === 'INDEPENDENT' ? <User className="w-10 h-10 inflatable-icon" /> : <School className="w-10 h-10 inflatable-icon" />}
                                 </div>
                                 <h2 className="text-2xl font-black text-slate-900">
                                     {invitationInfo
@@ -331,7 +335,7 @@ export const RegisterPage = () => {
                                         name="firstName"
                                         type="text"
                                         required
-                                        className="block w-full px-4 py-3 bg-white border-2 border-gray-100 rounded-xl text-gray-900 font-bold placeholder-gray-300 focus:outline-none focus:border-indigo-500 transition-all uppercase"
+                                        className="clay-input block w-full px-4 py-3 font-bold text-gray-900 outline-none uppercase"
                                         placeholder="JUAN"
                                         value={formData.firstName}
                                         onChange={handleChange}
@@ -343,7 +347,7 @@ export const RegisterPage = () => {
                                         name="lastNamePaternal"
                                         type="text"
                                         required
-                                        className="block w-full px-4 py-3 bg-white border-2 border-gray-100 rounded-xl text-gray-900 font-bold placeholder-gray-300 focus:outline-none focus:border-indigo-500 transition-all uppercase"
+                                        className="clay-input block w-full px-4 py-3 font-bold text-gray-900 outline-none uppercase"
                                         placeholder="PÉREZ"
                                         value={formData.lastNamePaternal}
                                         onChange={handleChange}
@@ -357,7 +361,7 @@ export const RegisterPage = () => {
                                     name="lastNameMaternal"
                                     type="text"
                                     required
-                                    className="block w-full px-4 py-3 bg-white border-2 border-gray-100 rounded-xl text-gray-900 font-bold placeholder-gray-300 focus:outline-none focus:border-indigo-500 transition-all uppercase"
+                                    className="clay-input block w-full px-4 py-3 font-bold text-gray-900 outline-none uppercase"
                                     placeholder="LÓPEZ"
                                     value={formData.lastNameMaternal}
                                     onChange={handleChange}
@@ -375,7 +379,7 @@ export const RegisterPage = () => {
                                         type="text"
                                         required
                                         disabled={!!invitationInfo}
-                                        className="block w-full pl-12 pr-4 py-3 bg-white border-2 border-gray-100 rounded-xl text-gray-900 font-bold placeholder-gray-300 focus:outline-none focus:border-indigo-500 transition-all uppercase disabled:bg-gray-50 disabled:text-gray-400"
+                                        className="clay-input block w-full pl-12 pr-4 py-3 font-bold text-gray-900 outline-none uppercase disabled:opacity-50"
                                         placeholder={mode === 'INDEPENDENT' ? "SECUNDARIA TÉCNICA" : "INSTITUTO SECUNDARIO"}
                                         value={formData.organizationName}
                                         onChange={handleChange}
@@ -395,7 +399,7 @@ export const RegisterPage = () => {
                                         type="email"
                                         required
                                         disabled={!!invitationInfo}
-                                        className="block w-full pl-11 pr-4 py-3 bg-white border-2 border-gray-100 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-indigo-500 transition-all font-medium disabled:bg-gray-50 disabled:text-gray-400"
+                                        className="clay-input block w-full pl-11 pr-4 py-3 font-bold text-gray-900 outline-none disabled:opacity-50"
                                         placeholder="correo@ejemplo.com"
                                         value={formData.email}
                                         onChange={handleChange}
@@ -409,7 +413,7 @@ export const RegisterPage = () => {
                                         name="password"
                                         type="password"
                                         required
-                                        className="block w-full pl-11 pr-4 py-3 bg-white border-2 border-gray-100 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-indigo-500 transition-all font-medium"
+                                        className="clay-input block w-full pl-11 pr-4 py-3 font-bold text-gray-900 outline-none"
                                         placeholder="Contraseña segura"
                                         value={formData.password}
                                         onChange={handleChange}
@@ -420,7 +424,7 @@ export const RegisterPage = () => {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full flex justify-center items-center py-4 px-6 border border-transparent rounded-2xl text-base font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all shadow-lg shadow-indigo-200 disabled:opacity-70 disabled:cursor-not-allowed mt-8 hover:scale-[1.02] active:scale-[0.98]"
+                                className="clay-button w-full flex justify-center items-center py-4 px-6 rounded-2xl text-base font-black text-white bg-indigo-600 hover:bg-indigo-700 transition-all disabled:opacity-70 disabled:cursor-not-allowed mt-8 uppercase tracking-widest"
                             >
                                 {loading ? <Loader2 className="animate-spin h-5 w-5" /> : (isLoggedIn ? 'Crear Espacio' : 'Registrar Cuenta')}
                             </button>

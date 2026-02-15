@@ -1,0 +1,12 @@
+﻿* remote origin
+  Fetch URL: https://github.com/helmerpersonal-escuela/nemia-escolar.git
+  Push  URL: https://github.com/helmerpersonal-escuela/nemia-escolar.git
+  HEAD branch: main
+  Remote branches:
+    fix-payment-clean tracked
+    main              tracked
+  Local branches configured for 'git pull':
+    fix-payment-404   merges with remote main
+    fix-payment-clean merges with remote main
+  Local ref configured for 'git push':
+    fix-payment-clean pushes to fix-payment-clean (fast-forwardable)

@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { SpeedInsights } from "@vercel/speed-insights/react"
 import { LoginPage } from './features/auth/pages/LoginPage'
 import { RegisterPage } from './features/auth/pages/RegisterPage'
@@ -10,7 +10,8 @@ import { OnboardingWizard } from './features/onboarding/components/OnboardingWiz
 import { SettingsPage } from './features/settings/pages/SettingsPage'
 import { SchedulePage } from './features/schedule/pages/SchedulePage'
 import { AgendaPage } from './features/agenda/pages/AgendaPage'
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import type { Session } from '@supabase/supabase-js'
 
@@ -57,6 +58,7 @@ import { queryClient } from './lib/queryClient'
 
 function App() {
   const [session, setSession] = useState<Session | null>(null)
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -79,12 +81,38 @@ function App() {
     }
   }, [])
 
+  useEffect(() => {
+    // Deep Linking Listener
+    import('@capacitor/app').then(({ App: CapApp }) => {
+      CapApp.addListener('appUrlOpen', (data) => {
+        console.log('App opened with URL:', data.url)
+        // Extract path and query params from nemia://onboarding?status=approved
+        // data.url format: nemia://onboarding?status=approved&...
+        try {
+          const urlObj = new URL(data.url)
+          if (urlObj.host === 'onboarding') {
+            const status = urlObj.searchParams.get('status')
+            // Manually redirect via window location or router if available in context
+            // Since this is outside Router context, we can use a window event or direct navigation
+            if (status === 'approved') {
+              navigate('/onboarding?status=approved')
+            } else {
+              navigate('/onboarding?status=failure')
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing deep link:', e)
+        }
+      })
+    })
+  }, [navigate])
+
   if (loading) {
     return <div className="flex h-screen items-center justify-center">Cargando...</div>
   }
 
   return (
-    <Router>
+    <>
       <Routes>
         <Route path="/admin" element={
           <ProtectedRoute allowedRoles={['SUPER_ADMIN']}>
@@ -206,7 +234,7 @@ function App() {
         </Route>
       </Routes>
       <SpeedInsights />
-    </Router>
+    </>
   )
 }
 

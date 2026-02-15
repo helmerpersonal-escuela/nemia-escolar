@@ -1,0 +1,2 @@
+﻿  fix-payment-404   ffc2e0e [origin/main: ahead 1] fix: 404 on payment redirect, added vercel.json and updated onboarding route
+* fix-payment-clean 12680b5 [origin/fix-payment-clean: ahead 2] feat: setup mercado pago production flow with deep linking and external browser

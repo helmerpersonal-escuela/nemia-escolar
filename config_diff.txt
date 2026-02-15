@@ -1,0 +1,69 @@
+﻿diff --git a/.gitignore b/.gitignore
+index 3c28435..90430c1 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -3,8 +3,10 @@
+ logs
+ *.log
+ 
++
+ .env
+ update_mp_prod_keys.sql
++update_mp_test_keys.sql
+ npm-debug.log*
+ yarn-debug.log*
+ yarn-error.log*
+diff --git a/android/build.gradle b/android/build.gradle
+index f8f0e43..8ca2e7e 100644
+--- a/android/build.gradle
++++ b/android/build.gradle
+@@ -7,7 +7,7 @@ buildscript {
+         mavenCentral()
+     }
+     dependencies {
+-        classpath 'com.android.tools.build:gradle:8.13.0'
++        classpath 'com.android.tools.build:gradle:8.10.1'
+         classpath 'com.google.gms:google-services:4.4.4'
+ 
+         // NOTE: Do not place your application dependencies here; they belong
+diff --git a/capacitor.config.ts b/capacitor.config.ts
+index fce8136..f4609c0 100644
+--- a/capacitor.config.ts
++++ b/capacitor.config.ts
+@@ -3,7 +3,22 @@ import type { CapacitorConfig } from '@capacitor/cli';
+ const config: CapacitorConfig = {
+   appId: 'com.nemia.app',
+   appName: 'NEMIA',
+-  webDir: 'dist'
++  webDir: 'dist',
++  server: {
++    androidScheme: 'https',
++    hostname: 'nemia.app', // Custom hostname to look more "native" / secure
++    allowNavigation: [
++      '*.mercadopago.com',
++      '*.mercadopago.com.mx',
++      '*.mercadocdn.com',
++      'fonts.googleapis.com'
++    ]
++  },
++  plugins: {
++    CapacitorHttp: {
++      enabled: true,
++    }
++  }
+ };
+ 
+ export default config;
+diff --git a/package.json b/package.json
+index a692692..e7d7bd2 100644
+--- a/package.json
++++ b/package.json
+@@ -16,6 +16,8 @@
+   },
+   "dependencies": {
+     "@capacitor/android": "^8.1.0",
++    "@capacitor/app": "^8.0.1",
++    "@capacitor/browser": "^8.0.1",
+     "@capacitor/cli": "^8.1.0",
+     "@capacitor/core": "^8.1.0",
+     "@capacitor/ios": "^8.1.0",

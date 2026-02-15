@@ -15,7 +15,7 @@ serve(async (req) => {
     }
 
     try {
-        const { title, price, quantity, tenantId, userId, planType, isTrial, trialDays } = await req.json()
+        const { title, price, quantity, tenantId, userId, planType, isTrial, trialDays, email, platform } = await req.json()
 
         // 2. Initialize Supabase
         const supabaseClient = createClient(
@@ -42,7 +42,6 @@ serve(async (req) => {
         }
 
         // 4. Create Preference in Mercado Pago
-        // Include planType in external_reference for webhook processing
         const externalRef = JSON.stringify({
             userId,
             tenantId,
@@ -51,12 +50,33 @@ serve(async (req) => {
             trialDays: trialDays || 0
         })
 
-
         const frontendUrl = Deno.env.get('FRONTEND_URL') || 'http://localhost:5173'
 
+        let successUrl = `${frontendUrl}/onboarding?status=approved`
+        let failureUrl = `${frontendUrl}/onboarding?status=failure`
+        let pendingUrl = `${frontendUrl}/onboarding?status=pending`
+
+        if (platform === 'android' || platform === 'ios') {
+            successUrl = `nemia://onboarding?status=approved`
+            failureUrl = `nemia://onboarding?status=failure`
+            pendingUrl = `nemia://onboarding?status=pending`
+        }
+
         const payload = {
+            binary_mode: true,
+            payer: {
+                // Random email to avoid "Self-payment" errors
+                email: `test_user_${Math.floor(Math.random() * 99999)}@test.com`,
+                name: 'Test',
+                surname: 'User',
+                identification: {
+                    type: 'INE',
+                    number: '12345678'
+                }
+            },
             items: [
                 {
+                    id: planType || 'basic',
                     title: title || 'Licencia PRO - Sistema Escolar',
                     quantity: Number(quantity) || 1,
                     unit_price: Number(price) || 1000,
@@ -65,9 +85,9 @@ serve(async (req) => {
             ],
             external_reference: externalRef,
             back_urls: {
-                success: `${frontendUrl}/onboarding`,
-                failure: `${frontendUrl}/onboarding`,
-                pending: `${frontendUrl}/onboarding`
+                success: successUrl,
+                failure: failureUrl,
+                pending: pendingUrl
             },
             auto_return: "approved"
         }
@@ -101,7 +121,10 @@ serve(async (req) => {
         const preferenceData = await mpResponse.json()
         console.log("Preference Created:", preferenceData.id)
 
-        return new Response(JSON.stringify({ preferenceId: preferenceData.id }), {
+        return new Response(JSON.stringify({
+            preferenceId: preferenceData.id,
+            init_point: preferenceData.init_point
+        }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200,
         })

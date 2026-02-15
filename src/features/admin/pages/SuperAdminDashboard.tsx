@@ -253,35 +253,37 @@ export const SuperAdminDashboard = () => {
                 data.forEach(item => settings[item.key] = item.value)
 
                 // Only update if DB has values, otherwise keep localStorage values
+
+                // Only update if DB has values AND local value is empty (to preserve drafts)
                 setSmtpSettings((prev: any) => ({
                     ...prev,
-                    ...(settings.smtp_host && { smtp_host: settings.smtp_host }),
-                    ...(settings.smtp_port && { smtp_port: settings.smtp_port }),
-                    ...(settings.smtp_user && { smtp_user: settings.smtp_user }),
-                    ...(settings.smtp_pass && { smtp_pass: settings.smtp_pass }),
-                    ...(settings.smtp_crypto && { smtp_crypto: settings.smtp_crypto }),
-                    ...(settings.smtp_from_email && { smtp_from_email: settings.smtp_from_email }),
-                    ...(settings.smtp_from_name && { smtp_from_name: settings.smtp_from_name })
+                    smtp_host: prev.smtp_host || settings.smtp_host || '',
+                    smtp_port: prev.smtp_port || settings.smtp_port || '587',
+                    smtp_user: prev.smtp_user || settings.smtp_user || '',
+                    smtp_pass: prev.smtp_pass || settings.smtp_pass || '',
+                    smtp_crypto: prev.smtp_crypto || settings.smtp_crypto || 'STARTTLS',
+                    smtp_from_email: prev.smtp_from_email || settings.smtp_from_email || '',
+                    smtp_from_name: prev.smtp_from_name || settings.smtp_from_name || 'NEMIA Notificaciones'
                 }))
 
                 setAiSettings((prev: any) => ({
                     ...prev,
-                    ...(settings.openai_key && { openai_key: settings.openai_key }),
-                    ...(settings.gemini_key && { gemini_key: settings.gemini_key }),
-                    ...(settings.anthropic_key && { anthropic_key: settings.anthropic_key })
+                    openai_key: prev.openai_key || settings.openai_key || '',
+                    gemini_key: prev.gemini_key || settings.gemini_key || '',
+                    anthropic_key: prev.anthropic_key || settings.anthropic_key || ''
                 }))
 
                 setBillingSettings((prev: any) => ({
                     ...prev,
-                    ...(settings.mercadopago_public_key && { mercadopago_public_key: settings.mercadopago_public_key }),
-                    ...(settings.mercadopago_access_token && { mercadopago_access_token: settings.mercadopago_access_token }),
-                    ...(settings.auto_license_activation && { auto_license_activation: settings.auto_license_activation })
+                    mercadopago_public_key: prev.mercadopago_public_key || settings.mercadopago_public_key || '',
+                    mercadopago_access_token: prev.mercadopago_access_token || settings.mercadopago_access_token || '',
+                    auto_license_activation: prev.auto_license_activation || settings.auto_license_activation || 'true'
                 }))
 
                 setSoundSettings((prev: any) => ({
                     ...prev,
-                    ...(settings.chat_sound_url && { chat_sound_url: settings.chat_sound_url }),
-                    ...(settings.notification_sound_url && { notification_sound_url: settings.notification_sound_url })
+                    chat_sound_url: prev.chat_sound_url || settings.chat_sound_url || '/sounds/notification.mp3',
+                    notification_sound_url: prev.notification_sound_url || settings.notification_sound_url || ''
                 }))
             }
         }

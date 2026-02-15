@@ -45,8 +45,8 @@ export const LoginPage = () => {
                 <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-40 grayscale mix-blend-multiply" />
 
                 <div className="relative z-20 max-w-xl px-12 text-center text-white">
-                    <div className="w-20 h-20 bg-white/10 backdrop-blur-md rounded-3xl flex items-center justify-center mx-auto mb-8 border border-white/20 shadow-2xl">
-                        <Sparkles className="w-10 h-10 text-white" />
+                    <div className="w-24 h-24 bg-white/10 backdrop-blur-md rounded-[2rem] flex items-center justify-center mx-auto mb-8 border-2 border-white/20 shadow-2xl">
+                        <Sparkles className="w-12 h-12 text-white inflatable-icon" />
                     </div>
                     <h1 className="text-5xl font-black mb-6 tracking-tight leading-tight">
                         NEMIA <br />
@@ -63,8 +63,12 @@ export const LoginPage = () => {
             </div>
 
             {/* Right Side - Login Form */}
-            <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-gray-50/50">
-                <div className="max-w-md w-full animate-in fade-in slide-in-from-right-8 duration-500">
+            <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-gradient-to-b from-indigo-50 to-white relative overflow-hidden">
+                {/* Mobile Background Elements */}
+                <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-indigo-300/40 rounded-full blur-3xl lg:hidden pointer-events-none mix-blend-multiply"></div>
+                <div className="absolute bottom-[-10%] left-[-10%] w-64 h-64 bg-blue-300/40 rounded-full blur-3xl lg:hidden pointer-events-none mix-blend-multiply"></div>
+
+                <div className="clay-card max-w-md w-full animate-in fade-in slide-in-from-right-8 duration-500 p-8 md:p-10 relative z-10">
                     <div className="text-center mb-10">
                         <h2 className="text-3xl font-black text-slate-900 mb-2">Bienvenido de nuevo</h2>
                         <p className="text-slate-500 font-medium">Ingresa a tu panel de control</p>
@@ -79,7 +83,7 @@ export const LoginPage = () => {
                                 <input
                                     type="email"
                                     required
-                                    className="block w-full pl-11 pr-4 py-4 bg-white border-2 border-gray-100 rounded-2xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-indigo-500 focus:ring-0 transition-all font-medium"
+                                    className="clay-input block w-full pl-11 pr-4 py-4 font-bold text-gray-900 outline-none"
                                     placeholder="correo@institucion.edu"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
@@ -93,7 +97,7 @@ export const LoginPage = () => {
                                 <input
                                     type="password"
                                     required
-                                    className="block w-full pl-11 pr-4 py-4 bg-white border-2 border-gray-100 rounded-2xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-indigo-500 focus:ring-0 transition-all font-medium"
+                                    className="clay-input block w-full pl-11 pr-4 py-4 font-bold text-gray-900 outline-none"
                                     placeholder="••••••••••••"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
@@ -116,7 +120,7 @@ export const LoginPage = () => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full flex justify-center items-center py-4 px-6 border border-transparent rounded-2xl text-base font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all shadow-lg shadow-indigo-200 disabled:opacity-70 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
+                            className="clay-button w-full flex justify-center items-center py-4 px-6 rounded-2xl text-base font-black text-white bg-indigo-600 hover:bg-indigo-700 transition-all disabled:opacity-70 disabled:cursor-not-allowed uppercase tracking-widest"
                         >
                             {loading ? <Loader2 className="animate-spin h-5 w-5" /> : (
                                 <>
