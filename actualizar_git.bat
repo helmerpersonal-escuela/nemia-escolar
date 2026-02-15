@@ -29,7 +29,7 @@ if %errorlevel% neq 0 (
 
 echo.
 echo 3. Subiendo cambios a la nube (Push)...
-git push
+git push --set-upstream origin main
 if %errorlevel% neq 0 (
     echo.
     echo [ERROR] No se pudieron subir los cambios a GitHub.
