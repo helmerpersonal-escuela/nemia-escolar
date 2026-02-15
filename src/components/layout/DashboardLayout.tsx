@@ -232,21 +232,19 @@ export const DashboardLayout = () => {
 
                         if (updateError) throw updateError
 
-                        // Refresh React Query
-                        queryClient.invalidateQueries({ queryKey: ['tenant'] })
+                        // Clear cache aggressively to force fresh fetch on next load
+                        queryClient.clear()
 
                         // Clean URL
                         const url = new URL(window.location.href)
                         url.search = ""
                         window.history.replaceState({}, '', url.toString())
 
-                        // Wait and refresh
-                        await new Promise(resolve => setTimeout(resolve, 3000))
+                        // Small delay for DB propagation
+                        await new Promise(resolve => setTimeout(resolve, 2000))
 
-                        // Final force check: if we are still at root, just reload once to be absolutely sure
-                        if (window.location.pathname === '/') {
-                            window.location.reload()
-                        }
+                        // Force hard redirect to home - this is the most reliable way to clear all state
+                        window.location.href = '/'
                     } else {
                         throw new Error("No se pudo identificar tu cuenta escolar.")
                     }

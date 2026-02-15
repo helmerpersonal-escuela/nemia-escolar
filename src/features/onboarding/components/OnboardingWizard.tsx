@@ -75,13 +75,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
 
     useEffect(() => {
         const status = searchParams.get('status')
-        const paymentDetails = searchParams.get('payment_id') || searchParams.get('collection_id')
-
-        console.log("Payment Callback Status:", status, paymentDetails)
-
-        if (status === 'approved') {
-            handlePaymentSuccess()
-        } else if (status === 'failure' || status === 'rejected') {
+        if (status === 'failure' || status === 'rejected') {
             setError('El pago no fue procesado. Por favor intente nuevamente.')
             setStep(3) // Go back to payment step
         }
@@ -393,51 +387,9 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
         }
     }
 
-    const handlePaymentSuccess = async () => {
-        if (loading) return
-        setLoading(true)
-        try {
-            // Ensure we have a tenant ID even if the hook haven't finished loading it
-            let targetTenantId = tenant?.id
+    // handlePaymentSuccess removed - now handled by DashboardLayout globally
+    // to prevent race conditions and ensure unified sync experience.
 
-            if (!targetTenantId) {
-                const { data: { user } } = await supabase.auth.getUser()
-                if (user) {
-                    const { data: profile } = await supabase
-                        .from('profiles')
-                        .select('tenant_id')
-                        .eq('id', user.id)
-                        .maybeSingle()
-                    targetTenantId = profile?.tenant_id
-                }
-            }
-
-            if (targetTenantId) {
-                console.log("Marking onboarding as completed for tenant:", targetTenantId)
-                const { error } = await supabase
-                    .from('tenants')
-                    .update({ onboarding_completed: true })
-                    .eq('id', targetTenantId)
-
-                if (error) throw error
-
-                // Sync delay and invalidation
-                queryClient.invalidateQueries({ queryKey: ['tenant'] })
-                await new Promise(resolve => setTimeout(resolve, 2000))
-
-                // Success! Redirect to home
-                onComplete()
-            } else {
-                console.error("Could not determine tenant ID for payment success")
-                setError("Ocurrió un error al procesar tu suscripción. Por favor contacta a soporte.")
-            }
-        } catch (err: any) {
-            console.error("Error in handlePaymentSuccess:", err)
-            setError("Error al finalizar el registro: " + err.message)
-        } finally {
-            setLoading(false)
-        }
-    }
 
     return (
         <div className="max-w-4xl mx-auto py-12 px-4 relative">
