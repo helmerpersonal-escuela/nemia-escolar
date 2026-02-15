@@ -14,6 +14,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import type { Session } from '@supabase/supabase-js'
+import { Loader2 } from 'lucide-react'
 
 import { TeacherDashboard } from './features/evaluation/pages/TeacherDashboard'
 import { EvaluationSetupPage } from './features/evaluation/pages/EvaluationSetupPage'
@@ -88,14 +89,10 @@ function App() {
       const status = params.get('status')
       const paymentId = params.get('payment_id')
 
-      // Only run this check if we are at the root path to avoid conflicts
+      // In the new architecture, DashboardLayout handles the sync overlay at the root, 
+      // so we don't need to redirect to /onboarding which would unmount the handler.
       if (window.location.pathname === '/' && status) {
-        console.log('Payment callback detected at root, redirecting to onboarding...')
-        if (status === 'approved') {
-          navigate(`/onboarding?status=approved${paymentId ? `&payment_id=${paymentId}` : ''}`)
-        } else {
-          navigate('/onboarding?status=failure')
-        }
+        console.log('Payment callback detected at root, handling via DashboardLayout...')
       }
     }
 

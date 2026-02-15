@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
+import { queryClient } from '../../../lib/queryClient'
 
 import { Check, Calendar, BookOpen, AlertCircle, Trash2, Plus, ArrowRight, School, Clock, Loader2, Coffee, ArrowLeft, CreditCard, Zap, Gift, X } from 'lucide-react'
 import { Browser } from '@capacitor/browser'
@@ -273,13 +274,28 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
     const handleSaveSchedule = async () => {
         setLoading(true)
         try {
-            await supabase.from('schedule_settings').upsert({
+            // Manual upsert to avoid 409 Conflict
+            const { data: existing } = await supabase
+                .from('schedule_settings')
+                .select('id')
+                .eq('tenant_id', tenant?.id)
+                .maybeSingle()
+
+            const payload = {
                 tenant_id: tenant?.id,
                 start_time: scheduleSettings.startTime,
                 end_time: scheduleSettings.endTime,
                 module_duration: scheduleSettings.moduleDuration,
                 breaks: scheduleSettings.breaks
-            }, { onConflict: 'tenant_id' })
+            }
+
+            if (existing) {
+                const { error } = await supabase.from('schedule_settings').update(payload).eq('id', existing.id)
+                if (error) throw error
+            } else {
+                const { error } = await supabase.from('schedule_settings').insert(payload)
+                if (error) throw error
+            }
             setStep(3) // Move to payment step (step 3)
         } catch (err) {
             console.error(err)
@@ -378,9 +394,49 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
     }
 
     const handlePaymentSuccess = async () => {
-        // Mark onboarding as completed
-        await supabase.from('tenants').update({ onboarding_completed: true }).eq('id', tenant?.id)
-        onComplete()
+        if (loading) return
+        setLoading(true)
+        try {
+            // Ensure we have a tenant ID even if the hook haven't finished loading it
+            let targetTenantId = tenant?.id
+
+            if (!targetTenantId) {
+                const { data: { user } } = await supabase.auth.getUser()
+                if (user) {
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('tenant_id')
+                        .eq('id', user.id)
+                        .maybeSingle()
+                    targetTenantId = profile?.tenant_id
+                }
+            }
+
+            if (targetTenantId) {
+                console.log("Marking onboarding as completed for tenant:", targetTenantId)
+                const { error } = await supabase
+                    .from('tenants')
+                    .update({ onboarding_completed: true })
+                    .eq('id', targetTenantId)
+
+                if (error) throw error
+
+                // Sync delay and invalidation
+                queryClient.invalidateQueries({ queryKey: ['tenant'] })
+                await new Promise(resolve => setTimeout(resolve, 2000))
+
+                // Success! Redirect to home
+                onComplete()
+            } else {
+                console.error("Could not determine tenant ID for payment success")
+                setError("Ocurrió un error al procesar tu suscripción. Por favor contacta a soporte.")
+            }
+        } catch (err: any) {
+            console.error("Error in handlePaymentSuccess:", err)
+            setError("Error al finalizar el registro: " + err.message)
+        } finally {
+            setLoading(false)
+        }
     }
 
     return (
@@ -391,6 +447,17 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
 
             {/* Header */}
             <div className="text-center mb-10 relative z-10">
+                {new URLSearchParams(window.location.search).get('status') === 'approved' && (
+                    <div className="mb-8 p-6 bg-emerald-50 border-2 border-emerald-200 rounded-[2rem] text-center animate-bounce">
+                        <p className="text-emerald-700 font-black mb-4">¡PAGO DETECTADO CORRECTAMENTE!</p>
+                        <button
+                            onClick={() => onComplete()}
+                            className="px-8 py-3 bg-emerald-600 text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-lg shadow-emerald-200"
+                        >
+                            Entrar al Portal Ahora
+                        </button>
+                    </div>
+                )}
                 <h1 className="text-3xl font-black text-slate-900 tracking-tight">
                     Configuración Inicial
                 </h1>

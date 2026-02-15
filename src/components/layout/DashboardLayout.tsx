@@ -28,13 +28,15 @@ import {
     Clock,
     ShieldAlert,
     UserCheck,
-    Sparkles
+    Sparkles,
+    Zap,
+    Loader2
 } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { supabase } from '../../lib/supabase'
+import { queryClient } from '../../lib/queryClient'
 import { OnboardingWizard } from '../../features/onboarding/components/OnboardingWizard'
 import { SchoolOnboardingWizard } from '../../features/onboarding/components/SchoolOnboardingWizard'
-import { ProfileSetupWizard } from '../../features/profile/components/ProfileSetupWizard'
 import { useTenant } from '../../hooks/useTenant'
 import { useProfile } from '../../hooks/useProfile'
 import { NotificationsMenu } from './NotificationsMenu'
@@ -151,13 +153,14 @@ export const DashboardLayout = () => {
     const navigate = useNavigate()
 
     const [roles, setRoles] = useState<string[]>([])
+    const [isSynchronizing, setIsSynchronizing] = useState(false)
+    const [syncError, setSyncError] = useState<string | null>(null)
     const { data: tenant, isLoading: isTenantLoading } = useTenant()
     const { profile, isLoading: isProfileLoading } = useProfile()
     const { isOnline, pendingCount, isSyncing } = useOfflineSync()
 
     // Derived states
     const showOnboarding = tenant ? tenant.onboardingCompleted === false : false
-    const showProfileSetup = profile ? profile.profile_setup_completed === false : false
 
     // Attendance Reminder Hook
     useAttendanceReminder()
@@ -180,6 +183,84 @@ export const DashboardLayout = () => {
             setIsSidebarOpen(true)
         }
     }, [])
+
+    // --- NUCLEAR FIX: PROACTIVE ONBOARDING COMPLETION ---
+    useEffect(() => {
+        const checkPaymentStatus = async () => {
+            const params = new URLSearchParams(window.location.search)
+            const status = params.get('status')
+
+            if (status === 'approved' && !isSynchronizing) {
+                console.log("DASHBOARD_LAYOUT: Nuclear Fix Triggered")
+                setIsSynchronizing(true)
+
+                try {
+                    // Try to get tenantId from external_reference (most reliable)
+                    let targetTenantId = tenant?.id
+                    const extRef = params.get('external_reference')
+                    if (extRef) {
+                        try {
+                            const parsed = JSON.parse(extRef)
+                            if (parsed.tenantId) {
+                                targetTenantId = parsed.tenantId
+                                console.log("DASHBOARD_LAYOUT: Extracted targetTenantId from URL:", targetTenantId)
+                            }
+                        } catch (e) {
+                            console.error("Failed to parse external_reference:", e)
+                        }
+                    }
+
+                    // Fallback to current user's profile if still missing
+                    if (!targetTenantId) {
+                        const { data: { user } } = await supabase.auth.getUser()
+                        if (user) {
+                            const { data: profileData } = await supabase
+                                .from('profiles')
+                                .select('tenant_id')
+                                .eq('id', user.id)
+                                .maybeSingle()
+                            targetTenantId = profileData?.tenant_id
+                        }
+                    }
+
+                    if (targetTenantId) {
+                        console.log("DASHBOARD_LAYOUT: Updating tenant in DB...", targetTenantId)
+                        const { error: updateError } = await supabase
+                            .from('tenants')
+                            .update({ onboarding_completed: true })
+                            .eq('id', targetTenantId)
+
+                        if (updateError) throw updateError
+
+                        // Refresh React Query
+                        queryClient.invalidateQueries({ queryKey: ['tenant'] })
+
+                        // Clean URL
+                        const url = new URL(window.location.href)
+                        url.search = ""
+                        window.history.replaceState({}, '', url.toString())
+
+                        // Wait and refresh
+                        await new Promise(resolve => setTimeout(resolve, 3000))
+
+                        // Final force check: if we are still at root, just reload once to be absolutely sure
+                        if (window.location.pathname === '/') {
+                            window.location.reload()
+                        }
+                    } else {
+                        throw new Error("No se pudo identificar tu cuenta escolar.")
+                    }
+                } catch (err: any) {
+                    console.error("DASHBOARD_LAYOUT: Sync error:", err)
+                    setSyncError(err.message)
+                } finally {
+                    setIsSynchronizing(false)
+                }
+            }
+        }
+
+        checkPaymentStatus()
+    }, [location.search, tenant?.id])
 
     const loadRoles = async () => {
         try {
@@ -225,17 +306,54 @@ export const DashboardLayout = () => {
         navigate('/select-role')
     }
 
+    // Nuclear Fix Overlay
+    if (isSynchronizing || syncError) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+                <div className="max-w-md w-full bg-white rounded-[3rem] p-10 shadow-2xl border-4 border-emerald-50 text-center animate-in zoom-in duration-500">
+                    {syncError ? (
+                        <>
+                            <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <AlertTriangle className="w-10 h-10" />
+                            </div>
+                            <h2 className="text-2xl font-black text-slate-900 mb-2">Error de Sincronización</h2>
+                            <p className="text-slate-500 font-medium mb-8">No pudimos confirmar tu acceso: {syncError}</p>
+                            <button
+                                onClick={() => window.location.href = '/'}
+                                className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-slate-800 transition-all"
+                            >
+                                Reintentar Acceso
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner shadow-emerald-200">
+                                <Zap className="w-10 h-10 animate-pulse" />
+                            </div>
+                            <h2 className="text-3xl font-black text-slate-900 mb-2">¡Suscripción Activa!</h2>
+                            <p className="text-slate-500 font-medium mb-8">Estamos preparando tu nueva oficina digital escolar...</p>
+                            <div className="flex flex-col items-center gap-2">
+                                <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+                                <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Finalizando proceso</span>
+                            </div>
+                        </>
+                    )}
+                </div>
+            </div>
+        )
+    }
+
     // Force Onboarding if needed
     if (showOnboarding) {
         return (
             <div className="min-h-screen bg-gray-50">
                 {tenant?.type === 'SCHOOL' ? (
                     <SchoolOnboardingWizard onComplete={() => {
-                        window.location.reload()
+                        window.location.href = '/'
                     }} />
                 ) : (
                     <OnboardingWizard onComplete={() => {
-                        window.location.reload()
+                        window.location.href = '/'
                     }} />
                 )}
             </div>
@@ -516,14 +634,6 @@ export const DashboardLayout = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 flex">
-            {showProfileSetup && (
-                <ProfileSetupWizard onComplete={() => {
-                    // Just triggering a refetch would be better, 
-                    // but for now, matching the reload pattern if needed or relying on query invalidation
-                    window.location.reload()
-                }} />
-            )}
-
             <NotificationManager />
 
             {/* Mobile Sidebar Overlay */}

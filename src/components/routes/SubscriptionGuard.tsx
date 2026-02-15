@@ -25,13 +25,18 @@ export const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
     }
 
     // If on onboarding or settings, allow access (so they can configure or pay)
+    // ALSO: If we have an approved payment status, we MUST let it pass to DashboardLayout so it can sync
+    const params = new URLSearchParams(location.search)
+    const isApproved = params.get('status') === 'approved'
     const exemptPaths = ['/onboarding', '/settings', '/paywall']
-    if (exemptPaths.includes(location.pathname)) {
+
+    if (exemptPaths.includes(location.pathname) || isApproved) {
         return children ? <>{children}</> : <Outlet />
     }
 
     if (!isActive()) {
-        return <Navigate to="/settings" state={{ from: location, trialExpired: true }} replace />
+        const search = location.search ? location.search : ''
+        return <Navigate to={`/settings${search}`} state={{ from: location, trialExpired: true }} replace />
     }
 
     return children ? <>{children}</> : <Outlet />
