@@ -10,7 +10,7 @@ interface OfflineMutation {
     filters?: Record<string, any>
 }
 
-const OFFLINE_QUEUE_KEY = 'nemia_offline_outbox'
+const OFFLINE_QUEUE_KEY = 'vunlek_offline_outbox'
 
 export const useOfflineSync = () => {
     const [isOnline, setIsOnline] = useState(navigator.onLine)

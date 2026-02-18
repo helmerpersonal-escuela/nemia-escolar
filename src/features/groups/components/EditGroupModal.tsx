@@ -165,15 +165,15 @@ export const EditGroupModal = ({ isOpen, onClose, onSuccess, group }: EditGroupM
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-            <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="squishy-card max-w-md w-full p-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">Editar Grupo</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700">Grado</label>
                             <select
-                                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md border"
+                                className="input-squishy w-full"
                                 value={formData.grade}
                                 onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
                             >
@@ -184,7 +184,7 @@ export const EditGroupModal = ({ isOpen, onClose, onSuccess, group }: EditGroupM
                             <label className="block text-sm font-medium text-gray-700">Sección / Grupo</label>
                             {!isCustomSection ? (
                                 <select
-                                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md border"
+                                    className="input-squishy w-full"
                                     value={formData.section}
                                     onChange={(e) => {
                                         if (e.target.value === 'CUSTOM') {
@@ -303,7 +303,7 @@ export const EditGroupModal = ({ isOpen, onClose, onSuccess, group }: EditGroupM
                         </button>
                         <button
                             type="submit"
-                            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                            className="px-6 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-black shadow-lg shadow-indigo-200 btn-tactile disabled:opacity-50"
                             disabled={isLoading || formData.selectedSubjects.length === 0 || (isStaff && formData.selectedSubjects.some(s => !s.teacher_id))}
                         >
                             {isLoading ? 'Guardando...' : 'Guardar Cambios'}

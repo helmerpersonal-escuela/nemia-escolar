@@ -44,13 +44,14 @@ import { WorkspaceSwitcher } from './WorkspaceSwitcher'
 import { useAttendanceReminder } from '../../hooks/useAttendanceReminder'
 import { NotificationManager } from '../ui/NotificationManager'
 import { useOfflineSync } from '../../hooks/useOfflineSync'
+import { TrialNotificationSystem } from '../../features/subscription/components/TrialNotificationSystem'
 
 const MenuSection = ({ title, items, location }: any) => {
     return (
         <section className="mb-6" aria-labelledby={`section-title-${title.toLowerCase().replace(/\s+/g, '-')}`}>
             <h3
                 id={`section-title-${title.toLowerCase().replace(/\s+/g, '-')}`}
-                className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2"
+                className="px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 opacity-80"
             >
                 {title}
             </h3>
@@ -65,53 +66,46 @@ const MenuSection = ({ title, items, location }: any) => {
 
 const MenuItem = ({ item, location }: any) => {
     const hasSubItems = item.subItems && item.subItems.length > 0
-    // Check if any child is active to auto-open
     const isActiveParent = hasSubItems && item.subItems.some((sub: any) => location.pathname.startsWith(sub.path))
-
-    // Initialize with active state
     const [isOpen, setIsOpen] = useState(isActiveParent)
 
-    // Auto open if active parent changes to true
     useEffect(() => {
         if (isActiveParent) setIsOpen(true)
     }, [isActiveParent])
 
     if (hasSubItems) {
         return (
-            <div>
+            <div className="mb-2">
                 <button
                     onClick={() => setIsOpen(!isOpen)}
-                    aria-expanded={isOpen}
-                    aria-controls={`submenu-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
                     className={`
-                        w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium rounded-xl transition-colors
-                        ${isActiveParent ? 'text-blue-700 bg-blue-50/50' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}
+                        w-full flex items-center justify-between px-4 py-3 text-sm font-bold rounded-2xl transition-all duration-300 btn-tactile
+                        ${isActiveParent
+                            ? 'bg-indigo-100/50 text-indigo-700 shadow-sm'
+                            : 'text-slate-500 hover:bg-white/50 hover:text-slate-900 hover:shadow-sm'}
                     `}
                 >
                     <div className="flex items-center">
-                        <item.icon className={`h-5 w-5 mr-3 ${isActiveParent ? 'text-blue-600' : 'text-gray-400'}`} aria-hidden="true" />
+                        <div className={`p-1.5 rounded-xl mr-3 transition-colors ${isActiveParent ? 'bg-indigo-200 text-indigo-700' : 'bg-transparent text-slate-400'}`}>
+                            <item.icon className="h-5 w-5" />
+                        </div>
                         {item.label}
                     </div>
-                    {isOpen ? <ChevronDown className="h-4 w-4 text-gray-400" aria-hidden="true" /> : <ChevronRight className="h-4 w-4 text-gray-400" aria-hidden="true" />}
+                    {isOpen ? <ChevronDown className="h-4 w-4 text-slate-400" /> : <ChevronRight className="h-4 w-4 text-slate-400" />}
                 </button>
                 {isOpen && (
-                    <div
-                        id={`submenu-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-                        role="group"
-                        className="ml-11 mt-1 space-y-1 border-l-2 border-gray-100 pl-3"
-                    >
+                    <div className="ml-4 mt-2 space-y-1 border-l-2 border-indigo-100/50 pl-3 animate-in fade-in slide-in-from-left-2 duration-300">
                         {item.subItems.map((sub: any, idx: number) => {
-                            const isSubActive = location.pathname === sub.path
+                            const isSubActive = (location.pathname + location.search) === sub.path || location.pathname === sub.path
                             return (
                                 <Link
                                     key={`${sub.path}-${idx}`}
                                     to={sub.path}
-                                    aria-current={isSubActive ? 'page' : undefined}
                                     className={`
-                                        block px-3 py-2 text-sm rounded-lg transition-colors
+                                        block px-4 py-2 text-sm rounded-xl transition-all duration-200 btn-tactile
                                         ${isSubActive
-                                            ? 'text-blue-700 font-medium bg-blue-50'
-                                            : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}
+                                            ? 'text-indigo-700 font-bold bg-indigo-50 shadow-sm translate-x-1'
+                                            : 'text-slate-500 hover:text-slate-900 hover:bg-white/50'}
                                     `}
                                 >
                                     {sub.label}
@@ -128,19 +122,17 @@ const MenuItem = ({ item, location }: any) => {
     return (
         <Link
             to={item.path}
-            aria-current={isActive ? 'page' : undefined}
             className={`
-                flex items-center px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-200
+                flex items-center px-4 py-3 text-sm font-bold rounded-2xl transition-all duration-300 mb-1 btn-tactile
                 ${isActive
-                    ? 'bg-blue-50 text-blue-700 shadow-sm'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-200 hover:shadow-indigo-300 transform scale-[1.02]'
+                    : 'text-slate-500 hover:bg-white/50 hover:text-slate-900 hover:shadow-sm'
                 }
             `}
         >
-            <item.icon
-                className={`h-5 w-5 mr-3 ${isActive ? 'text-blue-600' : 'text-gray-400'}`}
-                aria-hidden="true"
-            />
+            <div className={`p-1.5 rounded-xl mr-3 transition-colors ${isActive ? 'bg-white/20 text-white' : 'bg-transparent text-slate-400'}`}>
+                <item.icon className="h-5 w-5" />
+            </div>
             {item.label}
         </Link>
     )
@@ -156,21 +148,23 @@ export const DashboardLayout = () => {
     const [isSynchronizing, setIsSynchronizing] = useState(false)
     const [syncError, setSyncError] = useState<string | null>(null)
     const { data: tenant, isLoading: isTenantLoading } = useTenant()
-    const { profile, isLoading: isProfileLoading } = useProfile()
+    const { profile, isLoading: isProfileLoading, isSuperAdmin = false } = useProfile()
     const { isOnline, pendingCount, isSyncing } = useOfflineSync()
 
     // Derived states
     // Use window.location.search directly to be absolute even across re-renders
     const isApprovedParam = new URLSearchParams(window.location.search).get('status') === 'approved'
-    const isSyncPersistent = sessionStorage.getItem('nemia_payment_syncing') === 'true'
+    const isSyncPersistent = sessionStorage.getItem('vunlek_payment_syncing') === 'true'
     const showOnboarding = tenant ? (tenant.onboardingCompleted === false && !isApprovedParam && !isSyncPersistent) : false
 
     // Attendance Reminder Hook
     useAttendanceReminder()
 
-    // Auto-close sidebar on route change (Mobile UX)
+    // Auto-close sidebar on route change (Mobile UX Only)
     useEffect(() => {
-        setIsSidebarOpen(false)
+        if (window.innerWidth < 1024) {
+            setIsSidebarOpen(false)
+        }
     }, [location.pathname])
 
     // Load roles when tenant is available
@@ -194,7 +188,6 @@ export const DashboardLayout = () => {
 
             // Trigger sync if we have the param OR the persistent flag
             if ((status === 'approved' || isSyncPersistent) && !isSynchronizing) {
-                console.log("DASHBOARD_LAYOUT: Nuclear Fix Triggered")
                 setIsSynchronizing(true)
 
                 try {
@@ -278,7 +271,7 @@ export const DashboardLayout = () => {
     // Cleanup sync flag if onboarding is completed
     useEffect(() => {
         if (tenant?.onboardingCompleted === true) {
-            sessionStorage.removeItem('nemia_payment_syncing')
+            sessionStorage.removeItem('vunlek_payment_syncing')
         }
     }, [tenant?.onboardingCompleted])
 
@@ -361,8 +354,36 @@ export const DashboardLayout = () => {
         )
     }
 
-    // If we're not loading and don't have core data, handle it (e.g., error boundary or login)
-    if (!tenant || !profile) return null;
+    // If we're not loading and don't have core data, handle it
+    if (!profile) return null;
+
+    // Race Condition Handling:
+    // If we have a profile but NO tenant, it means the trigger is still running
+    // or failed. We show a "Setting up" state instead of blank screen.
+    if (!tenant) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-8">
+                <div className="text-center max-w-md animate-in fade-in duration-700">
+                    <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-xl shadow-indigo-100">
+                        <Sparkles className="w-10 h-10 animate-pulse" />
+                    </div>
+                    <h2 className="text-3xl font-black text-slate-900 mb-3 tracking-tight">Preparando tu Espacio</h2>
+                    <p className="text-slate-500 font-medium mb-8 leading-relaxed">
+                        Estamos configurando tu entorno escolar seguro. Esto solo tomará unos segundos...
+                    </p>
+                    <div className="flex justify-center">
+                        <Loader2 className="w-6 h-6 text-indigo-500 animate-spin" />
+                    </div>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="mt-12 text-xs font-bold text-slate-400 hover:text-indigo-500 uppercase tracking-widest transition-colors"
+                    >
+                        ¿Tarda demasiado? Recargar
+                    </button>
+                </div>
+            </div>
+        )
+    }
 
     // Force Onboarding if needed
     if (showOnboarding) {
@@ -458,8 +479,8 @@ export const DashboardLayout = () => {
             { icon: Mail, label: 'Mensajes', path: '/messages' },
             {
                 icon: CheckSquare,
-                label: 'Evaluación',
-                path: '#evaluation',
+                label: 'Herramientas',
+                path: '#evaluation_tools',
                 subItems: [
                     { label: 'Libreta (Calificaciones)', path: '/gradebook' },
                     { label: 'Bitácora de Conducta', path: '/gradebook?tab=REPORTS' },
@@ -469,8 +490,8 @@ export const DashboardLayout = () => {
             },
             {
                 icon: ClipboardList,
-                label: 'Planeación',
-                path: '#planning',
+                label: 'Gestión',
+                path: '#planning_mgmt',
                 subItems: [
                     { label: 'Mis Planeaciones', path: '/planning' },
                     { label: 'Programa Analítico', path: '/analytical-program' },
@@ -569,38 +590,33 @@ export const DashboardLayout = () => {
                 subItems: [
                     { label: 'Grupos y Alumnos', path: '/groups' },
                     { label: 'Expedientes', path: '/students' },
-                    { label: 'Asistencia', path: '/attendance' }
+                    { label: 'Asistencia', path: '/attendance' },
+                    { label: 'Calendario Escolar', path: '/agenda' },
+                    { label: 'Mi Horario', path: '/schedule' }
                 ]
             },
             {
                 icon: ClipboardList,
-                label: 'Planeación',
-                path: '#planning',
+                label: 'Gestión',
+                path: '#planning_mgmt',
                 subItems: [
                     { label: 'Mis Planeaciones', path: '/planning' },
                     { label: 'Programa Analítico', path: '/analytical-program' },
-                    { label: 'Rúbricas', path: '/rubrics' }
+                    { label: 'Rúbricas', path: '/rubrics' },
+                    { label: 'Guardias (Ausencias)', path: '/absences' }
                 ]
             },
             {
                 icon: CheckSquare,
-                label: 'Evaluación',
-                path: '#evaluation',
+                label: 'Herramientas',
+                path: '#evaluation_tools',
                 subItems: [
                     { label: 'Calificaciones', path: '/gradebook' },
                     { label: 'Conducta y Reportes', path: '/gradebook?tab=REPORTS' },
                     { label: 'Portafolios', path: '/evaluation/portfolio' }
                 ]
             },
-            {
-                icon: Calendar,
-                label: 'Agenda y Horario',
-                path: '#agenda',
-                subItems: [
-                    { label: 'Calendario Escolar', path: '/agenda' },
-                    { label: 'Mi Horario', path: '/schedule' }
-                ]
-            }
+
         ],
         ADMIN: [
             { icon: LayoutDashboard, label: 'Consola de Gestión', path: '/' },
@@ -628,12 +644,6 @@ export const DashboardLayout = () => {
         currentRole = 'INDEPENDENT_TEACHER'
     }
 
-    // Robust Role Fallback: If it's an Independent workspace, always ensure Teacher context
-    // REMOVED: We now have a dedicated INDEPENDENT_TEACHER menu support
-    // if (workspaceType === 'INDEPENDENT' && currentRole !== 'TEACHER') {
-    //    currentRole = 'TEACHER'
-    // }
-
     const menuItems = menuByRole[currentRole] || menuByRole.TEACHER
 
     // Mobile App Restrictions (Capacitor)
@@ -654,13 +664,14 @@ export const DashboardLayout = () => {
     const academicMenu = finalMenuItems.filter(i => i.path.startsWith('#'))
 
     return (
-        <div className="min-h-screen bg-gray-50 flex">
+        <div className="min-h-screen bg-slate-50/50 flex overflow-hidden">
             <NotificationManager />
+            <TrialNotificationSystem />
 
             {/* Mobile Sidebar Overlay */}
             {isSidebarOpen && (
                 <div
-                    className="fixed inset-0 bg-black/50 z-20 lg:hidden"
+                    className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-30 lg:hidden animate-in fade-in duration-300"
                     onClick={() => setIsSidebarOpen(false)}
                 />
             )}
@@ -668,25 +679,35 @@ export const DashboardLayout = () => {
             {/* Sidebar */}
             <aside
                 className={`
-                    fixed lg:sticky lg:top-0 lg:h-screen inset-y-0 left-0 z-30
-                    w-64 bg-white border-r border-gray-200 transform transition-transform duration-200 ease-in-out
-                    ${!isSidebarOpen ? '-translate-x-full lg:translate-x-0' : 'translate-x-0'}
-                    print:hidden
+                    fixed lg:static inset-y-0 left-0 z-40
+                    w-72 transform transition-all duration-300 ease-elastic
+                    ${!isSidebarOpen ? '-translate-x-full' : 'translate-x-0'}
+                    lg:static lg:translate-x-0 lg:block lg:m-4 lg:rounded-[2.5rem] lg:h-[calc(100vh-2rem)]
+                    glass-panel flex flex-col overflow-hidden border-2 border-white/60
+                    pb-[env(safe-area-inset-bottom)]
                 `}
             >
-                <div className="h-full flex flex-col">
+                <div className="h-full flex flex-col relative">
+                    {/* Decorative Blob */}
+                    <div className="absolute -top-20 -left-20 w-40 h-40 bg-indigo-200/50 rounded-full blur-3xl pointer-events-none" />
+
                     {/* Logo */}
-                    <div className="h-16 flex items-center px-6 border-b border-gray-100">
-                        <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2 rounded-xl mr-3 shadow-lg shadow-blue-200">
+                    <div className="h-24 flex items-center px-8 relative z-10">
+                        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-2.5 rounded-2xl mr-3 shadow-lg shadow-indigo-200 hover:scale-110 transition-transform cursor-pointer">
                             <Sparkles className="h-6 w-6 text-white" />
                         </div>
-                        <span className="text-2xl font-black bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent tracking-tighter">
-                            NEMIA
-                        </span>
+                        <div>
+                            <span className="text-2xl font-black text-slate-800 tracking-tight block leading-none">
+                                VUNLEK
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-0.5">
+                                Escolar
+                            </span>
+                        </div>
                     </div>
 
                     {/* Navigation */}
-                    <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+                    <nav className="flex-1 px-4 py-2 space-y-4 overflow-y-auto scrollbar-hide">
                         <MenuSection
                             title="PRINCIPAL"
                             items={principalMenu}
@@ -704,17 +725,17 @@ export const DashboardLayout = () => {
                     </nav>
 
                     {/* Bottom Actions */}
-                    <div className="p-4 border-t border-gray-100 space-y-2">
+                    <div className="p-4 bg-white/40 backdrop-blur-md border-t border-indigo-50 space-y-2">
                         <Link
                             to="/settings"
-                            className="group flex items-center px-4 py-3 text-sm font-medium rounded-xl text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                            className="group flex items-center px-4 py-3 text-sm font-bold rounded-2xl text-slate-600 hover:bg-white hover:text-indigo-600 transition-all shadow-sm border border-transparent hover:border-indigo-50 btn-tactile"
                         >
-                            <Settings className="mr-3 h-5 w-5 text-gray-400 group-hover:text-blue-500" />
+                            <Settings className="mr-3 h-5 w-5 text-slate-400 group-hover:text-indigo-500" />
                             Configuración
                         </Link>
                         <button
                             onClick={handleLogout}
-                            className="w-full flex items-center px-4 py-3 text-sm font-medium text-red-600 rounded-xl hover:bg-red-50 transition-colors"
+                            className="w-full flex items-center px-4 py-3 text-sm font-bold text-red-500 rounded-2xl hover:bg-red-50 hover:text-red-600 transition-all border border-transparent hover:border-red-100 btn-tactile"
                         >
                             <LogOut className="h-5 w-5 mr-3" />
                             Cerrar Sesión
@@ -724,113 +745,102 @@ export const DashboardLayout = () => {
             </aside >
 
             {/* Main Content */}
-            < div className="flex-1 flex flex-col min-h-screen transition-all duration-200 lg:ml-0" >
+            <div className="flex-1 flex flex-col min-h-screen relative overflow-hidden transition-all duration-300">
                 {/* Header */}
-                < header className={`
-                    h-16 border-b sticky top-0 z-50 px-4 sm:px-6 lg:px-8 flex items-center justify-between transition-all duration-300 print:hidden
+                <header className={`
+                    h-20 px-4 sm:px-8 flex items-center justify-between transition-all duration-300 z-20 mt-4 mx-4 rounded-[2rem]
                     ${workspaceType === 'INDEPENDENT'
-                        ? 'bg-indigo-50/30 border-indigo-100'
-                        : 'bg-white border-gray-200'}
+                        ? 'bg-indigo-900/5 backdrop-blur-md border border-indigo-100/50'
+                        : 'glass-panel'}
                 `}>
                     <div className="flex items-center gap-4">
                         <button
                             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                            className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 lg:hidden"
+                            className="p-3 rounded-2xl hover:bg-white/50 text-slate-500 lg:hidden btn-tactile shadow-sm"
                         >
                             {!isSidebarOpen ? <Menu className="h-6 w-6" /> : <X className="h-6 w-6" />}
                         </button>
 
-                        {workspaceType === 'INDEPENDENT' && (
-                            <div className="hidden sm:flex items-center px-3 py-1 bg-indigo-600 text-white rounded-full shadow-lg shadow-indigo-100 animate-in fade-in zoom-in duration-500">
-                                <span className="text-[10px] font-black uppercase tracking-widest flex items-center">
-                                    <div className="w-1.5 h-1.5 bg-white rounded-full mr-2 animate-pulse" />
-                                    Aula Privada
-                                </span>
-                            </div>
-                        )}
-
-                        <NotificationsMenu />
-
-                        {/* Connectivity Indicators */}
-                        <div className="flex items-center gap-2">
-                            {isSyncing && (
-                                <div className="flex items-center px-2 py-1 bg-blue-50 text-blue-600 rounded-lg animate-pulse border border-blue-100">
-                                    <RefreshCw className="w-3 h-3 mr-1.5 animate-spin" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Sincronizando...</span>
-                                </div>
-                            )}
-                            {!isOnline ? (
-                                <div className="flex items-center px-2 py-1 bg-amber-50 text-amber-600 rounded-lg border border-amber-100">
-                                    <AlertTriangle className="w-3 h-3 mr-1.5" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest">Offline</span>
-                                    {pendingCount > 0 && (
-                                        <span className="ml-1.5 bg-amber-600 text-white text-[9px] px-1.5 rounded-full font-black">
-                                            {pendingCount}
-                                        </span>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="hidden sm:flex items-center px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100">
-                                    <ShieldCheck className="w-3 h-3 mr-1.5" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest">En línea</span>
-                                </div>
-                            )}
+                        <div className="flex flex-col">
+                            <h1 className="text-xl font-black text-slate-800 tracking-tight hidden sm:block">
+                                {workspaceType === 'INDEPENDENT' ? 'Aula Privada' : 'Panel de Control'}
+                            </h1>
+                            <p className="text-xs text-slate-400 font-bold hidden sm:block">
+                                {new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}
+                            </p>
                         </div>
                     </div>
 
+                    <div className="flex items-center gap-4">
+                        {/* Connectivity Indicators */}
+                        <div className="hidden md:flex items-center gap-2">
+                            {isSyncing && (
+                                <div className="flex items-center px-3 py-1.5 bg-blue-50 text-blue-600 rounded-xl animate-pulse border border-blue-100 shadow-sm">
+                                    <RefreshCw className="w-3.5 h-3.5 mr-2 animate-spin" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Sincronizando</span>
+                                </div>
+                            )}
+                            {!isOnline ? (
+                                <div className="flex items-center px-3 py-1.5 bg-amber-50 text-amber-600 rounded-xl border border-amber-100 shadow-sm">
+                                    <AlertTriangle className="w-3.5 h-3.5 mr-2" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Offline</span>
+                                </div>
+                            ) : (
+                                <div className="flex items-center px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100 shadow-sm">
+                                    <div className="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">En Línea</span>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="h-8 w-[1px] bg-slate-200 mx-2 hidden sm:block" />
+
+                        <NotificationsMenu />
+                        {/* Only show WorkspaceSwitcher for SUPER_ADMINs to allow switching to God Mode */}
+                        {(isSuperAdmin || (profile as any)?.isSuperAdmin) && (
+                            <div className="w-64">
+                                <WorkspaceSwitcher />
+                            </div>
+                        )}
+                    </div>
+                </header>
+
+                {/* Page Content */}
+                <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-8 relative scroll-smooth">
                     {/* Demo Mode Banner */}
                     {profile?.is_demo && (
-                        <div className="flex-1 flex justify-center px-4">
-                            <div className="flex items-center px-4 py-1.5 bg-red-600 text-white rounded-full shadow-lg shadow-red-200 animate-pulse">
-                                <AlertTriangle className="w-4 h-4 mr-2" />
-                                <span className="text-xs font-black uppercase tracking-widest whitespace-nowrap">
-                                    Modo Demo: Solo Lectura
-                                </span>
+                        <div className="mb-6 animate-in slide-in-from-top-4 duration-500">
+                            <div className="flex items-center justify-center p-3 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-2xl shadow-lg shadow-red-200">
+                                <AlertTriangle className="w-5 h-5 mr-2 animate-bounce" />
+                                <span className="text-sm font-black uppercase tracking-widest">Modo Demo: Solo Lectura</span>
                             </div>
                         </div>
                     )}
 
                     {/* Impersonation Mode Banner */}
-                    {new URLSearchParams(window.location.search).get('impersonate') && (
-                        <div className="flex-1 flex justify-center px-4">
-                            <div className="flex items-center px-4 py-1.5 bg-purple-600 text-white rounded-full shadow-lg shadow-purple-200 animate-pulse border-2 border-white/20">
-                                <Users className="w-4 h-4 mr-2" />
-                                <span className="text-xs font-black uppercase tracking-widest whitespace-nowrap">
-                                    Modo Dios: Simulado
-                                </span>
+                    {profile?.isImpersonating && (
+                        <div className="mb-6 animate-in slide-in-from-top-4 duration-500">
+                            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl shadow-lg shadow-purple-200 border-2 border-white/20">
+                                <div className="flex items-center">
+                                    <Users className="w-5 h-5 mr-3 animate-pulse" />
+                                    <span className="text-sm font-black uppercase tracking-widest">Modo Dios Activo: {profile.first_name} {profile.last_name_paternal}</span>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        sessionStorage.removeItem('vunlek_impersonate_id')
+                                        window.location.href = '/admin' // Or just refresh
+                                    }}
+                                    className="px-4 py-1.5 bg-white/20 hover:bg-white/40 rounded-xl text-[10px] font-black uppercase tracking-tighter transition-all"
+                                >
+                                    Salir de Simulación
+                                </button>
                             </div>
                         </div>
                     )}
 
-                    <div className="flex items-center space-x-4">
-                        <div className="text-right hidden sm:block">
-                            <p className="text-xs font-bold text-gray-900">{(tenant as any)?.fullName || 'Usuario'}</p>
-                            <p className={`text-[10px] font-black uppercase tracking-wider ${workspaceType === 'INDEPENDENT' ? 'text-indigo-600' : 'text-gray-400'}`}>
-                                {currentRole}
-                            </p>
-                        </div>
-                        <div className={`
-                            h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm shadow-sm overflow-hidden
-                            ${workspaceType === 'INDEPENDENT' ? 'bg-indigo-600 text-white' : 'bg-blue-100 text-blue-700'}
-                        `}>
-                            {(tenant as any)?.avatarUrl ? (
-                                <img
-                                    src={(tenant as any).avatarUrl}
-                                    alt="Avatar"
-                                    className="w-full h-full object-cover"
-                                />
-                            ) : (
-                                (tenant as any)?.fullName?.[0] || 'U'
-                            )}
-                        </div>
-                    </div>
-                </header >
-
-                {/* Page Content */}
-                < main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto print:overflow-visible print:h-auto print:p-0" >
                     <Outlet />
-                </main >
-            </div >
-        </div >
+                </main>
+            </div>
+        </div>
     )
 }

@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { SpeedInsights } from "@vercel/speed-insights/react"
 import { LoginPage } from './features/auth/pages/LoginPage'
 import { RegisterPage } from './features/auth/pages/RegisterPage'
+import { ResetPasswordPage } from './features/auth/pages/ResetPasswordPage'
 import { DashboardLayout } from './components/layout/DashboardLayout'
 import { DashboardPage } from './features/dashboard/pages/DashboardPage'
 import { GroupsPage } from './features/groups/pages/GroupsPage'
@@ -39,6 +40,8 @@ import { IncidentsLogPage } from './features/dashboard/components/roles/Incident
 import { JustificationManager } from './features/attendance/pages/JustificationManager'
 import { LatesPage } from './features/attendance/pages/LatesPage'
 import { AbsenceManagerPage } from './features/absences/pages/AbsenceManagerPage'
+import { PaywallPage } from './features/subscription/pages/PaywallPage'
+import { LandingPage } from './features/marketing/pages/LandingPage'
 
 import { SuperAdminDashboard } from './features/admin/pages/SuperAdminDashboard'
 import { AdminDashboard } from './features/admin/pages/AdminDashboard'
@@ -62,7 +65,6 @@ function App() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
 
-  console.log("NEMIA_SYNC_PROD_V4_ULTRA_FORCE_21:07")
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -76,6 +78,7 @@ function App() {
       setSession(session)
       if (event === 'SIGNED_OUT') {
         queryClient.clear()
+        sessionStorage.removeItem('vunlek_impersonate_id')
       }
       if (event === 'SIGNED_IN') {
         queryClient.clear()
@@ -84,6 +87,9 @@ function App() {
         if (search.includes('status=')) {
           navigate(`/${search}`, { replace: true })
         }
+      }
+      if (event === 'PASSWORD_RECOVERY') {
+        navigate('/reset-password')
       }
     })
 
@@ -114,8 +120,8 @@ function App() {
     import('@capacitor/app').then(({ App: CapApp }) => {
       CapApp.addListener('appUrlOpen', (data) => {
         console.log('App opened with URL:', data.url)
-        // Extract path and query params from nemia://onboarding?status=approved
-        // data.url format: nemia://onboarding?status=approved&...
+        // Extract path and query params from vunlek://onboarding?status=approved
+        // data.url format: vunlek://onboarding?status=approved&...
         try {
           const urlObj = new URL(data.url)
           if (urlObj.host === 'onboarding') {
@@ -147,8 +153,9 @@ function App() {
             <SuperAdminDashboard />
           </ProtectedRoute>
         } />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/login" element={session ? <Navigate to="/" replace /> : <LoginPage />} />
+        <Route path="/register" element={session ? <Navigate to="/" replace /> : <RegisterPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/select-role" element={session ? <RoleSelectionPage /> : <Navigate to={`/login${window.location.search}`} replace />} />
         <Route
           path="/"
@@ -158,10 +165,11 @@ function App() {
                 <DashboardLayout />
               </SubscriptionGuard>
             ) : (
-              <Navigate to={`/login${window.location.search}`} replace />
+              <LandingPage />
             )
           }
         >
+          <Route path="paywall" element={<PaywallPage />} />
           <Route index element={<DashboardPage />} />
           <Route path="teacher-dashboard" element={<TeacherDashboard />} />
           <Route path="groups" element={<GroupsPage />} />

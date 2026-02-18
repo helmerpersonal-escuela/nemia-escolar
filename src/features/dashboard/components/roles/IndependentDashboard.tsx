@@ -145,9 +145,9 @@ export const IndependentDashboard = () => {
                     <div className="flex flex-wrap gap-4">
                         <button
                             onClick={() => navigate('/gradebook')}
-                            className="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center gap-3 shadow-xl shadow-indigo-500/20 group"
+                            className="bg-indigo-600 text-white px-12 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center gap-3 shadow-xl shadow-indigo-500/20 group transform hover:scale-105"
                         >
-                            <CheckSquare className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                            <CheckSquare className="w-5 h-5 group-hover:scale-110 transition-transform" />
                             Libreta
                         </button>
                         <button
@@ -165,39 +165,41 @@ export const IndependentDashboard = () => {
                         </button>
                     </div>
                 </div>
-            </header>
+            </header >
 
             {/* 2. Professional Stats Row */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                {[
-                    { label: 'Grupos Activos', value: loading ? '...' : stats.groups.toString(), icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-                    { label: 'Alumnos Totales', value: loading ? '...' : stats.students.toString(), icon: GraduationCap, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-                    { label: 'Clases Hoy', value: loading ? '...' : upcomingClasses.length.toString(), icon: Presentation, color: 'text-purple-600', bg: 'bg-purple-50' },
-                    { label: 'Materias s/Plan', value: loading ? '...' : stats.pending.toString(), icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
-                ].map((stat, i) => (
-                    <div key={i} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-indigo-100/50 transition-all flex items-center gap-5 group">
-                        <div className={`p-4 ${stat.bg} ${stat.color} rounded-2xl group-hover:scale-110 transition-transform`}>
-                            <stat.icon className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <div className="text-2xl font-black text-slate-900 leading-tight">
-                                {stat.value === '...' ? (
-                                    <div className="h-8 w-12 bg-slate-100 animate-pulse rounded-lg" />
-                                ) : (
-                                    stat.value
-                                )}
+            < div className="grid grid-cols-2 lg:grid-cols-4 gap-6" >
+                {
+                    [
+                        { label: 'Grupos Activos', value: loading ? '...' : stats.groups.toString(), icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
+                        { label: 'Alumnos Totales', value: loading ? '...' : stats.students.toString(), icon: GraduationCap, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+                        { label: 'Clases Hoy', value: loading ? '...' : upcomingClasses.length.toString(), icon: Presentation, color: 'text-purple-600', bg: 'bg-purple-50' },
+                        { label: 'Materias s/Plan', value: loading ? '...' : stats.pending.toString(), icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
+                    ].map((stat, i) => (
+                        <div key={i} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-indigo-100/50 transition-all flex items-center gap-5 group">
+                            <div className={`p-4 ${stat.bg} ${stat.color} rounded-2xl group-hover:scale-110 transition-transform`}>
+                                <stat.icon className="w-6 h-6" />
                             </div>
-                            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">{stat.label}</div>
+                            <div>
+                                <div className="text-2xl font-black text-slate-900 leading-tight">
+                                    {stat.value === '...' ? (
+                                        <div className="h-8 w-12 bg-slate-100 animate-pulse rounded-lg" />
+                                    ) : (
+                                        stat.value
+                                    )}
+                                </div>
+                                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">{stat.label}</div>
+                            </div>
                         </div>
-                    </div>
-                ))}
-            </div>
+                    ))
+                }
+            </div >
 
             {/* 3. Bento Layout Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            < div className="grid grid-cols-1 lg:grid-cols-3 gap-8" >
 
                 {/* A. Main Module: Agenda (2/3 width) */}
-                <div className="lg:col-span-2 space-y-8">
+                < div className="lg:col-span-2 space-y-8" >
                     <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
                         <div className="p-8 pb-4 flex items-center justify-between">
                             <div className="flex items-center gap-4">
@@ -258,12 +260,12 @@ export const IndependentDashboard = () => {
                             )}
                         </div>
                     </div>
-                </div>
+                </div >
 
                 {/* B. Side Bento: Chat & Community (1/3 width) */}
-                <div className="space-y-8">
+                < div className="space-y-8" >
                     {/* Compact Chat */}
-                    <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+                    < div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col" >
                         <div className="p-6 border-b border-slate-50 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="p-2.5 bg-purple-600 rounded-xl text-white">
@@ -289,10 +291,10 @@ export const IndependentDashboard = () => {
                                 <p className="text-center py-4 text-slate-300 font-black text-[10px] uppercase tracking-widest italic">Nada nuevo</p>
                             )}
                         </div>
-                    </div>
+                    </div >
 
                     {/* Compact Announcements */}
-                    <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+                    < div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col" >
                         <div className="p-6 border-b border-slate-50 flex items-center gap-3">
                             <div className="p-2.5 bg-amber-500 rounded-xl text-white">
                                 <Bell className="w-5 h-5" />
@@ -310,15 +312,15 @@ export const IndependentDashboard = () => {
                                 <p className="text-center py-4 text-slate-300 font-black text-[10px] uppercase tracking-widest italic">Sin avisos</p>
                             )}
                         </div>
-                    </div>
-                </div>
-            </div>
+                    </div >
+                </div >
+            </div >
 
             {/* Modal Components */}
-            <StudentSelectionModal
+            < StudentSelectionModal
                 isOpen={isReportModalOpen}
                 onClose={() => setIsReportModalOpen(false)}
             />
-        </div>
+        </div >
     )
 }

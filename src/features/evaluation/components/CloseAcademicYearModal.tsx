@@ -44,7 +44,7 @@ export const CloseAcademicYearModal = ({
                 .from('evaluation_snapshots')
                 .select('*')
                 .eq('group_id', group.id)
-                .eq('type', 'TRIMESTER')
+                .in('type', ['TRIMESTER', 'BIMESTER', 'SEMESTER', 'PERIOD'])
 
             if (error) throw error
 
@@ -138,7 +138,7 @@ export const CloseAcademicYearModal = ({
                             Cierre de Ciclo Escolar
                         </h2>
                         <p className="text-gray-500 mt-1 font-medium">
-                            Grupo {group.grade}° "{group.section}" — Promedios Finales
+                            Grupo {group.grade}° "{group.section}" — Promedios Finales (Ciclo Escolar)
                         </p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
@@ -159,8 +159,8 @@ export const CloseAcademicYearModal = ({
                                 <div>
                                     <h3 className="font-bold text-amber-900 text-lg">Confirmación de Promedios Anuales</h3>
                                     <p className="text-amber-800 mt-2 leading-relaxed">
-                                        El sistema ha calculado el promedio final de cada alumno basándose en los trimestres cerrados.
-                                        Al confirmar, se generará el acta final del ciclo escolar. Asegúrate de que todos los trimestres estén correctamente cerrados.
+                                        El sistema ha calculado el promedio final de cada alumno basándose en los periodos cerrados (Trimestres, Bimestres, etc.).
+                                        Al confirmar, se generará el acta final del ciclo escolar. Asegúrate de que todos los periodos estén correctamente cerrados.
                                     </p>
                                 </div>
                             </div>
@@ -170,7 +170,7 @@ export const CloseAcademicYearModal = ({
                                     <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs tracking-wider">
                                         <tr>
                                             <th className="px-6 py-4">Alumno</th>
-                                            <th className="px-6 py-4 text-center">Trimestres Evaluados</th>
+                                            <th className="px-6 py-4 text-center">Periodos Evaluados</th>
                                             <th className="px-6 py-4 text-center">Asistencia Total</th>
                                             <th className="px-6 py-4 text-right">Promedio Final</th>
                                         </tr>

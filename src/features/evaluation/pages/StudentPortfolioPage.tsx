@@ -59,7 +59,7 @@ export const StudentPortfolioPage = () => {
                     first_name,
                     last_name_paternal,
                     last_name_maternal,
-                    group:groups (name)
+                    group:groups(name)
                 `)
                 .eq('tenant_id', tenant?.id)
                 .order('first_name')

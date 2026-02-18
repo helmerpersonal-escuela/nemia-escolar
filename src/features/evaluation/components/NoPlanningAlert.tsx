@@ -5,10 +5,11 @@ import { useNavigate } from 'react-router-dom'
 interface NoPlanningAlertProps {
     groupId: string
     subjectId: string
+    periodId: string
     subjectName?: string
 }
 
-export const NoPlanningAlert = ({ groupId, subjectId, subjectName }: NoPlanningAlertProps) => {
+export const NoPlanningAlert = ({ groupId, subjectId, periodId, subjectName }: NoPlanningAlertProps) => {
     const navigate = useNavigate()
 
     return (
@@ -28,7 +29,7 @@ export const NoPlanningAlert = ({ groupId, subjectId, subjectName }: NoPlanningA
             </div>
 
             <button
-                onClick={() => navigate(`/planning?groupId=${groupId}&subjectId=${subjectId}`)}
+                onClick={() => navigate(`/planning/new?groupId=${groupId}&subjectId=${subjectId}&periodId=${periodId}`)}
                 className="group flex items-center px-6 py-3 bg-amber-600 text-white rounded-xl font-bold hover:bg-amber-700 hover:shadow-lg hover:shadow-amber-200 transition-all whitespace-nowrap"
             >
                 <FileText className="w-5 h-5 mr-2" />

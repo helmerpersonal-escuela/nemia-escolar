@@ -1,0 +1,22 @@
+[
+  {
+    "id": "214d3710-b246-431b-8b27-979806786c75",
+    "plan_type": "basic",
+    "max_groups": 5,
+    "max_students_per_group": 50,
+    "price_annual": 399,
+    "trial_days": 30,
+    "created_at": "2026-02-15T20:35:12.287205+00:00",
+    "updated_at": "2026-02-17T16:05:30.045921+00:00"
+  },
+  {
+    "id": "7c7adb3b-a95e-4c31-8325-43d09dccc372",
+    "plan_type": "pro",
+    "max_groups": 10,
+    "max_students_per_group": 100,
+    "price_annual": 999,
+    "trial_days": 30,
+    "created_at": "2026-02-15T20:35:12.287205+00:00",
+    "updated_at": "2026-02-17T16:05:30.045921+00:00"
+  }
+]

@@ -107,7 +107,7 @@ export const AnalyticalProgramEditorPage = () => {
 
     // UI State
     const [step, setStep] = useState(1)
-    const [loading, setLoading] = useState(false)
+    const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
 
     // Form Data
@@ -201,80 +201,76 @@ export const AnalyticalProgramEditorPage = () => {
         fetchSynthetic()
     }, [currentPhase])
 
-    // Persistence: Save to localStorage
+    // Persistence: Save to localStorage (GUARDED BY LOADING)
     useEffect(() => {
+        if (loading) return // Don't save while we are still loading initial data from server
         const draftId = id || 'new'
         const draft = { formData, step, timestamp: new Date().getTime() }
         localStorage.setItem(`ap_draft_${draftId}`, JSON.stringify(draft))
-    }, [formData, step, id])
+    }, [formData, step, id, loading])
 
     useEffect(() => {
         if (!tenant) return
         const fetchData = async () => {
-            if (!id || id === 'undefined' || id.includes('undefined')) {
-                console.log('Initializing NEW program mode (skipped redundant fetch)')
-                // We still need to load catalogs for NEW mode
-            } else {
-                setLoading(true)
-                console.log('Fetching data for ID:', id)
-            }
+            setLoading(true)
+            console.log('Fetching initialization data for ID:', id || 'NEW')
 
-            // Parallel fetch for basic catalogs and config
+            // Parallel fetch for catalogs and config
             const [catRes, cyclesRes, schoolRes, profileSubjectsRes] = await Promise.all([
                 supabase.from('subject_catalog').select('*').order('name'),
-                supabase.from('academic_years').select('id, name').eq('tenant_id', tenant.id).order('name', { ascending: false }),
+                supabase.from('academic_years').select('id, name, is_active').eq('tenant_id', tenant.id).order('name', { ascending: false }),
                 supabase.from('school_details').select('*').eq('tenant_id', tenant.id).maybeSingle(),
                 profile ? supabase.from('profile_subjects').select('*, subject_catalog(*)').eq('profile_id', profile.id) : Promise.resolve({ data: null })
             ])
 
-            // Handle Subjects Catalog (Merge with profile subjects if available)
+            // 1. Process Subjects Catalog (Case-Insensitive Merge)
             if (catRes.data) {
                 const uniqueSubjects = catRes.data.reduce((acc: any[], curr: any) => {
-                    if (!acc.find(s => s.name === curr.name)) {
-                        acc.push(curr)
+                    const normalizedName = curr.name.toUpperCase()
+                    if (!acc.find(s => s.name.toUpperCase() === normalizedName)) {
+                        acc.push({ ...curr, name: normalizedName });
                     }
                     return acc
                 }, [])
 
-                // If user has custom subjects, we can prioritize them
                 const userSubjects = profileSubjectsRes.data?.map((ps: any) => ({
                     ...ps.subject_catalog,
-                    id: ps.subject_catalog_id, // Use the catalog ID for consistency
-                    custom_detail: ps.custom_detail
+                    id: ps.subject_catalog_id,
+                    custom_detail: ps.custom_detail,
+                    name: ps.subject_catalog?.name?.toUpperCase()
                 })) || []
 
-                // Merge: User subjects first, then the rest
                 const mergedSubjects = [...userSubjects]
                 uniqueSubjects.forEach(s => {
-                    if (!mergedSubjects.find(us => us.name === s.name)) {
-                        mergedSubjects.push(s)
+                    const normalizedSName = s.name.toUpperCase()
+                    if (!mergedSubjects.find(us => us.name.toUpperCase() === normalizedSName)) {
+                        mergedSubjects.push({ ...s, name: normalizedSName })
                     }
                 })
-
                 setSubjectsCatalog(mergedSubjects)
             }
 
             if (cyclesRes.data) setCycles(cyclesRes.data)
 
-            const schoolDetails = schoolRes.data
-
             const isNew = !id || id === 'new' || id === 'undefined' || id.includes('undefined')
+            let finalDraftId = id || 'new'
+            let initialFormData = { ...formData }
 
             if (isNew) {
-                console.log('Initializing NEW program mode')
-                // Pre-fill school data from tenant and aggregation
-                const levelMap: Record<string, string> = {
-                    'SECONDARY': 'Secundaria',
-                    'TELESECUNDARIA': 'Telesecundaria'
+                // Pre-calculate server-side school fallbacks
+                const schoolDetails = schoolRes.data
+                const rawEducationalLevel = (schoolDetails?.educational_level || tenant.educationalLevel as string || '').toUpperCase()
+
+                let mappedLevel = 'SECUNDARIA' // Default
+                if (rawEducationalLevel.includes('TELE')) {
+                    mappedLevel = 'TELESECUNDARIA'
+                } else if (rawEducationalLevel.includes('SECUND') || rawEducationalLevel.includes('SECOND')) {
+                    mappedLevel = 'SECUNDARIA'
                 }
 
-                const educationalLevel = schoolDetails?.educational_level || tenant.educationalLevel as string || ''
-                const mappedLevel = levelMap[educationalLevel.toUpperCase()] || educationalLevel || 'Secundaria'
+                const activeCycle = cyclesRes.data?.find((c: any) => c.is_active)
+                const defaultCycle = activeCycle ? activeCycle.id : (cyclesRes.data && cyclesRes.data.length > 0 ? cyclesRes.data[0].id : '')
 
-                // Default cycle to the newest one if available
-                const defaultCycle = cyclesRes.data && cyclesRes.data.length > 0 ? cyclesRes.data[0].id : ''
-
-                // Parallel fetch for aggregation data
                 const [groupsRes, profilesRes] = await Promise.all([
                     supabase.from('groups').select('grade, section, students(count)').eq('tenant_id', tenant.id),
                     supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('tenant_id', tenant.id).eq('role', 'TEACHER')
@@ -282,126 +278,98 @@ export const AnalyticalProgramEditorPage = () => {
 
                 const groups = groupsRes.data || []
                 const teacherCount = profilesRes.count || 0
-
                 const totalStudents = groups.reduce((acc, g: any) => acc + (g.students?.[0]?.count || 0), 0)
-                const totalGroups = groups.length
-                const avgStudents = totalGroups > 0 ? Math.round(totalStudents / totalGroups) : 0
                 const groupInfo = groups.map((g: any) => `${g.grade}°${g.section} (${g.students?.[0]?.count || 0})`).join(', ')
 
-                setFormData(prev => ({
-                    ...prev,
+                initialFormData = {
+                    ...initialFormData,
                     academic_year_id: defaultCycle,
                     school_data: {
-                        ...prev.school_data,
+                        ...initialFormData.school_data,
                         name: schoolDetails?.official_name || tenant.name || '',
                         cct: schoolDetails?.cct || tenant.cct || '',
                         level: mappedLevel,
-                        modality: schoolDetails?.educational_level || prev.school_data.modality,
-                        support: schoolDetails?.regime || prev.school_data.support,
-                        shift: schoolDetails?.shift === 'MORNING' ? 'Matutino' :
-                            schoolDetails?.shift === 'AFTERNOON' ? 'Vespertino' :
-                                schoolDetails?.shift === 'FULL_TIME' ? 'Tiempo Completo' :
-                                    prev.school_data.shift,
-                        state: schoolDetails?.address_state || prev.school_data.state,
+                        modality: schoolDetails?.educational_level?.toUpperCase() || initialFormData.school_data.modality,
+                        support: schoolDetails?.regime?.toUpperCase() || initialFormData.school_data.support,
+                        shift: schoolDetails?.shift === 'MORNING' ? 'MATUTINO' :
+                            schoolDetails?.shift === 'AFTERNOON' ? 'VESPERTINO' :
+                                schoolDetails?.shift === 'FULL_TIME' ? 'TIEMPO COMPLETO' :
+                                    initialFormData.school_data.shift,
+                        state: schoolDetails?.address_state || initialFormData.school_data.state,
                         municipality: schoolDetails?.address_municipality || '',
                         location: schoolDetails?.address_neighborhood || '',
                         total_students: totalStudents.toString(),
-                        total_groups: totalGroups.toString(),
-                        avg_students_per_group: avgStudents.toString(),
+                        total_groups: groups.length.toString(),
                         total_teachers: teacherCount.toString(),
                         group_students_info: groupInfo
                     }
-                }))
+                }
+
+                // CHECK DRAFT FOR NEW
+                const localDraft = localStorage.getItem('ap_draft_new')
+                if (localDraft) {
+                    try {
+                        const parsed = JSON.parse(localDraft)
+                        initialFormData = {
+                            ...parsed.formData,
+                            academic_year_id: parsed.formData.academic_year_id || initialFormData.academic_year_id,
+                            school_data: {
+                                ...initialFormData.school_data, // Use fresh server data as base
+                                ...parsed.formData.school_data, // Merge with draft
+                                // Re-override Essentials if empty in draft
+                                name: parsed.formData.school_data.name || initialFormData.school_data.name,
+                                cct: parsed.formData.school_data.cct || initialFormData.school_data.cct,
+                                level: (parsed.formData.school_data.level && NIVELES_CATALOG.includes(parsed.formData.school_data.level))
+                                    ? parsed.formData.school_data.level
+                                    : initialFormData.school_data.level,
+                                modality: parsed.formData.school_data.modality || initialFormData.school_data.modality,
+                                support: parsed.formData.school_data.support || initialFormData.school_data.support,
+                                shift: parsed.formData.school_data.shift || initialFormData.school_data.shift,
+                                municipality: parsed.formData.school_data.municipality || initialFormData.school_data.municipality,
+                                location: parsed.formData.school_data.location || initialFormData.school_data.location
+                            }
+                        }
+                        setStep(parsed.step || 1)
+                        console.log('NEW draft merged with server data correctly')
+                    } catch (e) {
+                        console.error('Draft parse error:', e)
+                    }
+                }
+                setFormData(initialFormData)
             } else {
-                console.log('Loading EXISTING program (Split Queries):', id)
-
-                // 1. Fetch Program Metadata
-                const { data: program, error: progError } = await supabase
-                    .from('analytical_programs')
-                    .select('*')
-                    .eq('id', id)
-                    .maybeSingle()
-
-                if (progError) {
-                    console.error('Error fetching program metadata:', progError)
-                }
-
-                // 2. Fetch Contents separately to avoid 400 relationship error
-                const { data: contents, error: contError } = await supabase
-                    .from('analytical_program_contents')
-                    .select('*')
-                    .eq('program_id', id)
-
-                if (contError) {
-                    console.error('Error fetching program contents:', contError)
-                }
+                // LOADING EXISTING
+                const [{ data: program }, { data: contents }] = await Promise.all([
+                    supabase.from('analytical_programs').select('*').eq('id', id).maybeSingle(),
+                    supabase.from('analytical_program_contents').select('*').eq('program_id', id)
+                ])
 
                 if (program) {
-                    console.log('Program loaded:', program)
-                    console.log('Contents loaded:', contents)
-
                     const dbData = {
+                        ...formData,
+                        ...program,
                         academic_year_id: program.academic_year_id || '',
-                        diagnosis_narrative: program.diagnosis_narrative || '',
+                        diagnosis_narrative: program.diagnosis_context || '', // Map diagnosis_context from DB to diagnosis_narrative for UI
                         problems: program.problem_statements || [],
                         contents: contents || [],
-                        last_cte_session: program.last_cte_session || '',
                         status: program.status,
                         school_data: program.school_data || formData.school_data,
-                        external_context: program.external_context || formData.external_context,
-                        internal_context: program.internal_context || formData.internal_context,
-                        group_diagnosis: program.group_diagnosis || formData.group_diagnosis,
-                        pedagogical_strategies: program.pedagogical_strategies || formData.pedagogical_strategies,
-                        evaluation_strategies: program.evaluation_strategies || formData.evaluation_strategies,
-                        national_strategies: program.national_strategies || formData.national_strategies,
-                        program_by_fields: program.program_by_fields || {
-                            lenguajes: [],
-                            saberes: [],
-                            etica: [],
-                            humano: []
-                        },
-                        source_document_url: program.source_document_url || '',
-                        extracted_text: program.extracted_text || ''
+                        program_by_fields: program.program_by_fields || formData.program_by_fields
                     }
 
-                    // Check for local draft
                     const localDraft = localStorage.getItem(`ap_draft_${id}`)
                     if (localDraft) {
                         try {
                             const parsed = JSON.parse(localDraft)
-                            // Only restore if it's RECENT (e.g. within last 24h) and user confirms or we just do it
-                            // For simplicity and to solve the user's immediate "minimize" problem, 
-                            // we restore if it exists and hasn't been cleared.
                             setFormData(parsed.formData)
-                            setStep(parsed.step)
-                            console.log('Restored state from local storage')
+                            setStep(parsed.step || 1)
                         } catch (e) {
-                            console.error('Error parsing local draft:', e)
                             setFormData(dbData)
                         }
                     } else {
                         setFormData(dbData)
                     }
-                } else {
-                    console.warn('Program not found for ID:', id)
                 }
             }
-
-            // After loading DB data for NEW mode, ALSO check for draft
-            if (isNew) {
-                const localDraft = localStorage.getItem('ap_draft_new')
-                if (localDraft) {
-                    try {
-                        const parsed = JSON.parse(localDraft)
-                        setFormData(parsed.formData)
-                        setStep(parsed.step)
-                        console.log('Restored NEW program draft from local storage')
-                    } catch (e) {
-                        console.error('Error parsing local draft:', e)
-                    }
-                }
-            }
-
             setLoading(false)
         }
         fetchData()
@@ -528,8 +496,8 @@ export const AnalyticalProgramEditorPage = () => {
             const programData = {
                 tenant_id: cleanTenantId,
                 academic_year_id: academicYearId,
-                diagnosis_narrative: formData.diagnosis_narrative,
-                problem_statements: formData.problems,
+                diagnosis_context: formData.group_diagnosis.narrative, // DB uses diagnosis_context, UI uses diagnosis_narrative
+                problem_statements: formData.group_diagnosis.problem_situations,
                 last_cte_session: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
                 status: 'ACTIVE',
@@ -540,22 +508,27 @@ export const AnalyticalProgramEditorPage = () => {
                 pedagogical_strategies: formData.pedagogical_strategies,
                 evaluation_strategies: formData.evaluation_strategies,
                 national_strategies: formData.national_strategies,
-                program_by_fields: formData.program_by_fields,
-                source_document_url: formData.source_document_url,
-                extracted_text: formData.extracted_text
+                program_by_fields: (formData as any).program_by_fields,
+                source_document_url: (formData as any).source_document_url,
+                extracted_text: (formData as any).extracted_text
             }
 
             let programId = id
+
+            // Define isColumnError early to use in both branches
+            let isColumnError = false
+
             // Safely handle 'undefined' string or null in URL params
             const isNew = !id || id === 'new' || id === 'undefined' || id.includes('undefined')
 
             if (isNew) {
                 const { data, error: insertError } = await supabase.from('analytical_programs').insert([programData]).select().single()
 
-                // Fallback for INSERT if column missing
-                if (insertError && (insertError.code === 'PGRST204' || insertError.message?.includes('program_by_fields'))) {
-                    console.warn('Fallback: inserting without program_by_fields column')
-                    const { program_by_fields, ...safeData } = programData
+                isColumnError = !!insertError && (insertError.code === 'PGRST204' || insertError.message?.includes('program_by_fields') || insertError.message?.includes('diagnosis_context'))
+
+                if (isColumnError) {
+                    console.warn('Fallback: inserting without experimental or renamed columns (INSERT)')
+                    const { program_by_fields, diagnosis_context, ...safeData } = programData
                     const { data: retryData, error: retryError } = await supabase.from('analytical_programs').insert([safeData]).select().single()
                     if (retryError) throw retryError
                     programId = retryData.id
@@ -569,10 +542,14 @@ export const AnalyticalProgramEditorPage = () => {
             } else {
                 const { error } = await supabase.from('analytical_programs').update(programData).eq('id', id)
 
-                // Fallback: If column 'program_by_fields' does not exist yet (400)
-                if (error && error.code === 'PGRST204' || (error && error.message?.includes('program_by_fields'))) {
-                    console.warn('Fallback: saving without program_by_fields column')
+                isColumnError = !!error && (error.code === 'PGRST204' || error.message?.includes('program_by_fields') || error.message?.includes('diagnosis_context'))
+
+                if (isColumnError) {
+                    console.warn('Fallback: saving without experimental or renamed columns (UPDATE)')
                     const { program_by_fields, ...safeData } = programData
+                    // Ensure diagnosis_context is used even in retry
+                    if (!safeData.diagnosis_context) safeData.diagnosis_context = formData.group_diagnosis.narrative
+
                     const { error: retryError } = await supabase.from('analytical_programs').update(safeData).eq('id', id)
                     if (retryError) throw retryError
                 } else if (error) {
@@ -893,6 +870,15 @@ export const AnalyticalProgramEditorPage = () => {
         )
     }
 
+    if (loading || !tenant) {
+        return (
+            <div className="min-h-[60vh] flex flex-col items-center justify-center">
+                <div className="w-16 h-16 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-6"></div>
+                <p className="text-xs font-black text-gray-400 uppercase tracking-widest animate-pulse">Cargando Entorno NEM...</p>
+            </div>
+        )
+    }
+
     return (
         <div className="max-w-6xl mx-auto pb-32">
             {/* Cabecera */}
@@ -1018,6 +1004,8 @@ export const AnalyticalProgramEditorPage = () => {
                                 <label className="text-[10px] font-black text-indigo-500 uppercase mb-2 block ml-1 tracking-widest">Ciclo Escolar (Vigencia del Programa)</label>
                                 <select
                                     disabled={isReadOnly}
+                                    value={formData.academic_year_id}
+                                    onChange={e => setFormData({ ...formData, academic_year_id: e.target.value })}
                                     className="w-full bg-indigo-50/50 border-indigo-200 text-indigo-700 rounded-xl px-4 py-3 text-sm font-black shadow-sm focus:ring-2 focus:ring-indigo-500 uppercase disabled:opacity-75 disabled:cursor-not-allowed"
                                 >
                                     <option value="">SELECCIONAR CICLO...</option>
@@ -1028,6 +1016,11 @@ export const AnalyticalProgramEditorPage = () => {
                                 <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block ml-1">Nombre de la Escuela</label>
                                 <input
                                     disabled={isReadOnly}
+                                    value={formData.school_data.name}
+                                    onChange={e => setFormData({
+                                        ...formData,
+                                        school_data: { ...formData.school_data, name: e.target.value.toUpperCase() }
+                                    })}
                                     className="w-full bg-white border-gray-100 rounded-xl px-4 py-3 text-sm font-bold shadow-sm focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
                                 />
                             </div>
@@ -1035,6 +1028,11 @@ export const AnalyticalProgramEditorPage = () => {
                                 <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block ml-1">CCT</label>
                                 <input
                                     disabled={isReadOnly}
+                                    value={formData.school_data.cct}
+                                    onChange={e => setFormData({
+                                        ...formData,
+                                        school_data: { ...formData.school_data, cct: e.target.value.toUpperCase() }
+                                    })}
                                     className="w-full bg-white border-gray-100 rounded-xl px-4 py-3 text-sm font-bold shadow-sm focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
                                 />
                             </div>
@@ -1042,6 +1040,11 @@ export const AnalyticalProgramEditorPage = () => {
                                 <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block ml-1">Nivel</label>
                                 <select
                                     disabled={isReadOnly}
+                                    value={formData.school_data.level}
+                                    onChange={e => setFormData({
+                                        ...formData,
+                                        school_data: { ...formData.school_data, level: e.target.value }
+                                    })}
                                     className="w-full bg-white border-gray-100 rounded-xl px-4 py-3 text-sm font-bold shadow-sm focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
                                 >
                                     <option value="">SELECCIONAR...</option>
@@ -1088,6 +1091,11 @@ export const AnalyticalProgramEditorPage = () => {
                                 <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block ml-1">Turno</label>
                                 <select
                                     disabled={isReadOnly}
+                                    value={formData.school_data.shift}
+                                    onChange={e => setFormData({
+                                        ...formData,
+                                        school_data: { ...formData.school_data, shift: e.target.value }
+                                    })}
                                     className="w-full bg-white border-gray-100 rounded-xl px-4 py-3 text-sm font-bold shadow-sm focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
                                 >
                                     <option value="">SELECCIONAR...</option>
@@ -1905,6 +1913,16 @@ export const AnalyticalProgramEditorPage = () => {
                                     <>
                                         <div className="p-8 bg-indigo-50/30 rounded-3xl border border-indigo-100 text-left flex flex-col justify-center">
                                             <h4 className="font-bold text-gray-700 mb-2">Resumen de Propuesta</h4>
+
+                                            {!(tenant as any)?.groqApiKey && (
+                                                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start">
+                                                    <AlertCircle className="w-4 h-4 text-amber-500 mr-2 mt-0.5" />
+                                                    <p className="text-[10px] font-bold text-amber-700 uppercase leading-tight">
+                                                        IA no configurada. Ve a Ajustes para añadir tu clave de Groq.
+                                                    </p>
+                                                </div>
+                                            )}
+
                                             <div className="space-y-3 mt-4">
                                                 <div className="flex justify-between items-center text-xs font-bold">
                                                     <span className="text-gray-600">Sesiones</span>
@@ -1916,8 +1934,14 @@ export const AnalyticalProgramEditorPage = () => {
                                                 </div>
                                             </div>
                                             <button
-                                                onClick={() => setIsAIProposalManagerOpen(true)}
-                                                className="w-full mt-6 flex items-center justify-center px-4 py-3 bg-gradient-to-r from-indigo-600 to-indigo-800 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:shadow-lg hover:scale-105 transition-all shadow-indigo-100 shadow-xl"
+                                                onClick={() => {
+                                                    if (!(tenant as any)?.groqApiKey) {
+                                                        alert('Por favor, configura tu clave API de Groq en la sección de Ajustes > Configuración IA antes de continuar.')
+                                                        return
+                                                    }
+                                                    setIsAIProposalManagerOpen(true)
+                                                }}
+                                                className={`w-full mt-6 flex items-center justify-center px-4 py-3 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-indigo-100 shadow-xl ${!(tenant as any)?.groqApiKey ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-indigo-800 hover:shadow-lg hover:scale-105'}`}
                                             >
                                                 <Sparkles className="w-4 h-4 mr-2" />
                                                 Gestionar Propuesta Didáctica (IA)
@@ -1932,9 +1956,13 @@ export const AnalyticalProgramEditorPage = () => {
                                                         alert('Modo Demo: El gestor de propuestas IA está deshabilitado.')
                                                         return
                                                     }
+                                                    if (!(tenant as any)?.groqApiKey) {
+                                                        alert('Por favor, configura tu clave API de Groq en la sección de Ajustes > Configuración IA antes de continuar.')
+                                                        return
+                                                    }
                                                     setIsAIProposalManagerOpen(true)
                                                 }}
-                                                className={`w-full flex items-center justify-center px-4 py-3 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-indigo-100 shadow-xl ${profile?.is_demo ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-indigo-800 hover:shadow-lg hover:scale-105'
+                                                className={`w-full flex items-center justify-center px-4 py-3 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-indigo-100 shadow-xl ${profile?.is_demo || !(tenant as any)?.groqApiKey ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-indigo-800 hover:shadow-lg hover:scale-105'
                                                     }`}
                                             >
                                                 <Sparkles className="w-4 h-4 mr-2" />

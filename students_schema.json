@@ -1,0 +1,86 @@
+[
+  {
+    "type": "uuid",
+    "column": "id"
+  },
+  {
+    "type": "uuid",
+    "column": "tenant_id"
+  },
+  {
+    "type": "uuid",
+    "column": "group_id"
+  },
+  {
+    "type": "text",
+    "column": "first_name"
+  },
+  {
+    "type": "text",
+    "column": "last_name_paternal"
+  },
+  {
+    "type": "text",
+    "column": "last_name_maternal"
+  },
+  {
+    "type": "text",
+    "column": "curp"
+  },
+  {
+    "type": "text",
+    "column": "gender"
+  },
+  {
+    "type": "date",
+    "column": "birth_date"
+  },
+  {
+    "type": "timestamp with time zone",
+    "column": "created_at"
+  },
+  {
+    "type": "text",
+    "column": "email"
+  },
+  {
+    "type": "text",
+    "column": "phone"
+  },
+  {
+    "type": "text",
+    "column": "address"
+  },
+  {
+    "type": "text",
+    "column": "blood_type"
+  },
+  {
+    "type": "text",
+    "column": "allergies"
+  },
+  {
+    "type": "text",
+    "column": "photo_url"
+  },
+  {
+    "type": "text",
+    "column": "fingerprint_data"
+  },
+  {
+    "type": "text",
+    "column": "status"
+  },
+  {
+    "type": "text",
+    "column": "condition"
+  },
+  {
+    "type": "text",
+    "column": "condition_details"
+  },
+  {
+    "type": "uuid",
+    "column": "user_id"
+  }
+]

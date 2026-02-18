@@ -27,7 +27,7 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
 
     // Persistence: load initial step from storage if available
     const [step, setStep] = useState(() => {
-        const saved = sessionStorage.getItem('nemia_school_onboarding_step')
+        const saved = sessionStorage.getItem('vunlek_school_onboarding_step')
         return saved ? parseInt(saved, 10) : 0
     })
 
@@ -36,7 +36,7 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
 
     // --- FORM STATE ---
     const [formData, setFormData] = useState(() => {
-        const saved = sessionStorage.getItem('nemia_school_onboarding_data')
+        const saved = sessionStorage.getItem('vunlek_school_onboarding_data')
         return saved ? JSON.parse(saved) : {
             // 1. Identity
             official_name: '',
@@ -86,25 +86,25 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
     useEffect(() => {
         // Only save if we have actual data
         if (formData.official_name || formData.cct) {
-            sessionStorage.setItem('nemia_school_onboarding_data', JSON.stringify(formData))
+            sessionStorage.setItem('vunlek_school_onboarding_data', JSON.stringify(formData))
         }
     }, [formData])
 
     useEffect(() => {
-        sessionStorage.setItem('nemia_school_onboarding_step', step.toString())
+        sessionStorage.setItem('vunlek_school_onboarding_step', step.toString())
     }, [step])
 
     useEffect(() => {
         // Handle persistent syncing flag
         const status = searchParams.get('status')
         if (status === 'approved') {
-            sessionStorage.setItem('nemia_payment_syncing', 'true')
+            sessionStorage.setItem('vunlek_payment_syncing', 'true')
         }
     }, [searchParams])
 
     useEffect(() => {
         // If storage is EMPTY or only contains the DEFAULT skeleton, try to seed from tenant
-        const saved = sessionStorage.getItem('nemia_school_onboarding_data')
+        const saved = sessionStorage.getItem('vunlek_school_onboarding_data')
         const isDefault = !saved || JSON.parse(saved).official_name === ''
 
         if (tenant && isDefault) {
@@ -118,9 +118,9 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
     }, [tenant])
 
     const clearPersistence = () => {
-        sessionStorage.removeItem('nemia_school_onboarding_step')
-        sessionStorage.removeItem('nemia_school_onboarding_data')
-        sessionStorage.removeItem('nemia_payment_syncing')
+        sessionStorage.removeItem('vunlek_school_onboarding_step')
+        sessionStorage.removeItem('vunlek_school_onboarding_data')
+        sessionStorage.removeItem('vunlek_payment_syncing')
     }
 
     const handleCancelRegistration = async () => {

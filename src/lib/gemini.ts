@@ -4,15 +4,50 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 export class GeminiService {
     private genAI: GoogleGenerativeAI
     private apiKey: string
+    private groqKey?: string
+    private modelFlash: any
+    private modelPro: any
 
     private static COOLDOWN_KEY = 'gemini_cooldown_timestamp'
     private static GEMINI_COOLDOWN = 1000 * 60 * 60 // 1 hour
 
-    constructor(apiKey: string) {
-        const verifiedKey = import.meta.env.VITE_GEMINI_API_KEY || ''
-        this.apiKey = apiKey || verifiedKey
-        console.log('[GeminiService v2.1] Inicializado. Fallback activo:', this.isFallingBack)
+    constructor(apiKey?: string, groqKey?: string) {
+        // 1. Try environment variable
+        let key = import.meta.env.VITE_GEMINI_API_KEY
+        let gKey = import.meta.env.VITE_GROQ_API_KEY
+
+        // 2. Try localStorage (God Mode settings)
+        if (!key) {
+            try {
+                const saved = localStorage.getItem('godmode_ai_settings')
+                if (saved && saved !== 'undefined' && saved !== 'null') {
+                    const settings = JSON.parse(saved)
+                    if (settings.gemini_key) {
+                        key = settings.gemini_key
+                        console.log('[GeminiService] Usando API Key de configuración global (God Mode)')
+                    }
+                    if (settings.groq_key) {
+                        gKey = settings.groq_key
+                    }
+                }
+            } catch (e) {
+                console.warn('[GeminiService] Error leyendo configuración local:', e)
+            }
+        }
+
+        // Priority: Argument > Environment > LocalStorage
+        this.apiKey = apiKey || key || ''
+        this.groqKey = groqKey || gKey || ''
+
+        if (!this.apiKey) {
+            console.warn('[GeminiService] No se encontró API Key. La IA no funcionará hasta configurarla.')
+        }
+
         this.genAI = new GoogleGenerativeAI(this.apiKey)
+        this.modelFlash = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
+        this.modelPro = this.genAI.getGenerativeModel({ model: "gemini-1.5-pro" })
+
+        console.log(`[GeminiService v2.3] Inicializado. Fallback activo: ${this.isFallingBack}`)
     }
 
     public get isFallingBack(): boolean {
@@ -41,6 +76,9 @@ export class GeminiService {
         sessions?: any[] // Lista de sesiones
         temporality?: string
         purpose?: string
+        textbook?: string
+        pagesFrom?: string
+        pagesTo?: string
     }) {
         const isProject = context.temporality === 'PROJECT'
         const projectPurpose = context.purpose ? `Propósito del Proyecto: ${context.purpose}` : ''
@@ -73,6 +111,7 @@ export class GeminiService {
             - Campo: ${context.field || 'Lenguajes'}
             - Metodología: ${context.methodology || 'Aprendizaje Basado en Proyectos'}
             - PDA: ${context.pdaDetail || 'No especificado'}
+            ${context.textbook ? `- LIBRO DE TEXTO: "${context.textbook}" (Páginas: ${context.pagesFrom || ''} a ${context.pagesTo || ''})` : ''}
 
             ${projectInstructions}
 
@@ -85,6 +124,7 @@ export class GeminiService {
             3. CIERRE: Evaluación formativa, socialización, reflexión o tarea. (Mínimo 30 palabras)
             
             NO generes texto abstracto como "Se realizarán actividades de desarrollo". DESCRIBE LA ACTIVIDAD EXACTA.
+            ${context.textbook ? `USA EL LIBRO DE TEXTO COMO REFERENCIA: Utiliza los temas y el contexto del libro de texto "${context.textbook}" (páginas ${context.pagesFrom}-${context.pagesTo}) para inspirar tus propuestas. Puedes sugerir actividades propias o adaptaciones que no necesariamente se encuentren literalmente en el libro, siempre que guarden relación con sus contenidos.` : ''}
             
             Debes generar 3 propuestas distintas. Cada propuesta debe contener sugerencias para TODAS las sesiones mencionadas, asegurando progresión pedagógica.
 
@@ -143,6 +183,8 @@ export class GeminiService {
                 subject: string
                 topicContext?: string // Título de la planeación
                 pda?: string
+                textbook?: string
+                pages?: string
                 planningDetail?: string // Secuencia didáctica de la planeación
             }[]
         }[]
@@ -161,6 +203,7 @@ export class GeminiService {
             ${d.classes.map(c => `- ${c.time} (${c.duration} min): ${c.group} - ${c.subject}
               * Tema: ${c.topicContext || 'Repaso'}
               * PDA: ${c.pda || 'No especificado'}
+              * Referencia Libro de Texto: ${c.textbook ? `"${c.textbook}" (Páginas ${c.pages || 'No indicadas'})` : 'No especificado'}
               * Secuencia didáctica docente (Referencia): ${c.planningDetail || 'No hay detalles'}`).join('\n')}
             `).join('\n')}
 
@@ -169,12 +212,15 @@ export class GeminiService {
                - PROHIBIDO usar: "PDA", "Proceso de Desarrollo", "Ejes Articuladores", "Campo Formativo", "Metodología", "Sesión", "Secuencia Didáctica", "Evaluación Formativa", "Conflicto Cognitivo", "Saberes Previos", "Socioeducativo".
                - USA EN SU LUGAR: "Tema", "Actividad", "Lo que van a aprender", "Instrucciones", "Paso 1, 2, 3", "Preguntas", "Ejercicios".
                - Imagina que le hablas a un PREFECTO o un PADRE DE FAMILIA que no sabe nada de pedagogía.
-            2. EXTENSIÓN MÍNIMA:
+            2. USO DEL LIBRO DE TEXTO (CRÍTICO):
+               - Si se proporciona un libro y páginas, TUS ACTIVIDADES DEBEN BASARSE EN ÉL.
+               - Instruye explícitamente: "Abran su libro en la página X", "Resuelvan el ejercicio Y".
+            3. EXTENSIÓN MÍNIMA:
                - instrucciones_for_substitute: Mínimo 80 palabras. Debe ser un guion paso a paso (Inicio, Desarrollo, Cierre).
-               - printable_resource.content: Mínimo 150 palabras. No pongas solo "Hacer ejercicio"; DEBES escribir el ejercicio completo (preguntas, lecturas, casos).
-            3. CRONOGRAMA DE LA CLASE:
+               - printable_resource.content: Mínimo 150 palabras. Si usas libro, crea preguntas complementarias o un cuestionario sobre la lectura.
+            4. CRONOGRAMA DE LA CLASE:
                - Divide la duración (${context.days.flatMap(d => d.classes.map(c => c.duration)).join('/')} min) en bloques de tiempo exactos (ej. [10 min] Introducción, [30 min] Actividad principal, [10 min] Entrega).
-            4. PRODUCTO FÍSICO:
+            5. PRODUCTO FÍSICO:
                - Especifica claramente qué debe recibir y firmar el prefecto al final.
 
             Formato de respuesta esperado (JSON):
@@ -283,10 +329,15 @@ export class GeminiService {
                     const text = response.text()
                     if (text) return text.trim()
                 } catch (err: any) {
+                    const is404 = err.message.includes('404') || err.message.includes('not found')
                     errors.push(`SDK (${modelName}): ${err.message}`)
-                    if (err.message.includes('404')) {
-                        this.markGeminiAsFailed()
-                        break // Si un modelo da 404, es probable que todos den 404 (región/config)
+                    console.warn(`[GeminiService] SDK error for ${modelName}:`, err.message)
+
+                    if (is404) {
+                        // If it's a 404, this specific model is likely not available in this region/key
+                        // We continue to the next model instead of breaking immediately
+                        console.log(`[GeminiService] Model ${modelName} returned 404. Trying next...`)
+                        continue
                     }
                 }
             }
@@ -310,10 +361,13 @@ export class GeminiService {
                         } else {
                             const errData = await response.json().catch(() => ({}))
                             const errorMsg = errData.error?.message || response.statusText
+                            const is404 = response.status === 404
                             errors.push(`Direct (${modelName}): ${response.status} ${errorMsg}`)
-                            if (response.status === 404) {
-                                this.markGeminiAsFailed()
-                                break
+                            console.warn(`[GeminiService] Direct fetch error for ${modelName}:`, response.status, errorMsg)
+
+                            if (is404) {
+                                console.log(`[GeminiService] Direct fetch ${modelName} returned 404. Trying next...`)
+                                continue
                             }
                         }
                     } catch (err: any) {
@@ -327,7 +381,7 @@ export class GeminiService {
 
         console.log('[Groq] Intentando vía Groq (Llama 3)...')
         try {
-            const groqKey = import.meta.env.VITE_GROQ_API_KEY || ''
+            const groqKey = this.groqKey
 
             // Usar AbortController para timeout
             const controller = new AbortController()
@@ -548,4 +602,4 @@ export class GeminiService {
     }
 }
 
-export const geminiService = new GeminiService('')
+export const geminiService = new GeminiService()

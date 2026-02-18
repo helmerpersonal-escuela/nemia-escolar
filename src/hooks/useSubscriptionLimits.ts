@@ -13,7 +13,7 @@ export interface SubscriptionLimits {
 
 export const useSubscriptionLimits = () => {
     const [limits, setLimits] = useState<SubscriptionLimits>({
-        maxGroups: 2,
+        maxGroups: 5,
         maxStudentsPerGroup: 50,
         currentGroups: 0,
         planType: 'basic',
@@ -67,9 +67,9 @@ export const useSubscriptionLimits = () => {
                     .eq('tenant_id', profile.tenant_id)
 
                 const currentGroups = groupCount || 0
-                const maxGroups = planLimits?.max_groups || 2
-                const maxStudentsPerGroup = planLimits?.max_students_per_group || 50
-                const priceAnnual = planLimits?.price_annual || 399
+                const maxGroups = planLimits?.max_groups || (planType === 'pro' ? 10 : 5)
+                const maxStudentsPerGroup = planLimits?.max_students_per_group || (planType === 'pro' ? 100 : 50)
+                const priceAnnual = planLimits?.price_annual || (planType === 'pro' ? 999 : 399)
 
                 setLimits({
                     maxGroups,
@@ -95,29 +95,52 @@ export const useSubscriptionLimits = () => {
 
     const refreshLimits = async () => {
         setLimits(prev => ({ ...prev, isLoading: true }))
-        // Re-run the effect logic
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
+        try {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
 
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('tenant_id')
-            .eq('id', user.id)
-            .single()
+            // Re-fetch subscription
+            const { data: subscription } = await supabase
+                .from('subscriptions')
+                .select('plan_type, status')
+                .eq('user_id', user.id)
+                .maybeSingle()
 
-        if (!profile?.tenant_id) return
+            const planType = subscription?.plan_type || 'basic'
 
-        const { count: groupCount } = await supabase
-            .from('groups')
-            .select('*', { count: 'exact', head: true })
-            .eq('tenant_id', profile.tenant_id)
+            // Re-fetch plan limits
+            const { data: planLimits } = await supabase
+                .from('license_limits')
+                .select('*')
+                .eq('plan_type', planType)
+                .maybeSingle()
 
-        setLimits(prev => ({
-            ...prev,
-            currentGroups: groupCount || 0,
-            canAddGroup: (groupCount || 0) < prev.maxGroups,
-            isLoading: false
-        }))
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('tenant_id')
+                .eq('id', user.id)
+                .single()
+
+            if (!profile?.tenant_id) return
+
+            const { count: groupCount } = await supabase
+                .from('groups')
+                .select('*', { count: 'exact', head: true })
+                .eq('tenant_id', profile.tenant_id)
+
+            setLimits({
+                maxGroups: planLimits?.max_groups || (planType === 'pro' ? 10 : 5),
+                maxStudentsPerGroup: planLimits?.max_students_per_group || (planType === 'pro' ? 100 : 50),
+                currentGroups: groupCount || 0,
+                planType: planType as 'basic' | 'pro',
+                priceAnnual: planLimits?.price_annual || (planType === 'pro' ? 999 : 399),
+                canAddGroup: (groupCount || 0) < (planLimits?.max_groups || (planType === 'pro' ? 10 : 5)),
+                isLoading: false
+            })
+        } catch (err) {
+            console.error('Error refreshing limits:', err)
+            setLimits(prev => ({ ...prev, isLoading: false }))
+        }
     }
 
     return {

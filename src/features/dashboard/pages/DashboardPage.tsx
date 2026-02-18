@@ -26,7 +26,14 @@ export const DashboardPage = () => {
 
     if (currentRole === 'INDEPENDENT_TEACHER') return <IndependentDashboard />
 
-    if (currentRole === 'SUPER_ADMIN') return <Navigate to="/admin" replace />
+    if (currentRole === 'SUPER_ADMIN') {
+        // Only redirect to /admin if they are in the "System" tenant (God Mode) 
+        // AND they are at the root (index). If they have a specific tenant or 
+        // are trying to see the dashboard, let them through (they can use the switcher).
+        if ((tenant as any)?.id === '00000000-0000-0000-0000-000000000000') {
+            return <Navigate to="/admin" replace />
+        }
+    }
     if (currentRole === 'ADMIN') return <AdminDashboard />
     if (currentRole === 'DIRECTOR') return <DirectorDashboard />
     if (currentRole === 'ACADEMIC_COORD') return <CoordinationDashboard />

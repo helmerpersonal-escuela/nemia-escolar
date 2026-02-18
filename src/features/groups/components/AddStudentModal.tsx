@@ -65,7 +65,10 @@ interface Props {
 }
 
 export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess, studentId }: Props) => {
-    const [step, setStep] = useState(1)
+    const [step, setStep] = useState(() => {
+        const savedStep = sessionStorage.getItem('vunlek_temp_student_step')
+        return savedStep ? parseInt(savedStep, 10) : 1
+    })
     const [loading, setLoading] = useState(false)
     const [fetching, setFetching] = useState(false)
     const [invitingTutor, setInvitingTutor] = useState(false)
@@ -92,8 +95,14 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
     const [imgSrc, setImgSrc] = useState<string | null>(null)
     const [showCamera, setShowCamera] = useState(false)
 
+    // Use a ref to track if the modal was previously open
+    const prevOpenRef = useRef(false)
+
     // Fetch data for edit mode
     useEffect(() => {
+        const wasJustOpened = isOpen && !prevOpenRef.current
+        prevOpenRef.current = isOpen
+
         if (isOpen && studentId) {
             setFetching(true)
             const fetchData = async () => {
@@ -139,12 +148,16 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                             lastNamePaternal: gData.last_name_paternal || '',
                             lastNameMaternal: gData.last_name_maternal || '',
                             relationship: gData.relationship === 'OTRO' ? 'OTRO' : (gData.relationship || 'MADRE'),
-                            relationshipDetails: gData.relationship === 'OTRO' ? (gData.relationship_details || '') : '', // Assuming schema might not have this yet, mapping to basic field
+                            relationshipDetails: gData.relationship === 'OTRO' ? (gData.relationship_details || '') : '',
                             email: gData.email || '',
                             phone: gData.phone || '',
                             occupation: gData.occupation || '',
-                            address: gData.address || ''
-                        })
+                            address: gData.address || '',
+                            id: gData.id // Store guardian ID for invitation
+                        } as any)
+                        if (gData.profile_id) {
+                            setInvitationSent(true)
+                        }
                     }
                 } catch (err: any) {
                     console.error('Error fetching student:', err)
@@ -155,21 +168,28 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                 }
             }
             fetchData()
-        } else if (isOpen && !studentId) {
-            // Reset form for create mode
-            setStep(1)
-            setStudent({
-                firstName: '', lastNamePaternal: '', lastNameMaternal: '', gender: 'HOMBRE',
-                curp: '', email: '', phone: '', bloodType: '', allergies: '', condition: 'Ninguna', conditionDetails: '',
-                photoUrl: null
-            })
-            setGuardian({
-                firstName: '', lastNamePaternal: '', lastNameMaternal: '',
-                relationship: 'MADRE', relationshipDetails: '', email: '', phone: '', occupation: '', address: ''
-            })
+        } else if (wasJustOpened && !studentId) {
+            // Check for persisted data
+            const savedStudent = sessionStorage.getItem('vunlek_temp_student')
+            const savedGuardian = sessionStorage.getItem('vunlek_temp_guardian')
+            const savedStep = sessionStorage.getItem('vunlek_temp_student_step')
+
+            // Restore data for create mode ONLY when just opened
+            if (savedStep) setStep(parseInt(savedStep, 10))
+            if (savedStudent) setStudent(JSON.parse(savedStudent))
+            if (savedGuardian) setGuardian(JSON.parse(savedGuardian))
+
             setImgSrc(null)
+            setInvitationSent(false)
+            setInvitedProfileId(null)
         }
     }, [isOpen, studentId])
+
+    useEffect(() => {
+        if (!studentId && step > 1) {
+            sessionStorage.setItem('vunlek_temp_student_step', step.toString())
+        }
+    }, [step, studentId])
 
     // Fetch current student count for this group
     useEffect(() => {
@@ -198,13 +218,21 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
         const { name, value } = e.target
         // Enforce UPPERCASE for text fields, except for email and photoUrl
         const uppercased = ['email', 'photoUrl'].includes(name) ? value : value.toUpperCase()
-        setStudent(prev => ({ ...prev, [name]: uppercased }))
+        setStudent(prev => {
+            const newState = { ...prev, [name]: uppercased }
+            if (!studentId) sessionStorage.setItem('vunlek_temp_student', JSON.stringify(newState))
+            return newState
+        })
     }
 
     const handleGuardianChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target
         const uppercased = ['email'].includes(name) ? value : value.toUpperCase()
-        setGuardian(prev => ({ ...prev, [name]: uppercased }))
+        setGuardian(prev => {
+            const newState = { ...prev, [name]: uppercased }
+            if (!studentId) sessionStorage.setItem('vunlek_temp_guardian', JSON.stringify(newState))
+            return newState
+        })
         // Reset invitation state if email changes
         if (name === 'email') setInvitationSent(false)
     }
@@ -227,14 +255,22 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                     firstName: guardian.firstName,
                     lastNamePaternal: guardian.lastNamePaternal,
                     studentName: `${student.firstName} ${student.lastNamePaternal}`,
-                    tenantId: tenantId
+                    tenantId: tenantId,
+                    guardianId: (guardian as any).id // Pass existing guardian ID if available
                 }
             })
 
             if (error) throw error
             setInvitedProfileId(data.userId)
             setInvitationSent(true)
-            alert(`¡Acceso enviado! Contraseña temporal generada: ${data.tempPassword}\n\nSe ha enviado un correo con las instrucciones.`)
+
+            let msg = '¡Acceso enviado correctamente!'
+            if (data.tempPassword) {
+                msg += `\n\nContraseña temporal generada: ${data.tempPassword}\n\nSe ha enviado un correo con las instrucciones.`
+            } else {
+                msg += `\n\nEl usuario ya existe, se ha vinculado correctamente.`
+            }
+            alert(msg)
         } catch (err: any) {
             console.error('Error inviting tutor:', err)
             alert('Error al enviar acceso: ' + (err.message || 'Error desconocido'))
@@ -309,6 +345,7 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
 
                 const guardianPayload = {
                     student_id: studentData.id,
+                    tenant_id: tenantId,
                     first_name: guardian.firstName,
                     last_name_paternal: guardian.lastNamePaternal,
                     last_name_maternal: guardian.lastNameMaternal || null,
@@ -331,8 +368,17 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                     guardianId = gData.id;
                 }
 
+                // If an invitation was sent and a profile_id exists, ensure invitationSent is true
+                if (invitedProfileId) {
+                    setInvitationSent(true);
+                }
                 // (Invitation is now handled manually via the button "Enviar Acceso")
             }
+
+            // Clear temporary storage
+            sessionStorage.removeItem('vunlek_temp_student')
+            sessionStorage.removeItem('vunlek_temp_guardian')
+            sessionStorage.removeItem('vunlek_temp_student_step')
 
             onSuccess()
             onClose()
@@ -348,7 +394,7 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full flex flex-col max-h-[90vh] border border-gray-100">
+            <div className="squishy-card max-w-3xl w-full flex flex-col max-h-[90vh]">
                 {/* Header */}
                 <div className="flex justify-between items-center p-6 border-b">
                     <h2 className="text-xl font-bold text-gray-900">{studentId ? 'Editar Alumno' : 'Registrar Nuevo Alumno'}</h2>
@@ -357,17 +403,24 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
 
                 {/* Tabs / Steps */}
                 {/* Tabs / Steps */}
-                <div className="flex bg-gray-50 border-b px-6">
+                {/* Tabs / Steps */}
+                <div className="flex bg-slate-50 border-b border-slate-100 p-2 gap-2">
                     {[
-                        { id: 1, label: '1. Datos del Alumno' },
-                        { id: 2, label: '2. Tutor / Padre' },
-                        { id: 3, label: '3. Biometría' }
+                        { id: 1, label: 'Alumno', icon: <User className="w-4 h-4" /> },
+                        { id: 2, label: 'Tutor', icon: <Briefcase className="w-4 h-4" /> },
+                        { id: 3, label: 'Biometría', icon: <Camera className="w-4 h-4" /> }
                     ].map(s => (
                         <button
                             key={s.id}
                             onClick={() => setStep(s.id)}
-                            className={`flex-1 py-4 text-sm font-semibold border-b-2 transition-colors ${step === s.id ? 'border-blue-600 text-blue-700 bg-blue-50/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}
+                            className={`flex-1 py-3 px-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex flex-col items-center justify-center gap-1.5 ${step === s.id
+                                ? 'bg-white text-indigo-600 shadow-[0_8px_20px_-4px_rgba(79,70,229,0.2)] scale-[1.02] border-b-4 border-indigo-200'
+                                : 'text-slate-400 hover:bg-white/50'
+                                }`}
                         >
+                            <div className={`p-2 rounded-xl ${step === s.id ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-400'}`}>
+                                {s.icon}
+                            </div>
                             {s.label}
                         </button>
                     ))}
@@ -609,7 +662,7 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                         <button
                             type="button"
                             onClick={() => setStep(s => Math.min(3, s + 1))}
-                            className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-md hover:shadow-lg transition-all"
+                            className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-black shadow-lg shadow-indigo-200 btn-tactile uppercase tracking-widest text-xs"
                         >
                             Siguiente
                         </button>
@@ -618,7 +671,7 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                             type="button"
                             onClick={handleSubmit}
                             disabled={loading || fetching}
-                            className="px-8 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50"
+                            className="px-8 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl hover:shadow-green-200 font-black shadow-lg transition-all disabled:opacity-50 btn-tactile uppercase tracking-widest text-xs"
                         >
                             {loading ? 'Guardando...' : (studentId ? 'Guardar Cambios' : 'Registrar Alumno')}
                         </button>
@@ -628,22 +681,77 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
 
             <style>{`
                 .input-std {
-                    @apply mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm transition-all shadow-sm;
+                    @apply mt-1 block w-full px-4 py-3 bg-white border-2 border-slate-100 rounded-2xl text-slate-900 placeholder-slate-400 transition-all font-bold outline-none;
+                    box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+                }
+                .input-std:focus {
+                    @apply border-indigo-300 ring-4 ring-indigo-50 bg-indigo-50/30;
+                    box-shadow: inset 0 2px 4px rgba(79,70,229,0.05);
                 }
                 .label-std {
-                    @apply block text-sm font-semibold text-gray-700 mb-1.5;
+                    @apply block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1;
                 }
                 .section-title {
-                    @apply text-lg font-bold text-gray-800 border-b border-gray-200 pb-3 mb-6 flex items-center gap-2;
+                    @apply text-lg font-black text-slate-800 border-b-2 border-slate-50 pb-3 mb-6 flex items-center gap-2 uppercase tracking-tight;
                 }
                 .input-group {
                     @apply relative;
                 }
                 .input-icon {
-                    @apply absolute left-3 top-[38px] text-gray-400 h-5 w-5 pointer-events-none;
+                    @apply absolute left-4 top-[36px] text-slate-300 h-5 w-5 pointer-events-none transition-colors;
+                }
+                .input-std:focus + .input-icon, 
+                .input-group:focus-within .input-icon {
+                    @apply text-indigo-400;
                 }
                 .input-with-icon {
-                    @apply pl-10;
+                    @apply pl-12;
+                }
+                .btn-tactile {
+                    @apply active:scale-90 transition-all duration-200 relative overflow-hidden;
+                }
+                .btn-tactile::after {
+                    content: '';
+                    @apply absolute inset-0 bg-white/20 opacity-0 transition-opacity;
+                }
+                .btn-tactile:active::after {
+                    @apply opacity-100;
+                }
+                .input-std {
+                    @apply mt-1 block w-full px-4 py-3 bg-white border-2 border-slate-100 rounded-2xl text-slate-900 placeholder-slate-400 transition-all font-bold outline-none;
+                    box-shadow: inset 0 3px 6px rgba(0,0,0,0.03);
+                }
+                .input-std:focus {
+                    @apply border-indigo-300 ring-[6px] ring-indigo-50 bg-white;
+                    box-shadow: inset 0 2px 4px rgba(79,70,229,0.08);
+                }
+                .label-std {
+                    @apply block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1;
+                }
+                .section-title {
+                    @apply text-lg font-black text-slate-800 border-b-2 border-slate-50 pb-3 mb-6 flex items-center gap-2 uppercase tracking-tight;
+                }
+                .input-group {
+                    @apply relative;
+                }
+                .input-icon {
+                    @apply absolute left-4 top-[36px] text-slate-300 h-5 w-5 pointer-events-none transition-colors;
+                }
+                .input-std:focus + .input-icon, 
+                .input-group:focus-within .input-icon {
+                    @apply text-indigo-400;
+                }
+                .input-with-icon {
+                    @apply pl-12;
+                }
+                .squishy-card {
+                    @apply bg-white rounded-[40px] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] border-b-[8px] border-slate-100;
+                }
+                .clay-btn {
+                    box-shadow: 
+                        inset 0 4px 4px rgba(255,255,255,0.4),
+                        inset 0 -4px 6px rgba(0,0,0,0.1),
+                        0 10px 20px -5px rgba(0,0,0,0.2);
                 }
             `}</style>
 

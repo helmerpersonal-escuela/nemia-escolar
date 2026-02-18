@@ -45,6 +45,21 @@ export const ClosePeriodModal = ({
     const [loading, setLoading] = useState(false)
     const [step, setStep] = useState<'REVIEW' | 'CONFIRM' | 'SUCCESS'>('REVIEW')
     const [summary, setSummary] = useState<any[]>([])
+    const [overriddenGrades, setOverriddenGrades] = useState<Record<string, number>>({})
+
+    const getPeriodType = (name: string) => {
+        const lowerName = name.toLowerCase()
+        if (lowerName.includes('trimestre')) return 'TRIMESTER'
+        if (lowerName.includes('bimestre')) return 'BIMESTER'
+        if (lowerName.includes('semestre')) return 'SEMESTER'
+        return 'PERIOD'
+    }
+
+    const periodType = getPeriodType(period.name)
+    const periodLabel = periodType === 'TRIMESTER' ? 'Trimestre' :
+        periodType === 'BIMESTER' ? 'Bimestre' :
+            periodType === 'SEMESTER' ? 'Semestre' : 'Periodo'
+
 
     useEffect(() => {
         if (isOpen) {
@@ -81,24 +96,32 @@ export const ClosePeriodModal = ({
                 .match({
                     group_id: group.id,
                     period_id: period.id,
-                    type: 'TRIMESTER'
+                    type: periodType
                 })
 
             if (deleteError) throw deleteError
 
             // 2. Create Snapshots for each student
-            const snapshots = summary.map(item => ({
-                tenant_id: students[0]?.tenant_id,
-                student_id: item.student.id,
-                group_id: group.id,
-                period_id: period.id,
-                subject_id: subjectId || null,
-                type: 'TRIMESTER',
-                final_score: item.finalScore,
-                stats: item.stats,
-                breakdown: item.breakdown,
-                status: 'FINAL'
-            }))
+            const snapshots = summary.map(item => {
+                const finalGrade = overriddenGrades[item.student.id] ?? (item.finalScore < 5 ? 5 : item.finalScore)
+
+                return {
+                    tenant_id: students[0]?.tenant_id,
+                    student_id: item.student.id,
+                    group_id: group.id,
+                    period_id: period.id,
+                    subject_id: subjectId || null,
+                    type: periodType,
+                    final_score: finalGrade,
+                    stats: item.stats,
+                    breakdown: {
+                        ...item.breakdown,
+                        original_score: item.finalScore,
+                        is_adjusted: finalGrade !== item.finalScore
+                    },
+                    status: 'FINAL'
+                }
+            })
 
             if (snapshots.length > 0) {
                 const { error: snapshotError } = await supabase
@@ -136,10 +159,10 @@ export const ClosePeriodModal = ({
                     <div>
                         <h2 className="text-xl font-bold text-gray-900 flex items-center">
                             <Lock className="w-5 h-5 mr-2 text-amber-600" />
-                            Cierre de Trimestre: {period.name}
+                            Cierre de {periodLabel}: {period.name}
                         </h2>
                         <p className="text-sm text-gray-500">
-                            Grupo {group.grade}° "{group.section}"
+                            Grupo {group.grade}° "{group.section}" — Revisión de Calificaciones
                         </p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
@@ -154,36 +177,68 @@ export const ClosePeriodModal = ({
                             <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex items-start">
                                 <AlertTriangle className="w-5 h-5 text-blue-600 mr-3 mt-0.5" />
                                 <div>
-                                    <h3 className="font-bold text-blue-900">Revisión Preliminar</h3>
+                                    <h3 className="font-bold text-blue-900">Revisión Preliminar: Criterios SEP México</h3>
                                     <p className="text-sm text-blue-700 mt-1">
-                                        Revisa los promedios finales calculados. Al confirmar, estas calificaciones se guardarán en el histórico y el periodo quedará cerrado para edición.
+                                        Calificación mínima en boleta: **5.0**. Si el promedio es menor, se ajustará automáticamente a 5.0.
+                                        Puedes realizar ajustes manuales antes de cerrar el periodo.
                                     </p>
                                 </div>
                             </div>
 
                             <div className="overflow-hidden rounded-xl border border-gray-200">
                                 <table className="w-full text-left text-sm">
-                                    <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs">
+                                    <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] tracking-wider">
                                         <tr>
                                             <th className="px-4 py-3">Alumno</th>
                                             <th className="px-4 py-3 text-center">Asistencias</th>
-                                            <th className="px-4 py-3 text-right">Promedio Final</th>
+                                            <th className="px-4 py-3 text-center w-24">Cálculo</th>
+                                            <th className="px-4 py-3 text-right w-32">Final (SEP)</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
-                                        {summary.map((item) => (
-                                            <tr key={item.student.id} className="hover:bg-gray-50">
-                                                <td className="px-4 py-3 font-medium text-gray-900">
-                                                    {item.student.last_name_paternal} {item.student.last_name_maternal} {item.student.first_name}
-                                                </td>
-                                                <td className="px-4 py-3 text-center text-gray-600">
-                                                    {(item.stats.attendance / (item.stats.attendance + item.stats.absences + item.stats.lates || 1) * 100).toFixed(0)}%
-                                                </td>
-                                                <td className="px-4 py-3 text-right font-bold text-blue-600 text-base">
-                                                    {item.finalScore}
-                                                </td>
-                                            </tr>
-                                        ))}
+                                        {summary.map((item) => {
+                                            const originalGrade = item.finalScore
+                                            const currentFinal = overriddenGrades[item.student.id] ?? (originalGrade < 5 ? 5 : originalGrade)
+                                            const isAdjusted = originalGrade < 5 && currentFinal === 5
+
+                                            return (
+                                                <tr key={item.student.id} className="hover:bg-gray-50 transition-colors">
+                                                    <td className="px-4 py-3 font-medium text-gray-900">
+                                                        {item.student.last_name_paternal} {item.student.last_name_maternal} {item.student.first_name}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-center text-gray-600">
+                                                        {(item.stats.attendance / (item.stats.attendance + item.stats.absences + item.stats.lates || 1) * 100).toFixed(0)}%
+                                                    </td>
+                                                    <td className="px-4 py-3 text-center font-mono text-gray-400">
+                                                        {originalGrade}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right">
+                                                        <div className="flex items-center justify-end space-x-2">
+                                                            <input
+                                                                type="number"
+                                                                step="0.1"
+                                                                min="5"
+                                                                max="10"
+                                                                className={`w-20 px-2 py-1 text-right font-black rounded-lg border focus:ring-2 transition-all ${isAdjusted
+                                                                    ? 'text-rose-600 bg-rose-50 border-rose-200'
+                                                                    : 'text-blue-600 bg-white border-gray-200'
+                                                                    }`}
+                                                                value={currentFinal}
+                                                                onChange={(e) => {
+                                                                    const val = parseFloat(e.target.value)
+                                                                    if (!isNaN(val)) {
+                                                                        setOverriddenGrades(prev => ({
+                                                                            ...prev,
+                                                                            [item.student.id]: val
+                                                                        }))
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
@@ -202,7 +257,7 @@ export const ClosePeriodModal = ({
                                 </p>
                             </div>
                             <button
-                                onClick={() => navigate(`/reports/evaluation?groupId=${group.id}&periodId=${period.id}&type=TRIMESTER`)}
+                                onClick={() => navigate(`/reports/evaluation?groupId=${group.id}&periodId=${period.id}&type=${periodType}`)}
                                 className="px-6 py-3 bg-gray-900 text-white rounded-xl font-bold flex items-center hover:bg-gray-800 transition-all shadow-lg"
                             >
                                 <Download className="w-5 h-5 mr-2" />

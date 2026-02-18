@@ -11,6 +11,12 @@ export const NotificationManager = () => {
         return 'default'
     })
     const [isMuted, setIsMuted] = useState(false)
+    const [isDismissed, setIsDismissed] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('edu_notifications_dismissed') === 'true'
+        }
+        return false
+    })
     const [soundUrl, setSoundUrl] = useState<string>('/sounds/notification.mp3') // Default
     const audioRef = useRef<HTMLAudioElement | null>(null)
 
@@ -61,11 +67,17 @@ export const NotificationManager = () => {
         setPermission(result)
 
         if (result === 'granted') {
+            localStorage.setItem('edu_notifications_dismissed', 'true')
+            setIsDismissed(true)
             new Notification('Notificaciones Activadas', {
                 body: 'Ahora recibirás alertas y sonidos del sistema.',
                 icon: '/pwa-192x192.png'
             })
             playSound()
+        } else {
+            // Mark as dismissed even if denied to stop showing the button
+            localStorage.setItem('edu_notifications_dismissed', 'true')
+            setIsDismissed(true)
         }
     }
 
@@ -94,36 +106,45 @@ export const NotificationManager = () => {
 
     // Subscribe to System Settings changes (Realtime)
     useEffect(() => {
-        const channel = supabase
-            .channel('system_settings_sounds')
-            .on(
-                'postgres_changes',
-                {
-                    event: 'UPDATE',
-                    schema: 'public',
-                    table: 'system_settings',
-                    filter: 'key=eq.chat_sound_url'
-                },
-                (payload) => {
-                    if (payload.new.value) {
-                        setSoundUrl(payload.new.value)
-                        // Optional: Play new sound to confirm
+        let activeChannel: any = null
+
+        const setupSettingsSound = () => {
+            const channel = supabase
+                .channel('system_settings_sounds')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'UPDATE',
+                        schema: 'public',
+                        table: 'system_settings',
+                        filter: 'key=eq.chat_sound_url'
+                    },
+                    (payload) => {
+                        if (payload.new.value) {
+                            setSoundUrl(payload.new.value)
+                        }
                     }
-                }
-            )
-            .subscribe()
+                )
+                .subscribe()
+
+            activeChannel = channel
+        }
+
+        setupSettingsSound()
 
         return () => {
-            supabase.removeChannel(channel)
+            if (activeChannel) {
+                supabase.removeChannel(activeChannel)
+            }
         }
     }, [])
 
 
-    if (permission === 'granted' && !isMuted) return null // Invisible if all good (or maybe show small indicator)
+    if ((permission === 'granted' || isDismissed) && !isMuted) return null // Invisible if all good or dismissed
 
     return (
         <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
-            {permission !== 'granted' && permission !== 'denied' && (
+            {permission !== 'granted' && !isDismissed && (
                 <button
                     onClick={requestPermission}
                     className="bg-indigo-600 text-white px-4 py-3 rounded-full shadow-lg hover:bg-indigo-700 transition-all flex items-center gap-3 animate-bounce"

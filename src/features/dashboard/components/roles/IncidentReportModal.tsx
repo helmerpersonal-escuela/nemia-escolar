@@ -33,7 +33,7 @@ export const IncidentReportModal = ({ isOpen, onClose, incident }: IncidentRepor
                     {/* Report Header for Print */}
                     <div className="text-center space-y-2 pb-8 border-b-2 border-slate-100">
                         <h1 className="text-2xl font-black uppercase tracking-tighter">Reporte de Incidencia Escolar</h1>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Sistema de Gestión Escolar - Departamento de Prefectura</p>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Vunlek - Departamento de Prefectura</p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-8">
@@ -113,7 +113,7 @@ export const IncidentReportModal = ({ isOpen, onClose, incident }: IncidentRepor
                     </div>
 
                     <p className="text-[8px] text-center text-slate-300 font-bold uppercase tracking-[0.2em] pt-8">
-                        Documento generado por NEMIA - Plataforma de Gestión Escolar
+                        Documento generado por Vunlek
                     </p>
                 </div>
             </div>

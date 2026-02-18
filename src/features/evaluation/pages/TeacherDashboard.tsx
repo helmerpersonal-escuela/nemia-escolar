@@ -25,7 +25,7 @@ export const TeacherDashboard = () => {
 
     // Security Check
     useEffect(() => {
-        if (!loading && tenant && !['TEACHER', 'INDEPENDENT_TEACHER'].includes(tenant.role || '')) {
+        if (!loading && tenant && !['TEACHER', 'INDEPENDENT_TEACHER', 'SUPER_ADMIN'].includes(tenant.role || '')) {
             navigate('/')
         }
     }, [tenant, loading])
@@ -187,10 +187,10 @@ export const TeacherDashboard = () => {
     if (error) return <div className="p-8 text-red-600">Error: {error}</div>
 
     return (
-        <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-1000 pb-20 px-4 sm:px-6">
+        <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-1000 pb-20 px-4 sm:px-6">
 
             {/* 1. Header & Quick Actions */}
-            <header className="relative overflow-hidden bg-slate-900 rounded-[3rem] p-8 sm:p-12 text-white shadow-2xl">
+            <header className="relative overflow-hidden bg-slate-900 rounded-[2.5rem] sm:rounded-[3rem] p-6 sm:p-12 text-white shadow-2xl">
                 {/* Background Pattern */}
                 <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-blue-500/20 to-transparent skew-x-12 translate-x-1/4 pointer-events-none" />
 
@@ -215,14 +215,14 @@ export const TeacherDashboard = () => {
                     <div className="flex flex-wrap gap-3">
                         <button
                             onClick={() => navigate('/groups')}
-                            className="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-3 shadow-xl group"
+                            className="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-3 shadow-xl group btn-tactile"
                         >
                             <BookOpen className="w-4 h-4 group-hover:scale-110 transition-transform" />
                             Libreta
                         </button>
                         <button
                             onClick={() => setIsReportModalOpen(true)}
-                            className="bg-white text-slate-900 px-4 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-3 shadow-xl group border border-slate-100"
+                            className="bg-white text-slate-900 px-4 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-3 shadow-xl group border border-slate-100 btn-tactile"
                         >
                             <Printer className="w-4 h-4 text-blue-600 group-hover:rotate-12 transition-transform" />
                             Informe Alumno
@@ -230,7 +230,7 @@ export const TeacherDashboard = () => {
                         {tenant?.type !== 'INDEPENDENT' && (
                             <button
                                 onClick={() => setIsAgendaModalOpen(true)}
-                                className="bg-indigo-600 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center gap-3 shadow-xl group"
+                                className="bg-indigo-600 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center gap-3 shadow-xl group btn-tactile"
                             >
                                 <ClipboardList className="w-4 h-4 group-hover:scale-110 transition-transform" />
                                 Agenda CTE
@@ -258,7 +258,7 @@ export const TeacherDashboard = () => {
                 {/* Main Action Card (Contextual) */}
                 <div className={`lg:col-span-${tenant?.type === 'INDEPENDENT' ? '2' : '2'} space-y-6`}>
                     {currentClass ? (
-                        <div className="bg-blue-600 rounded-[3rem] p-8 text-white shadow-2xl shadow-blue-200 relative overflow-hidden h-full flex flex-col justify-between">
+                        <div className="bg-blue-600 rounded-[3rem] p-8 text-white shadow-2xl shadow-blue-200 relative overflow-hidden h-full flex flex-col justify-between squishy-card border-none">
                             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none" />
 
                             <div>
@@ -283,7 +283,7 @@ export const TeacherDashboard = () => {
                             <div className="grid grid-cols-2 gap-4 mt-8">
                                 <Link
                                     to={`/gradebook?groupId=${currentClass.group_id}&subjectId=${currentClass.subject_id}`}
-                                    className="flex items-center justify-center gap-3 p-4 bg-white/10 hover:bg-white text-white hover:text-blue-600 rounded-2xl font-black text-xs uppercase transition-all backdrop-blur-md border border-white/20"
+                                    className="flex items-center justify-center gap-3 p-4 bg-white/10 hover:bg-white text-white hover:text-blue-600 rounded-2xl font-black text-xs uppercase transition-all backdrop-blur-md border border-white/20 btn-tactile"
                                 >
                                     <CheckSquare className="w-4 h-4" />
                                     Evaluar
@@ -293,7 +293,7 @@ export const TeacherDashboard = () => {
                                         setSelectedClassForAssignment(currentClass)
                                         setIsAssignmentModalOpen(true)
                                     }}
-                                    className="flex items-center justify-center gap-3 p-4 bg-white text-blue-600 hover:bg-blue-50 rounded-2xl font-black text-xs uppercase transition-all shadow-xl"
+                                    className="flex items-center justify-center gap-3 p-4 bg-white text-blue-600 hover:bg-blue-50 rounded-2xl font-black text-xs uppercase transition-all shadow-xl btn-tactile"
                                 >
                                     <Plus className="w-4 h-4" />
                                     Nueva Actividad
@@ -301,7 +301,7 @@ export const TeacherDashboard = () => {
                             </div>
                         </div>
                     ) : currentBreak ? (
-                        <div className="bg-emerald-500 rounded-[3rem] p-12 text-white shadow-2xl shadow-emerald-200 flex flex-col items-center justify-center text-center h-full">
+                        <div className="bg-emerald-500 rounded-[3rem] p-12 text-white shadow-2xl shadow-emerald-200 flex flex-col items-center justify-center text-center h-full squishy-card border-none">
                             <div className="p-6 bg-white/20 rounded-full mb-6">
                                 <Coffee className="w-12 h-12" />
                             </div>
@@ -311,7 +311,7 @@ export const TeacherDashboard = () => {
                             </p>
                         </div>
                     ) : (
-                        <div className="bg-white rounded-[3rem] p-12 text-center border-2 border-dashed border-slate-200 h-full flex flex-col items-center justify-center">
+                        <div className="squishy-card p-12 text-center border-2 border-dashed border-slate-200 h-full flex flex-col items-center justify-center">
                             <div className="p-6 bg-slate-50 rounded-full mb-6">
                                 <Clock className="w-12 h-12 text-slate-300" />
                             </div>
@@ -319,7 +319,7 @@ export const TeacherDashboard = () => {
                             <p className="text-slate-400 font-bold mb-8">Disfruta tu tiempo o adelanta planeaciones.</p>
 
                             {nextClass && (
-                                <div className="bg-slate-50 border border-slate-100 rounded-3xl p-6 text-left flex items-center justify-between w-full max-w-sm group hover:scale-105 transition-transform cursor-pointer">
+                                <div className="bg-slate-50 border border-slate-100 rounded-3xl p-6 text-left flex items-center justify-between w-full max-w-sm group hover:scale-105 transition-transform cursor-pointer btn-tactile">
                                     <div>
                                         <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Próxima Clase</p>
                                         <p className="font-black text-slate-900 uppercase">

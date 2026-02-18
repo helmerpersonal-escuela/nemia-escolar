@@ -1,0 +1,35 @@
+{
+  "r1": {
+    "label": "aveqziaew",
+    "tenants": [
+      {
+        "id": "b5591657-529c-4cea-bc59-f5a8e050cf6a",
+        "name": "SECUNDARIA TECNICA"
+      },
+      {
+        "id": "2bf79d6d-5a67-4d00-9eeb-38ccda2de4ad",
+        "name": "SDFSDFSDFSDF"
+      },
+      {
+        "id": "a691e3ca-0246-4a8c-86c5-8acfd5dae5fc",
+        "name": "DFGDFGDFG"
+      },
+      {
+        "id": "41c7ba9c-219f-4cc4-b1b7-67890fe22e5b",
+        "name": "SECUNDARIA TECNICA"
+      },
+      {
+        "id": "396237ff-6160-4a28-8020-73c30d680833",
+        "name": "SECUNDARIA TECNCICA 37"
+      }
+    ],
+    "groups": [],
+    "plans": []
+  },
+  "r2": {
+    "label": "xgrwivb",
+    "tenants": [],
+    "groups": [],
+    "plans": []
+  }
+}

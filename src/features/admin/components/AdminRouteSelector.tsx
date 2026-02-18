@@ -3,7 +3,7 @@ import { useProfile } from '../../../hooks/useProfile'
 import { SuperAdminDashboard } from '../pages/SuperAdminDashboard'
 
 export const AdminRouteSelector = () => {
-    const { profile, isLoading } = useProfile()
+    const { profile, isLoading, isSuperAdmin } = useProfile()
 
     if (isLoading) {
         return (
@@ -13,7 +13,7 @@ export const AdminRouteSelector = () => {
         )
     }
 
-    if (profile?.role === 'SUPER_ADMIN') {
+    if (isSuperAdmin) {
         return <SuperAdminDashboard />
     }
 

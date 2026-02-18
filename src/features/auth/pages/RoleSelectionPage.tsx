@@ -164,14 +164,16 @@ export const RoleSelectionPage = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="min-h-screen flex items-center justify-center p-4">
             <div className="max-w-md w-full space-y-8 animate-in fade-in zoom-in duration-300">
                 <div className="text-center">
-                    <div className="inline-flex p-4 bg-white rounded-[2rem] shadow-sm mb-6 border border-gray-100">
-                        <Settings className="w-10 h-10 text-gray-400" />
+                    <div className="inline-flex p-5 bg-white rounded-[2rem] shadow-lg shadow-indigo-100 mb-8 border border-white/50">
+                        <Settings className="w-12 h-12 text-indigo-400 inflatable-icon" />
                     </div>
-                    <h1 className="text-3xl font-black text-gray-900 tracking-tight">¿Cómo ingresarás hoy?</h1>
-                    <p className="text-gray-500 font-medium mt-2">Selecciona el rol que deseas utilizar para esta sesión.</p>
+                    <h1 className="text-4xl font-black text-slate-800 tracking-tight leading-tight">
+                        ¿Cómo ingresarás <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-500">hoy?</span>
+                    </h1>
+                    <p className="text-slate-500 font-bold mt-4 text-lg">Selecciona tu perfil para continuar.</p>
                 </div>
 
                 <div className="space-y-4">
@@ -185,30 +187,32 @@ export const RoleSelectionPage = () => {
                                 onClick={() => handleRoleSelect(role)}
                                 disabled={switching !== null}
                                 className={`
-                                    w-full flex items-center p-6 bg-white rounded-3xl border-2 transition-all group
-                                    ${switching === null ? 'hover:border-blue-500 hover:shadow-xl hover:shadow-blue-900/5' : 'opacity-50'}
-                                    ${isSwitching ? 'border-blue-500 ring-4 ring-blue-50' : 'border-gray-100'}
+                                    w-full flex items-center p-6 bg-white rounded-3xl border-2 transition-all group squishy-card text-left
+                                    ${switching === null ? 'hover:border-indigo-200 hover:shadow-2xl hover:shadow-indigo-100 hover:-translate-y-1' : 'opacity-50'}
+                                    ${isSwitching ? 'border-indigo-500 ring-4 ring-indigo-50' : 'border-white'}
                                 `}
                             >
-                                <div className={`p-4 rounded-2xl ${config.lightColor} ${config.color} group-hover:scale-110 transition-transform`}>
-                                    <config.icon className="w-6 h-6" />
+                                <div className={`p-4 rounded-2xl ${config.lightColor} ${config.color} group-hover:scale-110 transition-transform shadow-inner`}>
+                                    <config.icon className="w-8 h-8 inflatable-icon" />
                                 </div>
-                                <div className="ml-5 text-left flex-1">
-                                    <h3 className="text-lg font-black text-gray-900 leading-tight">{config.label}</h3>
-                                    <p className="text-sm text-gray-400 font-medium">{config.description}</p>
+                                <div className="ml-5 flex-1">
+                                    <h3 className="text-xl font-black text-slate-800 leading-none mb-1">{config.label}</h3>
+                                    <p className="text-sm text-slate-400 font-bold">{config.description}</p>
                                 </div>
                                 {isSwitching ? (
-                                    <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                                    <Loader2 className="w-6 h-6 text-indigo-600 animate-spin" />
                                 ) : (
-                                    <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
+                                    <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-indigo-50 transition-colors">
+                                        <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all" />
+                                    </div>
                                 )}
                             </button>
                         )
                     })}
                 </div>
 
-                <p className="text-center text-xs text-gray-400 font-medium">
-                    Puedes cambiar de rol en cualquier momento desde el menú lateral.
+                <p className="text-center text-xs text-slate-400 font-bold uppercase tracking-widest">
+                    Puedes cambiar de rol desde el menú lateral
                 </p>
             </div>
         </div>

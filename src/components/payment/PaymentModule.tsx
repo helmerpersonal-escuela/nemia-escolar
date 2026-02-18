@@ -10,14 +10,18 @@ const MP_PUBLIC_KEY = import.meta.env.VITE_MP_PUBLIC_KEY || 'TEST-00000000-0000-
 
 interface PaymentModuleProps {
     preferenceId: string
+    publicKey?: string
     onReady?: () => void
     onError?: (error: any) => void
 }
 
 
-export const PaymentModule = ({ preferenceId, onReady, onError }: PaymentModuleProps) => {
+export const PaymentModule = ({ preferenceId, publicKey, onReady, onError }: PaymentModuleProps) => {
     const [isReady, setIsReady] = useState(false)
     const [timedOut, setTimedOut] = useState(false)
+
+    // Use prop key if available, otherwise env, otherwise fallback
+    const mpKey = publicKey || import.meta.env.VITE_MP_PUBLIC_KEY || 'TEST-00000000-0000-0000-0000-000000000000'
 
     useEffect(() => {
         let timeout: ReturnType<typeof setTimeout>
@@ -30,11 +34,11 @@ export const PaymentModule = ({ preferenceId, onReady, onError }: PaymentModuleP
     }, [isReady, preferenceId])
 
     useEffect(() => {
-        if (preferenceId) {
-            console.log("Initializing MP with Key:", MP_PUBLIC_KEY.substring(0, 10) + "...")
-            initMercadoPago(MP_PUBLIC_KEY, { locale: 'es-MX' })
+        if (preferenceId && mpKey) {
+            console.log("Initializing MP with Key:", mpKey.substring(0, 10) + "...")
+            initMercadoPago(mpKey, { locale: 'es-MX' })
         }
-    }, [preferenceId])
+    }, [preferenceId, mpKey])
 
     if (timedOut && !isReady) {
         return (

@@ -93,7 +93,7 @@ export const PlanningListPage = () => {
                     </div>
                     <Link
                         to="/planning/new"
-                        className="bg-indigo-600 text-white px-10 py-5 rounded-[2rem] hover:bg-indigo-700 transition-all font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-indigo-100 flex items-center group"
+                        className="bg-indigo-600 text-white px-10 py-5 rounded-[2rem] hover:bg-indigo-700 transition-all font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-indigo-100 flex items-center group btn-tactile"
                     >
                         <Plus className="w-5 h-5 mr-3 group-hover:rotate-90 transition-transform duration-500" />
                         Nueva Planeación
@@ -109,12 +109,12 @@ export const PlanningListPage = () => {
                     <div className="bg-red-50 rounded-[2rem] p-12 text-center max-w-2xl mx-auto">
                         <h3 className="text-xl font-black text-red-900 mb-2">Error de Sincronización</h3>
                         <p className="text-red-600 mb-6">{error}</p>
-                        <button onClick={() => window.location.reload()} className="px-6 py-2 bg-red-100 text-red-700 rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-red-200">
+                        <button onClick={() => window.location.reload()} className="px-6 py-2 bg-red-100 text-red-700 rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-red-200 btn-tactile">
                             Reintentar Conexión
                         </button>
                     </div>
                 ) : plans.length === 0 ? (
-                    <div className="bg-white rounded-[3rem] border-2 border-dashed border-gray-100 p-24 text-center shadow-sm max-w-4xl mx-auto animate-in fade-in duration-700">
+                    <div className="squishy-card border-2 border-dashed border-gray-100 p-24 text-center shadow-sm max-w-4xl mx-auto animate-in fade-in duration-700">
                         <div className="w-24 h-24 bg-gray-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8">
                             <FileText className="w-12 h-12 text-gray-200" />
                         </div>
@@ -124,7 +124,7 @@ export const PlanningListPage = () => {
                         </p>
                         <Link
                             to="/planning/new"
-                            className="mt-10 inline-flex items-center bg-indigo-50 text-indigo-600 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all"
+                            className="mt-10 inline-flex items-center bg-indigo-50 text-indigo-600 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all btn-tactile"
                         >
                             Comenzar ahora <ArrowRight className="w-4 h-4 ml-2" />
                         </Link>
@@ -135,7 +135,7 @@ export const PlanningListPage = () => {
                             <Link
                                 key={plan.id}
                                 to={`/planning/${plan.id}`}
-                                className="group block bg-white p-10 rounded-[2.5rem] border border-gray-100 hover:border-indigo-200 shadow-xl shadow-indigo-50/30 hover:shadow-2xl hover:shadow-indigo-100 transition-all relative overflow-hidden break-inside-avoid"
+                                className="group block squishy-card p-10 hover:border-indigo-200 shadow-xl shadow-indigo-50/30 hover:shadow-2xl hover:shadow-indigo-100 relative overflow-hidden break-inside-avoid"
                             >
                                 <div className="absolute top-0 right-0 p-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-2">
                                     <button

@@ -133,45 +133,59 @@ export const useChat = (roomId?: string) => {
         loadRooms()
     }, [loadRooms])
 
-    // Handle room messages and realtime subscription
     useEffect(() => {
+        let isMounted = true
+        let activeChannel: any = null
+
         if (!roomId) {
             setLoading(false)
             return
         }
 
-        loadMessages(roomId)
+        const setupChat = async () => {
+            await loadMessages(roomId!)
+            if (!isMounted) return
 
-        const channel = supabase
-            .channel(`room:${roomId}`)
-            .on(
-                'postgres_changes',
-                {
-                    event: 'INSERT',
-                    schema: 'public',
-                    table: 'chat_messages',
-                    filter: `room_id=eq.${roomId}`
-                },
-                async (payload: RealtimePostgresInsertPayload<Message>) => {
-                    const { data: sender } = await supabase
-                        .from('profiles')
-                        .select('first_name, last_name_paternal')
-                        .eq('id', payload.new.sender_id)
-                        .single()
+            const channel = supabase
+                .channel(`room:${roomId}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'INSERT',
+                        schema: 'public',
+                        table: 'chat_messages',
+                        filter: `room_id=eq.${roomId}`
+                    },
+                    async (payload: RealtimePostgresInsertPayload<Message>) => {
+                        if (!isMounted) return
+                        const { data: sender } = await supabase
+                            .from('profiles')
+                            .select('first_name, last_name_paternal')
+                            .eq('id', payload.new.sender_id)
+                            .single()
 
-                    const newMessage = { ...payload.new, profiles: sender } as Message
-                    setMessages(prev => [...prev, newMessage])
+                        if (!isMounted) return
+                        const newMessage = { ...payload.new, profiles: sender } as Message
+                        setMessages(prev => [...prev, newMessage])
 
-                    const { data: { user } } = await supabase.auth.getUser()
-                    if (user && payload.new.sender_id !== user.id) {
-                        playNotificationSound()
+                        const { data: { user } } = await supabase.auth.getUser()
+                        if (user && payload.new.sender_id !== user.id) {
+                            playNotificationSound()
+                        }
                     }
-                }
-            )
-            .subscribe()
+                )
+                .subscribe()
+
+            activeChannel = channel
+        }
+
+        setupChat()
 
         return () => {
-            supabase.removeChannel(channel)
+            isMounted = false
+            if (activeChannel) {
+                supabase.removeChannel(activeChannel)
+            }
         }
     }, [roomId, loadMessages, playNotificationSound])
 

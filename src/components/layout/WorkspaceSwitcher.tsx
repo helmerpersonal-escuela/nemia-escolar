@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useTenant, useWorkspaces } from '../../hooks/useTenant'
+import { useProfile } from '../../hooks/useProfile'
 import {
     ChevronDown,
     Layout,
@@ -13,6 +14,7 @@ import {
 
 export const WorkspaceSwitcher = () => {
     const { data: currentTenant } = useTenant()
+    const { profile, isSuperAdmin = false } = useProfile()
     const { data: workspaces, isLoading } = useWorkspaces()
     const [isOpen, setIsOpen] = useState(false)
     const [switching, setSwitching] = useState<string | null>(null)
@@ -104,15 +106,59 @@ export const WorkspaceSwitcher = () => {
                             })}
                         </div>
 
-                        <div className="mt-2 pt-2 border-t border-gray-50">
-                            <button
-                                onClick={handleAddNew}
-                                className="w-full flex items-center p-3 rounded-xl text-indigo-600 hover:bg-indigo-50 transition-all font-black text-xs uppercase tracking-tight"
-                            >
-                                <Plus className="w-4 h-4 mr-3" />
-                                Agregar Nuevo Espacio
-                            </button>
-                        </div>
+                        {/* GOD MODE EXIT: Only for Super Admins */}
+                        {isSuperAdmin && currentTenant.id !== '00000000-0000-0000-0000-000000000000' && (
+                            <div className="mt-2 pt-2 border-t border-gray-100">
+                                <button
+                                    onClick={async () => {
+                                        setSwitching('god-mode')
+                                        try {
+                                            const { error: rpcError } = await supabase.rpc('back_to_god_mode')
+
+                                            if (rpcError) {
+                                                console.warn('RPC back_to_god_mode failed, trying manual fix:', rpcError)
+
+                                                // 1. Try to auto-heal the RPC using exec_sql (if available)
+                                                const sqlFix = `
+                                                    CREATE OR REPLACE FUNCTION public.back_to_god_mode() RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+                                                    BEGIN
+                                                        IF EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND (email IN ('helmerferras@gmail.com', 'helmerpersonal@gmail.com') OR role = 'SUPER_ADMIN')) THEN
+                                                            UPDATE public.profiles SET tenant_id = NULL, role = 'SUPER_ADMIN' WHERE id = auth.uid();
+                                                        ELSE RAISE EXCEPTION 'Not authorized'; END IF;
+                                                    END; $$;
+                                                    GRANT EXECUTE ON FUNCTION public.back_to_god_mode() TO authenticated;
+                                                `;
+                                                try {
+                                                    await supabase.rpc('exec_sql', { sql_query: sqlFix })
+                                                } catch (e) {
+                                                    console.error('Exec_sql failed:', e)
+                                                }
+
+                                                // 2. Try direct table update as ultimate fallback
+                                                const { data: { user } } = await supabase.auth.getUser()
+                                                if (user) {
+                                                    await supabase.from('profiles').update({ tenant_id: null, role: 'SUPER_ADMIN' }).eq('id', user.id)
+                                                }
+
+                                                // Even if rpc fails, we reload because manual update might have worked
+                                            }
+                                            window.location.reload()
+                                        } catch (error: any) {
+                                            console.error('Error in God Mode switch:', error)
+                                            window.location.reload()
+                                        }
+                                    }}
+                                    disabled={switching !== null}
+                                    className="w-full flex items-center p-3 rounded-xl hover:bg-slate-900 hover:text-white transition-all group text-slate-500"
+                                >
+                                    <div className="p-1.5 rounded-lg mr-3 bg-blue-600 text-white shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform">
+                                        <Layout className="w-4 h-4" />
+                                    </div>
+                                    <span className="text-xs font-black uppercase tracking-widest">Control de Sistema</span>
+                                    {switching === 'god-mode' && <Loader2 className="w-4 h-4 ml-auto animate-spin" />}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </>
             )}

@@ -65,7 +65,24 @@ export const CriteriaManager = ({ periodId, groupId }: CriteriaManagerProps) => 
                 .select('*')
                 .or(`tenant_id.eq.${tenant?.id},is_default.eq.true`)
                 .order('name')
-            setCatalog(data || [])
+
+            if (data) {
+                // Deduplicate by name, prioritizing institutional items
+                const unique = data.reduce((acc: any[], current) => {
+                    const existing = acc.find(item => item.name === current.name)
+                    if (!existing) {
+                        acc.push(current)
+                    } else if (current.tenant_id && !existing.tenant_id) {
+                        // Replace default with institutional version
+                        const index = acc.indexOf(existing)
+                        acc[index] = current
+                    }
+                    return acc
+                }, [])
+                setCatalog(unique)
+            } else {
+                setCatalog([])
+            }
         }
         loadCatalog()
     }, [tenant])
@@ -99,7 +116,12 @@ export const CriteriaManager = ({ periodId, groupId }: CriteriaManagerProps) => 
     const isValid = totalPercentage === 100
 
     const updatePercentage = (id: string, newPercentage: number) => {
-        setCriteriaList(prev => prev.map(c => c.id === id ? { ...c, percentage: newPercentage } : c))
+        setCriteriaList(prev => {
+            const otherTotal = prev.reduce((sum, item) => item.id === id ? sum : sum + item.percentage, 0)
+            const maxAllowed = 100 - otherTotal
+            const clamped = Math.min(newPercentage, maxAllowed)
+            return prev.map(c => c.id === id ? { ...c, percentage: clamped } : c)
+        })
     }
 
     const updateDescription = (id: string, newDesc: string) => {
@@ -188,9 +210,9 @@ export const CriteriaManager = ({ periodId, groupId }: CriteriaManagerProps) => 
     }
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 h-full flex flex-col">
+        <div className="squishy-card h-full flex flex-col">
             {/* Toolbar */}
-            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 rounded-t-2xl">
+            <div className="p-4 border-b border-indigo-50 flex justify-between items-center bg-indigo-50/30 rounded-t-[2rem]">
                 {!groupId && (
                     <div className="flex items-center space-x-4">
                         <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Grupo:</span>
@@ -245,11 +267,11 @@ export const CriteriaManager = ({ periodId, groupId }: CriteriaManagerProps) => 
 
                 <div className="flex items-center space-x-2 border-l border-gray-200 pl-4">
                     <button
-                        onClick={() => setShowCatalog(true)}
-                        className="flex items-center text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg font-bold hover:bg-blue-100 transition-all border border-blue-100"
+                        onClick={addCriteria}
+                        className="flex items-center text-xs bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg font-bold hover:bg-indigo-100 transition-all border border-indigo-100"
                     >
                         <Plus className="w-3 h-3 mr-2" />
-                        Catálogo de Criterios
+                        Agregar Criterio
                     </button>
                 </div>
             </div>
@@ -310,7 +332,7 @@ export const CriteriaManager = ({ periodId, groupId }: CriteriaManagerProps) => 
             )}
 
             {/* Criteria List */}
-            <div className="p-6 flex-1 overflow-y-auto space-y-6">
+            <div className="p-4 flex-1 overflow-y-auto space-y-4">
                 {criteriaList.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center py-12 px-4 text-center bg-gray-50/50 rounded-3xl border-2 border-dashed border-gray-100">
                         <div className="bg-white p-4 rounded-2xl shadow-sm mb-4">
@@ -322,24 +344,24 @@ export const CriteriaManager = ({ periodId, groupId }: CriteriaManagerProps) => 
                         </p>
                         <div className="flex flex-col sm:flex-row gap-3">
                             <button
+                                onClick={() => setShowCatalog(true)}
+                                className="flex items-center px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
+                            >
+                                <Sparkles className="w-5 h-5 mr-2 text-white" />
+                                Usar Catálogo
+                            </button>
+                            <button
                                 onClick={addCriteria}
                                 className="flex items-center px-6 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
                             >
-                                <Plus className="w-5 h-5 mr-2 text-blue-500" />
+                                <Plus className="w-5 h-5 mr-2 text-indigo-500" />
                                 Crear Manualmente
-                            </button>
-                            <button
-                                onClick={() => setShowCatalog(true)}
-                                className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
-                            >
-                                <Sparkles className="w-5 h-5 mr-2" />
-                                Usar Catálogo
                             </button>
                         </div>
                     </div>
                 ) : (
                     criteriaList.map((criteria) => (
-                        <div key={criteria.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow relative group">
+                        <div key={criteria.id} className="squishy-card p-3 hover:scale-[1.01] transition-transform relative group">
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex-1 mr-4">
                                     <input
@@ -374,6 +396,7 @@ export const CriteriaManager = ({ periodId, groupId }: CriteriaManagerProps) => 
                                     type="range"
                                     min="0"
                                     max="100"
+                                    step="5"
                                     value={criteria.percentage}
                                     onChange={e => updatePercentage(criteria.id, parseInt(e.target.value))}
                                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
@@ -388,11 +411,11 @@ export const CriteriaManager = ({ periodId, groupId }: CriteriaManagerProps) => 
 
                 {criteriaList.length > 0 && (
                     <button
-                        onClick={addCriteria}
+                        onClick={() => setShowCatalog(true)}
                         className="w-full py-4 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 font-bold hover:border-blue-300 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center"
                     >
-                        <Plus className="w-5 h-5 mr-2" />
-                        Agregar Criterio
+                        <Sparkles className="w-5 h-5 mr-2" />
+                        Catálogo de Criterios
                     </button>
                 )}
             </div>
@@ -414,7 +437,7 @@ export const CriteriaManager = ({ periodId, groupId }: CriteriaManagerProps) => 
                     disabled={!isValid || loading}
                     onClick={handleSave}
                     className={`
-                        flex items-center px-6 py-2 rounded-xl font-black shadow-lg shadow-indigo-100 transition-all active:scale-95
+                        flex items-center px-6 py-2 rounded-xl font-black shadow-lg shadow-indigo-100 transition-all btn-tactile
                         ${isValid
                             ? 'bg-indigo-600 text-white hover:bg-indigo-700'
                             : 'bg-gray-300 text-gray-500 cursor-not-allowed'}

@@ -54,7 +54,7 @@ export const MessageBubble = ({ message, isOwn }: Props) => {
         return (
             <div className="flex justify-center mb-6 animate-in fade-in zoom-in-95 duration-500">
                 <div className="bg-slate-50 border border-slate-200 px-4 py-2 rounded-full shadow-sm max-w-[85%] text-center">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Sistema Escolar</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Vunlek</p>
                     <p className="text-xs text-slate-600 font-medium">{message.content}</p>
                 </div>
             </div>

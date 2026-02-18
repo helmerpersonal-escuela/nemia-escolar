@@ -26,7 +26,11 @@ import {
     Award,
     ChevronDown,
     Save,
-    AlertTriangle
+    AlertTriangle,
+    Clock,
+    ShieldCheck,
+    GraduationCap,
+    FileWarning
 } from 'lucide-react'
 import { CreateAssignmentModal } from '../components/CreateAssignmentModal'
 import { GradingModal } from '../components/GradingModal'
@@ -198,11 +202,11 @@ export const GradebookPage = () => {
                 navigate(`/gradebook?groupId=${groupId}${currentPeriodId ? `&periodId=${currentPeriodId}` : ''}`, { replace: true })
             }
 
-            // CHECK PLANNING EXISTENCE
             if (subjectId) {
+                // 1. Try EXACT MATCH by subject_id + group_id + period_id
                 let planningQuery = supabase
                     .from('lesson_plans')
-                    .select('id')
+                    .select('id, title, campo_formativo, period_id, subject_id')
                     .eq('group_id', groupId)
                     .eq('subject_id', subjectId)
 
@@ -210,13 +214,64 @@ export const GradebookPage = () => {
                     planningQuery = planningQuery.eq('period_id', currentPeriodId)
                 }
 
-                const { data: planningData } = await planningQuery
+                const { data: exactPlanning, error: planningError } = await planningQuery
                     .order('created_at', { ascending: false })
                     .limit(1)
                     .maybeSingle()
 
-                setHasLessonPlan(!!planningData)
-                setActiveLessonPlanId(planningData?.id || null)
+                if (planningError) console.error('Planning Query Error:', planningError)
+
+                let finalPlanning = exactPlanning
+
+                // 2. FALLBACK: Match by Campo Formativo if custom subject mismatch
+                if (!finalPlanning) {
+                    const currentSubject = formattedSubjects.find(s => s.id === subjectId)
+
+                    // We try to find ANY plan for this group and period that might be the one
+                    let fallbackQuery = supabase
+                        .from('lesson_plans')
+                        .select('id, title, campo_formativo, period_id, subject_id')
+                        .eq('group_id', groupId)
+
+                    if (currentPeriodId) {
+                        fallbackQuery = fallbackQuery.eq('period_id', currentPeriodId)
+                    }
+
+                    const { data: groupPlans } = await fallbackQuery.order('created_at', { ascending: false })
+
+                    if (groupPlans && groupPlans.length > 0) {
+                        // Priority 1: Semantic match with subject name
+                        const semanticMatch = groupPlans.find(p =>
+                            p.title?.toLowerCase().includes(currentSubject?.name?.toLowerCase() || '') ||
+                            currentSubject?.name?.toLowerCase().includes(p.campo_formativo?.toLowerCase() || '')
+                        )
+
+                        if (semanticMatch) {
+                            finalPlanning = semanticMatch
+                        } else {
+                            // Priority 2: Just take the most recent one
+                            finalPlanning = groupPlans[0]
+                        }
+                    }
+
+                    if (!finalPlanning) {
+                        const { data: anyPeriodPlans } = await supabase
+                            .from('lesson_plans')
+                            .select('id, title, campo_formativo, period_id, subject_id')
+                            .eq('group_id', groupId)
+                            .eq('subject_id', subjectId)
+                            .order('created_at', { ascending: false })
+                            .limit(1)
+                            .maybeSingle()
+
+                        if (anyPeriodPlans) {
+                            finalPlanning = anyPeriodPlans
+                        }
+                    }
+                }
+
+                setHasLessonPlan(!!finalPlanning)
+                setActiveLessonPlanId(finalPlanning?.id || null)
                 setHasCheckedPlanning(true)
             } else {
                 setHasCheckedPlanning(false)
@@ -237,7 +292,7 @@ export const GradebookPage = () => {
 
     useEffect(() => {
         loadData()
-    }, [tenant?.id, groupId, subjectId])
+    }, [tenant?.id, groupId, subjectId, selectedPeriodId])
 
     useEffect(() => {
         if (activeTab === 'ATTENDANCE' && students.length > 0 && !loading) {
@@ -476,6 +531,7 @@ export const GradebookPage = () => {
                 <NoPlanningAlert
                     groupId={groupId}
                     subjectId={subjectId}
+                    periodId={selectedPeriodId || ''}
                     subjectName={groupSubjects.find(s => s.id === subjectId)?.name}
                 />
             </div>
@@ -503,7 +559,7 @@ export const GradebookPage = () => {
                         <p className="text-gray-500 mb-6">Primero debes crear tus grupos en la sección correspondiente.</p>
                         <button
                             onClick={() => navigate('/groups')}
-                            className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 hover:scale-105 transition-all"
+                            className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 hover:scale-105 transition-all btn-tactile"
                         >
                             Ir a Mis Grupos
                         </button>
@@ -514,7 +570,7 @@ export const GradebookPage = () => {
                             <button
                                 key={group.id}
                                 onClick={() => navigate(`/gradebook?groupId=${group.id}`, { replace: true })}
-                                className="group bg-white p-8 rounded-3xl border border-gray-100 shadow-lg shadow-gray-100 hover:shadow-xl hover:scale-[1.02] hover:border-blue-200 transition-all text-left flex flex-col items-center justify-center space-y-4 relative overflow-hidden"
+                                className="group squishy-card p-8 text-left flex flex-col items-center justify-center space-y-4 relative overflow-hidden"
                             >
                                 <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-10 transition-opacity">
                                     <BookOpen className="w-24 h-24 text-blue-600 transform -rotate-12" />
@@ -547,192 +603,157 @@ export const GradebookPage = () => {
     }
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center space-x-4">
-                    <button onClick={() => navigate('/groups', { replace: true })} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                        <ArrowLeft className="w-6 h-6 text-gray-600" />
-                    </button>
-                    <div>
-                        <h1 className="text-xl md:text-2xl font-bold text-gray-900 truncate max-w-[200px] md:max-w-none">
-                            Libreta: {group?.grade}° "{group?.section}"
-                        </h1>
-                        <p className="text-xs md:text-sm text-gray-500 flex items-center mt-1">
-                            <BookOpen className="w-3 h-3 md:w-4 md:h-4 mr-1 transition-colors shrink-0" />
-                            <span className="truncate">
-                                {activeTab === 'EVALUATION' ? 'Evaluación Académica' : 'Control de Asistencias'}
-                            </span>
-                        </p>
-                    </div>
-                </div>
+        <div className="space-y-8">
+            {/* Main Header Card - Tactile Maximalism */}
+            <div className="squishy-card p-6 md:p-8 border-none bg-gradient-to-br from-white to-slate-50/50 shadow-xl shadow-slate-200/50 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50/50 rounded-full -mr-32 -mt-32 blur-3xl opacity-50"></div>
 
-                <div className="flex flex-wrap items-center gap-2 mt-4 md:mt-0 w-full md:w-auto">
-                    {/* Subject Display - Read Only / Auto-Pulled */}
-                    <div className="relative flex-1 md:flex-none flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 shadow-sm min-w-[140px] group/subject">
-                        <BookOpen className="w-3 h-3 md:w-4 md:h-4 text-gray-500 mr-2 shrink-0" />
-                        <span className="text-xs md:text-sm font-black text-gray-900 uppercase tracking-tight truncate max-w-[100px] md:max-w-none">
-                            {groupSubjects.find(s => s.id === subjectId)?.name || 'Todas'}
-                        </span>
+                <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                    {/* Left: Context & Title */}
+                    <div className="flex items-start space-x-5">
+                        <button
+                            onClick={() => navigate('/groups', { replace: true })}
+                            className="mt-1 p-3 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all shadow-sm hover:scale-110 active:scale-90 group/back"
+                        >
+                            <ArrowLeft className="w-5 h-5 text-slate-600 group-hover/back:text-indigo-600" />
+                        </button>
 
-                        {/* Only allow switching if NO subject is selected OR if multiple subjects exist and we want to allow it (though user requested to block it) */}
-                        {groupSubjects.length > 1 && !subjectId && (
-                            <>
-                                <ChevronDown className="w-3 h-3 md:w-4 md:h-4 text-gray-400 ml-auto md:ml-2 group-hover/subject:text-gray-600" />
-                                <select
-                                    value={subjectId || ''}
-                                    onChange={(e) => {
-                                        navigate(`/gradebook?groupId=${groupId}${e.target.value ? `&subjectId=${e.target.value}` : ''}${selectedPeriodId ? `&periodId=${selectedPeriodId}` : ''}`, { replace: true })
-                                    }}
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                >
-                                    <option value="">Todas las Materias</option>
-                                    {groupSubjects.map(s => (
-                                        <option key={s.id} value={s.id}>{s.name}</option>
-                                    ))}
-                                </select>
-                            </>
-                        )}
-                    </div>
-
-                    {/* Period Display - Auto-Pulled (No Edit) */}
-                    <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 shadow-sm">
-                        <Calendar className="w-3 h-3 md:w-4 md:h-4 text-gray-500 mr-2 shrink-0" />
-                        <span className="text-xs md:text-sm font-black text-gray-900 uppercase tracking-tight">
-                            {periods.find(p => p.id === selectedPeriodId)?.name?.split(' ')[0] || 'Actual'}
-                        </span>
-                    </div>
-
-                    {activeTab === 'EVALUATION' ? (
-                        !periods.find(p => p.id === selectedPeriodId)?.is_closed && (
-                            <button
-                                onClick={() => setIsAssignmentModalOpen(true)}
-                                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-sm transition-all font-medium"
-                            >
-                                <Plus className="w-5 h-5 mr-2" />
-                                Añadir Calificable
-                            </button>
-                        )
-                    ) : (
-                        <div className="flex items-center space-x-2">
-                            <div className="flex items-center bg-white border border-gray-200 rounded-xl px-3 py-1.5 shadow-sm">
-                                <Calendar className="w-4 h-4 text-gray-400 mr-2" />
-                                <input
-                                    type="date"
-                                    value={attendanceDate}
-                                    onChange={(e) => setAttendanceDate(e.target.value)}
-                                    className="border-none p-0 focus:ring-0 text-sm font-medium text-gray-700 bg-transparent"
-                                />
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                                <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
+                                    Libreta: {group?.grade}° "{group?.section}"
+                                </h1>
+                                <div className="flex bg-indigo-100 text-indigo-700 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest animate-pulse">
+                                    En Línea
+                                </div>
                             </div>
-                            {!periods.find(p => p.id === selectedPeriodId)?.is_closed && (
-                                <div className="flex flex-col items-end">
-                                    <div className="text-[10px] md:text-xs text-gray-400 font-bold uppercase tracking-widest">
-                                        {Object.keys(pendingAttendance).length > 0 ? 'Cambios pendientes' : 'Sincronizado'}
-                                    </div>
-                                    {pendingCount > 0 && (
-                                        <div className="text-[9px] text-blue-500 font-black animate-pulse uppercase">
-                                            {pendingCount} por sincronizar...
-                                        </div>
-                                    )}
+
+                            <div className="flex flex-wrap items-center gap-3">
+                                {/* Subject Pill */}
+                                <div className="flex items-center bg-white border border-slate-200 rounded-full px-4 py-1.5 shadow-sm">
+                                    <BookOpen className="w-3.5 h-3.5 text-indigo-500 mr-2" />
+                                    <span className="text-xs font-black text-slate-700 uppercase tracking-tight">
+                                        {groupSubjects.find(s => s.id === subjectId)?.name || 'Todas las Materias'}
+                                    </span>
                                 </div>
-                            )}
+
+                                {/* Period Pill */}
+                                <div className="flex items-center bg-white border border-slate-200 rounded-full px-4 py-1.5 shadow-sm">
+                                    <Calendar className="w-3.5 h-3.5 text-amber-500 mr-2" />
+                                    <span className="text-xs font-black text-slate-700 uppercase tracking-tight">
+                                        {periods.find(p => p.id === selectedPeriodId)?.name || 'Periodo Actual'}
+                                    </span>
+                                </div>
+
+                                {/* Date Pill (Attendance only) */}
+                                {activeTab === 'ATTENDANCE' && (
+                                    <div className="flex items-center bg-indigo-50 border border-indigo-100 rounded-full px-4 py-1.5 shadow-sm group/date relative cursor-pointer overflow-hidden">
+                                        <Clock className="w-3.5 h-3.5 text-indigo-600 mr-2" />
+                                        <span className="text-xs font-black text-indigo-700 uppercase tracking-tight">
+                                            {new Date(attendanceDate).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}
+                                        </span>
+                                        <input
+                                            type="date"
+                                            value={attendanceDate}
+                                            onChange={(e) => setAttendanceDate(e.target.value)}
+                                            className="absolute inset-0 opacity-0 cursor-pointer"
+                                        />
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    )}
-                    <button
-                        onClick={() => navigate(`/evaluation/setup?groupId=${groupId}${subjectId ? `&subjectId=${subjectId}` : ''}&periodId=${selectedPeriodId || ''}`)}
-                        className="p-2 border border-indigo-200 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-colors flex items-center gap-2 shadow-sm"
-                        title="Configurar Criterios de Evaluación"
-                    >
-                        <Settings className="w-5 h-5" />
-                        <span className="hidden md:inline text-xs font-bold uppercase tracking-tight">Criterios</span>
-                    </button>
-                    <button
-                        onClick={() => navigate(`/groups/${groupId}`)}
-                        className="p-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
-                        title="Administración del Grupo"
-                    >
-                        <Users className="w-5 h-5 text-gray-600" />
-                    </button>
-                    {activeTab === 'EVALUATION' && selectedPeriodId && (() => {
-                        const currentPeriod = periods.find(p => p.id === selectedPeriodId)
-                        if (!currentPeriod) return null
+                    </div>
 
-                        if (currentPeriod.is_closed) {
-                            const allPeriodsClosed = periods.length > 0 && periods.every(p => p.is_closed)
-
-                            return (
-                                <div className="flex items-center space-x-2">
-                                    <div className="flex items-center px-3 py-2 bg-amber-50 text-amber-700 rounded-xl border border-amber-200 shadow-sm" title="Periodo Cerrado - Solo Lectura">
-                                        <Lock className="w-4 h-4 mr-2" />
-                                        <span className="text-sm font-bold">Cerrado</span>
-                                    </div>
-                                    <button
-                                        onClick={async () => {
-                                            if (!confirm('¿Estás seguro de reabrir este periodo? Podrás editar calificaciones nuevamente.')) return
-                                            const { error } = await supabase.from('evaluation_periods').update({ is_closed: false }).eq('id', currentPeriod.id)
-                                            if (!error) loadData()
-                                        }}
-                                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                                        title="Reabrir Periodo (Editar)"
-                                    >
-                                        <Unlock className="w-4 h-4" />
-                                    </button>
-                                    {allPeriodsClosed && (
-                                        <button
-                                            onClick={() => setIsCloseYearModalOpen(true)}
-                                            className="flex items-center px-3 py-2 bg-purple-50 text-purple-700 rounded-xl border border-purple-200 shadow-sm hover:bg-purple-100 transition-colors"
-                                            title="Cerrar Ciclo Escolar"
-                                        >
-                                            <Award className="w-4 h-4 mr-2" />
-                                            <span className="text-sm font-bold">Cierre Anual</span>
-                                        </button>
-                                    )}
-                                </div>
+                    {/* Right: Actions Hub */}
+                    <div className="flex flex-wrap items-center gap-3">
+                        {/* Primary Action */}
+                        {activeTab === 'EVALUATION' && (
+                            !periods.find(p => p.id === selectedPeriodId)?.is_closed && (
+                                <button
+                                    onClick={() => setIsAssignmentModalOpen(true)}
+                                    className="flex-1 md:flex-none flex items-center px-6 py-3 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all font-black uppercase text-xs tracking-widest btn-tactile group/add"
+                                >
+                                    <Plus className="w-5 h-5 mr-2 group-hover/add:rotate-90 transition-transform" />
+                                    Añadir Calificable
+                                </button>
                             )
-                        }
+                        )}
 
-                        return (
+                        <div className="flex items-center bg-slate-100/50 p-1.5 rounded-[2rem] border border-slate-200 gap-1 mt-2 md:mt-0">
                             <button
-                                onClick={() => setIsClosePeriodModalOpen(true)}
-                                className="p-2 border border-blue-100 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"
-                                title="Cerrar Trimestre"
+                                onClick={() => navigate(`/evaluation/setup?groupId=${groupId}${subjectId ? `&subjectId=${subjectId}` : ''}&periodId=${selectedPeriodId || ''}`)}
+                                className="p-3 bg-white text-indigo-600 rounded-2xl hover:bg-white transition-all shadow-sm hover:scale-110 active:scale-95 border border-slate-200"
+                                title="Configurar Criterios"
                             >
-                                <Lock className="w-5 h-5" />
+                                <Settings className="w-5 h-5" />
                             </button>
-                        )
-                    })()}
-                    <button className="p-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
-                        <Download className="w-5 h-5 text-gray-600" />
-                    </button>
+
+                            <button
+                                onClick={() => navigate(`/groups/${groupId}`)}
+                                className="p-3 bg-white text-slate-600 rounded-2xl hover:bg-white transition-all shadow-sm hover:scale-110 active:scale-95 border border-slate-200"
+                                title="Administración del Grupo"
+                            >
+                                <Users className="w-5 h-5" />
+                            </button>
+
+                            {activeTab === 'EVALUATION' && selectedPeriodId && (() => {
+                                const currentPeriod = periods.find(p => p.id === selectedPeriodId)
+                                if (!currentPeriod) return null
+
+                                if (currentPeriod.is_closed) {
+                                    return (
+                                        <button
+                                            onClick={async () => {
+                                                if (!confirm('¿Estás seguro de reabrir este periodo? Podrás editar calificaciones nuevamente.')) return
+                                                const { error } = await supabase.from('evaluation_periods').update({ is_closed: false }).eq('id', currentPeriod.id)
+                                                if (!error) loadData()
+                                            }}
+                                            className="p-3 bg-amber-50 text-amber-600 rounded-2xl hover:bg-amber-100 transition-all shadow-sm border border-amber-200"
+                                            title={`Reabrir ${currentPeriod.name}`}
+                                        >
+                                            <Unlock className="w-5 h-5" />
+                                        </button>
+                                    )
+                                }
+
+                                return (
+                                    <button
+                                        onClick={() => setIsClosePeriodModalOpen(true)}
+                                        className="p-3 bg-white text-rose-600 rounded-2xl hover:bg-rose-50 transition-all shadow-sm border border-slate-200 group/lock"
+                                        title={`Cerrar ${currentPeriod.name}`}
+                                    >
+                                        <Lock className="w-5 h-5 group-hover/lock:scale-110" />
+                                    </button>
+                                )
+                            })()}
+
+                            <button className="p-3 bg-white text-slate-600 rounded-2xl hover:bg-white transition-all shadow-sm hover:scale-110 active:scale-95 border border-slate-200">
+                                <Download className="w-5 h-5" />
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {/* Tabs */}
-            <div className="flex border-b border-gray-200 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
-                <button
-                    onClick={() => setActiveTab('ATTENDANCE')}
-                    className={`px-4 md:px-6 py-3 text-sm font-bold transition-colors relative whitespace-nowrap ${activeTab === 'ATTENDANCE' ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'
-                        }`}
-                >
-                    Asistencia
-                    {activeTab === 'ATTENDANCE' && <div className="absolute bottom-0 left-0 w-full h-1 bg-blue-600 rounded-t-full"></div>}
-                </button>
-                <button
-                    onClick={() => setActiveTab('EVALUATION')}
-                    className={`px-4 md:px-6 py-3 text-sm font-bold transition-colors relative whitespace-nowrap ${activeTab === 'EVALUATION' ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'
-                        }`}
-                >
-                    Evaluación y Tareas
-                    {activeTab === 'EVALUATION' && <div className="absolute bottom-0 left-0 w-full h-1 bg-blue-600 rounded-t-full"></div>}
-                </button>
-                <button
-                    onClick={() => setActiveTab('REPORTS')}
-                    className={`px-4 md:px-6 py-3 text-sm font-bold transition-colors relative whitespace-nowrap ${activeTab === 'REPORTS' ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'
-                        }`}
-                >
-                    Reportes
-                    {activeTab === 'REPORTS' && <div className="absolute bottom-0 left-0 w-full h-1 bg-blue-600 rounded-t-full"></div>}
-                </button>
+            {/* Navigation Tabs - Tactile Minimalist */}
+            <div className="flex bg-slate-100/50 p-2 rounded-[2rem] border border-slate-200 w-full sm:w-fit self-center">
+                {[
+                    { id: 'ATTENDANCE', label: 'Asistencia', icon: ShieldCheck },
+                    { id: 'EVALUATION', label: 'Evaluación', icon: GraduationCap },
+                    { id: 'REPORTS', label: 'Incidencias', icon: FileWarning }
+                ].map((tab) => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id as any)}
+                        className={`flex items-center px-8 py-3 rounded-[1.5rem] text-xs font-black uppercase tracking-widest transition-all ${activeTab === tab.id
+                            ? 'bg-white text-indigo-600 shadow-md scale-100'
+                            : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
+                            }`}
+                    >
+                        <tab.icon className={`w-4 h-4 mr-2 ${activeTab === tab.id ? 'text-indigo-500' : 'text-slate-400'}`} />
+                        {tab.label}
+                    </button>
+                ))}
             </div>
 
             {
@@ -777,32 +798,32 @@ export const GradebookPage = () => {
 
             {
                 activeTab === 'EVALUATION' && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
-                        <div className="bg-white p-4 md:p-6 rounded-2xl border border-gray-200 shadow-sm flex items-center">
-                            <div className="bg-purple-100 p-2 md:p-3 rounded-xl mr-3 md:mr-4 shrink-0">
-                                <Users className="w-5 h-5 md:w-6 md:h-6 text-purple-600" />
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                        <div className="squishy-card p-6 flex items-center bg-white border-none shadow-lg shadow-slate-100 group/metric">
+                            <div className="bg-indigo-100 p-4 rounded-3xl mr-4 shrink-0 group-hover/metric:scale-110 transition-transform">
+                                <Users className="w-6 h-6 text-indigo-600" />
                             </div>
                             <div>
-                                <p className="text-xs md:text-sm text-gray-500 font-medium">Alumnos</p>
-                                <h3 className="text-xl md:text-2xl font-bold text-gray-900">{students.length}</h3>
+                                <p className="text-xs text-slate-400 font-black uppercase tracking-widest">Alumnos</p>
+                                <h3 className="text-3xl font-black text-slate-900">{students.length}</h3>
                             </div>
                         </div>
-                        <div className="bg-white p-4 md:p-6 rounded-2xl border border-gray-200 shadow-sm flex items-center">
-                            <div className="bg-amber-100 p-2 md:p-3 rounded-xl mr-3 md:mr-4 shrink-0">
-                                <CheckSquare className="w-5 h-5 md:w-6 md:h-6 text-amber-600" />
+                        <div className="squishy-card p-6 flex items-center bg-white border-none shadow-lg shadow-slate-100 group/metric">
+                            <div className="bg-amber-100 p-4 rounded-3xl mr-4 shrink-0 group-hover/metric:scale-110 transition-transform">
+                                <CheckSquare className="w-6 h-6 text-amber-600" />
                             </div>
                             <div>
-                                <p className="text-xs md:text-sm text-gray-500 font-medium">Actividades</p>
-                                <h3 className="text-xl md:text-2xl font-bold text-gray-900">{assignments.length}</h3>
+                                <p className="text-xs text-slate-400 font-black uppercase tracking-widest">Actividades</p>
+                                <h3 className="text-3xl font-black text-slate-900">{assignments.length}</h3>
                             </div>
                         </div>
-                        <div className="bg-white p-4 md:p-6 rounded-2xl border border-gray-100 shadow-sm bg-gradient-to-br from-blue-50 to-white flex items-center border-l-4 border-l-blue-500">
-                            <div className="bg-blue-100 p-2 md:p-3 rounded-xl mr-3 md:mr-4 shrink-0">
-                                <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
+                        <div className="squishy-card p-6 flex items-center bg-indigo-600 border-none shadow-xl shadow-indigo-100 group/metric transition-all hover:bg-indigo-700">
+                            <div className="bg-white/20 backdrop-blur-md p-4 rounded-3xl mr-4 shrink-0 group-hover/metric:rotate-12 transition-transform">
+                                <TrendingUp className="w-6 h-6 text-white" />
                             </div>
                             <div>
-                                <p className="text-xs md:text-sm text-gray-500 font-medium">Promedio Grupal</p>
-                                <h3 className="text-xl md:text-2xl font-bold text-gray-900">
+                                <p className="text-xs text-indigo-200 font-black uppercase tracking-widest">Promedio Grupal</p>
+                                <h3 className="text-3xl font-black text-white">
                                     {(() => {
                                         const studentAverages = students
                                             .map(s => parseFloat(calculateProgress(s.id)))
@@ -821,22 +842,22 @@ export const GradebookPage = () => {
 
             {
                 activeTab === 'ATTENDANCE' && (
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                        <div className="bg-white p-3 md:p-4 rounded-xl border border-gray-200 shadow-sm">
-                            <p className="text-[10px] md:text-xs font-bold text-emerald-600 uppercase">Presentes hoy</p>
-                            <h3 className="text-lg md:text-xl font-bold text-gray-900">{attendance.filter(a => a.date === attendanceDate && a.status === 'PRESENT').length}</h3>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                        <div className="squishy-card p-6 bg-white border-none shadow-lg shadow-emerald-50 group/metric">
+                            <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">Presentes Hoy</p>
+                            <h3 className="text-3xl font-black text-slate-900">{attendance.filter(a => a.date === attendanceDate && a.status === 'PRESENT').length}</h3>
                         </div>
-                        <div className="bg-white p-3 md:p-4 rounded-xl border border-gray-200 shadow-sm">
-                            <p className="text-[10px] md:text-xs font-bold text-amber-600 uppercase">Retardos hoy</p>
-                            <h3 className="text-lg md:text-xl font-bold text-gray-900">{attendance.filter(a => a.date === attendanceDate && a.status === 'LATE').length}</h3>
+                        <div className="squishy-card p-6 bg-white border-none shadow-lg shadow-amber-50 group/metric">
+                            <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1">Retardos Hoy</p>
+                            <h3 className="text-3xl font-black text-slate-900">{attendance.filter(a => a.date === attendanceDate && a.status === 'LATE').length}</h3>
                         </div>
-                        <div className="bg-white p-3 md:p-4 rounded-xl border border-gray-200 shadow-sm">
-                            <p className="text-[10px] md:text-xs font-bold text-red-600 uppercase">Faltas hoy</p>
-                            <h3 className="text-lg md:text-xl font-bold text-gray-900">{attendance.filter(a => a.date === attendanceDate && a.status === 'ABSENT').length}</h3>
+                        <div className="squishy-card p-6 bg-white border-none shadow-lg shadow-rose-50 group/metric">
+                            <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest mb-1">Faltas Hoy</p>
+                            <h3 className="text-3xl font-black text-slate-900">{attendance.filter(a => a.date === attendanceDate && a.status === 'ABSENT').length}</h3>
                         </div>
-                        <div className="bg-white p-3 md:p-4 rounded-xl border border-gray-200 shadow-sm">
-                            <p className="text-[10px] md:text-xs font-bold text-blue-600 uppercase">Permisos hoy</p>
-                            <h3 className="text-lg md:text-xl font-bold text-gray-900">{attendance.filter(a => a.date === attendanceDate && a.status === 'EXCUSED').length}</h3>
+                        <div className="squishy-card p-6 bg-white border-none shadow-lg shadow-indigo-50 group/metric">
+                            <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1">Permisos Hoy</p>
+                            <h3 className="text-3xl font-black text-slate-900">{attendance.filter(a => a.date === attendanceDate && a.status === 'EXCUSED').length}</h3>
                         </div>
                     </div>
                 )
@@ -844,7 +865,7 @@ export const GradebookPage = () => {
 
             {
                 activeTab === 'ATTENDANCE' && attendanceMethod !== 'MANUAL' && (
-                    <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm text-center flex flex-col items-center justify-center space-y-4">
+                    <div className="squishy-card p-8 text-center flex flex-col items-center justify-center space-y-4">
                         <div className="bg-blue-50 p-6 rounded-full">
                             {attendanceMethod === 'QR' ? <QrCode className="w-12 h-12 text-blue-600 animate-pulse" /> : <Activity className="w-12 h-12 text-blue-600 animate-pulse" />}
                         </div>
@@ -858,7 +879,7 @@ export const GradebookPage = () => {
                                     : 'Coloque el sensor para iniciar la identificación de alumnos por huella digital.'}
                             </p>
                         </div>
-                        <button className="px-8 py-3 bg-gray-900 text-white rounded-2xl font-bold hover:bg-gray-800 transition-all shadow-lg">
+                        <button className="px-8 py-3 bg-gray-900 text-white rounded-2xl font-bold hover:bg-gray-800 transition-all shadow-lg btn-tactile">
                             {attendanceMethod === 'QR' ? 'Encender Cámara' : 'Sincronizar Lector'}
                         </button>
                     </div>
@@ -866,19 +887,22 @@ export const GradebookPage = () => {
             }
 
             {activeTab !== 'REPORTS' && (
-                <div className={`bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden ${activeTab === 'ATTENDANCE' && attendanceMethod !== 'MANUAL' ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
-                    <div className="p-6 border-b border-gray-100 flex justify-between items-center group">
-                        <h3 className="font-bold text-gray-900">
-                            {activeTab === 'EVALUATION' ? 'Listado de Calificaciones' : 'Registro de Asistencia'}
-                        </h3>
-                        <div className="flex items-center space-x-2">
+                <div className={`squishy-card border-none bg-white shadow-2xl shadow-slate-200/50 overflow-hidden ${activeTab === 'ATTENDANCE' && attendanceMethod !== 'MANUAL' ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
+                    <div className="px-8 py-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 group">
+                        <div className="flex items-center gap-3">
+                            <div className="w-2 h-8 bg-indigo-600 rounded-full"></div>
+                            <h3 className="font-black text-slate-900 uppercase tracking-[0.1em]">
+                                {activeTab === 'EVALUATION' ? 'Listado Académico' : 'Reporte de Asistencia'}
+                            </h3>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3">
                             {activeTab === 'ATTENDANCE' && (
                                 <button
                                     onClick={profile?.is_demo ? undefined : saveAttendance}
                                     disabled={isSavingAttendance || Object.keys(pendingAttendance).length === 0 || profile?.is_demo}
-                                    className={`px-4 py-2 rounded-xl transition-all font-bold text-sm mr-2 flex items-center shadow-sm ${isSavingAttendance || Object.keys(pendingAttendance).length === 0 || profile?.is_demo
-                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-100'
-                                        : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:scale-105 active:scale-95'
+                                    className={`px-6 py-2.5 rounded-2xl transition-all font-black uppercase text-[10px] tracking-widest flex items-center shadow-lg btn-tactile ${isSavingAttendance || Object.keys(pendingAttendance).length === 0 || profile?.is_demo
+                                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-100'
+                                        : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:scale-105 active:scale-95 shadow-emerald-100'
                                         }`}
                                     title={profile?.is_demo ? "No disponible en modo demo" : ""}
                                 >
@@ -887,18 +911,18 @@ export const GradebookPage = () => {
                                     ) : (
                                         <Save className="w-4 h-4 mr-2" />
                                     )}
-                                    {isSavingAttendance ? 'Guardando...' : 'Guardar Pase de Lista'}
+                                    {isSavingAttendance ? 'Sincronizando...' : 'Publicar Pase'}
                                 </button>
                             )}
-                            <div className="relative">
-                                <Search className="w-4 h-4 absolute left-3 top-2.5 text-gray-400 font-medium group-focus-within:text-blue-500 transition-colors" />
+                            <div className="relative flex-1 md:flex-none">
+                                <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/input:text-indigo-500 transition-colors" />
                                 <input
                                     type="text"
-                                    placeholder="Buscar alumno..."
-                                    className="pl-9 pr-4 py-2 bg-gray-50 border-none rounded-lg text-sm focus:ring-2 focus:ring-blue-500 transition-all w-64"
+                                    placeholder="BUSCAR ALUMNO..."
+                                    className="input-squishy pl-11 pr-6 py-2.5 text-[10px] font-black w-full md:w-64 placeholder:text-slate-300"
                                 />
                             </div>
-                            <button className="p-2 bg-gray-50 rounded-lg text-gray-600 hover:bg-gray-100">
+                            <button className="p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-slate-400 hover:bg-slate-100 transition-colors shadow-sm">
                                 <Filter className="w-4 h-4" />
                             </button>
                         </div>
@@ -907,7 +931,7 @@ export const GradebookPage = () => {
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
-                                <tr className="bg-gray-50/50">
+                                <tr className="bg-indigo-50/50">
                                     <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50/90 backdrop-blur-sm z-20 border-r border-gray-200">Alumno</th>
                                     {activeTab === 'EVALUATION' ? (
                                         <>
@@ -933,47 +957,51 @@ export const GradebookPage = () => {
                                                     }
 
                                                     return (
-                                                        <th key={c.id} className={`px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center relative group/th ${c.id === 'uncategorized' ? 'bg-amber-50/50 text-amber-600' : ''}`}>
+                                                        <th key={c.id} className={`px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 text-center relative group/th ${c.id === 'uncategorized' ? 'bg-amber-50/30' : ''}`}>
                                                             <div className="flex flex-col items-center justify-center">
-                                                                <span className="flex items-center gap-1">
+                                                                <span className="flex items-center gap-1 group-hover/th:text-indigo-600 transition-colors">
                                                                     {c.name}
                                                                     {pendingCount > 0 && (
                                                                         <div className="group/tooltip relative">
-                                                                            <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
-                                                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-[10px] rounded whitespace-nowrap opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-10">
-                                                                                {pendingCount} calificaciones pendientes
+                                                                            <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div>
+                                                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-900 text-white text-[10px] rounded-lg whitespace-nowrap opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-10 shadow-xl">
+                                                                                {pendingCount} pendientes
                                                                             </div>
                                                                         </div>
                                                                     )}
                                                                 </span>
-                                                                {c.id !== 'uncategorized' && <span className="block text-[10px] text-blue-500 normal-case">{c.weight || c.percentage}%</span>}
-                                                                {c.id === 'uncategorized' && <span className="block text-[10px] text-amber-500 normal-case">Sin Valor</span>}
+                                                                <div className="mt-1 h-1 w-8 bg-slate-100 rounded-full overflow-hidden">
+                                                                    <div className={`h-full transition-all duration-1000 ${c.id === 'uncategorized' ? 'bg-amber-400 w-0' : 'bg-indigo-500'}`} style={{ width: c.id === 'uncategorized' ? '0%' : '100%' }}></div>
+                                                                </div>
+                                                                {c.id !== 'uncategorized' && <span className="mt-1 block text-[9px] font-black text-indigo-400 lowercase opacity-60">{c.weight || c.percentage}%</span>}
+                                                                {c.id === 'uncategorized' && <span className="mt-1 block text-[9px] font-black text-amber-500 lowercase opacity-60">Sin Peso</span>}
                                                             </div>
                                                         </th>
                                                     )
                                                 })
                                             })()}
-                                            <th className="px-6 py-4 text-xs font-bold text-gray-900 uppercase tracking-wider text-right bg-blue-50/30">Total</th>
+                                            <th className="px-8 py-6 text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] text-right bg-indigo-50/30 border-l border-indigo-50">Total</th>
                                         </>
                                     ) : (
                                         <>
-                                            <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Pase de Lista ({attendanceDate})</th>
-                                            <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Resumen del Periodo</th>
+                                            <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Asistencia ({attendanceDate})</th>
+                                            <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Acumulado</th>
                                         </>
                                     )}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {students.map(student => (
-                                    <tr key={student.id} className="hover:bg-gray-50/50 transition-colors group/row">
-                                        <td className="px-6 py-4 sticky left-0 bg-white group-hover/row:bg-gray-50 transition-colors z-10 border-r border-gray-100 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
+                                    <tr key={student.id} className="hover:bg-slate-50 transition-colors group/row">
+                                        <td className="px-8 py-6 sticky left-0 bg-white group-hover/row:bg-slate-50 transition-colors z-10 border-r border-slate-100 shadow-[4px_0_10px_-4px_rgba(0,0,0,0.05)]">
                                             <div className="flex items-center">
-                                                <div className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 border border-white flex items-center justify-center text-blue-700 font-bold text-xs mr-3 shadow-sm">
+                                                <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 border-4 border-white flex items-center justify-center text-white font-black text-sm mr-4 shadow-lg group-hover/row:scale-110 transition-transform">
                                                     {student.first_name[0]}{student.last_name_paternal[0]}
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm font-bold text-gray-900">{student.last_name_paternal} {student.last_name_maternal} {student.first_name}</p>
-                                                    <p className="text-[10px] text-gray-500 font-medium uppercase tracking-tight">{student.curp || 'SIN CURP'}</p>
+                                                    <p className="text-sm font-black text-slate-900 leading-none mb-1">{student.last_name_paternal} {student.last_name_maternal}</p>
+                                                    <p className="text-sm font-bold text-slate-500 leading-none">{student.first_name}</p>
+                                                    <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mt-1">{student.curp || 'SIN CURP'}</p>
                                                 </div>
                                             </div>
                                         </td>
@@ -1000,52 +1028,58 @@ export const GradebookPage = () => {
                                                         const gradedCount = studentGrades.filter(g => g.is_graded).length
 
                                                         return (
-                                                            <td key={c.id} className="p-0">
+                                                            <td key={c.id} className="p-0 border-r border-slate-50 last:border-r-0">
                                                                 <button
                                                                     onClick={() => {
                                                                         setSelectedStudentForGrading(student)
                                                                         setSelectedCriterionForGrading(c)
                                                                     }}
-                                                                    className={`w-full h-full px-6 py-4 flex flex-col items-center justify-center transition-colors group/cell ${c.id === 'uncategorized' ? 'bg-amber-50/30 hover:bg-amber-100/50' : 'hover:bg-blue-50'
+                                                                    className={`w-full h-full px-8 py-6 flex flex-col items-center justify-center transition-all group/cell ${c.id === 'uncategorized' ? 'bg-amber-50/10 hover:bg-amber-50/30' : 'hover:bg-indigo-50/50'
                                                                         }`}
                                                                 >
-                                                                    <div className="flex flex-col items-center">
-                                                                        <span className={`text-sm font-bold transition-colors ${c.id === 'uncategorized' ? 'text-amber-700' : 'text-gray-700 group-hover/cell:text-blue-700'
+                                                                    <div className="flex flex-col items-center group-hover/cell:scale-125 transition-transform duration-300">
+                                                                        <span className={`text-base font-black transition-colors ${c.id === 'uncategorized' ? 'text-amber-600' : 'text-slate-700 group-hover/cell:text-indigo-600'
                                                                             }`}>
                                                                             {gradedCount > 0 ? (studentGrades.reduce((acc, curr) => acc + (curr.score || 0), 0) / gradedCount).toFixed(1) : '-'}
                                                                         </span>
-                                                                        <span className={`text-[10px] transition-colors ${c.id === 'uncategorized' ? 'text-amber-500' : 'text-gray-400 group-hover/cell:text-blue-400'
-                                                                            }`}>
-                                                                            {gradedCount}/{cAssignments.length}
-                                                                        </span>
+                                                                        <div className="flex items-center gap-1 mt-0.5">
+                                                                            <div className="w-1 h-1 rounded-full bg-slate-300 group-hover/cell:bg-indigo-400"></div>
+                                                                            <span className={`text-[9px] font-black uppercase tracking-tight transition-colors ${c.id === 'uncategorized' ? 'text-amber-400' : 'text-slate-400 group-hover/cell:text-indigo-400'
+                                                                                }`}>
+                                                                                {gradedCount}/{cAssignments.length}
+                                                                            </span>
+                                                                        </div>
                                                                     </div>
                                                                 </button>
                                                             </td>
                                                         )
                                                     })
                                                 })()}
-                                                <td className="px-6 py-4 text-right bg-blue-50/10">
-                                                    <div className="flex flex-col items-end">
-                                                        <span className="text-lg font-black text-blue-600">
+                                                <td className="px-8 py-6 text-right bg-indigo-50/20">
+                                                    <div className="flex flex-col items-end group/total">
+                                                        <span className="text-2xl font-black text-indigo-600 group-hover/total:scale-110 transition-transform">
                                                             {calculateProgress(student.id)}
                                                         </span>
+                                                        <div className="flex items-center gap-1 mt-0.5 opacity-40">
+                                                            <GraduationCap className="w-3 h-3 text-indigo-500" />
+                                                            <span className="text-[8px] font-black uppercase tracking-widest text-indigo-400">Final</span>
+                                                        </div>
                                                     </div>
                                                 </td>
                                             </>
                                         ) : (
                                             <>
-                                                <td className="px-6 py-4 text-center">
-                                                    <div className="flex items-center justify-center space-x-1">
+                                                <td className="px-8 py-6 text-center">
+                                                    <div className="flex items-center justify-center gap-2">
                                                         {[
-                                                            { status: 'PRESENT', label: 'A', title: 'Asistencia', color: 'emerald' },
-                                                            { status: 'LATE', label: 'R', title: 'Retardo', color: 'amber' },
-                                                            { status: 'ABSENT', label: 'F', title: 'Falta', color: 'red' },
-                                                            { status: 'EXCUSED', label: 'P', title: 'Permiso', color: 'blue' }
+                                                            { status: 'PRESENT', label: 'A', title: 'Asistencia', activeColor: 'bg-emerald-500', hoverColor: 'hover:bg-emerald-50', textColor: 'text-emerald-600' },
+                                                            { status: 'LATE', label: 'R', title: 'Retardo', activeColor: 'bg-amber-500', hoverColor: 'hover:bg-amber-50', textColor: 'text-amber-600' },
+                                                            { status: 'ABSENT', label: 'F', title: 'Falta', activeColor: 'bg-rose-500', hoverColor: 'hover:bg-rose-50', textColor: 'text-rose-600' },
+                                                            { status: 'EXCUSED', label: 'P', title: 'Permiso', activeColor: 'bg-indigo-500', hoverColor: 'hover:bg-indigo-50', textColor: 'text-indigo-600' }
                                                         ].map(item => {
                                                             const record = attendance.find(a =>
                                                                 a.student_id === student.id &&
                                                                 a.date === attendanceDate &&
-                                                                // Match subject specific or general
                                                                 (a.subject_id === (subjectId || null))
                                                             )
                                                             const currentStatus = pendingAttendance[student.id] || record?.status
@@ -1057,10 +1091,10 @@ export const GradebookPage = () => {
                                                                     key={item.status}
                                                                     onClick={() => handleAttendanceChange(student.id, item.status)}
                                                                     title={item.title}
-                                                                    className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${isActive
-                                                                        ? `bg-${item.color}-500 text-white shadow-md scale-110`
-                                                                        : `bg-gray-50 text-${item.color}-600 hover:bg-${item.color}-50`
-                                                                        } ${isPending ? 'ring-2 ring-white ring-offset-2' : ''} ${profile?.is_demo ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                                    className={`w-10 h-10 rounded-2xl text-[10px] font-black uppercase transition-all flex items-center justify-center border-2 ${isActive
+                                                                        ? `${item.activeColor} text-white border-white shadow-lg scale-110 z-10`
+                                                                        : `bg-slate-50 border-slate-50 ${item.textColor} ${item.hoverColor} hover:scale-110`
+                                                                        } ${isPending ? 'ring-2 ring-indigo-400 ring-offset-2 animate-pulse' : ''} ${profile?.is_demo ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                                 >
                                                                     {item.label}
                                                                 </button>
@@ -1068,33 +1102,35 @@ export const GradebookPage = () => {
                                                         })}
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 text-right">
+                                                <td className="px-8 py-6 text-right">
                                                     <button
                                                         onClick={() => setSelectedStudentForHistory(student)}
-                                                        className="flex items-center justify-end space-x-4 hover:bg-gray-100 p-2 rounded-lg transition-colors group/history w-full"
+                                                        className="flex items-center justify-end gap-5 hover:bg-slate-100/50 p-4 rounded-3xl transition-all group/history w-full border border-transparent hover:border-slate-100"
                                                         title="Ver historial detallado"
                                                     >
                                                         {(() => {
                                                             const summary = getAttendanceSummary(student.id)
                                                             return (
                                                                 <>
-                                                                    <div className="text-center">
-                                                                        <p className="text-[10px] text-emerald-600 font-bold">AS</p>
-                                                                        <p className="text-sm font-bold text-gray-700">{summary.present}</p>
+                                                                    <div className="text-center group-hover/history:scale-110 transition-transform">
+                                                                        <p className="text-[9px] text-emerald-600 font-black uppercase tracking-widest leading-none mb-1">AS</p>
+                                                                        <p className="text-base font-black text-slate-700">{summary.present}</p>
                                                                     </div>
-                                                                    <div className="text-center">
-                                                                        <p className="text-[10px] text-amber-600 font-bold">RT</p>
-                                                                        <p className="text-sm font-bold text-gray-700">{summary.late}</p>
+                                                                    <div className="text-center group-hover/history:scale-110 transition-transform delay-75">
+                                                                        <p className="text-[9px] text-amber-600 font-black uppercase tracking-widest leading-none mb-1">RT</p>
+                                                                        <p className="text-base font-black text-slate-700">{summary.late}</p>
                                                                     </div>
-                                                                    <div className="text-center">
-                                                                        <p className="text-[10px] text-red-600 font-bold">FT</p>
-                                                                        <p className="text-sm font-bold text-gray-700">{summary.absent}</p>
+                                                                    <div className="text-center group-hover/history:scale-110 transition-transform delay-100">
+                                                                        <p className="text-[9px] text-rose-600 font-black uppercase tracking-widest leading-none mb-1">FT</p>
+                                                                        <p className="text-base font-black text-slate-700">{summary.absent}</p>
                                                                     </div>
-                                                                    <div className="text-center">
-                                                                        <p className="text-[10px] text-blue-600 font-bold">PM</p>
-                                                                        <p className="text-sm font-bold text-gray-700">{summary.excused}</p>
+                                                                    <div className="text-center group-hover/history:scale-110 transition-transform delay-150">
+                                                                        <p className="text-[9px] text-indigo-600 font-black uppercase tracking-widest leading-none mb-1">PM</p>
+                                                                        <p className="text-base font-black text-slate-700">{summary.excused}</p>
                                                                     </div>
-                                                                    <ArrowRight className="w-4 h-4 text-gray-300 group-hover/history:text-blue-500 transition-colors ml-2" />
+                                                                    <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover/history:bg-indigo-600 group-hover/history:text-white transition-all shadow-inner">
+                                                                        <ArrowRight className="w-5 h-5" />
+                                                                    </div>
                                                                 </>
                                                             )
                                                         })()}
@@ -1128,6 +1164,24 @@ export const GradebookPage = () => {
                 )
             }
 
+            {group && periods.find(p => p.id === selectedPeriodId) && (
+                <ClosePeriodModal
+                    isOpen={isClosePeriodModalOpen}
+                    onClose={() => setIsClosePeriodModalOpen(false)}
+                    onSuccess={() => {
+                        setIsClosePeriodModalOpen(false)
+                        loadData()
+                    }}
+                    period={periods.find(p => p.id === selectedPeriodId)!}
+                    group={group}
+                    students={students}
+                    assignments={assignments}
+                    grades={grades}
+                    criteria={criteria}
+                    attendance={attendance}
+                    subjectId={subjectId || undefined}
+                />
+            )}
 
             {group && (
                 <CloseAcademicYearModal

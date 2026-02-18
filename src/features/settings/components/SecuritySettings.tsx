@@ -65,8 +65,8 @@ export const SecuritySettings = ({ profile, tenant, isDirectorOrAdmin }: Securit
 
             const { data, error } = await supabase.auth.mfa.enroll({
                 factorType: 'totp',
-                issuer: 'NEMIA Escolar',
-                friendlyName: profile?.full_name || 'NEMIA Auth'
+                issuer: 'Vunlek Escolar',
+                friendlyName: profile?.full_name || 'Vunlek Auth'
             })
             if (error) throw error
             setMfaData(data)
@@ -137,7 +137,7 @@ export const SecuritySettings = ({ profile, tenant, isDirectorOrAdmin }: Securit
         if (!confirm('¿Deseas descargar una copia de seguridad?')) return
         try {
             setLoading(true)
-            await exportUserData(tenant.id, `Respaldo_NEMIA_${new Date().toISOString().split('T')[0]}.json`)
+            await exportUserData(tenant.id, `Respaldo_Vunlek_${new Date().toISOString().split('T')[0]}.json`)
             alert('Respaldo descargado correctamente')
         } catch (e) {
             alert('Error al generar respaldo')

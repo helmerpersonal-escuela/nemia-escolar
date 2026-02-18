@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Plus, Search, Filter, AlertTriangle, FileText, CheckCircle, Download, Trash2, Printer, Pencil } from 'lucide-react'
+import { Plus, Search, Filter, AlertTriangle, FileText, CheckCircle, Download, Trash2, Printer, Pencil, ChevronDown, Calendar, ShieldCheck } from 'lucide-react'
 import { CreateIncidentModal } from './CreateIncidentModal'
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
@@ -150,41 +150,42 @@ export const ConductReportsTab = ({
         printWindow.document.close()
     }
 
-    const getSeverityColor = (severity: string) => {
+    const getSeverityStyles = (severity: string) => {
         switch (severity) {
-            case 'ALTA': return 'text-red-600 bg-red-50 border-red-200'
-            case 'MEDIA': return 'text-orange-600 bg-orange-50 border-orange-200'
-            default: return 'text-blue-600 bg-blue-50 border-blue-200'
+            case 'ALTA': return 'text-rose-600 bg-rose-50 border-rose-100'
+            case 'MEDIA': return 'text-amber-600 bg-amber-50 border-amber-100'
+            default: return 'text-indigo-600 bg-indigo-50 border-indigo-100'
         }
     }
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Header Actions */}
-            <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                <div className="flex items-center gap-4 w-full md:w-auto">
-                    <div className="relative flex-1 md:w-64">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            {/* Header Actions - Tactile Bar */}
+            <div className="squishy-card p-4 flex flex-col md:flex-row gap-4 justify-between items-center bg-white/80 backdrop-blur-md border-none shadow-xl shadow-slate-200/50">
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                    <div className="relative flex-1 md:w-80 group/search">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within/search:text-indigo-500 transition-colors" />
                         <input
                             type="text"
                             placeholder="Buscar por alumno o título..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 text-sm"
+                            className="w-full pl-12 pr-4 py-3 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all text-sm font-bold text-slate-700 placeholder:text-slate-400 placeholder:font-black placeholder:uppercase placeholder:tracking-widest placeholder:text-[10px]"
                         />
                     </div>
-                    <div className="relative">
-                        <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <div className="relative group/filter">
+                        <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within/filter:text-indigo-500 transition-colors pointer-events-none" />
                         <select
                             value={filterType}
                             onChange={(e) => setFilterType(e.target.value)}
-                            className="pl-10 pr-8 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 text-sm appearance-none bg-white"
+                            className="pl-12 pr-10 py-3 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all text-sm font-black uppercase tracking-widest text-[10px] text-slate-600 appearance-none cursor-pointer"
                         >
-                            <option value="ALL">Todos los tipos</option>
+                            <option value="ALL">Todos</option>
                             <option value="CONDUCTA">Conducta</option>
                             <option value="ACADEMICO">Académico</option>
                             <option value="POSITIVO">Positivo</option>
                         </select>
+                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                     </div>
                 </div>
 
@@ -194,9 +195,9 @@ export const ConductReportsTab = ({
                         setIncidentToEdit(null)
                         setIsCreateModalOpen(true)
                     }}
-                    className="w-full md:w-auto px-6 py-2 bg-gray-900 text-white rounded-xl font-bold flex items-center justify-center hover:bg-black transition-all shadow-lg shadow-gray-200 hover:shadow-xl"
+                    className="btn-tactile w-full md:w-auto px-8 py-3 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2"
                 >
-                    <Plus className="w-5 h-5 mr-2" />
+                    <Plus className="w-4 h-4" />
                     Nuevo Reporte
                 </button>
             </div>
@@ -207,73 +208,90 @@ export const ConductReportsTab = ({
                     filteredIncidents.map((incident) => {
                         const student = students.find(s => s.id === incident.student_id)
                         return (
-                            <div key={incident.id} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all group relative">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="flex items-center space-x-3">
-                                        <div className={`p-2 rounded-xl ${incident.has_commitment ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-500'}`}>
-                                            {incident.has_commitment ? <FileText className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
+                            <div key={incident.id} className="squishy-card p-6 bg-white border-none shadow-lg shadow-slate-100 group/card relative flex flex-col">
+                                <div className="flex justify-between items-start mb-5">
+                                    <div className="flex items-center gap-4">
+                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner transition-transform group-hover/card:scale-110 ${incident.has_commitment ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'
+                                            }`}>
+                                            {incident.has_commitment ? <FileText className="w-6 h-6" /> : <AlertTriangle className="w-6 h-6" />}
                                         </div>
                                         <div>
-                                            <h4 className="font-bold text-gray-900 line-clamp-1">{incident.title}</h4>
-                                            <p className="text-xs text-gray-500 font-medium">
-                                                {new Date(incident.created_at).toLocaleDateString()} • {incident.type}
-                                            </p>
+                                            <h4 className="font-black text-slate-800 line-clamp-1 leading-tight">{incident.title}</h4>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <Calendar className="w-3 h-3 text-slate-300" />
+                                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">
+                                                    {new Date(incident.created_at).toLocaleDateString()}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
-                                    <span className={`px-2 py-1 rounded text-[10px] font-black uppercase border ${getSeverityColor(incident.severity)}`}>
+                                    <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-[0.2em] border-2 ${getSeverityStyles(incident.severity)}`}>
                                         {incident.severity}
                                     </span>
                                 </div>
 
-                                <p className="text-sm font-bold text-blue-900 mb-2">
-                                    Alumno: {student?.first_name} {student?.last_name_paternal}
-                                </p>
-                                <p className="text-gray-600 text-sm line-clamp-3 mb-4 bg-gray-50 p-3 rounded-xl">
-                                    "{incident.description}"
-                                </p>
+                                <div className="bg-slate-50 rounded-2xl p-4 mb-4 border border-slate-100 group-hover/card:bg-white group-hover/card:border-indigo-100 transition-colors">
+                                    <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1 opacity-60">Alumno</p>
+                                    <p className="text-sm font-black text-slate-700">
+                                        {student?.last_name_paternal} {student?.last_name_maternal}
+                                    </p>
+                                    <p className="text-xs font-bold text-slate-500">{student?.first_name}</p>
+                                </div>
+
+                                <div className="relative">
+                                    <p className="text-slate-600 text-sm leading-relaxed line-clamp-3 italic">
+                                        "{incident.description}"
+                                    </p>
+                                </div>
 
                                 {incident.has_commitment && (
-                                    <div className="mb-4 flex items-center text-xs font-bold text-purple-700 bg-purple-50 p-2 rounded-lg border border-purple-100">
-                                        <CheckCircle className="w-3 h-3 mr-1" />
-                                        Requiere Acta de Compromiso
+                                    <div className="mt-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50/50 p-3 rounded-2xl border border-indigo-100/50">
+                                        <ShieldCheck className="w-4 h-4" />
+                                        Requiere Acta
                                     </div>
                                 )}
 
-                                <div className="flex justify-end items-center gap-2 pt-4 border-t border-gray-50 mt-auto">
+                                <div className="flex justify-end items-center gap-2 pt-5 border-t border-slate-50 mt-auto">
                                     {incident.has_commitment && (
                                         <button
                                             onClick={() => handlePrintCommitment(incident, student)}
-                                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                            className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all hover:scale-110 active:scale-90"
                                             title="Imprimir Acta"
                                         >
-                                            <Printer className="w-4 h-4" />
+                                            <Printer className="w-5 h-5" />
                                         </button>
                                     )}
                                     <button
                                         onClick={() => handleEdit(incident)}
-                                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                        className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all hover:scale-110 active:scale-90"
                                         title="Editar Reporte"
                                     >
-                                        <Pencil className="w-4 h-4" />
+                                        <Pencil className="w-5 h-5" />
                                     </button>
                                     <button
                                         onClick={() => handleDelete(incident.id)}
-                                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                        className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all hover:scale-110 active:scale-90"
                                         title="Eliminar Reporte"
                                     >
-                                        <Trash2 className="w-4 h-4" />
+                                        <Trash2 className="w-5 h-5" />
                                     </button>
                                 </div>
                             </div>
                         )
                     })
                 ) : (
-                    <div className="col-span-full py-12 text-center text-gray-400 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
-                        <div className="p-4 bg-white rounded-full inline-block mb-4 shadow-sm">
-                            <CheckCircle className="w-8 h-8 text-green-500" />
+                    <div className="col-span-full py-20 text-center bg-slate-50/50 rounded-[3rem] border-4 border-dashed border-slate-100 flex flex-col items-center justify-center">
+                        <div className="w-20 h-20 bg-white rounded-[2rem] shadow-xl flex items-center justify-center mb-6 scale-110">
+                            <ShieldCheck className="w-10 h-10 text-emerald-500" />
                         </div>
-                        <p className="font-bold text-lg text-gray-600">No hay reportes registrados</p>
-                        <p className="text-sm">Utiliza el botón "Nuevo Reporte" para agregar incidencias.</p>
+                        <p className="font-black text-2xl text-slate-800 uppercase tracking-widest mb-2">Paz y Litoral</p>
+                        <p className="text-slate-400 font-bold max-w-sm mx-auto">No hay incidencias registradas. ¡Tu grupo parece estar en excelente armonía!</p>
+                        <button
+                            onClick={() => setIsCreateModalOpen(true)}
+                            className="mt-8 px-8 py-3 bg-white border-2 border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all shadow-lg"
+                        >
+                            Crear primer reporte
+                        </button>
                     </div>
                 )}
             </div>

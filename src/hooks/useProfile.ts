@@ -22,37 +22,51 @@ export interface Profile {
     avatar_url: string | null
     created_at: string
     work_start_time: string | null // e.g. "07:00:00"
+    isSuperAdmin?: boolean
 }
 
 export const useProfile = () => {
     const queryClient = useQueryClient()
 
-    const { data: profile, isLoading, error } = useQuery<Profile | null>({
+    const { data: profile, isLoading, error } = useQuery<Profile & { isImpersonating?: boolean } | null>({
         queryKey: ['profile'],
         queryFn: async () => {
             const { data: { user } } = await supabase.auth.getUser()
-            if (!user) return null
+            if (!user) {
+                sessionStorage.removeItem('vunlek_impersonate_id')
+                return null
+            }
 
             // Check for impersonation param
             const searchParams = new URLSearchParams(window.location.search)
-            const impersonateId = searchParams.get('impersonate')
+            let impersonateId = searchParams.get('impersonate')
+
+            // Persist to session storage if found in URL
+            if (impersonateId) {
+                sessionStorage.setItem('vunlek_impersonate_id', impersonateId)
+            } else {
+                // Fallback to session storage if not in URL
+                impersonateId = sessionStorage.getItem('vunlek_impersonate_id')
+            }
 
             let targetUserId = user.id
+            let isImpersonating = false
 
             // Security Check: Only allow impersonation if the REAL user is a Super Admin
             if (impersonateId) {
                 const { data: realUserProfile } = await supabase
                     .from('profiles')
-                    .select('role, email') // We might need to select email if it's in profile, or rely on auth email
+                    .select('role')
                     .eq('id', user.id)
-                    .single()
+                    .maybeSingle()
 
-                // Using auth email is safer as it can't be spoofed in DB as easily
                 const isSuperAdmin = user.email === 'helmerferras@gmail.com' || user.email === 'helmerpersonal@gmail.com' || realUserProfile?.role === 'SUPER_ADMIN'
 
                 if (isSuperAdmin) {
-                    console.warn('GOD MODE: Impersonating User', impersonateId)
                     targetUserId = impersonateId
+                    isImpersonating = true
+                } else {
+                    sessionStorage.removeItem('vunlek_impersonate_id')
                 }
             }
 
@@ -60,10 +74,13 @@ export const useProfile = () => {
                 .from('profiles')
                 .select('*')
                 .eq('id', targetUserId)
-                .single()
+                .maybeSingle()
 
             if (error) throw error
-            return data
+
+            const isSuperAdmin = user.email === 'helmerferras@gmail.com' || user.email === 'helmerpersonal@gmail.com' || data?.role === 'SUPER_ADMIN'
+
+            return { ...data, isSuperAdmin, isImpersonating }
         },
         staleTime: 1000 * 30, // 30 seconds
     })
@@ -93,6 +110,7 @@ export const useProfile = () => {
         profile,
         isLoading,
         error,
+        isSuperAdmin: profile?.isSuperAdmin || false,
         updateProfile: updateProfile.mutateAsync,
         isUpdating: updateProfile.isPending
     }

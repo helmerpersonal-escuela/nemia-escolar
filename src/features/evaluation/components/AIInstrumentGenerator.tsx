@@ -1,12 +1,12 @@
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { X, Wand2, Loader2, Save, Sparkles, Printer } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { GeminiService } from '../../../lib/gemini'
 import { useTenant } from '../../../hooks/useTenant'
 
-// Initialize service for use
-const geminiService = new GeminiService('') // Key is handled inside class or env
+// Initialize service for use (default instance, overwritten in component)
+let geminiService = new GeminiService()
 
 type AIInstrumentGeneratorProps = {
     isOpen: boolean
@@ -32,6 +32,13 @@ export const AIInstrumentGenerator = ({
     onInstrumentCreated
 }: AIInstrumentGeneratorProps) => {
     const { data: tenant } = useTenant()
+
+    // Initialize/Update AI Service with tenant keys
+    // Initialize/Update AI Service with tenant keys
+    const aiService = useMemo(() => new GeminiService(
+        tenant?.aiConfig?.geminiKey || '',
+        tenant?.aiConfig?.apiKey || ''
+    ), [tenant?.aiConfig?.geminiKey, tenant?.aiConfig?.apiKey])
     // State for new workflow
     // Step 1: Context Selection (Activity OR Topic)
     // Step 2: Proposal Selection (AI suggests 3 options)
@@ -128,7 +135,7 @@ export const AIInstrumentGenerator = ({
         try {
             const contextText = selectedContext.label
             console.log('[AIInstrumentGenerator] Generating proposals for:', contextText)
-            const result = await geminiService.generateAssignmentProposals({
+            const result = await aiService.generateAssignmentProposals({
                 topic: contextText,
                 subject: subjectName
             })
@@ -150,7 +157,7 @@ export const AIInstrumentGenerator = ({
         setSelectedProposal(proposal)
         try {
             console.log('[AIInstrumentGenerator] Generating instrument for proposal:', proposal.title)
-            const result = await geminiService.generateInstrument({
+            const result = await aiService.generateInstrument({
                 activity: proposal.description,
                 subject: subjectName,
                 type: proposal.instrumentType === 'CHECKLIST' ? 'CHECKLIST' : 'ANALYTIC'
@@ -226,7 +233,7 @@ export const AIInstrumentGenerator = ({
                         </tbody>
                     </table>
 
-                    <div class="footer">Generado por Asistente IA NEMIA - ${new Date().toLocaleDateString()}</div>
+                    <div class="footer">Generado por Asistente IA Vunlek - ${new Date().toLocaleDateString()}</div>
                     <script>setTimeout(() => { window.print(); window.close(); }, 500);</script>
                 </body>
             </html>
@@ -259,7 +266,7 @@ export const AIInstrumentGenerator = ({
                 is_ai_generated: true
             }).select().single()
 
-            if (!rubricData) throw new Error('No se recibió confirmación del servidor al crear el instrumento');
+            if (!rubricData) throw rubricError || new Error('No se recibió confirmación del servidor al crear el instrumento');
 
             console.log('[AIInstrumentGenerator] Instrument saved successfully:', rubricData.id)
 
@@ -298,7 +305,7 @@ export const AIInstrumentGenerator = ({
                                 <span className={`h-1.5 w-6 rounded-full ${step >= 2 ? 'bg-indigo-600' : 'bg-gray-200'}`}></span>
                                 <span className={`h-1.5 w-6 rounded-full ${step >= 3 ? 'bg-indigo-600' : 'bg-gray-200'}`}></span>
                                 <span className="text-[10px] text-gray-400 font-bold uppercase ml-2">Paso {step} de 3</span>
-                                {geminiService.isFallingBack && (
+                                {aiService.isFallingBack && (
                                     <span className="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full ml-2 animate-pulse">
                                         Modo Alta Disponibilidad (Groq)
                                     </span>
@@ -578,8 +585,8 @@ export const AIInstrumentGenerator = ({
                             >
                                 {loading ? 'Guardando...' : (
                                     <>
-                                        <Save className="w-5 h-5 mr-2" />
-                                        Crear Tarea
+                                        <Sparkles className="w-5 h-5 mr-2" />
+                                        Confirmar y Aplicar
                                     </>
                                 )}
                             </button>

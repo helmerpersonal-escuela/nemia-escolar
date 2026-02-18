@@ -16,9 +16,13 @@ export const GroupDetailsPage = () => {
     const location = useLocation()
     const { data: tenant } = useTenant()
 
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+    const [isAddModalOpen, setIsAddModalOpen] = useState(() => {
+        return sessionStorage.getItem('vunlek_is_add_student_modal_open') === 'true'
+    })
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-    const [editingStudentId, setEditingStudentId] = useState<string | null>(null)
+    const [editingStudentId, setEditingStudentId] = useState<string | null>(() => {
+        return sessionStorage.getItem('vunlek_editing_student_id')
+    })
     const [selectedStudent, setSelectedStudent] = useState<any>(null)
     const [showCredential, setShowCredential] = useState(false)
     const [activeTab, setActiveTab] = useState<'students' | 'evaluation'>('students')
@@ -27,11 +31,17 @@ export const GroupDetailsPage = () => {
     useEffect(() => {
         if (location.state?.openAddStudent) {
             setIsAddModalOpen(true)
-            // clear state so it doesn't reopen on refresh? 
-            // window.history.replaceState({}, document.title) 
-            // React Router specific cleaning is cleaner but checking state existence is enough for now
         }
     }, [location.state])
+
+    useEffect(() => {
+        sessionStorage.setItem('vunlek_is_add_student_modal_open', isAddModalOpen.toString())
+        if (editingStudentId) {
+            sessionStorage.setItem('vunlek_editing_student_id', editingStudentId)
+        } else {
+            sessionStorage.removeItem('vunlek_editing_student_id')
+        }
+    }, [isAddModalOpen, editingStudentId])
 
     // 1. Fetch Group Info
     const { data: group, isLoading: loadingGroup } = useQuery({
@@ -114,7 +124,7 @@ Esta acción NO se puede deshacer.`
     return (
         <div className="space-y-8 pb-12 animate-in fade-in duration-500">
             {/* Header */}
-            <div className="bg-white rounded-3xl p-8 shadow-xl border border-gray-100 relative overflow-hidden">
+            <div className="squishy-card p-8 relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-indigo-50 opacity-50" />
                 <div className="relative z-10 font-sans">
                     <button onClick={() => navigate('/groups')} className="text-gray-500 hover:text-blue-600 flex items-center mb-4 transition-colors font-medium">
@@ -149,7 +159,7 @@ Esta acción NO se puede deshacer.`
                             </button>
                             <button
                                 onClick={() => setIsAddModalOpen(true)}
-                                className="flex items-center px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-bold shadow-lg shadow-blue-200 hover:scale-105 transition-all"
+                                className="flex items-center px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-bold shadow-lg shadow-blue-200 btn-tactile"
                             >
                                 <UserPlus className="h-5 w-5 mr-2" />
                                 Agregar Alumno
@@ -201,7 +211,7 @@ Esta acción NO se puede deshacer.`
 
             {/* Students List */}
             {activeTab === 'students' && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="squishy-card overflow-hidden">
                     <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
                         <h3 className="font-semibold text-gray-700">Lista de Alumnos ({students?.length || 0})</h3>
                         {/* <span className="text-xs text-gray-500">Máximo 50</span> */}
@@ -213,7 +223,7 @@ Esta acción NO se puede deshacer.`
                         </div>
                     ) : (
                         <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
+                            <thead className="bg-indigo-50/50">
                                 <tr>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Foto</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre Completo</th>

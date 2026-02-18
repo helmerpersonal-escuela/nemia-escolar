@@ -44,7 +44,7 @@ export const AuditOverviewPage = () => {
                         <span className="text-[10px] font-black uppercase tracking-widest">SISTEMA INTEGRAL DE AUDITORÍA</span>
                     </div>
                 </div>
-                <h1 className="text-4xl font-black text-slate-900 mb-2 tracking-tighter">Estado de Resiliencia NEMIA</h1>
+                <h1 className="text-4xl font-black text-slate-900 mb-2 tracking-tighter">Estado de Resiliencia Vunlek</h1>
                 <p className="text-slate-500 font-medium max-w-2xl">
                     Reporte técnico consolidado sobre la integridad del frontend, backend y arquitectura de datos.
                 </p>
@@ -56,7 +56,7 @@ export const AuditOverviewPage = () => {
                     </div>
                     <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tighter">Auditoría y Verificación de Resiliencia</h1>
                 </div>
-                <p className="text-gray-500 font-medium">Estado actual de la integridad del sistema Nemia y validación de componentes críticos.</p>
+                <p className="text-gray-500 font-medium">Estado actual de la integridad del sistema Vunlek y validación de componentes críticos.</p>
             </div>
 
             {/* Summary Grid */}

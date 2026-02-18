@@ -1,0 +1,32 @@
+{
+  "tenants": {
+    "has_data": true,
+    "count": 2,
+    "error": null
+  },
+  "groups": {
+    "has_data": false,
+    "count": 0,
+    "error": null
+  },
+  "profiles": {
+    "has_data": true,
+    "count": 3,
+    "error": null
+  },
+  "lesson_plans": {
+    "has_data": false,
+    "count": 0,
+    "error": null
+  },
+  "evaluation_periods": {
+    "has_data": false,
+    "count": 0,
+    "error": null
+  },
+  "subject_catalog": {
+    "has_data": false,
+    "count": 0,
+    "error": null
+  }
+}

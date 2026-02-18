@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Save, Calendar, Sparkles } from 'lucide-react'
+import { X, Save, Calendar, Sparkles, ActivitySquare, Clock, RefreshCw } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
@@ -152,6 +152,8 @@ export const CreateAssignmentModal = ({
                 instrument_id: formData.instrument_id || null
             }
 
+            console.log('[CreateAssignmentModal] Submitting payload:', payload)
+
             // Attempt to link to lesson plan if provided
             if (lessonPlanId) {
                 // We try to include it. If the column doesn't exist, Supabase might throw an error.
@@ -203,11 +205,11 @@ export const CreateAssignmentModal = ({
             }
 
             if (error) {
-                console.error('[CreateAssignmentModal] Error saving assignment:', error)
+                console.error('[CreateAssignmentModal] Error saving assignment (Final State):', error)
                 throw error
             }
 
-            console.log('[CreateAssignmentModal] Assignment saved successfully')
+            console.log('[CreateAssignmentModal] Assignment saved successfully. Response details if any:', { error })
             onSuccess()
             onClose()
             // Reset form
@@ -232,216 +234,259 @@ export const CreateAssignmentModal = ({
     if (!isOpen) return null
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] flex flex-col animate-fade-in">
-                <div className="flex justify-between items-start p-6 pb-2 shrink-0">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md overflow-y-auto">
+            {/* Background Blobs for specific Tactile feel */}
+            <div className="fixed inset-0 pointer-events-none overflow-hidden">
+                <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-indigo-400/20 blur-[100px] animate-blob" />
+                <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-400/20 blur-[100px] animate-blob transition-delay-2000" />
+            </div>
+
+            <div className="bg-[#F8FAFC] rounded-[3rem] shadow-2xl max-w-2xl w-full flex flex-col relative overflow-hidden border-8 border-white animate-in zoom-in-95 duration-300">
+                {/* Header Gradient Stripe */}
+                <div className="h-2 w-full animated-gradient" />
+
+                <div className="flex justify-between items-start p-10 pb-4 shrink-0">
                     <div>
-                        <h3 className="text-xl font-bold text-gray-900 leading-tight">
-                            {assignmentId ? 'Editar Actividad' : 'Nueva Actividad'}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                            {assignmentId ? 'Modifica los detalles de la actividad' : 'Crea una tarea o proyecto para tu grupo'}
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="p-3 bg-indigo-600 rounded-2xl shadow-lg rotate-[-3deg] inflatable-icon">
+                                <ActivitySquare className="w-6 h-6 text-white" />
+                            </div>
+                            <h3 className="text-3xl font-black text-indigo-950 uppercase italic tracking-tighter leading-none">
+                                {assignmentId ? 'Actualizar Actividad' : 'Nueva Misión'}
+                            </h3>
+                        </div>
+                        <p className="text-sm text-slate-400 font-bold uppercase tracking-widest pl-1">
+                            {assignmentId ? 'Refinando los parámetros de la tarea' : 'Diseña una experiencia de aprendizaje'}
                         </p>
                     </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-                        <X className="h-6 w-6" />
+                    <button
+                        onClick={onClose}
+                        className="p-3 bg-white rounded-2xl shadow-md text-slate-400 hover:text-rose-500 hover:rotate-90 transition-all duration-300 btn-tactile group"
+                    >
+                        <X className="h-6 w-6 group-hover:scale-110" />
                     </button>
                 </div>
 
-                <div className="overflow-y-auto p-6 pt-2">
-                    <form id="assignment-form" onSubmit={handleSubmit} className="space-y-4">
-                        {/* Title */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Título de la Actividad</label>
-                            <input
-                                type="text"
-                                required
-                                placeholder="EJ. RESUMEN DE LA REVOLUCIÓN MEXICANA"
-                                className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 text-sm uppercase font-bold"
-                                value={formData.title}
-                                onChange={e => setFormData({ ...formData, title: e.target.value.toUpperCase() })}
-                            />
-                        </div>
-
-                        {/* Description */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Descripción (Opcional)</label>
-                            <textarea
-                                rows={3}
-                                placeholder="INSTRUCCIONES PARA EL ALUMNO..."
-                                className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 text-sm resize-none uppercase"
-                                value={formData.description}
-                                onChange={e => setFormData({ ...formData, description: e.target.value.toUpperCase() })}
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            {/* Type */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Tipo de Actividad</label>
-                                <select
-                                    className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 text-sm"
-                                    value={formData.type}
-                                    onChange={e => setFormData({ ...formData, type: e.target.value })}
-                                >
-                                    <option value="HOMEWORK">Tarea</option>
-                                    <option value="CLASSWORK">Trabajo en Clase</option>
-                                    <option value="PROJECT">Proyecto</option>
-                                    <option value="EXAM">Examen</option>
-                                    <option value="PARTICIPATION">Participación</option>
-                                </select>
+                <div className="overflow-y-auto p-10 pt-2 custom-scrollbar max-h-[70vh]">
+                    <form id="assignment-form" onSubmit={handleSubmit} className="space-y-8">
+                        {/* 1. Basic Info Section */}
+                        <div className="squishy-card p-8 bg-white border border-indigo-50/50 space-y-6">
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className="w-1.5 h-6 bg-indigo-500 rounded-full" />
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400">Identificación</span>
                             </div>
 
-                            {/* Location Selector (New) */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Entorno</label>
-                                <div className="flex bg-gray-100 p-1 rounded-lg">
-                                    <button
-                                        type="button"
-                                        onClick={() => setLocation('SCHOOL')}
-                                        className={`flex-1 py-1 text-xs font-bold rounded-md transition-all ${location === 'SCHOOL' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                                    >
-                                        Aula / Escuela
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setLocation('HOME')}
-                                        className={`flex-1 py-1 text-xs font-bold rounded-md transition-all ${location === 'HOME' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                                    >
-                                        Casa
-                                    </button>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">
+                                        Nombre del Desafío <span className="text-rose-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        required
+                                        placeholder="EJ. MAPA CONCEPTUAL: LA COLONIA"
+                                        className="input-squishy w-full px-6 py-4 text-indigo-950 font-black text-sm uppercase placeholder:text-slate-300"
+                                        value={formData.title}
+                                        onChange={e => setFormData({ ...formData, title: e.target.value.toUpperCase() })}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">
+                                        Hoja de Ruta / Instrucciones <span className="text-rose-500">*</span>
+                                    </label>
+                                    <textarea
+                                        required
+                                        rows={3}
+                                        placeholder="DETALLA LOS PASOS PARA EL ÉXITO..."
+                                        className="input-squishy w-full px-6 py-4 text-sm font-bold text-slate-700 resize-none uppercase placeholder:text-slate-300"
+                                        value={formData.description}
+                                        onChange={e => setFormData({ ...formData, description: e.target.value.toUpperCase() })}
+                                    />
                                 </div>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-4">
-                            {/* Criterion Selector */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Ponderación (Criterio)</label>
-                                {loadingCriteria ? (
-                                    <div className="animate-pulse h-9 bg-gray-200 rounded-md mt-1"></div>
-                                ) : criteria.length > 0 ? (
-                                    <select
-                                        className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 text-sm bg-blue-50/50"
-                                        value={formData.criterion_id}
-                                        onChange={e => setFormData({ ...formData, criterion_id: e.target.value })}
-                                        required
-                                    >
-                                        <option value="">Seleccionar...</option>
-                                        {criteria.map(c => (
-                                            <option key={c.id} value={c.id}>
-                                                {c.name} ({c.percentage}%)
-                                            </option>
-                                        ))}
-                                    </select>
-                                ) : (
-                                    <div className="mt-2 p-3 bg-orange-50 border border-orange-200 rounded-md">
-                                        <p className="text-xs text-orange-800 font-bold mb-2">
-                                            ⚠️ No has configurado criterios para este grupo.
-                                        </p>
-                                        <p className="text-xs text-orange-600 mb-2">
-                                            Es necesario definir cómo evaluarás (Ej. Tareas 20%, Examen 40%) antes de crear actividades.
-                                        </p>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                onClose()
-                                                navigate(`/evaluation/setup?groupId=${groupId}&periodId=${periodId}`)
-                                            }}
-                                            className="text-xs bg-orange-100 text-orange-700 px-3 py-1.5 rounded-lg font-bold border border-orange-200 hover:bg-orange-200 transition-all shadow-sm"
+                        {/* 2. Parameters Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Type & Environment */}
+                            <div className="squishy-card p-8 bg-white border border-indigo-50/50 space-y-6">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-1.5 h-6 bg-purple-500 rounded-full" />
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-400">Logística</span>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Formato</label>
+                                        <select
+                                            className="input-squishy w-full px-6 py-4 text-xs font-black text-indigo-900 bg-slate-50 appearance-none cursor-pointer"
+                                            value={formData.type}
+                                            onChange={e => setFormData({ ...formData, type: e.target.value })}
                                         >
-                                            Configurar Criterios
-                                        </button>
+                                            <option value="HOMEWORK">Tarea</option>
+                                            <option value="CLASSWORK">Trabajo en Clase</option>
+                                            <option value="PROJECT">Proyecto</option>
+                                            <option value="EXAM">Examen</option>
+                                            <option value="PARTICIPATION">Participación</option>
+                                        </select>
                                     </div>
-                                )}
+
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Terreno de Acción</label>
+                                        <div className="flex bg-slate-100/50 p-2 rounded-[1.5rem] border-2 border-slate-50">
+                                            <button
+                                                type="button"
+                                                onClick={() => setLocation('SCHOOL')}
+                                                className={`flex-1 py-3 px-4 text-[10px] font-black uppercase tracking-tighter rounded-2xl transition-all duration-300 ${location === 'SCHOOL' ? 'bg-indigo-600 text-white shadow-lg scale-105' : 'text-slate-400 hover:text-indigo-600'}`}
+                                            >
+                                                Aula/Escuela
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setLocation('HOME')}
+                                                className={`flex-1 py-3 px-4 text-[10px] font-black uppercase tracking-tighter rounded-2xl transition-all duration-300 ${location === 'HOME' ? 'bg-indigo-600 text-white shadow-lg scale-105' : 'text-slate-400 hover:text-indigo-600'}`}
+                                            >
+                                                Casa/Remoto
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Evaluation Section */}
+                            <div className="squishy-card p-8 bg-white border border-indigo-50/50 space-y-6">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-1.5 h-6 bg-amber-500 rounded-full" />
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500">Puntaje</span>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">
+                                            Criterio Aplicable <span className="text-rose-500">*</span>
+                                        </label>
+                                        {loadingCriteria ? (
+                                            <div className="animate-pulse h-12 bg-slate-50 rounded-2xl"></div>
+                                        ) : criteria.length > 0 ? (
+                                            <select
+                                                className="input-squishy w-full px-6 py-4 text-xs font-black text-amber-700 bg-amber-50/30 cursor-pointer"
+                                                value={formData.criterion_id}
+                                                onChange={e => setFormData({ ...formData, criterion_id: e.target.value })}
+                                                required
+                                            >
+                                                <option value="">Seleccionar Ponderación...</option>
+                                                {criteria.map(c => (
+                                                    <option key={c.id} value={c.id}>
+                                                        {c.name.toUpperCase()} ({c.percentage}%)
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <div className="p-4 bg-rose-50 rounded-2xl border-2 border-rose-100 animate-pulse">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        onClose()
+                                                        navigate(`/evaluation/setup?groupId=${groupId}&periodId=${periodId}`)
+                                                    }}
+                                                    className="w-full text-[10px] font-black text-rose-600 uppercase tracking-widest hover:underline text-left"
+                                                >
+                                                    ⚠️ SIN CRITERIOS. CONFIGURAR AQUÍ.
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Instrumento</label>
+                                        <select
+                                            className="input-squishy w-full px-6 py-4 text-xs font-black text-slate-600 bg-slate-50 appearance-none"
+                                            value={formData.instrument_id}
+                                            onChange={e => setFormData({ ...formData, instrument_id: e.target.value })}
+                                        >
+                                            <option value="">Ninguno / Manual</option>
+                                            {rubrics.map(r => (
+                                                <option key={r.id} value={r.id}>
+                                                    {r.title.toUpperCase()} ({r.type === 'CHECKLIST' ? 'LISTA' : 'RÚBRICA'})
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            {/* Start Date (Project Period) */}
-                            {formData.type === 'PROJECT' && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Fecha de Inicio</label>
-                                    <div className="relative mt-1">
+                        {/* 3. Dates Section */}
+                        <div className="squishy-card p-10 bg-indigo-950 text-white relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full -mr-16 -mt-16 blur-3xl" />
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+                                {formData.type === 'PROJECT' && (
+                                    <div className="space-y-4">
+                                        <label className="flex items-center gap-2 text-[10px] font-black text-indigo-300 uppercase tracking-[0.2em]">
+                                            <Calendar className="w-4 h-4" /> Lanzamiento
+                                        </label>
                                         <input
                                             type="date"
-                                            className="block w-full rounded-md border border-gray-300 py-2 px-3 pl-10 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 text-sm"
+                                            className="w-full bg-indigo-900/50 border-2 border-indigo-800 rounded-2xl px-6 py-4 text-white font-black text-sm outline-none focus:border-indigo-400 transition-all shadow-inner"
                                             value={formData.start_date || ''}
                                             onChange={e => setFormData({ ...formData, start_date: e.target.value })}
                                         />
-                                        <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                                     </div>
-                                </div>
-                            )}
+                                )}
 
-                            {/* Due Date */}
-                            <div className={formData.type === 'PROJECT' ? '' : 'col-span-2'}>
-                                <label className="block text-sm font-medium text-gray-700">
-                                    {formData.type === 'PROJECT' ? 'Fecha de Entrega Final' : 'Fecha de Entrega'}
-                                </label>
-                                <div className="relative mt-1">
+                                <div className={formData.type === 'PROJECT' ? 'space-y-4' : 'col-span-2 space-y-4'}>
+                                    <label className="flex items-center gap-2 text-[10px] font-black text-indigo-300 uppercase tracking-[0.2em]">
+                                        <Clock className="w-4 h-4" /> {formData.type === 'PROJECT' ? 'Fecha Límite Final' : 'Plazo de Entrega'} <span className="text-rose-400">*</span>
+                                    </label>
                                     <input
                                         type="date"
                                         required
-                                        className="block w-full rounded-md border border-gray-300 py-2 px-3 pl-10 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 text-sm"
+                                        className="w-full bg-indigo-900/50 border-2 border-indigo-800 rounded-2xl px-6 py-4 text-white font-black text-sm outline-none focus:border-indigo-400 transition-all shadow-inner"
                                         value={formData.due_date}
                                         onChange={e => setFormData({ ...formData, due_date: e.target.value })}
                                     />
-                                    <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                                 </div>
                             </div>
                         </div>
-                        {/* Instrument Selector */}
-                        <div className="mt-4">
-                            <label className="block text-sm font-medium text-gray-700">Instrumento de Evaluación</label>
-                            {loadingRubrics ? (
-                                <div className="animate-pulse h-9 bg-gray-200 rounded-md mt-1"></div>
-                            ) : (
-                                <select
-                                    className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 text-sm"
-                                    value={formData.instrument_id}
-                                    onChange={e => setFormData({ ...formData, instrument_id: e.target.value })}
-                                >
-                                    <option value="">Ninguno / Por definir...</option>
-                                    {rubrics.map(r => (
-                                        <option key={r.id} value={r.id}>
-                                            {r.title} ({r.type === 'CHECKLIST' ? 'Lista' : 'Rúbrica'})
-                                        </option>
-                                    ))}
-                                </select>
-                            )}
-                        </div>
 
-
-                        {/* Actions */}
-                        <div className="flex justify-between items-center pt-4 border-t">
+                        {/* Footer / Actions */}
+                        <div className="flex flex-col md:flex-row justify-between items-center gap-6 pt-6 border-t border-slate-100">
                             <div>
                                 {lessonPlanId && (
                                     <button
                                         type="button"
                                         onClick={() => setIsAIGeneratorOpen(true)}
-                                        className="inline-flex items-center px-4 py-2 border border-purple-200 rounded-lg text-sm font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 transition-colors"
+                                        className="flex items-center gap-3 px-6 py-4 rounded-[2rem] bg-gradient-to-tr from-violet-600 to-indigo-600 text-white font-black uppercase text-xs tracking-widest btn-tactile shadow-xl shadow-indigo-200"
                                     >
-                                        <Sparkles className="h-4 w-4 mr-2" />
-                                        Generar con IA
+                                        <Sparkles className="h-5 w-5 animate-pulse" />
+                                        <span>Potenciar con IA</span>
                                     </button>
                                 )}
                             </div>
-                            <div className="flex space-x-3">
+                            <div className="flex items-center gap-4 w-full md:w-auto">
                                 <button
                                     type="button"
                                     onClick={onClose}
-                                    className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                    className="flex-1 md:flex-none px-8 py-4 text-slate-400 font-black uppercase text-xs tracking-widest hover:text-slate-600 transition-colors"
                                 >
-                                    Cancelar
+                                    Descartar
                                 </button>
                                 <button
                                     type="submit"
-                                    disabled={isLoading || criteria.length === 0}
-                                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={
+                                        isLoading ||
+                                        criteria.length === 0 ||
+                                        !formData.title.trim() ||
+                                        !formData.description.trim() ||
+                                        !formData.criterion_id ||
+                                        !formData.due_date
+                                    }
+                                    className="flex-1 md:flex-none px-12 py-4 bg-indigo-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] shadow-2xl shadow-indigo-200 btn-tactile hover:bg-indigo-700 disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-3"
                                 >
-                                    <Save className="h-4 w-4 mr-2" />
-                                    {isLoading ? 'Guardando...' : 'Crear Actividad'}
+                                    {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                    <span>{isLoading ? 'Guardando...' : 'Fijar Misión'}</span>
                                 </button>
                             </div>
                         </div>
@@ -457,36 +502,38 @@ export const CreateAssignmentModal = ({
                 subjectName={defaultSubjectName}
                 defaultDate={formData.due_date}
                 onInstrumentCreated={(data: any) => {
-                    // Handle full assignment data from AI
-                    // data: { instrumentId, title, description, type, location }
+                    console.log('[CreateAssignmentModal] AI Instrument created callback data:', data)
 
-                    // 1. Set Form Data
+                    // Map AI type to our internal enums to be safe
+                    const validTypes = ['HOMEWORK', 'CLASSWORK', 'PROJECT', 'EXAM', 'PARTICIPATION']
+                    const mappedType = validTypes.includes(data.type) ? data.type : (data.type === 'CLASS' ? 'CLASSWORK' : 'HOMEWORK')
+
                     setFormData(prev => ({
                         ...prev,
-                        title: data.title || prev.title,
-                        description: data.description || prev.description,
-                        type: data.type || prev.type,
+                        title: data.title?.toUpperCase() || prev.title,
+                        description: data.description?.toUpperCase() || prev.description,
+                        type: mappedType,
                         instrument_id: data.instrumentId || prev.instrument_id,
                         criterion_id: prev.criterion_id
                     }))
 
-                    // 2. Refresh Rubrics List to include new one
                     if (tenant?.id) {
                         supabase
                             .from('rubrics')
                             .select('id, title, type')
                             .eq('tenant_id', tenant.id)
-                            .then(({ data: rubData }) => setRubrics(rubData || []))
+                            .then(({ data: rubData }) => {
+                                console.log('[CreateAssignmentModal] Refetched rubrics after AI generation:', rubData?.length)
+                                setRubrics(rubData || [])
+                            })
                     }
-
-                    // 3. Set Location
                     if (data.location) {
                         setLocation(data.location)
                     }
-
-                    alert(`¡Instrumento "${data.title}" creado y vinculado!`)
+                    alert(`¡Misión "${data.title}" reforzada con IA!`)
                 }}
             />
         </div>
     )
 }
+

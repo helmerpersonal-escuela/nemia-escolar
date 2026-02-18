@@ -12,9 +12,12 @@ export const usePresence = () => {
     const [channel, setChannel] = useState<RealtimeChannel | null>(null)
 
     useEffect(() => {
+        let isMounted = true
+        let activeChannel: RealtimeChannel | null = null;
+
         const setupPresence = async () => {
             const { data: { user } } = await supabase.auth.getUser()
-            if (!user) return
+            if (!user || !isMounted) return
 
             // Create a presence channel
             const presenceChannel = supabase.channel('online-users', {
@@ -28,6 +31,7 @@ export const usePresence = () => {
             // Subscribe to presence events
             presenceChannel
                 .on('presence', { event: 'sync' }, () => {
+                    if (!isMounted) return
                     const state = presenceChannel.presenceState()
                     const users = new Set<string>()
 
@@ -38,9 +42,11 @@ export const usePresence = () => {
                     setOnlineUsers(users)
                 })
                 .on('presence', { event: 'join' }, ({ key }) => {
+                    if (!isMounted) return
                     setOnlineUsers(prev => new Set(prev).add(key))
                 })
                 .on('presence', { event: 'leave' }, ({ key }) => {
+                    if (!isMounted) return
                     setOnlineUsers(prev => {
                         const next = new Set(prev)
                         next.delete(key)
@@ -49,6 +55,7 @@ export const usePresence = () => {
                 })
                 .subscribe(async (status) => {
                     if (status === 'SUBSCRIBED') {
+                        if (!isMounted) return
                         // Track this user as online
                         await presenceChannel.track({
                             user_id: user.id,
@@ -57,14 +64,16 @@ export const usePresence = () => {
                     }
                 })
 
+            activeChannel = presenceChannel
             setChannel(presenceChannel)
         }
 
         setupPresence()
 
         return () => {
-            if (channel) {
-                channel.unsubscribe()
+            isMounted = false
+            if (activeChannel) {
+                activeChannel.unsubscribe()
             }
         }
     }, [])

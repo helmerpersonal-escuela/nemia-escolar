@@ -6,6 +6,9 @@ import { School, User, Loader2, ArrowLeft, Mail, Lock, Building2, BookOpen, Chec
 
 type RegistrationMode = 'INDEPENDENT' | 'SCHOOL' | 'JOIN' | null
 
+import { TermsModal } from '../../../components/auth/TermsModal'
+import { PrivacyModal } from '../../../components/auth/PrivacyModal'
+
 export const RegisterPage = () => {
     const navigate = useNavigate()
     const [searchParams] = useSearchParams()
@@ -15,6 +18,12 @@ export const RegisterPage = () => {
     const [loading, setLoading] = useState(false)
     const [invitationInfo, setInvitationInfo] = useState<{ tenant_name: string, role: string, email: string } | null>(null)
     const [loadingInv, setLoadingInv] = useState(false)
+
+    // Terms and Privacy State
+    const [termsAccepted, setTermsAccepted] = useState(false)
+    const [privacyAccepted, setPrivacyAccepted] = useState(false)
+    const [showTerms, setShowTerms] = useState(false)
+    const [showPrivacy, setShowPrivacy] = useState(false)
 
     const [isLoggedIn, setIsLoggedIn] = useState(false)
     const [formData, setFormData] = useState({
@@ -106,6 +115,16 @@ export const RegisterPage = () => {
             return
         }
 
+        if (!termsAccepted) {
+            alert("Debes aceptar los Términos y Condiciones para continuar")
+            return
+        }
+
+        if (!privacyAccepted) {
+            alert("Debes aceptar la Política de Privacidad para continuar")
+            return
+        }
+
         setLoading(true)
         try {
             // Check if user is already logged in
@@ -183,7 +202,7 @@ export const RegisterPage = () => {
                     </p>
 
                     <button
-                        onClick={() => window.open('https://nemia.lat/registro', '_system')}
+                        onClick={() => window.open('https://vunlek.com/registro', '_system')}
                         className="clay-button w-full py-4 bg-indigo-600 text-white rounded-xl font-black text-lg shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2"
                     >
                         <User className="w-5 h-5" />
@@ -227,7 +246,7 @@ export const RegisterPage = () => {
                 <div className="absolute top-[-10%] right-[-10%] w-72 h-72 bg-purple-300/40 rounded-full blur-3xl lg:hidden pointer-events-none mix-blend-multiply"></div>
                 <div className="absolute bottom-[-10%] left-[-10%] w-72 h-72 bg-indigo-300/40 rounded-full blur-3xl lg:hidden pointer-events-none mix-blend-multiply"></div>
 
-                <div className="clay-card max-w-xl w-full animate-in fade-in slide-in-from-right-8 duration-500 p-8 md:p-10 relative z-10">
+                <div className="squishy-card max-w-xl w-full animate-in fade-in slide-in-from-right-8 duration-500 p-8 md:p-10 relative z-10">
 
                     {!mode ? (
                         /* Mode Selection */
@@ -366,7 +385,7 @@ export const RegisterPage = () => {
                                         name="firstName"
                                         type="text"
                                         required
-                                        className="clay-input block w-full px-4 py-3 font-bold text-gray-900 outline-none uppercase"
+                                        className="input-squishy block w-full px-4 py-3 font-bold text-slate-700 placeholder:text-slate-300 outline-none uppercase"
                                         placeholder="JUAN"
                                         value={formData.firstName}
                                         onChange={handleChange}
@@ -378,7 +397,7 @@ export const RegisterPage = () => {
                                         name="lastNamePaternal"
                                         type="text"
                                         required
-                                        className="clay-input block w-full px-4 py-3 font-bold text-gray-900 outline-none uppercase"
+                                        className="input-squishy block w-full px-4 py-3 font-bold text-slate-700 placeholder:text-slate-300 outline-none uppercase"
                                         placeholder="PÉREZ"
                                         value={formData.lastNamePaternal}
                                         onChange={handleChange}
@@ -392,7 +411,7 @@ export const RegisterPage = () => {
                                     name="lastNameMaternal"
                                     type="text"
                                     required
-                                    className="clay-input block w-full px-4 py-3 font-bold text-gray-900 outline-none uppercase"
+                                    className="input-squishy block w-full px-4 py-3 font-bold text-slate-700 placeholder:text-slate-300 outline-none uppercase"
                                     placeholder="LÓPEZ"
                                     value={formData.lastNameMaternal}
                                     onChange={handleChange}
@@ -410,7 +429,7 @@ export const RegisterPage = () => {
                                         type="text"
                                         required
                                         disabled={!!invitationInfo}
-                                        className="clay-input block w-full pl-12 pr-4 py-3 font-bold text-gray-900 outline-none uppercase disabled:opacity-50"
+                                        className="input-squishy block w-full pl-12 pr-4 py-3 font-bold text-slate-700 placeholder:text-slate-300 outline-none uppercase disabled:opacity-50"
                                         placeholder={mode === 'INDEPENDENT' ? "SECUNDARIA TÉCNICA" : "INSTITUTO SECUNDARIO"}
                                         value={formData.organizationName}
                                         onChange={handleChange}
@@ -430,7 +449,7 @@ export const RegisterPage = () => {
                                         type="email"
                                         required
                                         disabled={!!invitationInfo}
-                                        className="clay-input block w-full pl-11 pr-4 py-3 font-bold text-gray-900 outline-none disabled:opacity-50"
+                                        className="input-squishy block w-full pl-11 pr-4 py-3 font-bold text-slate-700 placeholder:text-slate-300 outline-none disabled:opacity-50"
                                         placeholder="correo@ejemplo.com"
                                         value={formData.email}
                                         onChange={handleChange}
@@ -444,7 +463,7 @@ export const RegisterPage = () => {
                                         name="password"
                                         type="password"
                                         required
-                                        className="clay-input block w-full pl-11 pr-4 py-3 font-bold text-gray-900 outline-none"
+                                        className="input-squishy block w-full pl-11 pr-4 py-3 font-bold text-slate-700 placeholder:text-slate-300 outline-none"
                                         placeholder="Contraseña segura"
                                         value={formData.password}
                                         onChange={handleChange}
@@ -475,7 +494,7 @@ export const RegisterPage = () => {
                                         name="confirmPassword"
                                         type="password"
                                         required
-                                        className={`clay-input block w-full pl-11 pr-4 py-3 font-bold text-gray-900 outline-none ${formData.confirmPassword && formData.password !== formData.confirmPassword ? 'border-red-300 focus:border-red-500' : ''}`}
+                                        className={`input-squishy block w-full pl-11 pr-4 py-3 font-bold text-slate-700 placeholder:text-slate-300 outline-none ${formData.confirmPassword && formData.password !== formData.confirmPassword ? 'border-red-300 focus:border-red-500' : ''}`}
                                         placeholder="Confirmar contraseña"
                                         value={formData.confirmPassword}
                                         onChange={handleChange}
@@ -488,10 +507,50 @@ export const RegisterPage = () => {
                                 </div>
                             </div>
 
+                            <div className="space-y-4 my-6">
+                                <div className="flex items-start">
+                                    <div className="flex items-center h-5">
+                                        <input
+                                            id="terms"
+                                            name="terms"
+                                            type="checkbox"
+                                            required
+                                            checked={termsAccepted}
+                                            onChange={(e) => setTermsAccepted(e.target.checked)}
+                                            className="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-indigo-300"
+                                        />
+                                    </div>
+                                    <div className="ml-3 text-sm">
+                                        <label htmlFor="terms" className="font-medium text-gray-700">
+                                            Acepto los <button type="button" onClick={() => setShowTerms(true)} className="text-indigo-600 hover:underline font-bold">Términos y Condiciones de Uso</button>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div className="flex items-start">
+                                    <div className="flex items-center h-5">
+                                        <input
+                                            id="privacy"
+                                            name="privacy"
+                                            type="checkbox"
+                                            required
+                                            checked={privacyAccepted}
+                                            onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                                            className="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-indigo-300"
+                                        />
+                                    </div>
+                                    <div className="ml-3 text-sm">
+                                        <label htmlFor="privacy" className="font-medium text-gray-700">
+                                            He leído y acepto la <button type="button" onClick={() => setShowPrivacy(true)} className="text-indigo-600 hover:underline font-bold">Política de Privacidad</button>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
                             <button
                                 type="submit"
-                                disabled={loading}
-                                className="clay-button w-full flex justify-center items-center py-4 px-6 rounded-2xl text-base font-black text-white bg-indigo-600 hover:bg-indigo-700 transition-all disabled:opacity-70 disabled:cursor-not-allowed mt-8 uppercase tracking-widest"
+                                disabled={loading || !termsAccepted || !privacyAccepted}
+
+                                className="btn-tactile w-full flex justify-center items-center py-4 px-6 rounded-2xl text-base font-black text-white bg-gradient-to-r from-indigo-600 to-purple-600 shadow-xl shadow-indigo-200 hover:shadow-indigo-300 transition-all disabled:opacity-70 disabled:cursor-not-allowed mt-8 uppercase tracking-widest"
                             >
                                 {loading ? <Loader2 className="animate-spin h-5 w-5" /> : (isLoggedIn ? 'Crear Espacio' : 'Registrar Cuenta')}
                             </button>
@@ -499,6 +558,9 @@ export const RegisterPage = () => {
                     )}
                 </div>
             </div>
+            {/* Modals */}
+            <TermsModal isOpen={showTerms} onClose={() => setShowTerms(false)} />
+            <PrivacyModal isOpen={showPrivacy} onClose={() => setShowPrivacy(false)} />
         </div>
     )
 }

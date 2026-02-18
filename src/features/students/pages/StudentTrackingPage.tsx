@@ -147,7 +147,7 @@ export const StudentTrackingPage = () => {
                     {tenant?.role !== 'STUDENT' && tenant?.role !== 'TUTOR' && selectedStudent && (
                         <button
                             onClick={() => setShowIncidentModal(true)}
-                            className="bg-indigo-600 text-white px-8 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center lg:hidden"
+                            className="bg-indigo-600 text-white px-8 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all btn-tactile flex items-center lg:hidden"
                         >
                             <Plus className="w-4 h-4 mr-2" /> Nueva Acción
                         </button>
@@ -155,7 +155,7 @@ export const StudentTrackingPage = () => {
                     <select
                         value={selectedGroupId}
                         onChange={(e) => setSelectedGroupId(e.target.value)}
-                        className="bg-white border-2 border-gray-100 rounded-2xl px-4 py-2 font-bold text-gray-700 shadow-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all cursor-pointer"
+                        className="input-squishy px-4 py-2 font-bold text-gray-700 cursor-pointer"
                     >
                         {groups.map(g => (
                             <option key={g.id} value={g.id}>{g.grade}° "{g.section}"</option>
@@ -165,9 +165,8 @@ export const StudentTrackingPage = () => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Student List - Left Sidebar */}
                 <div className="lg:col-span-1 space-y-4">
-                    <div className="bg-white rounded-[2rem] border border-gray-100 shadow-2xl shadow-indigo-50/20 overflow-hidden">
+                    <div className="squishy-card overflow-hidden">
                         <div className="p-6 border-b border-gray-50 flex flex-col space-y-4">
                             <div className="relative">
                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 w-4 h-4" />
@@ -176,7 +175,7 @@ export const StudentTrackingPage = () => {
                                     placeholder="Buscar por nombre..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full bg-gray-50 border-none rounded-xl pl-12 pr-4 py-3 font-bold text-gray-700 text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                                    className="input-squishy w-full pl-12 pr-4 py-3 font-bold text-gray-700 text-sm"
                                 />
                             </div>
                         </div>
@@ -244,7 +243,7 @@ export const StudentTrackingPage = () => {
                                     {tenant?.role !== 'STUDENT' && tenant?.role !== 'TUTOR' && (
                                         <button
                                             onClick={() => setShowIncidentModal(true)}
-                                            className="bg-white text-indigo-600 px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-2xl hover:bg-gray-100 transition-all transform hover:scale-105 active:scale-95 flex items-center"
+                                            className="bg-white text-indigo-600 px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-2xl hover:bg-gray-100 transition-all btn-tactile flex items-center"
                                         >
                                             <Plus className="w-4 h-4 mr-2" /> Nueva Acción
                                         </button>
@@ -255,7 +254,7 @@ export const StudentTrackingPage = () => {
                             {/* Key Indicators Grid */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* Inclusivity Quick Info */}
-                                <div className="bg-white rounded-[2rem] border border-gray-100 shadow-xl p-6 flex items-center space-x-6">
+                                <div className="squishy-card p-6 flex items-center space-x-6">
                                     <div className="p-4 bg-rose-50 text-rose-500 rounded-2xl">
                                         <Brain className="w-8 h-8" />
                                     </div>
@@ -268,7 +267,7 @@ export const StudentTrackingPage = () => {
                                 </div>
 
                                 {/* Last Movement */}
-                                <div className="bg-white rounded-[2rem] border border-gray-100 shadow-xl p-6 flex items-center space-x-6">
+                                <div className="squishy-card p-6 flex items-center space-x-6">
                                     <div className="p-4 bg-amber-50 text-amber-500 rounded-2xl">
                                         <History className="w-8 h-8" />
                                     </div>
@@ -282,7 +281,7 @@ export const StudentTrackingPage = () => {
                             </div>
 
                             {/* Full Timeline List */}
-                            <div className="bg-white rounded-[2rem] border border-gray-100 shadow-xl overflow-hidden">
+                            <div className="squishy-card overflow-hidden">
                                 <div className="p-8 border-b border-gray-50 flex justify-between items-center">
                                     <div className="flex items-center space-x-3">
                                         <div className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse" />
@@ -351,7 +350,7 @@ export const StudentTrackingPage = () => {
             {/* Practical Click-to-Fill Modal */}
             {showIncidentModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/80 backdrop-blur-md">
-                    <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl border border-white/20 animate-in fade-in slide-in-from-bottom-8 duration-500 max-h-[90vh] flex flex-col">
+                    <div className="squishy-card w-full max-w-2xl border-white/20 animate-in fade-in slide-in-from-bottom-8 duration-500 max-h-[90vh] flex flex-col p-0 overflow-hidden">
                         {/* Modal Header */}
                         <div className="p-8 bg-indigo-600 text-white flex justify-between items-center shrink-0">
                             <div>

@@ -1,11 +1,13 @@
-import { Shield, UserCog, MoreVertical, CheckCircle2, XCircle } from 'lucide-react'
+import { Shield, UserCog, MoreVertical, CheckCircle2, XCircle, Key, Play } from 'lucide-react'
 
 interface AdminUserTableProps {
     users: any[]
     searchTerm: string
+    onResetPassword?: (email: string) => void
+    onImpersonate?: (id: string, role: string) => void
 }
 
-export const AdminUserTable = ({ users, searchTerm }: AdminUserTableProps) => {
+export const AdminUserTable = ({ users, searchTerm, onResetPassword, onImpersonate }: AdminUserTableProps) => {
     // Filter for admins and super admins
     const admins = users.filter(user =>
         (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') &&
@@ -58,8 +60,8 @@ export const AdminUserTable = ({ users, searchTerm }: AdminUserTableProps) => {
                                 </td>
                                 <td className="px-8 py-6">
                                     <span className={`inline-flex items-center px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider ${user.role === 'SUPER_ADMIN'
-                                            ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
-                                            : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
+                                        ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                                        : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
                                         }`}>
                                         {user.role === 'SUPER_ADMIN' ? 'GOD MODE' : 'ADMINISTRADOR'}
                                     </span>
@@ -76,9 +78,29 @@ export const AdminUserTable = ({ users, searchTerm }: AdminUserTableProps) => {
                                     </p>
                                 </td>
                                 <td className="px-8 py-6 text-right">
-                                    <button className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors">
-                                        <MoreVertical className="w-4 h-4" />
-                                    </button>
+                                    <div className="flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
+                                        {onImpersonate && (
+                                            <button
+                                                onClick={() => onImpersonate(user.id, user.role)}
+                                                className="p-2.5 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-600 hover:text-white rounded-xl transition-all"
+                                                title="Simular Usuario"
+                                            >
+                                                <Play className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                        {onResetPassword && (
+                                            <button
+                                                onClick={() => onResetPassword(user.email)}
+                                                className="p-2.5 bg-amber-500/10 text-amber-500 hover:bg-amber-600 hover:text-white rounded-xl transition-all"
+                                                title="Enviar Link de Recuperación"
+                                            >
+                                                <Key className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                        <button className="p-2.5 hover:bg-slate-700 rounded-xl text-slate-400 hover:text-white transition-colors">
+                                            <MoreVertical className="w-4 h-4" />
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}

@@ -45,7 +45,7 @@ export const exportUserData = async (tenantId: string, fileName = 'backup_escola
             exportDate: new Date().toISOString(),
             tenantId,
             version: '1.0',
-            system: 'NEMIA'
+            system: 'Vunlek'
         };
 
         const finalPayload = {

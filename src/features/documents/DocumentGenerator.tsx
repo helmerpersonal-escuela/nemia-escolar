@@ -208,7 +208,7 @@ export const DocumentGenerator = ({ type, data, onClose }: DocumentProps) => {
 
                     {/* Footer */}
                     <div className="mt-12 pt-4 border-t border-gray-200 text-[10px] text-center text-gray-400 print:fixed print:bottom-8 print:left-0 print:right-0">
-                        Documento generado por Sistema de Gestión Escolar - {currentDate}
+                        Documento generado por Vunlek - {currentDate}
                     </div>
                 </div>
             </div>

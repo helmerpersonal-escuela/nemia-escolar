@@ -11,7 +11,7 @@ export const EvaluationReportPage = () => {
 
     const groupId = searchParams.get('groupId')
     const periodId = searchParams.get('periodId')
-    // type can be 'TRIMESTER' or 'ACADEMIC_YEAR'
+    // type can be 'TRIMESTER', 'BIMESTER', 'SEMESTER', 'PERIOD', or 'ACADEMIC_YEAR'
     const type = searchParams.get('type') || 'TRIMESTER'
 
     const [loading, setLoading] = useState(true)
@@ -120,25 +120,33 @@ export const EvaluationReportPage = () => {
             <div className="max-w-5xl mx-auto mt-16 print:mt-0 bg-white print:w-full">
 
                 {/* Header Section */}
-                <div className="border-b-2 border-slate-900 pb-6 mb-8 flex items-start justify-between">
+                <div className="border-b-4 border-slate-900 pb-8 mb-10 flex items-start justify-between relative overflow-hidden">
+                    <div className="absolute -top-10 -left-10 w-40 h-40 bg-slate-50 rounded-full blur-3xl opacity-50 -z-10"></div>
                     <div>
-                        <h1 className="text-3xl font-black uppercase tracking-tight text-slate-900">
-                            {type === 'ACADEMIC_YEAR' ? 'Boleta de Evaluación Anual' : 'Reporte de Evaluación Trimestral'}
+                        <div className="inline-flex items-center gap-2 mb-4 bg-slate-900 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em]">
+                            Reporte Oficial Vunlek
+                        </div>
+                        <h1 className="text-4xl font-black uppercase tracking-tighter text-slate-900 leading-none mb-2">
+                            {type === 'ACADEMIC_YEAR' ? 'Boleta de Evaluación Anual' :
+                                type === 'BIMESTER' ? 'Reporte de Evaluación Bimestral' :
+                                    type === 'SEMESTER' ? 'Reporte de Evaluación Semestral' :
+                                        type === 'TRIMESTER' ? 'Reporte de Evaluación Trimestral' : 'Reporte de Evaluación'}
                         </h1>
-                        <h2 className="text-xl font-medium text-slate-600 mt-1">
-                            {tenant?.name || 'Sistema de Gestión Escolar'}
+                        <h2 className="text-2xl font-bold text-slate-500 flex items-center gap-2">
+                            <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
+                            {tenant?.name || 'Vunlek Gestión Educativa'}
                         </h2>
                     </div>
                     <div className="text-right">
-                        <div className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">Ciclo Escolar</div>
-                        <div className="text-lg font-bold">{group.academic_years?.name || 'N/A'}</div>
-                        <div className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1 mt-3">Fecha de Emisión</div>
-                        <div className="text-lg">{new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                        <div className="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">Ciclo Escolar</div>
+                        <div className="text-2xl font-black text-slate-900">{group.academic_years?.name || 'N/A'}</div>
+                        <div className="text-sm font-black text-slate-400 uppercase tracking-widest mb-1 mt-6">Fecha de Emisión</div>
+                        <div className="text-lg font-bold text-slate-700">{new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
                     </div>
                 </div>
 
                 {/* Group Details */}
-                <div className="grid grid-cols-2 gap-8 mb-8 bg-slate-50 p-6 rounded-xl print:bg-transparent print:p-0 print:border print:border-slate-200">
+                <div className="grid grid-cols-2 gap-8 mb-10 bg-slate-50 p-8 rounded-3xl border border-slate-100 print:bg-transparent print:p-4 print:border-slate-200">
                     <div>
                         <div className="text-sm text-slate-500 font-bold uppercase tracking-wider mb-1">Grupo y Grado</div>
                         <div className="text-xl font-bold">{group.grade}° "{group.section}"</div>

@@ -77,7 +77,74 @@ export const AgendaPage = () => {
                     teacherEvents = data || []
                 }
 
-                // 4. Fetch Lesson Plans (Planning)
+                // 4. Fetch Master Schedule (Weekly Classes)
+                const { data: recurringSchedule, error: schedError } = await supabase
+                    .from('schedules')
+                    .select(`
+                        id,
+                        group_id,
+                        day_of_week,
+                        start_time,
+                        end_time,
+                        subject_id,
+                        custom_subject,
+                        subject:subject_catalog (name),
+                        group:groups (grade, section)
+                    `)
+                    .eq('tenant_id', tenant.id)
+
+                if (schedError) console.error('[Agenda] Error fetching schedules:', schedError)
+
+                const teacherSchedule: any[] = []
+                if (recurringSchedule && user) {
+                    // Filter for teacher if applicable
+                    const { data: myAssignments } = await supabase
+                        .from('group_subjects')
+                        .select('group_id, subject_catalog_id, custom_name')
+                        .eq('teacher_id', user.id)
+
+                    const filteredSchedule = userRole === 'TEACHER' || userRole === 'INDEPENDENT_TEACHER'
+                        ? recurringSchedule.filter(s =>
+                            myAssignments?.some(a =>
+                                a.group_id === s.group_id &&
+                                (a.subject_catalog_id === s.subject_id || a.custom_name === s.custom_subject)
+                            )
+                        )
+                        : recurringSchedule
+
+                    // Map weekly schedule to dates in the current month
+                    const dayMap: Record<number, string> = {
+                        1: 'MONDAY', 2: 'TUESDAY', 3: 'WEDNESDAY', 4: 'THURSDAY', 5: 'FRIDAY'
+                    }
+
+                    for (let d = new Date(startOfMonth); d <= endOfMonth; d.setDate(d.getDate() + 1)) {
+                        const dayOfWeek = dayMap[d.getDay()]
+                        if (dayOfWeek) {
+                            const dayClasses = filteredSchedule.filter(s => s.day_of_week === dayOfWeek)
+                            const dateStr = d.toISOString().split('T')[0]
+                            dayClasses.forEach(item => {
+                                const subj = Array.isArray(item.subject) ? item.subject[0] : item.subject;
+                                const grp = Array.isArray(item.group) ? item.group[0] : item.group;
+                                teacherSchedule.push({
+                                    id: `sched_${item.id}_${dateStr}`,
+                                    title: `Clase: ${subj?.name || item.custom_subject}`,
+                                    date: dateStr,
+                                    type: 'CLASS',
+                                    start_time: `${dateStr}T${item.start_time}`,
+                                    displayTime: item.start_time.slice(0, 5),
+                                    subtitle: `${grp?.grade || '?'}° ${grp?.section || '?'}`,
+                                    color: 'bg-amber-50 text-amber-900 border-amber-200',
+                                    details: {
+                                        ...item,
+                                        isClass: true
+                                    }
+                                })
+                            })
+                        }
+                    }
+                }
+
+                // 5. Fetch Lesson Plans (Planning)
                 const { data: plans, error: plansError } = await supabase
                     .from('lesson_plans')
                     .select('id, title, activities_sequence, groups(grade, section), subject_catalog(name), temporality')
@@ -126,14 +193,18 @@ export const AgendaPage = () => {
                         type: e.type?.toUpperCase() === 'DIRECTION' || e.is_direction ? 'DIRECTION' : 'SEP',
                         color: 'bg-cyan-100 text-cyan-800 border-cyan-200'
                     })),
-                    ...(assignments || []).map((a: any) => ({
-                        id: a.id,
-                        title: `Entrega: ${a.title}`,
-                        date: a.due_date.split('T')[0],
-                        type: 'ASSIGNMENT',
-                        subtitle: `${Array.isArray(a.subject) ? a.subject[0]?.name : a.subject?.name} (${Array.isArray(a.group) ? a.group[0]?.grade : a.group?.grade}° ${Array.isArray(a.group) ? a.group[0]?.section : a.group?.section})`,
-                        color: 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                    })),
+                    ...(assignments || []).map((a: any) => {
+                        const subj = Array.isArray(a.subject) ? a.subject[0] : a.subject;
+                        const grp = Array.isArray(a.group) ? a.group[0] : a.group;
+                        return {
+                            id: a.id,
+                            title: `Entrega: ${a.title}`,
+                            date: a.due_date.split('T')[0],
+                            type: 'ASSIGNMENT',
+                            subtitle: `${subj?.name || 'Materia'} (${grp?.grade || '?'}° ${grp?.section || '?'})`,
+                            color: 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                        };
+                    }),
                     ...(teacherEvents || []).map((e: any) => {
                         const timeStr = new Date(e.start_time).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true })
                         return {
@@ -146,7 +217,8 @@ export const AgendaPage = () => {
                             color: 'bg-indigo-100 text-indigo-800 border-indigo-200'
                         }
                     }),
-                    ...planningEvents
+                    ...planningEvents,
+                    ...teacherSchedule
                 ]
 
                 setEvents(normalizedEvents)
@@ -495,13 +567,35 @@ export const AgendaPage = () => {
                     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
                         <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-100 flex flex-col max-h-[85vh]">
                             <div className="p-6 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-                                <div>
-                                    <h3 className="text-2xl font-black text-gray-900">
-                                        {focusedDate.getDate()} de {monthNames[focusedDate.getMonth()]}
-                                    </h3>
-                                    <p className="text-sm font-medium text-gray-500 capitalize">
-                                        {focusedDate.toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric' })}
-                                    </p>
+                                <div className="flex items-center gap-4">
+                                    <button
+                                        onClick={() => {
+                                            const prev = new Date(focusedDate);
+                                            prev.setDate(prev.getDate() - 1);
+                                            setFocusedDate(prev);
+                                        }}
+                                        className="p-2 bg-white hover:bg-gray-100 rounded-xl border border-gray-200 shadow-sm transition-all"
+                                    >
+                                        <ChevronLeft className="w-5 h-5 text-gray-600" />
+                                    </button>
+                                    <div>
+                                        <h3 className="text-xl font-black text-gray-900 leading-none">
+                                            {focusedDate.getDate()} de {monthNames[focusedDate.getMonth()]}
+                                        </h3>
+                                        <p className="text-xs font-bold text-gray-400 capitalize mt-1">
+                                            {focusedDate.toLocaleDateString('es-MX', { weekday: 'long' })}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            const next = new Date(focusedDate);
+                                            next.setDate(next.getDate() + 1);
+                                            setFocusedDate(next);
+                                        }}
+                                        className="p-2 bg-white hover:bg-gray-100 rounded-xl border border-gray-200 shadow-sm transition-all"
+                                    >
+                                        <ChevronRight className="w-5 h-5 text-gray-600" />
+                                    </button>
                                 </div>
                                 <button
                                     onClick={() => setFocusedDate(null)}
@@ -534,10 +628,10 @@ export const AgendaPage = () => {
                                                 </div>
                                                 {event.subtitle && <p className="text-xs opacity-80 mt-1 truncate">{event.subtitle}</p>}
                                                 <p className="text-[10px] uppercase font-black tracking-widest opacity-60 mt-2">
-                                                    {event.type === 'PLANNING' ? 'Planeación' : event.type === 'PERSONAL' ? 'Personal' : 'Institucional'}
+                                                    {event.type === 'PLANNING' ? 'Planeación' : event.type === 'PERSONAL' ? 'Personal' : event.type === 'CLASS' ? 'Clase' : 'Institucional'}
                                                 </p>
                                             </div>
-                                            <ChevronRight className="w-4 h-4 opacity-50 self-center" />
+                                            <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-50 self-center transition-all" />
                                         </div>
                                     ))
                                 )}
@@ -585,16 +679,17 @@ export const AgendaPage = () => {
                                         {selectedEvent.type === 'SEP' && <CalendarIcon className="w-4 h-4" />}
                                         {selectedEvent.type === 'DIRECTION' && <Shield className="w-4 h-4" />}
                                         {selectedEvent.type === 'PERSONAL' && <Clock className="w-4 h-4" />}
+                                        {selectedEvent.type === 'CLASS' && <Clock className="w-4 h-4" />}
                                         <span className="text-[10px] uppercase font-black tracking-widest">
-                                            {selectedEvent.type === 'PLANNING' ? 'Planeación Didáctica' : selectedEvent.type === 'SEP' ? 'Evento Oficial' : selectedEvent.type === 'DIRECTION' ? 'Evento de Dirección' : 'Evento Personal'}
+                                            {selectedEvent.type === 'PLANNING' ? 'Planeación Didáctica' : selectedEvent.type === 'SEP' ? 'Evento Oficial' : selectedEvent.type === 'DIRECTION' ? 'Evento de Dirección' : selectedEvent.type === 'CLASS' ? 'Clase Recurrente' : 'Evento Personal'}
                                         </span>
                                     </div>
                                     <h3 className="text-xl font-black text-gray-900 leading-tight">
                                         {selectedEvent.title}
                                     </h3>
-                                    {selectedEvent.details?.group && (
+                                    {(selectedEvent.details?.group || selectedEvent.subtitle) && (
                                         <p className="text-sm font-medium mt-1 opacity-75">
-                                            {selectedEvent.details.subject?.name} • {selectedEvent.details.group.grade}° {selectedEvent.details.group.section}
+                                            {selectedEvent.details?.subject?.name || selectedEvent.subtitle} {selectedEvent.details?.group ? `• ${selectedEvent.details.group.grade}° ${selectedEvent.details.group.section}` : ''}
                                         </p>
                                     )}
                                 </div>
@@ -607,7 +702,28 @@ export const AgendaPage = () => {
                             </div>
 
                             <div className="p-6 overflow-y-auto custom-scrollbar space-y-6 bg-white flex-1">
-                                {selectedEvent.type === 'PLANNING' && selectedEvent.details?.activities ? (
+                                {selectedEvent.details?.isClass ? (
+                                    <div className="space-y-4">
+                                        <div className="p-6 bg-amber-50 rounded-[2rem] border border-amber-100 flex items-center gap-4">
+                                            <div className="p-3 bg-white rounded-2xl shadow-sm">
+                                                <Clock className="w-6 h-6 text-amber-600" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-black uppercase tracking-widest text-amber-600">Horario de Clase</p>
+                                                <p className="text-lg font-black text-amber-900">
+                                                    {selectedEvent.details.start_time} - {selectedEvent.details.end_time}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            <span className="px-3 py-1 bg-gray-100 rounded-full text-[10px] font-black uppercase text-gray-500">Recurrente semanal</span>
+                                            <span className="px-3 py-1 bg-indigo-100 rounded-full text-[10px] font-black uppercase text-indigo-500">{selectedEvent.details.day_of_week}</span>
+                                        </div>
+                                        <p className="text-sm text-gray-500 italic text-center py-4">
+                                            Esta es una clase de tu horario maestro vinculada automáticamente.
+                                        </p>
+                                    </div>
+                                ) : selectedEvent.type === 'PLANNING' && selectedEvent.details?.activities ? (
                                     <>
                                         <div className="space-y-4">
                                             <div>
@@ -670,6 +786,14 @@ export const AgendaPage = () => {
                                         className="w-full md:w-auto flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-200 text-xs font-bold uppercase tracking-wider hover:bg-indigo-700 hover:scale-105 transition-all"
                                     >
                                         Ir a la Planeación <ArrowRight className="w-4 h-4 ml-2" />
+                                    </Link>
+                                )}
+                                {selectedEvent.type === 'CLASS' && (
+                                    <Link
+                                        to={`/schedule`}
+                                        className="w-full md:w-auto flex items-center justify-center px-4 py-2 bg-amber-600 text-white rounded-xl shadow-lg shadow-amber-200 text-xs font-bold uppercase tracking-wider hover:bg-amber-700 hover:scale-105 transition-all"
+                                    >
+                                        Ver en Horario <ArrowRight className="w-4 h-4 ml-2" />
                                     </Link>
                                 )}
                             </div>

@@ -54,7 +54,14 @@ const ProfileItem = ({ profile, isSelected, onSelect, onToggle, isOnline }: {
             </div>
             <div>
                 <h4 className="font-bold text-slate-800 text-sm sm:text-base">{profile.first_name} {profile.last_name_paternal}</h4>
-                <p className="text-xs text-slate-400 font-medium uppercase tracking-tighter">{profile.role}</p>
+                <div className="flex flex-col gap-0.5">
+                    <p className="text-xs text-slate-400 font-medium uppercase tracking-tighter">{profile.role === 'TUTOR' ? 'Padre de Familia' : profile.role}</p>
+                    {profile.role === 'TUTOR' && profile.student_names && (
+                        <p className="text-[10px] text-blue-600 font-bold uppercase truncate max-w-[150px]">
+                            Tutor de: {profile.student_names}
+                        </p>
+                    )}
+                </div>
             </div>
         </div>
         <button
@@ -232,6 +239,27 @@ export const ChatModule = () => {
 
         const { data } = await query.order('first_name', { ascending: true })
 
+        // Fetch guardian relationships for tutors to identify who their children are
+        let profileListWithStudents = data || []
+        if (profileListWithStudents.some(p => p.role === 'TUTOR')) {
+            const tutorIds = profileListWithStudents.filter(p => p.role === 'TUTOR').map(p => p.id)
+            const { data: relations } = await supabase
+                .from('guardian_student_relations')
+                .select('guardian_id, student_profiles:profiles!guardian_student_relations_student_id_fkey(first_name, last_name_paternal)')
+                .in('guardian_id', tutorIds)
+
+            if (relations) {
+                profileListWithStudents = profileListWithStudents.map(p => {
+                    const studentRefs = relations.filter(r => r.guardian_id === p.id)
+                    if (studentRefs.length > 0) {
+                        const names = studentRefs.map(r => `${(r as any).student_profiles.first_name} ${(r as any).student_profiles.last_name_paternal}`).join(', ')
+                        return { ...p, student_names: names }
+                    }
+                    return p
+                })
+            }
+        }
+
         // Group profiles by category
         const grouped = {
             docentes: [] as any[],
@@ -239,7 +267,7 @@ export const ChatModule = () => {
             alumnos_tutores: [] as any[]
         }
 
-        data?.forEach(profile => {
+        profileListWithStudents.forEach(profile => {
             if (profile.role === 'TEACHER') {
                 grouped.docentes.push(profile)
             } else if (['DIRECTOR', 'ADMIN', 'PREFECT', 'SUPPORT', 'SOCIAL_WORKER', 'STAFF'].includes(profile.role)) {
@@ -249,7 +277,7 @@ export const ChatModule = () => {
             }
         })
 
-        setProfiles(data || [])
+        setProfiles(profileListWithStudents)
         setGroupedProfiles(grouped)
     }
 

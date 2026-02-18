@@ -1,0 +1,43 @@
+{
+  "groups": [],
+  "groupsError": null,
+  "tenants": [
+    {
+      "id": "8e3fcc38-c1ed-4466-9860-15b5c7ba4d0c",
+      "name": "SECUNDARIA TECNICA NO 37",
+      "type": "INDEPENDENT",
+      "created_at": "2026-02-15T20:38:12.227191+00:00",
+      "educational_level": "PRIMARY",
+      "cct": "07DST0037P",
+      "phone": "9613444444",
+      "address": "SAN PEDRO BUENAVISTA, VILLACORZO; CHIAPAS.",
+      "location_lat": 19.4326,
+      "location_lng": -99.1332,
+      "logo_url": null,
+      "onboarding_completed": true,
+      "ai_config": {},
+      "logo_left_url": "",
+      "logo_right_url": ""
+    },
+    {
+      "id": "efc61ce1-32c2-47b6-9751-95becd7ddc33",
+      "name": "SECUNDARIA TECNICA NO 37",
+      "type": "INDEPENDENT",
+      "created_at": "2026-02-17T01:23:14.041829+00:00",
+      "educational_level": "SECONDARY",
+      "cct": "07DST0037P",
+      "phone": null,
+      "address": null,
+      "location_lat": null,
+      "location_lng": null,
+      "logo_url": null,
+      "onboarding_completed": true,
+      "ai_config": {},
+      "logo_left_url": null,
+      "logo_right_url": null
+    }
+  ],
+  "tenantsError": null,
+  "anyPlans": [],
+  "plansError": null
+}

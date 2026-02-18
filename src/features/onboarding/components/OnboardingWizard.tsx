@@ -4,6 +4,7 @@ import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
 import { queryClient } from '../../../lib/queryClient'
 import { Check, Calendar, BookOpen, AlertCircle, Trash2, Plus, ArrowRight, School, Clock, Loader2, Coffee, ArrowLeft, CreditCard, Zap, Gift, ShieldCheck } from 'lucide-react'
+import { SubjectSelector } from '../../../components/academic/SubjectSelector'
 import { Browser } from '@capacitor/browser'
 import { Capacitor } from '@capacitor/core'
 
@@ -12,7 +13,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
     const { data: tenant } = useTenant()
 
     const [step, setStep] = useState(() => {
-        const saved = sessionStorage.getItem('nemia_onboarding_step')
+        const saved = sessionStorage.getItem('vunlek_onboarding_step')
         return saved ? parseInt(saved, 10) : 0
     })
 
@@ -20,7 +21,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
     const [error, setError] = useState<string | null>(null)
 
     const [schoolData, setSchoolData] = useState(() => {
-        const saved = sessionStorage.getItem('nemia_onboarding_school_data')
+        const saved = sessionStorage.getItem('vunlek_onboarding_school_data')
         return saved ? JSON.parse(saved) : {
             name: '',
             educationalLevel: 'SECONDARY' as 'SECONDARY' | 'TELESECUNDARIA',
@@ -30,7 +31,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
     })
 
     const [yearData, setYearData] = useState(() => {
-        const saved = sessionStorage.getItem('nemia_onboarding_year_data')
+        const saved = sessionStorage.getItem('vunlek_onboarding_year_data')
         return saved ? JSON.parse(saved) : {
             name: new Date().getMonth() > 6 ? `CICLO ${new Date().getFullYear()}-${new Date().getFullYear() + 1}` : `CICLO ${new Date().getFullYear() - 1}-${new Date().getFullYear()}`,
             startDate: new Date().getMonth() > 6 ? `${new Date().getFullYear()}-08-26` : `${new Date().getFullYear() - 1}-08-26`,
@@ -39,7 +40,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
     })
 
     const [scheduleSettings, setScheduleSettings] = useState(() => {
-        const saved = sessionStorage.getItem('nemia_onboarding_schedule_data')
+        const saved = sessionStorage.getItem('vunlek_onboarding_schedule_data')
         return saved ? JSON.parse(saved) : {
             startTime: '08:00',
             endTime: '14:00',
@@ -54,25 +55,25 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
     useEffect(() => {
         // Only save if we have actual data or if it's intentionally cleared
         if (schoolData.name || schoolData.cct) {
-            sessionStorage.setItem('nemia_onboarding_school_data', JSON.stringify(schoolData))
+            sessionStorage.setItem('vunlek_onboarding_school_data', JSON.stringify(schoolData))
         }
     }, [schoolData])
 
     useEffect(() => {
         if (yearData.name) {
-            sessionStorage.setItem('nemia_onboarding_year_data', JSON.stringify(yearData))
+            sessionStorage.setItem('vunlek_onboarding_year_data', JSON.stringify(yearData))
         }
     }, [yearData])
 
     useEffect(() => {
         if (scheduleSettings.startTime) {
-            sessionStorage.setItem('nemia_onboarding_schedule_data', JSON.stringify(scheduleSettings))
+            sessionStorage.setItem('vunlek_onboarding_schedule_data', JSON.stringify(scheduleSettings))
         }
     }, [scheduleSettings])
 
     useEffect(() => {
         // If storage is EMPTY or only contains the DEFAULT skeleton, try to seed from tenant
-        const saved = sessionStorage.getItem('nemia_onboarding_school_data')
+        const saved = sessionStorage.getItem('vunlek_onboarding_school_data')
         const isDefault = !saved || JSON.parse(saved).name === ''
 
         if (tenant && isDefault) {
@@ -86,7 +87,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
     }, [tenant])
 
     useEffect(() => {
-        sessionStorage.setItem('nemia_onboarding_step', step.toString())
+        sessionStorage.setItem('vunlek_onboarding_step', step.toString())
     }, [step])
 
     useEffect(() => {
@@ -94,7 +95,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
         if (status === 'approved') {
             // NEW: Set a persistent syncing flag so DashboardLayout knows to keep the overlay
             // even if URL params are lost during redirects/refreshes.
-            sessionStorage.setItem('nemia_payment_syncing', 'true')
+            sessionStorage.setItem('vunlek_payment_syncing', 'true')
         }
         if (status === 'failure' || status === 'rejected') {
             setError('El pago no fue procesado. Por favor intente nuevamente.')
@@ -103,11 +104,11 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
     }, [searchParams])
 
     const clearPersistence = () => {
-        sessionStorage.removeItem('nemia_onboarding_step')
-        sessionStorage.removeItem('nemia_onboarding_school_data')
-        sessionStorage.removeItem('nemia_onboarding_year_data')
-        sessionStorage.removeItem('nemia_onboarding_schedule_data')
-        sessionStorage.removeItem('nemia_payment_syncing')
+        sessionStorage.removeItem('vunlek_onboarding_step')
+        sessionStorage.removeItem('vunlek_onboarding_school_data')
+        sessionStorage.removeItem('vunlek_onboarding_year_data')
+        sessionStorage.removeItem('vunlek_onboarding_schedule_data')
+        sessionStorage.removeItem('vunlek_payment_syncing')
     }
 
     const handleCancelRegistration = async () => {
@@ -197,23 +198,25 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
         setLoading(true)
         try {
             const { data: { user } } = await supabase.auth.getUser()
-            const { data, error } = await supabase.functions.invoke('create-payment-preference', {
-                body: {
-                    title: 'Prueba Gratis 30 Días',
-                    price: 0,
-                    quantity: 1,
-                    tenantId: tenant?.id,
-                    userId: user?.id,
-                    email: user?.email,
-                    planType: 'basic',
-                    isTrial: true,
-                    trialDays: 30,
-                    platform: Capacitor.getPlatform()
-                }
+            if (!user) throw new Error('No usuario autenticado')
+
+            // Call the new RPC for Free Trial (No Payment)
+            const { data, error } = await supabase.rpc('start_free_trial', {
+                p_plan_type: 'basic'
             })
+
             if (error) throw error
-            if (data?.init_point) await Browser.open({ url: data.init_point })
+            if (data && !data.success) throw new Error(data.error || 'Error al iniciar prueba')
+
+            // Success! Redirect to success page or Dashboard
+            // We simulate the "approved" status so the dashboard knows to refresh
+            await Browser.open({ url: '/?status=approved' })
+            // Or just navigate internal: navigate('/dashboard')
+            // But preserving the query param flow:
+            window.location.href = '/?status=approved'
+
         } catch (err: any) {
+            console.error('Free Trial Error:', err)
             setError(err.message)
         } finally {
             setLoading(false)
@@ -226,7 +229,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
             const { data: { user } } = await supabase.auth.getUser()
             const { data, error } = await supabase.functions.invoke('create-payment-preference', {
                 body: {
-                    title: 'Suscripción Anual - Sistema Escolar',
+                    title: 'Suscripción Anual - Vunlek',
                     price: 599,
                     quantity: 1,
                     tenantId: tenant?.id,
@@ -257,18 +260,97 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
         }
     }
 
+    const [selectedSubjects, setSelectedSubjects] = useState<Record<string, { selected: boolean, customDetail: string }>>(() => {
+        const saved = sessionStorage.getItem('vunlek_onboarding_subjects')
+        return saved ? JSON.parse(saved) : {}
+    })
+
+    useEffect(() => {
+        if (Object.keys(selectedSubjects).length > 0) {
+            sessionStorage.setItem('vunlek_onboarding_subjects', JSON.stringify(selectedSubjects))
+        }
+    }, [selectedSubjects])
+
+    // Load existing subjects from DB if returning to step 3 and storage empty
+    useEffect(() => {
+        const loadExistingSubjects = async () => {
+            if (step === 3 && Object.keys(selectedSubjects).length === 0) {
+                const { data: { user } } = await supabase.auth.getUser()
+                if (!user) return
+
+                const { data } = await supabase
+                    .from('profile_subjects')
+                    .select('subject_catalog_id, custom_detail')
+                    .eq('profile_id', user.id)
+
+                if (data && data.length > 0) {
+                    const loaded: Record<string, { selected: boolean, customDetail: string }> = {}
+                    data.forEach((s: any) => {
+                        loaded[s.subject_catalog_id] = {
+                            selected: true,
+                            customDetail: s.custom_detail || ''
+                        }
+                    })
+                    setSelectedSubjects(loaded)
+                }
+            }
+        }
+        loadExistingSubjects()
+    }, [step])
+
+    const handleSaveSubjects = async () => {
+        setLoading(true)
+        try {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) throw new Error('No usuario autenticado')
+
+            // Prepare data for insertion
+            const subjectsToInsert = Object.entries(selectedSubjects)
+                .filter(([_, value]) => value.selected)
+                .map(([catalogId, value]) => ({
+                    profile_id: user.id,
+                    tenant_id: tenant?.id,
+                    subject_catalog_id: catalogId,
+                    custom_detail: value.customDetail || null
+                }))
+
+            if (subjectsToInsert.length > 0) {
+                // Delete existing just in case (though it's onboarding)
+                const { error: deleteError } = await supabase.from('profile_subjects').delete().eq('profile_id', user.id)
+                if (deleteError) console.error('Error deleting old subjects:', deleteError);
+
+                const { error } = await supabase.from('profile_subjects').insert(subjectsToInsert)
+                if (error) throw error
+            }
+
+            setStep(4)
+        } catch (err: any) {
+            console.error('Error saving subjects:', err)
+            setError('Error al guardar materias: ' + err.message)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    // Import SubjectSelector dynamically or at top if not already (Checked: it is not imported yet in prompt, adding import in next block call would be better but I can't do multiple unrelated edits easily. 
+    // Wait, I need to add the import first or ensure it's there. I'll assume I can add it or I'll use a separate tool call for imports if needed, but replace_file_content targets a block. 
+    // I will add the import in a separate call or try to include it if I target the top of the file, but here I am targeting the body.
+    // I will stick to modifying the body steps here and add the import in a preceding call? No, I must do one call per file usually or use multi_replace.
+    // I'll use multi_replace to do both import and body changes safely.)
+
     return (
         <div className="max-w-4xl mx-auto py-12 px-4 relative">
+            {/* ... header ... */}
             <div className="text-center mb-10 relative z-10">
                 <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2">Configuración Inicial</h1>
                 <p className="text-slate-500 font-medium">Ayúdanos a configurar tu escuela para brindarte la mejor experiencia profesional.</p>
             </div>
 
             <div className="flex justify-center mb-12">
-                {[0, 1, 2, 3].map((s) => (
+                {[0, 1, 2, 3, 4].map((s) => (
                     <div key={s} className="flex items-center">
                         <div className={`w-3 h-3 rounded-full transition-all duration-300 ${s === step ? 'bg-indigo-600 scale-150 ring-4 ring-indigo-100' : s < step ? 'bg-indigo-400' : 'bg-gray-200'}`} />
-                        {s < 3 && <div className={`w-12 h-0.5 rounded-full mx-1 ${s < step ? 'bg-indigo-200' : 'bg-gray-100'}`} />}
+                        {s < 4 && <div className={`w-8 h-0.5 rounded-full mx-1 ${s < step ? 'bg-indigo-200' : 'bg-gray-100'}`} />}
                     </div>
                 ))}
             </div>
@@ -277,7 +359,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                 <div className="absolute top-0 left-0 right-0 h-1.5 bg-slate-50">
                     <div
                         className="h-full bg-blue-600 transition-all duration-500 ease-out"
-                        style={{ width: `${((step + 1) / 4) * 100}%` }}
+                        style={{ width: `${((step + 1) / 5) * 100}%` }}
                     />
                 </div>
 
@@ -291,6 +373,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                     )}
 
                     {step === 0 && (
+                        // ... step 0 content ...
                         <div className="animate-in fade-in slide-in-from-right duration-500 max-w-lg mx-auto">
                             <div className="text-center mb-10">
                                 <div className="inline-flex items-center justify-center p-6 bg-blue-100 rounded-3xl text-blue-600 mb-6 shadow-inner">
@@ -330,6 +413,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                     )}
 
                     {step === 1 && (
+                        // ... step 1 content ...
                         <div className="animate-in fade-in slide-in-from-right duration-500 max-w-lg mx-auto">
                             <div className="text-center mb-8">
                                 <Calendar className="w-16 h-16 text-blue-600 mx-auto mb-6" />
@@ -349,6 +433,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                     )}
 
                     {step === 2 && (
+                        // ... step 2 content ...
                         <div className="animate-in fade-in slide-in-from-right duration-500">
                             <div className="text-center mb-10">
                                 <Clock className="w-16 h-16 text-orange-600 mx-auto mb-6" />
@@ -361,29 +446,38 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                                     <input type="number" value={scheduleSettings.moduleDuration} onChange={e => setScheduleSettings({ ...scheduleSettings, moduleDuration: Number(e.target.value) })} className="clay-input w-full p-3 text-center" />
                                 </div>
                                 <div className="space-y-4">
-                                    <div className="p-4 bg-orange-50/50 rounded-2xl border border-orange-100 mb-4">
-                                        <div className="grid grid-cols-2 gap-2 mb-2">
-                                            <div>
-                                                <label className="text-[10px] font-black text-orange-400 uppercase">Inicio</label>
-                                                <input type="time" value={newBreak.start} onChange={e => setNewBreak({ ...newBreak, start: e.target.value })} className="w-full p-2 rounded-xl border border-orange-200 text-xs font-bold text-orange-800" />
+                                    {/* ... breaks ... */}
+                                    {tenant?.type !== 'INDEPENDENT' && (tenant?.type as string)?.toLowerCase() !== 'independent' && (
+                                        <div className="animate-in fade-in slide-in-from-right-8 duration-500">
+                                            <div className="p-4 bg-orange-50/50 rounded-2xl border border-orange-100 mb-4">
+                                                <div className="grid grid-cols-2 gap-2 mb-2">
+                                                    <div>
+                                                        <label className="text-[10px] font-black text-orange-400 uppercase">Inicio</label>
+                                                        <input type="time" value={newBreak.start} onChange={e => setNewBreak({ ...newBreak, start: e.target.value })} className="w-full p-2 rounded-xl border border-orange-200 text-xs font-bold text-orange-800" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[10px] font-black text-orange-400 uppercase">Fin</label>
+                                                        <input type="time" value={newBreak.end} onChange={e => setNewBreak({ ...newBreak, end: e.target.value })} className="w-full p-2 rounded-xl border border-orange-200 text-xs font-bold text-orange-800" />
+                                                    </div>
+                                                </div>
+                                                <button onClick={handleAddBreak} className="w-full py-2 bg-orange-500 text-white rounded-xl font-black uppercase text-[10px] shadow-lg shadow-orange-200 hover:bg-orange-600 transition-all">
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <Plus className="w-3 h-3" /> Agregar Receso / Actividad
+                                                    </div>
+                                                </button>
                                             </div>
-                                            <div>
-                                                <label className="text-[10px] font-black text-orange-400 uppercase">Fin</label>
-                                                <input type="time" value={newBreak.end} onChange={e => setNewBreak({ ...newBreak, end: e.target.value })} className="w-full p-2 rounded-xl border border-orange-200 text-xs font-bold text-orange-800" />
-                                            </div>
+                                            {scheduleSettings.breaks.length > 0 && (
+                                                <div className="space-y-2">
+                                                    {scheduleSettings.breaks.map((b: any, i: number) => (
+                                                        <div key={i} className="p-4 bg-white border-2 border-orange-50 rounded-2xl flex justify-between items-center capitalize font-bold text-slate-600">
+                                                            <span>{b.name} ({b.start_time} - {b.end_time})</span>
+                                                            <button onClick={() => setScheduleSettings((prev: any) => ({ ...prev, breaks: prev.breaks.filter((_: any, idx: number) => idx !== i) }))} className="text-red-400 bg-red-50 p-2 rounded-xl hover:bg-red-100 transition-colors">×</button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
-                                        <button onClick={handleAddBreak} className="w-full py-2 bg-orange-500 text-white rounded-xl font-black uppercase text-[10px] shadow-lg shadow-orange-200 hover:bg-orange-600 transition-all">
-                                            <div className="flex items-center justify-center gap-2">
-                                                <Plus className="w-3 h-3" /> Agregar Receso
-                                            </div>
-                                        </button>
-                                    </div>
-                                    {scheduleSettings.breaks.map((b: any, i: number) => (
-                                        <div key={i} className="p-4 bg-white border-2 border-orange-50 rounded-2xl flex justify-between items-center capitalize font-bold text-slate-600">
-                                            {b.name} ({b.start_time} - {b.end_time})
-                                            <button onClick={() => setScheduleSettings((prev: any) => ({ ...prev, breaks: prev.breaks.filter((_: any, idx: number) => idx !== i) }))} className="text-red-400">×</button>
-                                        </div>
-                                    ))}
+                                    )}
                                 </div>
                             </div>
                             <button onClick={handleSaveSchedule} className="clay-button w-full py-6 bg-indigo-500 text-white rounded-3xl font-black text-xl mt-12 uppercase tracking-widest flex items-center justify-center gap-3">
@@ -393,6 +487,45 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                     )}
 
                     {step === 3 && (
+                        <div className="animate-in fade-in slide-in-from-right duration-500 max-w-4xl mx-auto flex flex-col h-full">
+                            <div className="text-center mb-6">
+                                <BookOpen className="w-16 h-16 text-emerald-600 mx-auto mb-4" />
+                                <h2 className="text-3xl font-black text-slate-900">Tus Materias</h2>
+                                <p className="text-slate-500 mt-2">Selecciona las asignaturas que impartirás este ciclo escolar.</p>
+                            </div>
+
+                            <div className="bg-white rounded-3xl border-2 border-slate-100 flex flex-col shadow-sm overflow-hidden mb-6">
+                                <div className="bg-emerald-50 py-4 px-6 border-b border-emerald-100 flex justify-between items-center">
+                                    <span className="text-xs font-black text-emerald-800 uppercase tracking-widest flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                        Catálogo Disponible
+                                    </span>
+                                    <span className="bg-white px-4 py-1.5 rounded-full text-[10px] font-black text-emerald-600 shadow-sm border border-emerald-100">
+                                        {Object.values(selectedSubjects).filter(s => s.selected).length} MATERIAS SELECCIONADAS
+                                    </span>
+                                </div>
+                                <div className="p-2 overflow-y-auto custom-scrollbar max-h-[450px] bg-slate-50/50">
+                                    <SubjectSelector
+                                        educationalLevel={schoolData.educationalLevel}
+                                        selectedSubjects={selectedSubjects}
+                                        onChange={setSelectedSubjects}
+                                    />
+                                </div>
+                                <div className="bg-gray-50 p-3 text-center border-t border-gray-100">
+                                    <p className="text-[10px] text-gray-400 font-medium">Desplázate para ver más materias</p>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={handleSaveSubjects}
+                                className="clay-button w-full py-5 bg-emerald-500 text-white rounded-2xl font-black text-lg uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-emerald-600 transition-all shadow-xl shadow-emerald-200"
+                            >
+                                Continuar <ArrowRight className="w-6 h-6" />
+                            </button>
+                        </div>
+                    )}
+
+                    {step === 4 && (
                         <div className="animate-in fade-in slide-in-from-right duration-500 max-w-2xl mx-auto">
                             <div className="text-center mb-10">
                                 <CreditCard className="w-16 h-16 text-indigo-600 mx-auto mb-6" />

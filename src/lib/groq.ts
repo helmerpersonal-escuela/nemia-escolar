@@ -4,11 +4,44 @@ export class GroqService {
     private baseUrl = 'https://api.groq.com/openai/v1/chat/completions';
     private model = 'llama-3.1-8b-instant'; // Cambio a 8b para mayor velocidad y límites de tasa más altos
 
-    constructor(apiKey: string) {
-        // FORZADO: Usando la clave de Groq proporcionada por el usuario
-        const verifiedKey = import.meta.env.VITE_GROQ_API_KEY || '';
-        this.apiKey = apiKey || verifiedKey;
-        console.log('GroqService inicializado (Modelo: ' + this.model + ')');
+    constructor(apiKey?: string) {
+        // 1. Try environment variable
+        let key = import.meta.env.VITE_GROQ_API_KEY
+
+        // 2. Try localStorage (God Mode settings)
+        if (!key) {
+            try {
+                const saved = localStorage.getItem('godmode_ai_settings')
+                if (saved && saved !== 'undefined' && saved !== 'null') {
+                    const settings = JSON.parse(saved)
+                    if (settings.groq_key) {
+                        key = settings.groq_key
+                        console.log('[GroqService] Usando API Key de configuración global (God Mode)')
+                    }
+                }
+            } catch (e) {
+                console.warn('[GroqService] Error leyendo configuración local:', e)
+            }
+        }
+
+        // Priority: Argument > Environment > LocalStorage
+        this.apiKey = (apiKey || key || '').trim();
+
+        // Autodetección de Proveedor: Grok (xAI) vs Groq
+        if (this.apiKey.startsWith('xai-')) {
+            this.baseUrl = 'https://api.x.ai/v1/chat/completions';
+            this.model = 'grok-3';
+            console.log('[GroqService] Detectada llave de xAI (Grok). Usando modelo grok-3');
+        } else {
+            this.baseUrl = 'https://api.groq.com/openai/v1/chat/completions';
+            this.model = 'llama-3.1-8b-instant';
+        }
+
+        if (this.apiKey) {
+            console.log(`[GroqService] Inicializado satisfactoriamente (${this.apiKey.substring(0, 4)}...${this.apiKey.slice(-4)})`);
+        } else {
+            console.warn('[GroqService] Inicializado SIN clave API');
+        }
     }
 
     async generateLessonPlanSuggestions(context: {
@@ -22,6 +55,9 @@ export class GroqService {
         sessions?: any[] // Lista de sesiones
         temporality?: string
         purpose?: string
+        textbook?: string
+        pagesFrom?: string
+        pagesTo?: string
     }) {
         const isProject = context.temporality === 'PROJECT'
         const projectPurpose = context.purpose ? `Propósito del Proyecto: ${context.purpose}` : ''
@@ -54,6 +90,7 @@ export class GroqService {
             - Campo: ${context.field || 'Lenguajes'}
             - Metodología: ${context.methodology || 'Aprendizaje Basado en Proyectos'}
             - PDA: ${context.pdaDetail || 'No especificado'}
+            ${context.textbook ? `- LIBRO DE TEXTO: "${context.textbook}" (Páginas: ${context.pagesFrom || ''} a ${context.pagesTo || ''})` : ''}
 
             ${projectInstructions}
 
@@ -66,6 +103,7 @@ export class GroqService {
             3. CIERRE: Evaluación formativa, socialización, reflexión o tarea. (Mínimo 30 palabras)
             
             NO generes texto abstracto como "Se realizarán actividades de desarrollo". DESCRIBE LA ACTIVIDAD EXACTA.
+            ${context.textbook ? `USA EL LIBRO DE TEXTO COMO REFERENCIA: Utiliza los temas y el contexto del libro de texto "${context.textbook}" (páginas ${context.pagesFrom}-${context.pagesTo}) para inspirar tus propuestas. Puedes sugerir actividades propias o adaptaciones que no necesariamente se encuentren literalmente en el libro, siempre que guarden relación con sus contenidos.` : ''}
             
             Debes generar 3 propuestas distintas. Cada propuesta debe contener sugerencias para TODAS las sesiones mencionadas, asegurando progresión pedagógica.
 
@@ -139,17 +177,21 @@ export class GroqService {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                const msg = errorData.error?.message || response.statusText;
+                const msg = (typeof errorData.error === 'string' ? errorData.error : errorData.error?.message) || errorData.message || response.statusText;
 
                 // Si es error 400 por JSON, reintentar sin modo JSON forzado pero pidiéndolo en el prompt
                 if (response.status === 400 && isJson) {
-                    console.warn('Groq falló con json_object, reintentando modo texto...');
+                    console.warn('[GroqService] Falló con json_object, reintentando modo texto...');
                     return this.callGroq(prompt, false);
                 }
 
                 // Si es error de límite de tasa, sugerir esperar
                 if (response.status === 429) {
                     throw new Error(`Límite de Groq alcanzado (429): ${msg}. Por favor espera unos minutos.`);
+                }
+
+                if (response.status === 401) {
+                    throw new Error(`Error de Autenticación (401): La clave API de Groq es inválida o ha expirado. Por favor verifica los Ajustes de IA.`);
                 }
 
                 throw new Error(`Error de Groq (${response.status}): ${msg}`);

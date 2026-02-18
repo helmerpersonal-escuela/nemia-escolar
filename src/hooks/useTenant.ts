@@ -19,6 +19,10 @@ export const useTenant = () => {
 
             // If user is SUPER_ADMIN and has NO tenant_id, return a special system tenant
             if (profile.role === 'SUPER_ADMIN' && !profile.tenant_id) {
+                const { data: systemSettings } = await supabase.from('system_settings').select('key, value')
+                const settings: any = {}
+                systemSettings?.forEach(s => settings[s.key] = s.value)
+
                 return {
                     id: '00000000-0000-0000-0000-000000000000',
                     name: 'SISTEMA CONTROL (GOD MODE)',
@@ -30,9 +34,20 @@ export const useTenant = () => {
                     lastNamePaternal: profile.last_name_paternal,
                     lastNameMaternal: profile.last_name_maternal,
                     avatarUrl: profile.avatar_url,
-                    onboardingCompleted: true
+                    onboardingCompleted: true,
+                    aiConfig: {
+                        apiKey: settings.groq_key || '',
+                        geminiKey: settings.gemini_key || '',
+                        openaiKey: settings.openai_key || ''
+                    },
+                    groqApiKey: settings.groq_key || ''
                 }
             }
+
+            // GET SYSTEM SETTINGS as fallback for all users
+            const { data: systemSettings } = await supabase.from('system_settings').select('key, value')
+            const globalSettings: any = {}
+            systemSettings?.forEach(s => globalSettings[s.key] = s.value)
 
             if (!profile.tenant_id) return null
 
@@ -70,7 +85,13 @@ export const useTenant = () => {
                     logoUrl: tenant.logo_url,
                     logoLeftUrl: tenant.logo_left_url,
                     logoRightUrl: tenant.logo_right_url,
-                    onboardingCompleted: tenant.onboarding_completed
+                    onboardingCompleted: tenant.onboarding_completed,
+                    aiConfig: {
+                        apiKey: tenant.ai_config?.apiKey || tenant.ai_config?.groq_key || globalSettings.groq_key || '',
+                        geminiKey: tenant.ai_config?.geminiKey || tenant.ai_config?.gemini_key || globalSettings.gemini_key || '',
+                        openaiKey: tenant.ai_config?.openaiKey || tenant.ai_config?.openai_key || globalSettings.openai_key || ''
+                    },
+                    groqApiKey: tenant.ai_config?.apiKey || tenant.ai_config?.groq_key || globalSettings.groq_key || ''
                 }
             }
 
@@ -104,8 +125,14 @@ export const useTenant = () => {
                 logoUrl: tenant.logo_url,
                 logoLeftUrl: tenant.logo_left_url,
                 logoRightUrl: tenant.logo_right_url,
+                address: tenant.address,
                 onboardingCompleted: tenant.onboarding_completed,
-                aiConfig: tenant.ai_config
+                aiConfig: {
+                    apiKey: tenant.ai_config?.apiKey || tenant.ai_config?.groq_key || globalSettings.groq_key || '',
+                    geminiKey: tenant.ai_config?.geminiKey || tenant.ai_config?.gemini_key || globalSettings.gemini_key || '',
+                    openaiKey: tenant.ai_config?.openaiKey || tenant.ai_config?.openai_key || globalSettings.openai_key || ''
+                },
+                groqApiKey: tenant.ai_config?.apiKey || tenant.ai_config?.groq_key || globalSettings.groq_key || ''
             }
         },
         staleTime: 1000 * 30, // 30 seconds

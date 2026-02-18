@@ -191,7 +191,7 @@ export const GradingModal = ({
                         <div style="height: 100px; border: 1px solid #cbd5e1; border-radius: 4px;"></div>
                     </div>
 
-                    <div class="footer">Generado por Sistema de Gestión Escolar - ${new Date().toLocaleDateString()}</div>
+                    <div class="footer">Generado por Vunlek - ${new Date().toLocaleDateString()}</div>
                     <script>
                         setTimeout(() => { 
                             window.print(); 

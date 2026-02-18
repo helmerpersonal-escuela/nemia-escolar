@@ -23,8 +23,12 @@ import {
     Search,
     BookMarked,
     Briefcase,
+    Hash,
     ChevronLeft,
     ChevronRight,
+    Maximize2,
+    Eye,
+    ExternalLink
 } from 'lucide-react'
 import { PDFUpload } from '../../../components/common/PDFUpload'
 import { PDA_CATALOG, RESOURCE_CATALOG } from '../constants/planningConstants'
@@ -64,6 +68,7 @@ export const PlanningEditorPage = () => {
     const [groups, setGroups] = useState<Group[]>([])
     const [periods, setPeriods] = useState<EvaluationPeriod[]>([])
     const [subjects, setSubjects] = useState<Subject[]>([])
+    const [availableTextbooks, setAvailableTextbooks] = useState<any[]>([])
 
     // Catalog Modals state
     const [isPdaModalOpen, setIsPdaModalOpen] = useState(false)
@@ -73,7 +78,7 @@ export const PlanningEditorPage = () => {
     // Form State
     const [step, setStep] = useState(1) // Wizard Step State
     const [profileData, setProfileData] = useState<any>(null)
-    const [loading, setLoading] = useState(false)
+    const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [generating, setGenerating] = useState(false)
     const [isPreviewMode, setIsPreviewMode] = useState(false)
@@ -84,7 +89,9 @@ export const PlanningEditorPage = () => {
     const [programContents, setProgramContents] = useState<any[]>([])
     const [isProgramModalOpen, setIsProgramModalOpen] = useState(false)
     const [activeSessionTab, setActiveSessionTab] = useState(0)
-    const [errorModal, setErrorModal] = useState({ isOpen: false, title: '', message: '', action: null as any })
+    const [isPdfViewerOpen, setIsPdfViewerOpen] = useState(false)
+    const [pdfViewerUrl, setPdfViewerUrl] = useState('')
+    const [errorModal, setErrorModal] = useState({ isOpen: false, title: '', message: '', buttonText: 'Ir al Programa Analítico', action: null as any })
     const [formData, setFormData] = useState({
         title: '',
         group_id: '',
@@ -107,6 +114,9 @@ export const PlanningEditorPage = () => {
         evaluation_plan: {
             instruments: ['']
         },
+        textbook_id: '',
+        textbook_pages_from: '',
+        textbook_pages_to: '',
         source_document_url: '',
         extracted_text: ''
     })
@@ -135,12 +145,13 @@ export const PlanningEditorPage = () => {
         'Aprendizaje Servicio (AS)'
     ]
 
-    // Persistence: Save to localStorage
+    // Persistence: Save to localStorage (GUARDED BY LOADING)
     useEffect(() => {
+        if (loading) return // Don't save while loading
         const draftId = id || 'new'
         const draft = { formData, step, timestamp: new Date().getTime() }
         localStorage.setItem(`lp_draft_${draftId}`, JSON.stringify(draft))
-    }, [formData, step, id])
+    }, [formData, step, id, loading])
 
     // Fetch Analytical Program Contents for the selected Subject
     useEffect(() => {
@@ -173,81 +184,73 @@ export const PlanningEditorPage = () => {
         fetchProgramContents()
     }, [analyticalProgram?.id, formData.subject_id, id])
 
-    // Reactive Subject Fetching based on Group Selection
-    useEffect(() => {
-        const fetchSubjects = async () => {
-            if (!tenant?.id) {
-                setSubjects([])
-                return
-            }
+    // Unified Subject Fetching to prevent race conditions
+    const fetchSubjects = async (groupId: string, tenantId: string) => {
+        if (!tenantId) return []
 
-            // 1. Fetch Group specific subjects
-            let groupSubjectsData: any[] = []
-            if (formData.group_id) {
-                const { data } = await supabase
-                    .from('group_subjects')
-                    .select(`
-                        id, 
-                        subject_catalog_id, 
-                        custom_name,
-                        subject_catalog(name)
-                    `)
-                    .eq('group_id', formData.group_id)
-                if (data) groupSubjectsData = data
-            }
-
-            // 2. Fetch User Profile subjects (from settings)
-            const { data: { user } } = await supabase.auth.getUser()
-            let profileSubjectsData: any[] = []
-            if (user) {
-                const { data } = await supabase
-                    .from('profile_subjects')
-                    .select(`
-                        id,
-                        subject_catalog_id,
-                        custom_detail,
-                        subject_catalog(name)
-                    `)
-                    .eq('profile_id', user.id)
-                if (data) profileSubjectsData = data
-            }
-
-            // 3. Merge and Deduplicate
-            const subjectsMap = new Map()
-
-            // Process Group Subjects first
-            groupSubjectsData.forEach(gs => {
-                const id = gs.subject_catalog_id || gs.id
-                subjectsMap.set(id, {
-                    id,
-                    name: gs.subject_catalog?.name || gs.custom_name
-                })
-            })
-
-            // Add Profile Subjects (they might override or add new ones)
-            profileSubjectsData.forEach(ps => {
-                const id = ps.subject_catalog_id || ps.id
-                if (!subjectsMap.has(id)) {
-                    subjectsMap.set(id, {
-                        id,
-                        name: ps.subject_catalog?.name || ps.custom_detail || 'Materia Personalizada'
-                    })
-                }
-            })
-
-            const formattedSubjects = Array.from(subjectsMap.values())
-            setSubjects(formattedSubjects)
-
-            // Auto-clear subject if not in the new list
-            // CRITICAL FIX: Don't clear if we are in edit mode and just loaded the plan, 
-            // as the subjects list might still be fetching or the mapping might be different.
-            const isEditing = id && id !== 'new'
-            if (formData.subject_id && !formattedSubjects.some(s => s.id === formData.subject_id) && !isEditing) {
-                setFormData(prev => ({ ...prev, subject_id: '' }))
-            }
+        // 1. Fetch Group specific subjects
+        let groupSubjectsData: any[] = []
+        if (groupId) {
+            const { data } = await supabase
+                .from('group_subjects')
+                .select(`
+                    id, 
+                    subject_catalog_id, 
+                    custom_name,
+                    subject_catalog(name)
+                `)
+                .eq('group_id', groupId)
+            if (data) groupSubjectsData = data
         }
 
-        fetchSubjects()
+        // 2. Fetch User Profile subjects (from settings)
+        const { data: { user } } = await supabase.auth.getUser()
+        let profileSubjectsData: any[] = []
+        if (user) {
+            const { data } = await supabase
+                .from('profile_subjects')
+                .select(`
+                    id,
+                    subject_catalog_id,
+                    custom_detail,
+                    subject_catalog(name)
+                `)
+                .eq('profile_id', user.id)
+            if (data) profileSubjectsData = data
+        }
+
+        // 3. Merge and Deduplicate
+        const subjectsMap = new Map()
+
+        // Process Group Subjects first
+        groupSubjectsData.forEach(gs => {
+            const subjectId = gs.subject_catalog_id || gs.id
+            subjectsMap.set(subjectId, {
+                id: subjectId,
+                name: gs.subject_catalog?.name || gs.custom_name
+            })
+        })
+
+        // Add Profile Subjects (they might override or add new ones)
+        profileSubjectsData.forEach(ps => {
+            const subjectId = ps.subject_catalog_id || ps.id
+            if (!subjectsMap.has(subjectId)) {
+                subjectsMap.set(subjectId, {
+                    id: subjectId,
+                    name: ps.subject_catalog?.name || ps.custom_detail || 'Materia Personalizada'
+                })
+            }
+        })
+
+        const formattedSubjects = Array.from(subjectsMap.values())
+        setSubjects(formattedSubjects)
+        return formattedSubjects
+    }
+
+    // Reactive Subject Fetching strictly for interactive changes (manual group change)
+    useEffect(() => {
+        if (loading || !formData.group_id || !tenant?.id) return
+        fetchSubjects(formData.group_id, tenant.id)
     }, [formData.group_id, tenant?.id])
 
     const fetchProfile = async () => {
@@ -265,116 +268,144 @@ export const PlanningEditorPage = () => {
     }, [])
 
     useEffect(() => {
-        if (!tenant) return
+        if (!tenant?.id) return
+
         const fetchData = async () => {
             setLoading(true)
 
-            // Fetch Groups
-            const { data: groupsData } = await supabase
-                .from('groups')
-                .select('id, grade, section')
-                .eq('tenant_id', tenant.id)
+            try {
+                // 1. Initial Data Setup
+                const isNew = !id || id === 'new'
+                let finalFormData = { ...formData }
 
-            // Fetch Periods
-            const { data: periodsData } = await supabase
-                .from('evaluation_periods')
-                .select('id, name, is_active, start_date, end_date')
-                .eq('tenant_id', tenant.id)
+                // 2. Load basic dependencies (Groups, Periods, Year)
+                const [groupsRes, periodsRes, activeYearRes] = await Promise.all([
+                    supabase.from('groups').select('id, grade, section').eq('tenant_id', tenant.id),
+                    supabase.from('evaluation_periods').select('id, name, is_active, start_date, end_date').eq('tenant_id', tenant.id),
+                    supabase.from('academic_years').select('id').eq('tenant_id', tenant.id).eq('is_active', true).maybeSingle()
+                ])
 
-            if (groupsData) setGroups(groupsData)
-            if (periodsData) setPeriods(periodsData)
+                if (groupsRes.data) setGroups(groupsRes.data)
+                if (periodsRes.data) setPeriods(periodsRes.data)
+                const activeYear = activeYearRes.data
 
-            // 1. Fetch Active Analytical Program
-            const { data: program } = await supabase
-                .from('analytical_programs')
-                .select('*')
-                .eq('tenant_id', tenant.id)
-                .order('updated_at', { ascending: false })
-                .limit(1)
-                .maybeSingle()
+                // PREVENTIVE VALIDATION: Groups are mandatory for Lesson Plans
+                if (isNew && (!groupsRes.data || groupsRes.data.length === 0)) {
+                    setErrorModal({
+                        isOpen: true,
+                        title: 'Grupos Requeridos',
+                        message: 'Para construir tu planeación didáctica, primero debes tener al menos un grupo creado. Por favor, configura tus grupos primero.',
+                        buttonText: 'Ir a Grupos y Alumnos',
+                        action: () => navigate('/groups')
+                    })
+                    setLoading(false)
+                    return
+                }
 
-            const isNew = !id || id === 'new'
-            if (!program && isNew) {
-                setErrorModal({
-                    isOpen: true,
-                    title: 'Programa Analítico Requerido',
-                    message: 'Para cumplir con el Plan de Estudio 2022 (NEM), es obligatorio contar con un Programa Analítico previo a la Planeación Didáctica. Por favor, crea tu programa primero.',
-                    action: () => navigate('/analytical-program/new')
-                })
-                setLoading(false)
-                return
-            }
-
-            if (program) setAnalyticalProgram(program)
-
-            if (id && id !== 'new') {
-                const { data: plan } = await supabase
-                    .from('lesson_plans')
+                // 3. Load Analytical Program
+                let programQuery = supabase
+                    .from('analytical_programs')
                     .select('*')
-                    .eq('id', id)
-                    .single()
+                    .eq('tenant_id', tenant.id)
+                    .order('updated_at', { ascending: false })
+                    .limit(1)
 
-                if (plan) {
-                    const dbData = {
-                        ...plan,
-                        source_document_url: plan.source_document_url || '',
-                        extracted_text: plan.extracted_text || ''
+                if (activeYear) programQuery = programQuery.eq('academic_year_id', activeYear.id)
+                const { data: program } = await programQuery.maybeSingle()
+
+                if (!program && isNew) {
+                    setErrorModal({
+                        isOpen: true,
+                        title: 'Programa Analítico Requerido',
+                        message: 'Para cumplir con el Plan de Estudio 2022 (NEM), es obligatorio contar con un Programa Analítico previo a la Planeación Didáctica. Por favor, crea tu programa primero.',
+                        buttonText: 'Ir al Programa Analítico',
+                        action: () => navigate('/analytical-program/new')
+                    })
+                    setLoading(false)
+                    return
+                }
+                if (program) setAnalyticalProgram(program)
+
+                // 4. Resolve Plan Data (Existing vs New)
+                if (id && id !== 'new') {
+                    const { data: plan } = await supabase.from('lesson_plans').select('*').eq('id', id).single()
+                    if (plan) {
+                        const dbData = { ...plan, source_document_url: plan.source_document_url || '', extracted_text: plan.extracted_text || '' }
+                        const localDraft = localStorage.getItem(`lp_draft_${id}`)
+                        if (localDraft) {
+                            try {
+                                const parsed = JSON.parse(localDraft)
+                                finalFormData = parsed.formData
+                                setStep(parsed.step || 1)
+                            } catch (e) {
+                                finalFormData = dbData
+                            }
+                        } else {
+                            finalFormData = dbData
+                        }
+                    }
+                } else {
+                    const suggestion = program?.pedagogical_strategies?.main_methodology || (program?.pedagogical_strategies as any)?.methodology || 'Aprendizaje Basado en Proyectos (ABP)'
+                    const match = METODOLOGIAS.find(m => suggestion.includes(m)) || METODOLOGIAS[0]
+
+                    const defaultData = {
+                        ...finalFormData,
+                        metodologia: match,
+                        problem_context: program?.diagnosis_narrative || ''
                     }
 
-                    // Check for local draft
-                    const localDraft = localStorage.getItem(`lp_draft_${id}`)
+                    const localDraft = localStorage.getItem('lp_draft_new')
                     if (localDraft) {
                         try {
                             const parsed = JSON.parse(localDraft)
-                            setFormData(parsed.formData)
-                            setStep(parsed.step)
-                            console.log('Restored state from local storage')
+                            finalFormData = {
+                                ...parsed.formData,
+                                problem_context: parsed.formData.problem_context || defaultData.problem_context,
+                                metodologia: parsed.formData.metodologia || defaultData.metodologia
+                            }
+                            setStep(parsed.step || 1)
                         } catch (e) {
-                            console.error('Error parsing local draft:', e)
-                            setFormData(dbData)
+                            finalFormData = defaultData
                         }
                     } else {
-                        setFormData(dbData)
+                        finalFormData = defaultData
+                    }
+
+                    // URL PRE-POPULATION
+                    const urlGroupId = searchParams.get('groupId')
+                    const urlSubjectId = searchParams.get('subjectId')
+                    const urlPeriodId = searchParams.get('periodId')
+                    if (urlGroupId) finalFormData.group_id = urlGroupId
+                    if (urlSubjectId) finalFormData.subject_id = urlSubjectId
+                    if (urlPeriodId) finalFormData.period_id = urlPeriodId
+                }
+
+                // 5. AUTO-FETCH SUBJECTS (CRITICAL STEP to prevent race conditions)
+                if (finalFormData.group_id) {
+                    await fetchSubjects(finalFormData.group_id, tenant.id)
+                }
+
+                // 6. Final Period Adjustment
+                if (!finalFormData.period_id) {
+                    const today = new Date().toISOString().split('T')[0]
+                    const currentPeriod = periodsRes.data?.find((p: any) => today >= p.start_date && today <= p.end_date)
+                    if (currentPeriod) {
+                        finalFormData.period_id = currentPeriod.id
+                    } else if (periodsRes.data && periodsRes.data.length > 0) {
+                        finalFormData.period_id = periodsRes.data[0].id
                     }
                 }
-            } else {
-                // Pre-populate context from Analytical Program if available
-                const suggestion = program.pedagogical_strategies?.main_methodology ||
-                    (program.pedagogical_strategies as any)?.methodology ||
-                    'Aprendizaje Basado en Proyectos (ABP)'
 
-                // Find closest match or default
-                const match = METODOLOGIAS.find(m => suggestion.includes(m)) || METODOLOGIAS[0]
-
-                const defaultData = {
-                    ...formData,
-                    metodologia: match,
-                    problem_context: program.diagnosis_narrative || ''
-                }
-
-                // Check for draft for NEW plan
-                const localDraft = localStorage.getItem('lp_draft_new')
-                if (localDraft) {
-                    try {
-                        const parsed = JSON.parse(localDraft)
-                        setFormData(parsed.formData)
-                        setStep(parsed.step)
-                        console.log('Restored NEW plan draft from local storage')
-                    } catch (e) {
-                        console.error('Error parsing local draft:', e)
-                        setFormData(prev => ({ ...prev, ...defaultData }))
-                    }
-                } else {
-                    setFormData(prev => ({ ...prev, ...defaultData }))
-                }
+                setFormData(finalFormData)
+            } catch (error) {
+                console.error('Error initializing planning data:', error)
+            } finally {
+                setLoading(false)
             }
-            // Auto-select period based on current date
-            const today = new Date().toISOString().split('T')[0]
-            const currentPeriod = periodsData?.find((p: any) => today >= p.start_date && today <= p.end_date)
-            setLoading(false)
         }
+
         fetchData()
-    }, [tenant, id])
+    }, [id, tenant?.id, searchParams])
 
     // Fetch Criteria when Group/Period changes
     useEffect(() => {
@@ -400,6 +431,38 @@ export const PlanningEditorPage = () => {
         }
         loadCriteria()
     }, [formData.group_id, formData.period_id])
+
+    // Fetch Relevant Textbooks
+    useEffect(() => {
+        const fetchTextbooks = async () => {
+            if (!tenant?.educationalLevel || !formData.group_id) {
+                setAvailableTextbooks([])
+                return
+            }
+
+            const selectedGroup = groups.find(g => g.id === formData.group_id)
+            if (!selectedGroup) return
+
+            // Map tenant level to textbook level
+            const levelMap: any = {
+                'PRIMARY': 'PRIMARIA',
+                'SECONDARY': 'SECUNDARIA',
+                'TELESECUNDARIA': 'TELESECUNDARIA'
+            }
+            const mappedLevel = levelMap[tenant.educationalLevel] || 'PRIMARIA'
+
+            const { data, error } = await supabase
+                .from('textbooks')
+                .select('*')
+                .eq('level', mappedLevel)
+                .eq('grade', selectedGroup.grade)
+
+            if (!error && data) {
+                setAvailableTextbooks(data)
+            }
+        }
+        fetchTextbooks()
+    }, [formData.group_id, tenant?.educationalLevel, groups])
 
     const calculatePhaseDurations = (totalDuration: number) => {
         const apertura = Math.round(totalDuration * 0.15)
@@ -445,6 +508,14 @@ export const PlanningEditorPage = () => {
                 .eq('group_id', formData.group_id)
                 .order('start_time', { ascending: true })
 
+            const { data: scheduleSettings } = await supabase
+                .from('schedule_settings')
+                .select('module_duration')
+                .eq('tenant_id', tenant.id)
+                .maybeSingle()
+
+            const moduleDuration = scheduleSettings?.module_duration || 50
+
             if (!schedule || schedule.length === 0) {
                 alert('No se encontró un horario cargado para este grupo.')
                 return
@@ -484,10 +555,10 @@ export const PlanningEditorPage = () => {
             filteredSchedule.forEach(item => {
                 if (!currentBlock || currentBlock.day_of_week !== item.day_of_week || item.start_time !== currentBlock.end_time) {
                     if (currentBlock) blocks.push(currentBlock)
-                    currentBlock = { ...item, duration: 50 }
+                    currentBlock = { ...item, duration: moduleDuration }
                 } else {
                     currentBlock.end_time = item.end_time
-                    currentBlock.duration += 50
+                    currentBlock.duration += moduleDuration
                 }
             })
             if (currentBlock) blocks.push(currentBlock)
@@ -550,6 +621,16 @@ export const PlanningEditorPage = () => {
         return `${dayName} ${dayNumber} de ${monthName} de ${startTime} a ${endTime} ${session.duration} min.`
     }
 
+    const sanitizePlanData = (data: any) => {
+        const sanitized = { ...data }
+        if (!sanitized.textbook_id || sanitized.textbook_id === '') sanitized.textbook_id = null
+        if (sanitized.textbook_pages_from === '') sanitized.textbook_pages_from = null
+        if (sanitized.textbook_pages_to === '') sanitized.textbook_pages_to = null
+        if (!sanitized.subject_id || sanitized.subject_id === '') sanitized.subject_id = null
+        if (!sanitized.period_id || sanitized.period_id === '') sanitized.period_id = null
+        return sanitized
+    }
+
     const generateAiSuggestions = async () => {
         if (!formData.campo_formativo || !formData.metodologia) {
             alert('Define el Campo Formativo y Metodología primero.')
@@ -572,7 +653,7 @@ export const PlanningEditorPage = () => {
         try {
             const aiService = apiKey.startsWith('gsk_')
                 ? new GroqService(apiKey)
-                : new GeminiService(apiKey)
+                : new GeminiService(tenant?.aiConfig?.geminiKey || apiKey, tenant?.aiConfig?.apiKey)
 
             const suggestions = await aiService.generateLessonPlanSuggestions({
                 topic: formData.title || 'Tema General',
@@ -584,7 +665,10 @@ export const PlanningEditorPage = () => {
                 pdaDetail: formData.pda.join('. '),
                 sessions: formData.activities_sequence.map(s => ({ date: s.date, duration: s.duration })),
                 temporality: formData.temporality,
-                purpose: formData.purpose
+                purpose: formData.purpose,
+                textbook: availableTextbooks.find(b => b.id === formData.textbook_id)?.title,
+                pagesFrom: formData.textbook_pages_from,
+                pagesTo: formData.textbook_pages_to
             })
 
             setAiSuggestions(suggestions)
@@ -632,13 +716,14 @@ export const PlanningEditorPage = () => {
         if (tenant?.id) {
             setSaving(true)
             try {
-                const planData = {
+                const rawPlanData = {
                     ...updatedFormData,
                     tenant_id: tenant.id,
                     updated_at: new Date().toISOString(),
                     source_document_url: formData.source_document_url,
                     extracted_text: formData.extracted_text
                 }
+                const planData = sanitizePlanData(rawPlanData)
 
                 if (!isOnline) {
                     addToQueue({
@@ -682,11 +767,12 @@ export const PlanningEditorPage = () => {
         if (!tenant) return
         setSaving(true)
         try {
-            const planData = {
+            const rawPlanData = {
                 ...formData,
                 tenant_id: tenant.id,
                 updated_at: new Date().toISOString()
             }
+            const planData = sanitizePlanData(rawPlanData)
 
             if (!isOnline) {
                 addToQueue({
@@ -706,10 +792,12 @@ export const PlanningEditorPage = () => {
             }
 
             if (id && id !== 'new') {
-                await supabase.from('lesson_plans').update(planData).eq('id', id)
+                const { error: updateError } = await supabase.from('lesson_plans').update(planData).eq('id', id)
+                if (updateError) throw updateError
                 localStorage.removeItem(`lp_draft_${id}`)
             } else {
-                const { data } = await supabase.from('lesson_plans').insert([planData]).select().single()
+                const { data, error: insertError } = await supabase.from('lesson_plans').insert([planData]).select().single()
+                if (insertError) throw insertError
                 if (data?.id) {
                     localStorage.removeItem('lp_draft_new')
                     localStorage.removeItem(`lp_draft_${data.id}`)
@@ -717,9 +805,9 @@ export const PlanningEditorPage = () => {
             }
             alert('Planeación guardada con éxito')
             navigate('/planning')
-        } catch (error) {
-            console.error(error)
-            alert('Error al guardar')
+        } catch (error: any) {
+            console.error('Error al guardar planeación:', error)
+            alert('Error al guardar: ' + (error.message || 'Error desconocido'))
         } finally {
             setSaving(false)
         }
@@ -767,6 +855,10 @@ export const PlanningEditorPage = () => {
             case 3:
                 // Contenidos y PDA son flexibles, pero idealmente debería haber al menos 1
                 return true
+            case 4:
+                if (formData.activities_sequence.length === 0) return alert('Debes cargar las sesiones del horario antes de continuar.')
+                if (!formData.start_date || !formData.end_date) return alert('Define las fechas de inicio y fin del periodo.')
+                return true
             default:
                 return true
         }
@@ -780,7 +872,7 @@ export const PlanningEditorPage = () => {
             <div className="flex justify-between items-center mb-8">
                 <button
                     onClick={() => navigate('/planning')}
-                    className="flex items-center text-gray-500 hover:text-gray-900 transition-colors font-bold text-sm"
+                    className="flex items-center text-gray-500 hover:text-gray-900 transition-colors font-bold text-sm btn-tactile"
                 >
                     <ArrowLeft className="w-4 h-4 mr-2" />
                     Volver al listado
@@ -802,7 +894,7 @@ export const PlanningEditorPage = () => {
                         <button
                             onClick={handleSave}
                             disabled={saving}
-                            className="bg-indigo-600 text-white px-6 py-2 rounded-xl text-xs font-black shadow-lg shadow-indigo-100 flex items-center hover:bg-indigo-700 transition-all uppercase tracking-wider disabled:opacity-50"
+                            className="bg-indigo-600 text-white px-6 py-2 rounded-xl text-xs font-black shadow-lg shadow-indigo-100 flex items-center hover:bg-indigo-700 transition-all uppercase tracking-wider disabled:opacity-50 btn-tactile"
                         >
                             <Save className="w-3.5 h-3.5 mr-2" />
                             {saving ? 'Guardando...' : 'Guardar Progreso'}
@@ -813,17 +905,22 @@ export const PlanningEditorPage = () => {
 
             {/* Stepper Progress (Only in Editor Mode) */}
             {!isPreviewMode && (
-                <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 mb-8 overflow-x-auto">
-                    <div className="flex justify-between items-center min-w-[600px] relative">
+                <div className="bg-white rounded-[2.5rem] p-8 shadow-tactile border-4 border-white mb-10 overflow-x-auto print:hidden">
+                    <div className="flex justify-between items-center min-w-[700px] relative px-4">
                         {/* Connecting Line */}
-                        <div className="absolute top-1/2 left-0 w-full h-1 bg-gray-50 -translate-y-1/2 z-0"></div>
+                        <div className="absolute top-[24px] left-0 w-full h-2 bg-slate-100 rounded-full z-0"></div>
+                        <div
+                            className="absolute top-[24px] left-0 h-2 bg-indigo-500 rounded-full z-0 transition-all duration-700 ease-out"
+                            style={{ width: `${((step - 1) / 5) * 100}%` }}
+                        ></div>
 
                         {[
-                            { n: 1, label: 'Datos Generales', icon: BookOpen },
-                            { n: 2, label: 'Estructura NEM', icon: Target },
-                            { n: 3, label: 'Contenidos', icon: Layers },
-                            { n: 4, label: 'Secuencia', icon: Clock },
-                            { n: 5, label: 'Cierre', icon: ClipboardCheck }
+                            { n: 1, label: 'Datos', icon: BookOpen },
+                            { n: 2, label: 'NEM', icon: Target },
+                            { n: 3, label: 'PDA', icon: Layers },
+                            { n: 4, label: 'Horario', icon: Clock },
+                            { n: 5, label: 'Secuencia', icon: Sparkles },
+                            { n: 6, label: 'Cierre', icon: ClipboardCheck }
                         ].map((s) => (
                             <button
                                 key={s.n}
@@ -831,17 +928,21 @@ export const PlanningEditorPage = () => {
                                     if (s.n < step) setStep(s.n)
                                     else if (validateStep(step)) setStep(s.n)
                                 }}
-                                className={`relative z-10 flex flex-col items-center group focus:outline-none transition-all ${step === s.n ? 'scale-110' : 'opacity-60 hover:opacity-100'}`}
+                                className={`relative z-10 flex flex-col items-center group transition-all duration-500
+                                    ${step === s.n ? 'scale-110' : 'opacity-70 hover:opacity-100'} 
+                                    ${step > s.n ? 'text-indigo-600' : 'text-slate-300'}`}
                             >
-                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border-4 transition-all duration-300
-                                    ${step >= s.n
-                                        ? 'bg-indigo-600 border-indigo-100 text-white shadow-lg shadow-indigo-100'
-                                        : 'bg-white border-gray-100 text-gray-300'}`}
+                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border-[3px] transition-all duration-300 btn-tactile
+                                    ${step === s.n
+                                        ? 'bg-indigo-600 border-indigo-400 text-white shadow-[0_6px_0_0_#4338ca]'
+                                        : step > s.n
+                                            ? 'bg-indigo-50 border-indigo-200 text-indigo-600 shadow-[0_6px_0_0_#e0e7ff]'
+                                            : 'bg-white border-slate-100 text-slate-300 shadow-[0_6px_0_0_#f1f5f9]'}`}
                                 >
-                                    <s.icon className="w-5 h-5" />
+                                    <s.icon className={`w-6 h-6 ${step === s.n ? 'animate-bounce' : ''}`} />
                                 </div>
-                                <span className={`text-[10px] font-black uppercase mt-3 tracking-wider bg-white px-2 rounded-full
-                                    ${step >= s.n ? 'text-indigo-600' : 'text-gray-400'}`}>
+                                <span className={`text-[10px] font-black uppercase mt-4 tracking-widest bg-white px-3 py-1 rounded-full shadow-sm border border-slate-50
+                                    ${step === s.n ? 'text-indigo-600 border-indigo-100' : 'text-slate-400'}`}>
                                     {s.label}
                                 </span>
                             </button>
@@ -852,7 +953,7 @@ export const PlanningEditorPage = () => {
 
             <div className="flex gap-8 items-start relative">
                 {/* Main Content Area */}
-                <div className={`flex-1 bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-white overflow-hidden transition-all duration-500 ${isPreviewMode ? 'max-w-4xl mx-auto' : ''}`}>
+                <div className={`flex-1 bg-white rounded-[2.5rem] shadow-tactile border-4 border-white overflow-hidden transition-all duration-500 ${isPreviewMode ? 'max-w-4xl mx-auto' : ''}`}>
 
                     {/* Header Banner (Conditional) */}
                     {isPreviewMode && (
@@ -863,7 +964,7 @@ export const PlanningEditorPage = () => {
                                 </div>
                                 <div>
                                     <h1 className="text-xl font-black text-gray-900 uppercase tracking-tighter">Planeación Didáctica</h1>
-                                    <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mt-1">Gobernanza Escolar • Nueva Escuela Mexicana</p>
+                                    <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mt-1">Vunlek • Nueva Escuela Mexicana</p>
                                 </div>
                             </div>
                             <div className="text-right flex flex-col items-end">
@@ -947,7 +1048,7 @@ export const PlanningEditorPage = () => {
                                                     onChange={e => setFormData({ ...formData, purpose: e.target.value })}
                                                     placeholder="Ej: Que los alumnos investiguen el valor nutricional..."
                                                     rows={2}
-                                                    className="w-full bg-gray-50/50 border-gray-200 rounded-xl px-4 py-3 font-bold text-gray-800 focus:ring-2 focus:ring-indigo-500 transition-all resize-none"
+                                                    className="w-full input-squishy px-4 py-3 font-bold text-gray-800 resize-none"
                                                 />
                                             </div>
                                         )}
@@ -959,7 +1060,7 @@ export const PlanningEditorPage = () => {
                                                     min="1"
                                                     value={formData.project_duration || 10}
                                                     onChange={e => setFormData({ ...formData, project_duration: parseInt(e.target.value) || 1 })}
-                                                    className="w-full bg-gray-50/50 border-gray-200 rounded-xl px-4 py-3 font-bold text-gray-800 focus:ring-2 focus:ring-indigo-500 transition-all"
+                                                    className="w-full input-squishy px-4 py-3 font-bold text-gray-800"
                                                 />
                                             </div>
                                         )}
@@ -968,7 +1069,7 @@ export const PlanningEditorPage = () => {
                                             <select
                                                 value={formData.temporality}
                                                 onChange={e => setFormData({ ...formData, temporality: e.target.value })}
-                                                className="w-full bg-gray-50/50 border-gray-200 rounded-xl px-4 py-3 font-bold text-gray-800 focus:ring-2 focus:ring-indigo-500"
+                                                className="w-full input-squishy px-4 py-3 font-bold text-gray-800"
                                             >
                                                 <option value="WEEKLY">Semanal</option>
                                                 <option value="MONTHLY">Mensual</option>
@@ -981,7 +1082,7 @@ export const PlanningEditorPage = () => {
                                             <select
                                                 value={formData.group_id}
                                                 onChange={e => setFormData({ ...formData, group_id: e.target.value })}
-                                                className="w-full bg-gray-50/50 border-gray-200 rounded-xl px-4 py-3 font-bold text-gray-800 focus:ring-2 focus:ring-indigo-500"
+                                                className="w-full input-squishy px-4 py-3 font-bold text-gray-800"
                                             >
                                                 <option value="">Seleccionar Grupo</option>
                                                 {groups.map(g => (
@@ -994,7 +1095,7 @@ export const PlanningEditorPage = () => {
                                             <select
                                                 value={formData.subject_id}
                                                 onChange={e => setFormData({ ...formData, subject_id: e.target.value })}
-                                                className="w-full bg-gray-50/50 border-gray-200 rounded-xl px-4 py-3 font-bold text-gray-800 focus:ring-2 focus:ring-indigo-500"
+                                                className="w-full input-squishy px-4 py-3 font-bold text-gray-800"
                                             >
                                                 <option value="">Seleccionar Asignatura</option>
                                                 {subjects.map(s => (
@@ -1007,7 +1108,7 @@ export const PlanningEditorPage = () => {
                                             <select
                                                 value={formData.period_id}
                                                 onChange={e => setFormData({ ...formData, period_id: e.target.value })}
-                                                className="w-full bg-gray-50/50 border-gray-200 rounded-xl px-4 py-3 font-bold text-gray-800 focus:ring-2 focus:ring-indigo-500"
+                                                className="w-full input-squishy px-4 py-3 font-bold text-gray-800"
                                             >
                                                 <option value="">Seleccionar Periodo</option>
                                                 {periods.map(p => (
@@ -1063,7 +1164,7 @@ export const PlanningEditorPage = () => {
                                                         className={`text-left px-4 py-3 rounded-xl border-2 font-bold text-sm transition-all
                                                             ${formData.campo_formativo === c
                                                                 ? 'bg-indigo-50 border-indigo-500 text-indigo-700 shadow-sm'
-                                                                : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'}`}
+                                                                : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'} btn-tactile`}
                                                     >
                                                         {c}
                                                     </button>
@@ -1084,7 +1185,7 @@ export const PlanningEditorPage = () => {
                                                 value={formData.problem_context}
                                                 onChange={e => setFormData({ ...formData, problem_context: e.target.value })}
                                                 placeholder="Describe la problemática detectada en la comunidad o aula..."
-                                                className="w-full bg-gray-50/50 border-gray-200 rounded-xl px-4 py-3 font-medium text-gray-700 focus:ring-2 focus:ring-indigo-500"
+                                                className="w-full input-squishy px-4 py-3 font-medium text-gray-700"
                                             />
                                         ) : (
                                             <p className="text-sm font-medium text-gray-600 leading-relaxed italic bg-gray-50 p-4 rounded-xl border border-gray-100">
@@ -1101,7 +1202,7 @@ export const PlanningEditorPage = () => {
                                             <select
                                                 value={formData.metodologia}
                                                 onChange={e => setFormData({ ...formData, metodologia: e.target.value })}
-                                                className="w-full bg-gray-50/50 border-gray-200 rounded-xl px-4 py-3 font-bold text-gray-800 focus:ring-2 focus:ring-indigo-500"
+                                                className="w-full input-squishy px-4 py-3 font-bold text-gray-800"
                                             >
                                                 {METODOLOGIAS.map(m => (
                                                     <option key={m} value={m}>{m}</option>
@@ -1154,7 +1255,7 @@ export const PlanningEditorPage = () => {
                                                 {programContents.length > 0 && (
                                                     <button
                                                         onClick={() => setIsProgramModalOpen(true)}
-                                                        className="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-bold text-[10px] uppercase flex items-center px-3 py-1 rounded-lg border border-indigo-100"
+                                                        className="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-bold text-[10px] uppercase flex items-center px-3 py-1 rounded-lg border border-indigo-100 btn-tactile"
                                                     >
                                                         <Search className="w-3 h-3 mr-1.5" /> Vincular Programa Analítico
                                                     </button>
@@ -1198,7 +1299,7 @@ export const PlanningEditorPage = () => {
                                             <div className="flex space-x-3">
                                                 <button
                                                     onClick={() => setIsPdaModalOpen(true)}
-                                                    className="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-bold text-[10px] uppercase flex items-center px-3 py-1 rounded-lg border border-indigo-100"
+                                                    className="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-bold text-[10px] uppercase flex items-center px-3 py-1 rounded-lg border border-indigo-100 btn-tactile"
                                                 >
                                                     <BookMarked className="w-3 h-3 mr-1.5" /> Ver Catálogo
                                                 </button>
@@ -1235,17 +1336,17 @@ export const PlanningEditorPage = () => {
                                 </div>
                             </div>
                         </section>)}
-                        {/* Section 4: Secuencia Didáctica */}
+                        {/* Section 4: Distribución de Sesiones (Horario) */}
                         {(step === 4 || isPreviewMode) && (<section>
                             <div className="flex justify-between items-center mb-6">
                                 <h2 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] flex items-center">
                                     <span className="w-8 h-[1px] bg-gray-200 mr-3"></span>
-                                    04. Secuencia de Actividades (Sesiones)
+                                    04. Distribución de Sesiones (Horario)
                                 </h2>
                                 {!isPreviewMode && (
                                     <div className="flex space-x-3 items-center">
                                         <p className="text-[10px] font-bold text-indigo-400 uppercase bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-100">
-                                            ¿Deseas usar sugerencias de la IA o agregar tus propias estrategias?
+                                            Genera automáticamente las fechas basadas en tu horario escolar
                                         </p>
                                         <button
                                             onClick={generateSequenceFromSchedule}
@@ -1260,7 +1361,7 @@ export const PlanningEditorPage = () => {
                             </div>
 
                             {/* Fechas del Periodo Calculadas */}
-                            {formData.start_date && formData.end_date && (
+                            {(formData.start_date || formData.end_date) && (
                                 <div className="mb-6 bg-indigo-50 border border-indigo-100 rounded-xl p-4 grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
                                     <div className="flex items-center space-x-4">
                                         <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
@@ -1305,6 +1406,101 @@ export const PlanningEditorPage = () => {
                                 </div>
                             )}
 
+                            {/* Textbook Selection Section */}
+                            {(availableTextbooks.length > 0 || formData.textbook_id) && (
+                                <div className="mb-8 bg-white border-2 border-indigo-50 rounded-[2rem] p-8 shadow-sm">
+                                    <div className="flex items-center space-x-4 mb-6">
+                                        <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg">
+                                            <BookOpen className="w-6 h-6" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-sm font-black text-indigo-950 uppercase italic tracking-tight">Referencia de Libro de Texto</h3>
+                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Selecciona un libro para guiar las estrategias de la IA</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div className="space-y-3">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Libro de Texto Seleccionado</label>
+                                            {!isPreviewMode ? (
+                                                <select
+                                                    value={formData.textbook_id}
+                                                    onChange={(e) => setFormData({ ...formData, textbook_id: e.target.value })}
+                                                    className="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-100 rounded-2xl px-6 py-4 text-sm font-bold text-indigo-950 outline-none transition-all"
+                                                >
+                                                    <option value="">-- No usar libro de texto --</option>
+                                                    {availableTextbooks.map(book => (
+                                                        <option key={book.id} value={book.id}>{book.title} ({book.field_of_study || 'General'})</option>
+                                                    ))}
+                                                </select>
+                                            ) : (
+                                                <p className="text-sm font-bold text-indigo-950 px-6 py-4 bg-slate-50 rounded-2xl">
+                                                    {availableTextbooks.find(b => b.id === formData.textbook_id)?.title || 'No seleccionado'}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-3">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Página Desde</label>
+                                                <div className="relative group">
+                                                    <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-indigo-600 transition-colors" />
+                                                    {!isPreviewMode ? (
+                                                        <input
+                                                            type="number"
+                                                            value={formData.textbook_pages_from}
+                                                            onChange={(e) => setFormData({ ...formData, textbook_pages_from: e.target.value })}
+                                                            placeholder="Ej. 42"
+                                                            className="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-100 rounded-2xl pl-12 pr-6 py-4 text-sm font-bold text-indigo-950 outline-none transition-all"
+                                                        />
+                                                    ) : (
+                                                        <p className="text-sm font-bold text-indigo-950 pl-12 pr-6 py-4 bg-slate-50 rounded-2xl">{formData.textbook_pages_from || '-'}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="space-y-3">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Página Hasta</label>
+                                                <div className="relative group">
+                                                    <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-indigo-600 transition-colors" />
+                                                    {!isPreviewMode ? (
+                                                        <input
+                                                            type="number"
+                                                            value={formData.textbook_pages_to}
+                                                            onChange={(e) => setFormData({ ...formData, textbook_pages_to: e.target.value })}
+                                                            placeholder="Ej. 50"
+                                                            className="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-100 rounded-2xl pl-12 pr-6 py-4 text-sm font-bold text-indigo-950 outline-none transition-all"
+                                                        />
+                                                    ) : (
+                                                        <p className="text-sm font-bold text-indigo-950 pl-12 pr-6 py-4 bg-slate-50 rounded-2xl">{formData.textbook_pages_to || '-'}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {formData.textbook_id && !isPreviewMode && (
+                                        <div className="mt-6 flex flex-col md:flex-row md:items-center justify-between p-6 bg-indigo-50 rounded-3xl border-2 border-indigo-100 space-y-4 md:space-y-0 text-indigo-600 shadow-inner">
+                                            <div className="flex items-center font-bold text-[11px] uppercase tracking-widest leading-relaxed max-w-lg">
+                                                <Sparkles className="w-5 h-5 mr-4 animate-pulse shrink-0" />
+                                                La IA utilizará este libro y rango de páginas para generar sugerencias contextualizadas en las actividades.
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    const book = availableTextbooks.find(b => b.id === formData.textbook_id);
+                                                    if (book?.file_url) {
+                                                        const url = book.file_url + (formData.textbook_pages_from ? `#page=${formData.textbook_pages_from}` : '');
+                                                        setPdfViewerUrl(url);
+                                                        setIsPdfViewerOpen(true);
+                                                    }
+                                                }}
+                                                className="flex items-center justify-center space-x-3 px-6 py-4 bg-indigo-600 text-white rounded-2xl text-xs font-black uppercase shadow-[0_4px_0_0_#4338ca] hover:shadow-none hover:translate-y-1 active:scale-95 transition-all"
+                                            >
+                                                <Eye className="w-5 h-5" />
+                                                <span>Visualizar Páginas</span>
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             {!isPreviewMode && formData.activities_sequence.length === 0 && (
                                 <div className="p-12 text-center border-2 border-dashed border-gray-100 rounded-2xl">
@@ -1312,6 +1508,37 @@ export const PlanningEditorPage = () => {
                                     <p className="text-gray-400 font-bold text-sm">Usa el botón "Cargar de Horario" para generar las sesiones automáticamente.</p>
                                 </div>
                             )}
+
+                            {!isPreviewMode && formData.activities_sequence.length > 0 && (
+                                <div className="bg-white border-2 border-slate-50 rounded-[2rem] p-8">
+                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Vista Previa de Sesiones Cargadas</h4>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                                        {formData.activities_sequence.map((session, idx) => (
+                                            <div key={idx} className="bg-slate-50/50 p-3 rounded-xl border border-slate-100 text-center">
+                                                <p className="text-[9px] font-black text-indigo-600 uppercase mb-1">Sesión {idx + 1}</p>
+                                                <p className="text-[10px] font-bold text-slate-500 uppercase">{new Date(session.date + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </section>)}
+
+                        {/* Section 5: Secuencia Didáctica */}
+                        {(step === 5 || isPreviewMode) && (<section>
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] flex items-center">
+                                    <span className="w-8 h-[1px] bg-gray-200 mr-3"></span>
+                                    05. Secuencia de Actividades (Sesiones)
+                                </h2>
+                                {!isPreviewMode && (
+                                    <div className="flex space-x-3 items-center">
+                                        <p className="text-[10px] font-bold text-indigo-400 uppercase bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-100">
+                                            Edita las actividades de cada sesión o usa el Asistente IA
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
 
                             <div className="space-y-8 print:space-y-12">
                                 {!isPreviewMode && formData.activities_sequence.length > 0 && (
@@ -1475,12 +1702,12 @@ export const PlanningEditorPage = () => {
                             </div>
                         </section>)}
 
-                        {/* Section 5: Evaluación y Recursos */}
-                        {(step === 5 || isPreviewMode) && (<section className={`grid grid-cols-1 md:grid-cols-2 gap-12 border-t border-gray-50 pt-12 ${isPreviewMode ? 'print:pt-8' : ''}`}>
+                        {/* Section 6: Evaluación y Recursos */}
+                        {(step === 6 || isPreviewMode) && (<section className={`grid grid-cols-1 md:grid-cols-2 gap-12 border-t border-gray-50 pt-12 ${isPreviewMode ? 'print:pt-8' : ''}`}>
                             <div>
                                 <h2 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-6 flex items-center">
                                     <span className="w-8 h-[1px] bg-gray-200 mr-3"></span>
-                                    05. Evaluación Formativa
+                                    06. Evaluación Formativa
                                 </h2>
                                 <div className="space-y-6">
                                     <div>
@@ -1621,21 +1848,106 @@ export const PlanningEditorPage = () => {
                             </div>
                         )}
 
-                        {!isPreviewMode && step === 4 && (
-                            <div className="pt-8 flex justify-center">
+                        {!isPreviewMode && step === 5 && (
+                            <div className="pt-8 flex justify-center pb-20">
                                 <button
                                     onClick={generateAiSuggestions}
                                     disabled={generating}
-                                    className="bg-indigo-600 text-white px-10 py-5 rounded-[2rem] text-sm font-black shadow-2xl shadow-indigo-200 border-4 border-white flex items-center hover:bg-indigo-700 hover:scale-105 active:scale-95 transition-all uppercase tracking-widest group"
+                                    className="bg-indigo-600 text-white px-10 py-5 rounded-[2rem] text-sm font-black shadow-[0_8px_0_0_#4338ca] border-4 border-white flex items-center hover:shadow-none hover:translate-y-2 active:scale-95 transition-all uppercase tracking-widest group"
                                 >
-                                    <div className="w-10 h-10 bg-white/20 rounded-2xl flex items-center justify-center mr-4 group-hover:rotate-12 transition-transform">
+                                    <div className="w-10 h-10 bg-white/20 rounded-2xl flex items-center justify-center mr-4 group-hover:rotate-12 transition-transform shadow-inner">
                                         <Sparkles className="w-5 h-5 text-white" />
                                     </div>
                                     {generating ? 'Consultando IA...' : 'Usar Asistente IA'}
                                 </button>
                             </div>
                         )}
+
+                        {/* Sticky Navigation Footer */}
+                        {!isPreviewMode && (
+                            <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-4xl animate-in slide-in-from-bottom-10 duration-500 no-print">
+                                <div className="bg-slate-900/90 backdrop-blur-xl p-4 rounded-[2.5rem] border-4 border-white/20 shadow-2xl flex justify-between items-center px-8">
+                                    <button
+                                        onClick={() => setStep(Math.max(1, step - 1))}
+                                        disabled={step === 1}
+                                        className={`flex items-center px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${step === 1 ? 'opacity-30 cursor-not-allowed text-white' : 'bg-white/10 text-white hover:bg-white/20 active:scale-95'}`}
+                                    >
+                                        <ChevronLeft className="w-5 h-5 mr-2" />
+                                        Anterior
+                                    </button>
+
+                                    <div className="flex flex-col items-center">
+                                        <div className="flex space-x-1.5 mb-1">
+                                            {[1, 2, 3, 4, 5, 6].map(i => (
+                                                <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${step === i ? 'w-8 bg-indigo-400' : 'w-1.5 bg-white/20'}`}></div>
+                                            ))}
+                                        </div>
+                                        <div className="text-[10px] font-black text-indigo-300 uppercase tracking-[0.3em]">
+                                            Paso {step} de 6
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={() => {
+                                            if (validateStep(step)) {
+                                                if (step < 6) setStep(step + 1)
+                                                else setIsPreviewMode(true)
+                                            }
+                                        }}
+                                        className="flex items-center bg-indigo-500 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-[0_4px_0_0_#4338ca] hover:shadow-none hover:translate-y-1 active:scale-95 transition-all group lg:min-w-[180px] justify-center"
+                                    >
+                                        {step === 6 ? 'Ver Planeación' : 'Siguiente'}
+                                        <ChevronRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
+
+                    {/* PDF Viewer Modal */}
+                    {isPdfViewerOpen && (
+                        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-[200] flex flex-col no-print">
+                            <div className="flex justify-between items-center p-6 bg-white/5 border-b border-white/10">
+                                <div className="flex items-center space-x-4">
+                                    <div className="p-3 bg-indigo-600 text-white rounded-2xl">
+                                        <BookOpen className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-white font-black uppercase text-sm tracking-tight">
+                                            {availableTextbooks.find(b => b.id === formData.textbook_id)?.title || 'Visualizador de Libro'}
+                                        </h3>
+                                        <p className="text-[10px] text-indigo-300 font-bold uppercase tracking-widest">
+                                            Páginas {formData.textbook_pages_from || '?'} a {formData.textbook_pages_to || '?'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center space-x-4">
+                                    <a
+                                        href={pdfViewerUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center space-x-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-[10px] font-black uppercase transition-all"
+                                    >
+                                        <ExternalLink className="w-4 h-4" />
+                                        <span>Abrir en Nueva Pestaña</span>
+                                    </a>
+                                    <button
+                                        onClick={() => setIsPdfViewerOpen(false)}
+                                        className="bg-rose-500/20 hover:bg-rose-500 text-rose-500 hover:text-white p-3 rounded-2xl transition-all"
+                                    >
+                                        <Plus className="w-6 h-6 rotate-45" />
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="flex-1 bg-slate-800 relative overflow-hidden">
+                                <iframe
+                                    src={pdfViewerUrl}
+                                    className="w-full h-full border-none"
+                                    title="PDF Viewer"
+                                />
+                            </div>
+                        </div>
+                    )}
 
                     {/* Footer Validation */}
                     <div className="bg-gray-50 border-t border-gray-100 p-8 flex justify-between items-center text-[10px] font-black uppercase text-gray-400 print:bg-white print:border-t-2">
@@ -1982,7 +2294,7 @@ export const PlanningEditorPage = () => {
                             }}
                             className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-sm shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all uppercase tracking-widest"
                         >
-                            Ir al Programa Analítico
+                            {errorModal.buttonText || 'Continuar'}
                         </button>
                     </div>
                 </div>

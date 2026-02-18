@@ -1,0 +1,118 @@
+[
+  {
+    "type": "uuid",
+    "column": "id"
+  },
+  {
+    "type": "uuid",
+    "column": "tenant_id"
+  },
+  {
+    "type": "uuid",
+    "column": "group_id"
+  },
+  {
+    "type": "uuid",
+    "column": "subject_id"
+  },
+  {
+    "type": "uuid",
+    "column": "period_id"
+  },
+  {
+    "type": "text",
+    "column": "title"
+  },
+  {
+    "type": "text",
+    "column": "temporality"
+  },
+  {
+    "type": "date",
+    "column": "start_date"
+  },
+  {
+    "type": "date",
+    "column": "end_date"
+  },
+  {
+    "type": "text",
+    "column": "campo_formativo"
+  },
+  {
+    "type": "text",
+    "column": "metodologia"
+  },
+  {
+    "type": "text",
+    "column": "problem_context"
+  },
+  {
+    "type": "text",
+    "column": "purpose"
+  },
+  {
+    "type": "integer",
+    "column": "project_duration"
+  },
+  {
+    "type": "jsonb",
+    "column": "objectives"
+  },
+  {
+    "type": "jsonb",
+    "column": "contents"
+  },
+  {
+    "type": "jsonb",
+    "column": "pda"
+  },
+  {
+    "type": "jsonb",
+    "column": "ejes_articuladores"
+  },
+  {
+    "type": "jsonb",
+    "column": "activities_sequence"
+  },
+  {
+    "type": "ARRAY",
+    "column": "resources"
+  },
+  {
+    "type": "jsonb",
+    "column": "evaluation_plan"
+  },
+  {
+    "type": "text",
+    "column": "source_document_url"
+  },
+  {
+    "type": "text",
+    "column": "extracted_text"
+  },
+  {
+    "type": "uuid",
+    "column": "textbook_id"
+  },
+  {
+    "type": "text",
+    "column": "textbook_pages_from"
+  },
+  {
+    "type": "text",
+    "column": "textbook_pages_to"
+  },
+  {
+    "type": "text",
+    "column": "status"
+  },
+  {
+    "type": "timestamp with time zone",
+    "column": "created_at"
+  },
+  {
+    "type": "timestamp with time zone",
+    "column": "updated_at"
+  }
+]

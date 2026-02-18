@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Save, AlertTriangle, FileText, CheckCircle } from 'lucide-react'
+import { X, Save, AlertTriangle, FileText, CheckCircle, ChevronDown } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 
 interface CreateIncidentModalProps {
@@ -119,145 +119,177 @@ export const CreateIncidentModal = ({
     if (!isOpen) return null
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
-                    <h2 className="text-xl font-bold text-gray-900 flex items-center">
-                        <AlertTriangle className="w-6 h-6 mr-2 text-orange-600" />
-                        {incident ? 'Editar Reporte' : 'Nuevo Reporte de Conducta'}
-                    </h2>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                        <X className="w-5 h-5 text-gray-500" />
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+            <div className="squishy-card bg-white shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border-none animate-in zoom-in-95 duration-300">
+                <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-white z-10">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center shadow-inner">
+                            <AlertTriangle className="w-6 h-6 text-amber-600" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-black text-slate-800 leading-tight">
+                                {incident ? 'Editar Reporte' : 'Nuevo Reporte de Conducta'}
+                            </h2>
+                            <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-0.5">Gestión de convivencia</p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="w-10 h-10 flex items-center justify-center hover:bg-slate-50 rounded-xl transition-all hover:rotate-90 active:scale-90"
+                    >
+                        <X className="w-5 h-5 text-slate-400" />
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                <form onSubmit={handleSubmit} className="p-8 space-y-8 overflow-y-auto custom-scrollbar">
                     {/* Student Selection */}
-                    <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">Alumno</label>
-                        <select
-                            value={formData.student_id}
-                            onChange={(e) => setFormData({ ...formData, student_id: e.target.value })}
-                            className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-gray-50 disabled:bg-gray-100 disabled:text-gray-500"
-                            required
-                            disabled={!!incident}
-                        >
-                            <option value="">Seleccionar alumno...</option>
-                            {students.map(student => (
-                                <option key={student.id} value={student.id}>
-                                    {student.last_name_paternal} {student.last_name_maternal} {student.first_name}
-                                </option>
-                            ))}
-                        </select>
+                    <div className="group/field">
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1 group-focus-within/field:text-indigo-500 transition-colors">Alumno</label>
+                        <div className="relative">
+                            <select
+                                value={formData.student_id}
+                                onChange={(e) => setFormData({ ...formData, student_id: e.target.value })}
+                                className="w-full p-4 pl-5 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all text-sm font-bold text-slate-700 appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                required
+                                disabled={!!incident}
+                            >
+                                <option value="">Seleccionar alumno...</option>
+                                {students.map(student => (
+                                    <option key={student.id} value={student.id}>
+                                        {student.last_name_paternal} {student.last_name_maternal} {student.first_name}
+                                    </option>
+                                ))}
+                            </select>
+                            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                        </div>
                     </div>
 
                     {/* Report Specifics */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">Tipo de Reporte</label>
-                            <select
-                                value={formData.type}
-                                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                                className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                            >
-                                <option value="CONDUCTA">Conducta / Disciplina</option>
-                                <option value="ACADEMICO">Académico / Desempeño</option>
-                                <option value="EMOCIONAL">Emocional / Actitud</option>
-                                <option value="SALUD">Salud / Higiene</option>
-                                <option value="POSITIVO">Reconocimiento / Positivo</option>
-                            </select>
+                        <div className="group/field">
+                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1 group-focus-within/field:text-indigo-500 transition-colors">Tipo de Reporte</label>
+                            <div className="relative">
+                                <select
+                                    value={formData.type}
+                                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                                    className="w-full p-4 pl-5 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all text-sm font-bold text-slate-700 appearance-none cursor-pointer"
+                                >
+                                    <option value="CONDUCTA">Conducta / Disciplina</option>
+                                    <option value="ACADEMICO">Académico / Desempeño</option>
+                                    <option value="EMOCIONAL">Emocional / Actitud</option>
+                                    <option value="SALUD">Salud / Higiene</option>
+                                    <option value="POSITIVO">Reconocimiento / Positivo</option>
+                                </select>
+                                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                            </div>
                         </div>
-                        <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">Severidad / Impacto</label>
-                            <select
-                                value={formData.severity}
-                                onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
-                                className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                            >
-                                <option value="BAJA">Baja (Observación)</option>
-                                <option value="MEDIA">Media (Llamada de atención)</option>
-                                <option value="ALTA">Alta (Citatorio / Grave)</option>
-                            </select>
+                        <div className="group/field">
+                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1 group-focus-within/field:text-indigo-500 transition-colors">Severidad / Impacto</label>
+                            <div className="relative">
+                                <select
+                                    value={formData.severity}
+                                    onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
+                                    className="w-full p-4 pl-5 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all text-sm font-bold text-slate-700 appearance-none cursor-pointer"
+                                >
+                                    <option value="BAJA">Baja (Observación)</option>
+                                    <option value="MEDIA">Media (Aviso)</option>
+                                    <option value="ALTA">Alta (Citatorio)</option>
+                                </select>
+                                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                            </div>
                         </div>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">Título del Reporte</label>
+                    <div className="group/field">
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1 group-focus-within/field:text-indigo-500 transition-colors">Título del Reporte</label>
                         <input
                             type="text"
                             value={formData.title}
                             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                            placeholder="Ej. Falta de respeto en clase, Tarea no entregada..."
-                            className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                            placeholder="Ej. Falta de respeto en el aula"
+                            className="w-full p-4 pl-5 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all text-sm font-bold text-slate-700 placeholder:text-slate-300 placeholder:font-bold"
                             required
                         />
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">Descripción Detallada</label>
+                    <div className="group/field">
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1 group-focus-within/field:text-indigo-500 transition-colors">Descripción Detallada</label>
                         <textarea
                             value={formData.description}
                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                             rows={4}
-                            placeholder="Describe los hechos tal como ocurrieron..."
-                            className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                            placeholder="Escribe aquí los motivos del reporte..."
+                            className="w-full p-5 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all text-sm font-bold text-slate-700 placeholder:text-slate-300 placeholder:font-bold resize-none"
                             required
                         />
                     </div>
 
-                    {/* Commitment Section */}
-                    <div className={`p-4 rounded-xl border-2 transition-all ${formData.has_commitment ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-200'}`}>
-                        <div className="flex items-center mb-4">
-                            <input
-                                type="checkbox"
-                                id="has_commitment"
-                                checked={formData.has_commitment}
-                                onChange={(e) => setFormData({ ...formData, has_commitment: e.target.checked })}
-                                className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 mr-3"
-                            />
-                            <label htmlFor="has_commitment" className="text-gray-900 font-bold cursor-pointer select-none flex items-center">
-                                <FileText className="w-5 h-5 mr-2 text-blue-600" />
-                                Generar Acta de Compromiso
+                    {/* Commitment Section - Squishy Sub-card */}
+                    <div className={`p-6 rounded-[2rem] border-4 transition-all duration-500 ${formData.has_commitment ? 'border-indigo-500 bg-indigo-50/30' : 'border-slate-50 bg-slate-50/30 hover:border-slate-100'}`}>
+                        <div className="flex items-center justify-between mb-2">
+                            <label htmlFor="has_commitment" className="flex items-center gap-4 cursor-pointer group/label">
+                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${formData.has_commitment ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-white text-slate-400 shadow-inner group-hover/label:bg-indigo-50 group-hover/label:text-indigo-400'}`}>
+                                    <FileText className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <p className="font-black text-slate-800 leading-none">Acta de Compromiso</p>
+                                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">Generar documento legal</p>
+                                </div>
                             </label>
+                            <div className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    id="has_commitment"
+                                    checked={formData.has_commitment}
+                                    onChange={(e) => setFormData({ ...formData, has_commitment: e.target.checked })}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-14 h-8 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </div>
                         </div>
 
                         {formData.has_commitment && (
-                            <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                                <p className="text-sm text-blue-700 mb-2">
-                                    Se generará un formato para impresión donde el alumno y/o padre se comprometen a:
-                                </p>
-                                <textarea
-                                    value={formData.commitment_description}
-                                    onChange={(e) => setFormData({ ...formData, commitment_description: e.target.value })}
-                                    rows={3}
-                                    placeholder="Ej. Entregar tareas pendientes antes del viernes, Mejorar comportamiento en clase..."
-                                    className="w-full p-3 rounded-xl border border-blue-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                                    required={formData.has_commitment}
-                                />
+                            <div className="mt-6 space-y-4 animate-in slide-in-from-top-4 duration-500">
+                                <div className="p-4 bg-white/60 rounded-2xl border border-indigo-100">
+                                    <p className="text-[10px] text-indigo-500 font-black uppercase tracking-widest mb-3 leading-tight opacity-60">Compromisos específicos</p>
+                                    <textarea
+                                        value={formData.commitment_description}
+                                        onChange={(e) => setFormData({ ...formData, commitment_description: e.target.value })}
+                                        rows={3}
+                                        placeholder="Ej. Mejorar el lenguaje utilizado en el aula..."
+                                        className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm font-bold text-slate-700 placeholder:text-slate-300 resize-none"
+                                        required={formData.has_commitment}
+                                    />
+                                </div>
+                                <div className="flex items-center gap-2 px-2 py-1 bg-amber-50 rounded-lg">
+                                    <AlertTriangle className="w-3 h-3 text-amber-500" />
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-amber-600">Requiere firmas de tutor y alumno</p>
+                                </div>
                             </div>
                         )}
                     </div>
 
-                    <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                    <div className="flex justify-end gap-4 p-8 bg-slate-50 mt-auto">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-6 py-3 rounded-xl text-gray-700 font-bold hover:bg-gray-100 transition-colors"
+                            className="px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition-all active:scale-95"
                         >
                             Cancelar
                         </button>
                         <button
                             type="submit"
                             disabled={loading}
-                            className="px-6 py-3 rounded-xl bg-orange-600 text-white font-bold hover:bg-orange-700 transition-all shadow-lg shadow-orange-200 flex items-center"
+                            className="btn-tactile px-10 py-3 rounded-2xl bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] flex items-center gap-3 disabled:opacity-50"
                         >
                             {loading ? (
-                                <span className="flex items-center">
-                                    <span className="animate-spin mr-2">⏳</span> Guardando...
-                                </span>
+                                <>
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    Guardando...
+                                </>
                             ) : (
                                 <>
-                                    <Save className="w-5 h-5 mr-2" />
+                                    <Save className="w-4 h-4" />
                                     Guardar Reporte
                                 </>
                             )}

@@ -21,8 +21,15 @@ export const AbsenceManagerPage = () => {
         enabled: !!tenant?.id && !!profile?.id,
         queryFn: async () => {
             const { data } = await supabase
-                .from('absence_plans')
-                .select('*')
+                .from('teacher_absences')
+                .select(`
+                    *,
+                    activities:substitution_activities(
+                        *,
+                        group:groups(grade, section),
+                        subject:subject_catalog(name)
+                    )
+                `)
                 .eq('profile_id', profile?.id)
                 .order('start_date', { ascending: false })
             return data || []
@@ -31,7 +38,9 @@ export const AbsenceManagerPage = () => {
 
     const handleDelete = async (id: string) => {
         if (!confirm('¿Estás seguro de eliminar este registro de ausencia y sus actividades?')) return
-        await supabase.from('absence_plans').delete().eq('id', id)
+        // Cascase delete happens automatically if configured, otherwise we should delete activities first
+        await supabase.from('substitution_activities').delete().eq('absence_id', id)
+        await supabase.from('teacher_absences').delete().eq('id', id)
         refetch()
     }
 
@@ -186,7 +195,7 @@ export const AbsenceManagerPage = () => {
                                     <div className="flex flex-wrap gap-2 mt-auto">
                                         {absence.activities?.map((act: any, idx: number) => (
                                             <div key={idx} className="bg-indigo-50/50 border border-indigo-100 px-3 py-1.5 rounded-xl text-[10px] font-bold text-indigo-700">
-                                                {act.group}: {act.title}
+                                                {act.group?.grade}° {act.group?.section} - {act.activity_title}
                                             </div>
                                         ))}
                                         {absence.activities?.length === 0 && (

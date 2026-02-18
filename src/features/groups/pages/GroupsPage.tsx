@@ -216,8 +216,8 @@ export const GroupsPage = () => {
     }) || []
 
     return (
-        <div className="space-y-8 pb-12 animate-in fade-in duration-500">
-            <div className="bg-white rounded-3xl p-8 shadow-xl border border-gray-100 relative overflow-hidden">
+        <div className="space-y-6 sm:space-y-8 pb-12 animate-in fade-in duration-500 px-4 sm:px-0">
+            <div className="squishy-card p-6 sm:p-8 relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-cyan-50 opacity-50" />
                 <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div>
@@ -250,7 +250,7 @@ export const GroupsPage = () => {
                                 }
                                 setIsModalOpen(true)
                             }}
-                            className="inline-flex justify-center items-center px-6 py-3 border border-transparent shadow-lg shadow-blue-200 text-sm font-bold rounded-xl text-white bg-blue-600 hover:bg-blue-700 hover:scale-105 transition-all"
+                            className="inline-flex justify-center items-center px-6 py-3 border border-transparent shadow-lg shadow-blue-200 text-sm font-bold rounded-xl text-white bg-blue-600 hover:bg-blue-700 btn-tactile"
                         >
                             <Plus className="h-5 w-5 mr-2" />
                             Nuevo Grupo
@@ -290,12 +290,12 @@ export const GroupsPage = () => {
                     )}
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
                     {subjectCards.map((item, idx) => (
                         <div
                             key={`${item.id}-${idx}`}
                             onClick={() => navigate(`/gradebook?groupId=${item.id}${item.currentSubject ? `&subjectId=${item.currentSubject.subject_catalog_id || item.currentSubject.id}` : ''}`)}
-                            className="bg-white rounded-2xl shadow-lg shadow-gray-100 border border-gray-100 p-6 hover:shadow-xl hover:scale-[1.02] hover:border-blue-200 transition-all cursor-pointer group relative overflow-hidden"
+                            className="squishy-card p-6 h-full flex flex-col justify-between group relative overflow-hidden cursor-pointer"
                         >
                             <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                                 <BookOpen className="w-24 h-24 text-blue-600 transform rotate-12" />

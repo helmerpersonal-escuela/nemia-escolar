@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { exportUserData } from '../../../utils/backupUtils'
-import { User, School, Lock, Save, BookOpen, Sparkles, Database, Copy, Trash2, AlertCircle, Calendar, Users, Clock, Plus, DownloadCloud, Shield, CreditCard } from 'lucide-react'
+import { User, School, Lock, Save, BookOpen, Sparkles, Database, Copy, Trash2, AlertCircle, Calendar, Users, Clock, Plus, DownloadCloud, Shield, CreditCard, ArrowLeft } from 'lucide-react'
 import { StaffManager } from '../components/StaffManager'
 import { PeriodManager } from '../../evaluation/components/PeriodManager'
 import { ScheduleConfig } from '../components/ScheduleConfig'
@@ -13,6 +13,9 @@ import { SecuritySettings } from '../components/SecuritySettings'
 import L from 'leaflet'
 import { BillingSection } from '../components/BillingSection'
 import { useLocation } from 'react-router-dom'
+import { AcademicYearManager } from '../components/AcademicYearManager'
+import { useProfile } from '../../../hooks/useProfile'
+import { SubjectSelector } from '../../../components/academic/SubjectSelector'
 
 // Leaflet Icons Fix
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -66,15 +69,17 @@ export const SettingsPage = () => {
     })
 
     // Security Redirection: If Independent Teacher tries to access hidden tabs, fallback to profile
+    /*
     useEffect(() => {
-        if (profile.role?.toUpperCase() === 'INDEPENDENT_TEACHER' && ['horarios', 'personal'].includes(activeTab)) {
+        if (profile.role?.toUpperCase() === 'INDEPENDENT_TEACHER' && ['personal'].includes(activeTab)) {
             setActiveTab('profile')
         }
     }, [profile.role, activeTab])
-
-    const isDirectorOrAdmin = ['DIRECTOR', 'ADMIN', 'SUPER_ADMIN', 'INDEPENDENT_TEACHER', 'ACADEMIC_COORD', 'TECH_COORD'].includes(profile?.role?.toUpperCase() || '')
-    const isAcademicCoord = profile?.role?.toUpperCase() === 'ACADEMIC_COORD'
-    const isSuperAdmin = profile?.role?.toUpperCase() === 'SUPER_ADMIN'
+    */
+    const { profile: hookProfile, updateProfile, isUpdating: isProfileUpdating, isSuperAdmin: hookIsSuperAdmin } = useProfile()
+    const isDirectorOrAdmin = ['DIRECTOR', 'ADMIN', 'SUPER_ADMIN', 'INDEPENDENT_TEACHER', 'ACADEMIC_COORD', 'TECH_COORD'].includes(hookProfile?.role?.toUpperCase() || profile?.role?.toUpperCase() || '')
+    const isAcademicCoord = (hookProfile?.role || profile?.role)?.toUpperCase() === 'ACADEMIC_COORD'
+    const isSuperAdmin = hookIsSuperAdmin || ['helmerferras@gmail.com', 'helmerpersonal@gmail.com'].includes(profile?.email || '') || profile?.role?.toUpperCase() === 'SUPER_ADMIN'
     const isStaffReadOnly = !isDirectorOrAdmin
 
     const [tenant, setTenant] = useState({
@@ -84,16 +89,21 @@ export const SettingsPage = () => {
         phone: '',
         address: '',
         educational_level: 'SECONDARY',
+        type: 'SCHOOL',
         location_lat: 19.4326,
         location_lng: -99.1332,
-        ai_config: { apiKey: '' },
+        ai_config: { groq_key: '', gemini_key: '', openai_key: '', apiKey: '' },
         cte_config: { next_date: '', link: '' },
         logo_left_url: '',
         logo_right_url: ''
     })
 
     const [selectedUserSubjects, setSelectedUserSubjects] = useState<{ catalogId: string | null, customDetail: string }[]>([])
-    const [aiSettings, setAiSettings] = useState({ apiKey: '' })
+    const [aiSettings, setAiSettings] = useState({
+        groq_key: '',
+        gemini_key: '',
+        openai_key: ''
+    })
 
     const [showAddSubject, setShowAddSubject] = useState(false)
     const [catalogNames, setCatalogNames] = useState<Record<string, string>>({})
@@ -101,6 +111,7 @@ export const SettingsPage = () => {
     const [searchTerm, setSearchTerm] = useState('')
     const [showMigrationModal, setShowMigrationModal] = useState(false)
     const [migrationSql, setMigrationSql] = useState('')
+    const [isEditingSubjects, setIsEditingSubjects] = useState(false)
 
     useEffect(() => {
         loadData()
@@ -110,6 +121,24 @@ export const SettingsPage = () => {
             setActiveTab('billing')
         }
     }, [location.state])
+
+    // Auto-save draft to localStorage
+    useEffect(() => {
+        if (loading || !profile.id) return;
+
+        const timeoutId = setTimeout(() => {
+            const draft = {
+                profile,
+                tenant,
+                selectedUserSubjects,
+                aiSettings,
+                timestamp: Date.now()
+            };
+            localStorage.setItem(`settings_draft_${profile.id}`, JSON.stringify(draft));
+        }, 1000);
+
+        return () => clearTimeout(timeoutId);
+    }, [profile, tenant, selectedUserSubjects, aiSettings, loading]);
 
     const loadData = async () => {
         setLoading(true)
@@ -173,6 +202,7 @@ export const SettingsPage = () => {
                             phone: (tenantData.phone || '').toUpperCase(),
                             address: (tenantData.address || '').toUpperCase(),
                             educational_level: tenantData.educational_level || 'PRIMARY',
+                            type: tenantData.type || 'SCHOOL',
                             location_lat: tenantData.location_lat || 19.4326,
                             location_lng: tenantData.location_lng || -99.1332,
                             ai_config: tenantData.ai_config || { apiKey: '' },
@@ -180,8 +210,12 @@ export const SettingsPage = () => {
                             logo_left_url: tenantData.logo_left_url || '',
                             logo_right_url: tenantData.logo_right_url || ''
                         })
-                        if (tenantData.ai_config?.apiKey) {
-                            setAiSettings({ apiKey: tenantData.ai_config.apiKey })
+                        if (tenantData.ai_config) {
+                            setAiSettings({
+                                groq_key: tenantData.ai_config.groq_key || tenantData.ai_config.apiKey || '',
+                                gemini_key: tenantData.ai_config.gemini_key || '',
+                                openai_key: tenantData.ai_config.openai_key || ''
+                            })
                         }
 
                         // Fetch School Details (for technologies/workshops) - ONLY if role is relevant
@@ -235,26 +269,52 @@ export const SettingsPage = () => {
                             }, {})
                             setCatalogNames(names)
                         }
-                    }
-                }
 
-                // 4. Get Subjects - ONLY for teaching roles
-                if (['TEACHER', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD', 'INDEPENDENT_TEACHER'].includes(effectiveRole)) {
-                    const { data: subjectData } = await supabase
-                        .from('profile_subjects')
-                        .select('subject_catalog_id, custom_detail')
-                        .eq('profile_id', user.id)
+                        // 4. Get Subjects - ONLY for teaching roles
+                        // Also allow ADMIN if it's an INDEPENDENT tenant (since they are the teacher)
+                        const isIndependentTeacher = effectiveRole === 'INDEPENDENT_TEACHER' || (effectiveRole === 'ADMIN' && tenantData.type === 'INDEPENDENT');
 
-                    if (subjectData) {
-                        const mapped = subjectData.map((curr: any) => ({
-                            catalogId: curr.subject_catalog_id,
-                            customDetail: (curr.custom_detail || '').toUpperCase()
-                        }))
-                        setSelectedUserSubjects(mapped)
+                        if (['TEACHER', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD'].includes(effectiveRole) || isIndependentTeacher) {
+                            console.log('Fetching subjects for role:', effectiveRole);
+                            const { data: subjectData, error: subjectError } = await supabase
+                                .from('profile_subjects')
+                                .select('subject_catalog_id, custom_detail')
+                                .eq('profile_id', user.id)
+
+                            if (subjectError) console.error('Error fetching subjects:', subjectError);
+                            console.log('Fetched subjects:', subjectData);
+
+                            if (subjectData) {
+                                const mapped = subjectData.map((curr: any) => ({
+                                    catalogId: curr.subject_catalog_id,
+                                    customDetail: (curr.custom_detail || '').toUpperCase()
+                                }))
+                                setSelectedUserSubjects(mapped)
+                            }
+                        }
                     }
                 }
 
                 // (End of subject fetching)
+
+                // RESTORE DRAFT IF EXISTS
+                const savedDraft = localStorage.getItem(`settings_draft_${user.id}`)
+                if (savedDraft) {
+                    try {
+                        const parsed = JSON.parse(savedDraft);
+                        // Optional: Check timestamp if needed
+                        console.log('Restoring draft:', parsed);
+
+                        if (parsed.profile) setProfile(prev => ({ ...prev, ...parsed.profile }));
+                        if (parsed.tenant) setTenant(prev => ({ ...prev, ...parsed.tenant }));
+                        if (parsed.selectedUserSubjects) setSelectedUserSubjects(parsed.selectedUserSubjects);
+                        if (parsed.aiSettings) setAiSettings(parsed.aiSettings);
+
+                        showSuccess('Se han restaurado tus cambios no guardados');
+                    } catch (e) {
+                        console.error('Error restoring draft:', e);
+                    }
+                }
             }
         } catch (error) {
             console.error('Error loading settings:', error)
@@ -296,6 +356,8 @@ export const SettingsPage = () => {
             }
         } else {
             showSuccess('Perfil actualizado para este espacio')
+            // Clear draft on save
+            localStorage.removeItem(`settings_draft_${profile.id}`)
             // Refresh logic to ensure hooks pick up new data
             loadData()
         }
@@ -333,6 +395,7 @@ export const SettingsPage = () => {
             if (detailsError) throw detailsError
 
             showSuccess('Datos de escuela actualizados')
+            localStorage.removeItem(`settings_draft_${profile.id}`)
         } catch (error: any) {
             console.error('Update Error:', error)
             // Check for missing column error
@@ -368,6 +431,7 @@ export const SettingsPage = () => {
             }
 
             showSuccess('Materias actualizadas correctamente')
+            localStorage.removeItem(`settings_draft_${profile.id}`)
         } catch (err) {
             console.error(err)
             alert('Error al guardar materias')
@@ -386,11 +450,26 @@ export const SettingsPage = () => {
 
         setUpdating(true)
         const { error } = await supabase.from('tenants').update({
-            ai_config: { apiKey: aiSettings.apiKey }
+            ai_config: {
+                apiKey: aiSettings.groq_key, // For backward compatibility
+                groq_key: aiSettings.groq_key,
+                gemini_key: aiSettings.gemini_key,
+                openai_key: aiSettings.openai_key
+            }
         }).eq('id', tenant.id)
 
         if (!error) {
+            setTenant(prev => ({
+                ...prev,
+                ai_config: {
+                    apiKey: aiSettings.groq_key,
+                    groq_key: aiSettings.groq_key,
+                    gemini_key: aiSettings.gemini_key,
+                    openai_key: aiSettings.openai_key
+                }
+            }))
             showSuccess('Configuración de IA guardada')
+            localStorage.removeItem(`settings_draft_${profile?.id}`)
         } else {
             console.error(error)
             // Check for schema error (PostgREST specific or general column missing)
@@ -485,8 +564,8 @@ export const SettingsPage = () => {
                                 {[
                                     { id: 'profile', label: 'Mi Perfil', icon: User, color: 'text-blue-600', bg: 'bg-blue-50' },
                                     // Hide subjects for roles that don't teach. 
-                                    // includes check is case-sensitive, ensure consistency.
-                                    ...(['TEACHER', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD', 'INDEPENDENT_TEACHER'].includes(profile.role?.toUpperCase()) ? [
+                                    // INDEPENDENT_TEACHER sees this in Institutional section now.
+                                    ...(['TEACHER', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD'].includes(profile.role?.toUpperCase()) ? [
                                         { id: 'subjects', label: 'Mis Materias', icon: BookOpen, color: 'text-purple-600', bg: 'bg-purple-50' }
                                     ] : []),
                                     { id: 'security', label: 'Seguridad', icon: Lock, color: 'text-gray-600', bg: 'bg-gray-100' },
@@ -518,10 +597,12 @@ export const SettingsPage = () => {
                                 <nav className="space-y-1">
                                     {[
                                         { id: 'school', label: 'Datos Escuela', icon: School, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                                        ...(['INDEPENDENT_TEACHER'].includes(profile.role?.toUpperCase()) ? [] : [
-                                            { id: 'horarios', label: 'Jornada y Horarios', icon: Clock, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-                                        ]),
-                                        { id: 'periods', label: 'Periodos Escolares', icon: Calendar, color: 'text-amber-600', bg: 'bg-amber-50' },
+                                        // Independent Teachers manage subjects here as part of their "Institution"
+                                        ...(profile.role?.toUpperCase() === 'INDEPENDENT_TEACHER' || tenant.type === 'INDEPENDENT' ? [
+                                            { id: 'subjects', label: 'Mis Materias', icon: BookOpen, color: 'text-purple-600', bg: 'bg-purple-50' }
+                                        ] : []),
+                                        { id: 'horarios', label: 'Jornada y Horarios', icon: Clock, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+                                        { id: 'periods', label: 'Periodos y Ciclos', icon: Calendar, color: 'text-amber-600', bg: 'bg-amber-50' },
                                     ].map((item: any) => {
                                         const isActive = activeTab === item.id;
                                         const Icon = item.icon;
@@ -544,18 +625,20 @@ export const SettingsPage = () => {
                         )}
 
                         {/* ADMINISTRATION SECTION */}
-                        {(isDirectorOrAdmin || isSuperAdmin) && (
+                        {(isDirectorOrAdmin || isSuperAdmin) && (profile.role?.toUpperCase() !== 'INDEPENDENT_TEACHER' && tenant.type !== 'INDEPENDENT') && (
                             <div>
                                 <h4 className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Gestión</h4>
                                 <nav className="space-y-1">
                                     {[
-                                        ...(['INDEPENDENT_TEACHER'].includes(profile.role?.toUpperCase()) ? [] : [
-                                            { id: 'personal', label: 'Plantilla Docente', icon: Users, color: 'text-rose-600', bg: 'bg-rose-50', adminOnly: true },
-                                        ]),
+                                        { id: 'personal', label: 'Plantilla Docente', icon: Users, color: 'text-rose-600', bg: 'bg-rose-50', adminOnly: true, excludeIndependent: true },
                                         { id: 'ai', label: 'Configuración IA', icon: Sparkles, color: 'text-indigo-600', bg: 'bg-indigo-50', superOnly: true },
                                     ].map((item: any) => {
+                                        // DEBUG LOGS
+                                        console.log('Settings Item:', item.id, 'Role:', profile.role, 'IsIndependent:', profile.role?.toUpperCase() === 'INDEPENDENT_TEACHER');
+
                                         if (item.adminOnly && !isDirectorOrAdmin) return null;
                                         if (item.superOnly && !isSuperAdmin) return null;
+                                        if (item.excludeIndependent && profile.role?.toUpperCase() === 'INDEPENDENT_TEACHER') return null;
                                         const isActive = activeTab === item.id;
                                         const Icon = item.icon;
                                         return (
@@ -667,6 +750,177 @@ export const SettingsPage = () => {
                                     </div>
                                 </div>
                             )}
+
+                            {activeTab === 'subjects' && (
+                                <div className="space-y-6">
+                                    {/* Header Section */}
+                                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-gray-100 pb-6">
+                                        <div>
+                                            {isEditingSubjects ? (
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => setIsEditingSubjects(false)}
+                                                        className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors"
+                                                    >
+                                                        <ArrowLeft className="w-5 h-5" />
+                                                    </button>
+                                                    <div>
+                                                        <h3 className="text-2xl font-black text-gray-900 tracking-tight">Editar Materias</h3>
+                                                        <p className="text-sm text-gray-500 font-medium">Selecciona/desmarca las materias de tu lista.</p>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div>
+                                                    <h3 className="text-2xl font-black text-gray-900 tracking-tight">Mis Materias</h3>
+                                                    <p className="text-sm text-gray-500 font-medium">Gestiona las asignaturas que impartes actualmente.</p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {!isEditingSubjects && (
+                                            <button
+                                                onClick={() => setIsEditingSubjects(true)}
+                                                className="px-6 py-3 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <Plus className="w-4 h-4" /> Editar / Agregar
+                                                </div>
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* Main Content Area */}
+                                    <div className="bg-gray-50 rounded-3xl border border-gray-100 min-h-[500px] flex flex-col relative overflow-hidden">
+                                        {isEditingSubjects ? (
+                                            <div className="flex flex-col h-full animate-in fade-in slide-in-from-bottom-4 duration-300">
+                                                {/* Scrollable Content */}
+                                                <div className="flex-1 p-6 overflow-y-auto max-h-[60vh]">
+                                                    <SubjectSelector
+                                                        educationalLevel={tenant.educational_level || 'SECONDARY'}
+                                                        selectedSubjects={selectedUserSubjects.reduce((acc: any, curr) => {
+                                                            if (curr.catalogId) {
+                                                                acc[curr.catalogId] = { selected: true, customDetail: curr.customDetail }
+                                                            }
+                                                            return acc
+                                                        }, {})}
+                                                        onChange={(newSubjects) => {
+                                                            const list = Object.entries(newSubjects)
+                                                                .filter(([_, val]) => val.selected)
+                                                                .map(([key, val]) => ({
+                                                                    catalogId: key,
+                                                                    customDetail: val.customDetail
+                                                                }))
+                                                            setSelectedUserSubjects(list)
+                                                        }}
+                                                    />
+                                                </div>
+
+                                                {/* Sticky Footer for Actions */}
+                                                <div className="p-4 bg-white border-t border-gray-100 flex justify-end gap-3 sticky bottom-0 z-10 shadow-lg shadow-gray-100/50">
+                                                    <button
+                                                        onClick={() => {
+                                                            setIsEditingSubjects(false);
+                                                            loadData(); // Discard changes
+                                                        }}
+                                                        disabled={updating}
+                                                        className="px-6 py-3 bg-white text-gray-700 border border-gray-200 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-gray-50 transition-all"
+                                                    >
+                                                        Cancelar
+                                                    </button>
+                                                    <button
+                                                        onClick={async () => {
+                                                            await handleUpdateSubjects();
+                                                            setIsEditingSubjects(false);
+                                                        }}
+                                                        disabled={updating}
+                                                        className="px-8 py-3 bg-emerald-500 text-white rounded-xl font-black text-xs uppercase tracking-wider hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-100 flex items-center"
+                                                    >
+                                                        <Save className="w-4 h-4 mr-2" />
+                                                        {updating ? 'Guardando...' : 'Guardar Cambios'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="p-6 animate-in fade-in duration-300 h-full">
+                                                {selectedUserSubjects.length === 0 ? (
+                                                    <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
+                                                        <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-6 animate-bounce-slow">
+                                                            <BookOpen className="w-10 h-10 text-blue-500" />
+                                                        </div>
+                                                        <h3 className="text-xl font-bold text-gray-900 mb-2">Tu lista de materias está vacía</h3>
+                                                        <p className="text-sm text-gray-500 max-w-xs mx-auto mb-8 leading-relaxed">
+                                                            Para comenzar a planear, primero necesitas agregar las asignaturas que impartes.
+                                                        </p>
+                                                        <button
+                                                            onClick={() => setIsEditingSubjects(true)}
+                                                            className="text-white bg-blue-600 px-8 py-3 rounded-xl font-bold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-200"
+                                                        >
+                                                            ¡Comenzar a Agregar!
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                        {selectedUserSubjects.map((subject, index) => {
+                                                            const subjectName = catalogNames[subject.catalogId || ''] || 'Materia Desconocida';
+                                                            return (
+                                                                <div key={index} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex justify-between items-start group relative overflow-hidden">
+                                                                    <div className="absolute top-0 left-0 w-1 h-full bg-blue-500 rounded-l-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                                    <div>
+                                                                        <h4 className="font-bold text-gray-900 text-sm mb-1 line-clamp-2">{subjectName}</h4>
+                                                                        {subject.customDetail && (
+                                                                            <p className="text-[10px] uppercase font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg inline-block border border-blue-100">
+                                                                                {subject.customDetail}
+                                                                            </p>
+                                                                        )}
+                                                                    </div>
+                                                                    <button
+                                                                        onClick={async () => {
+                                                                            if (window.confirm(`¿Estás seguro de quitar ${subjectName}?`)) {
+                                                                                const newList = selectedUserSubjects.filter((_, i) => i !== index);
+                                                                                setSelectedUserSubjects(newList);
+                                                                                setUpdating(true);
+                                                                                try {
+                                                                                    const { error: deleteError } = await supabase.from('profile_subjects').delete().eq('profile_id', profile.id)
+                                                                                    if (deleteError) throw deleteError
+
+                                                                                    const subjectsToInsert = newList.map(s => ({
+                                                                                        profile_id: profile.id,
+                                                                                        tenant_id: tenant.id,
+                                                                                        subject_catalog_id: s.catalogId,
+                                                                                        custom_detail: s.customDetail || null
+                                                                                    }))
+
+                                                                                    if (subjectsToInsert.length > 0) {
+                                                                                        const { error: insertError } = await supabase.from('profile_subjects').insert(subjectsToInsert)
+                                                                                        if (insertError) throw insertError
+                                                                                    }
+                                                                                    showSuccess('Materia eliminada');
+                                                                                } catch (e) {
+                                                                                    console.error(e);
+                                                                                    alert('Error al eliminar');
+                                                                                    loadData();
+                                                                                } finally {
+                                                                                    setUpdating(false);
+                                                                                }
+                                                                            }
+                                                                        }}
+                                                                        className="text-gray-300 hover:text-red-500 hover:bg-red-50 p-2 rounded-xl transition-all"
+                                                                        title="Quitar materia"
+                                                                    >
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                    </button>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+
 
                             {activeTab === 'school' && (
                                 <div className="space-y-12">
@@ -843,437 +1097,258 @@ export const SettingsPage = () => {
                                 </div>
                             )}
 
-                            {/* HORARIOS TAB */}
                             {activeTab === 'horarios' && (
                                 <div className="space-y-16">
                                     <ScheduleConfig />
-                                    <div className="pt-16 border-t border-gray-100">
-                                        <SpecialScheduleManager />
-                                    </div>
+                                    {profile.role?.toUpperCase() !== 'INDEPENDENT_TEACHER' && (
+                                        <div className="pt-16 border-t border-gray-100">
+                                            <SpecialScheduleManager />
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
-                            {/* SUBJECTS TAB */}
-                            {activeTab === 'subjects' && (
-                                <div className="space-y-6">
-                                    <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-8">
-                                        <div className="flex flex-col md:flex-row justify-between items-start gap-4 border-b border-gray-100 pb-6 mb-4">
+
+
+                            {
+                                activeTab === 'periods' && (
+                                    <div className="space-y-12">
+                                        <div className="flex flex-col md:flex-row justify-between items-start gap-4 border-b border-gray-100 pb-6">
                                             <div>
-                                                <h3 className="text-2xl font-black text-gray-900 tracking-tight">Mis Materias</h3>
-                                                <p className="text-sm text-gray-500 font-medium tracking-tight">Selecciona las asignaturas que impartes para personalizar tu experiencia.</p>
+                                                <h3 className="text-2xl font-black text-gray-900 tracking-tight">Periodos de Evaluación</h3>
+                                                <p className="text-sm text-gray-500 font-medium">Configura los trimestres y fechas clave del ciclo escolar.</p>
                                             </div>
-                                            {isDirectorOrAdmin && (
-                                                <button
-                                                    onClick={() => setShowAddSubject(!showAddSubject)}
-                                                    className={`flex items-center px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${showAddSubject ? 'bg-gray-100 text-gray-600' : 'bg-blue-600 text-white shadow-xl shadow-blue-100 hover:bg-blue-700'}`}
-                                                >
-                                                    {showAddSubject ? 'Ocultar Catálogo' : '+ Agregar Materia'}
-                                                </button>
-                                            )}
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {selectedUserSubjects.length === 0 ? (
-                                                <div className="col-span-full text-center py-20 bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-200">
-                                                    <div className="bg-white p-4 rounded-2xl shadow-sm inline-block mb-4">
-                                                        <BookOpen className="w-10 h-10 text-blue-200" />
-                                                    </div>
-                                                    <p className="text-gray-400 font-bold tracking-tight">No has seleccionado materias aún.</p>
-                                                    <button
-                                                        onClick={() => setShowAddSubject(true)}
-                                                        className="mt-4 text-blue-600 font-black text-xs uppercase underline tracking-widest"
-                                                    >
-                                                        Abrir catálogo ahora
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                selectedUserSubjects.map((s, index) => (
-                                                    <div key={index} className="flex items-center justify-between p-6 bg-white rounded-3xl border border-gray-100 group transition-all hover:shadow-xl hover:shadow-gray-100 hover:border-blue-100 relative overflow-hidden">
-                                                        <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-100 group-hover:bg-blue-500 transition-colors" />
-                                                        <div className="flex-1 ml-2">
-                                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Asignatura</span>
-                                                            <span className="text-sm font-black text-gray-900 group-hover:text-blue-600 transition-colors">
-                                                                {catalogNames[s.catalogId || ''] || 'Personalizada'}
-                                                            </span>
-                                                            {(s.catalogId === null || catalogNames[s.catalogId || ''] === 'Tecnología' || catalogNames[s.catalogId || ''] === 'OTRA MATERIA') && (
-                                                                <div className="mt-3">
-                                                                    <input
-                                                                        type="text"
-                                                                        disabled={isStaffReadOnly}
-                                                                        placeholder="Ej: Robótica, Inglés Técnico..."
-                                                                        value={s.customDetail}
-                                                                        onChange={(e) => {
-                                                                            const newList = [...selectedUserSubjects]
-                                                                            newList[index] = { ...newList[index], customDetail: e.target.value.toUpperCase() }
-                                                                            setSelectedUserSubjects(newList)
-                                                                        }}
-                                                                        className={`w-full text-xs font-bold p-3 bg-gray-50 border-transparent rounded-xl focus:bg-white focus:ring-0 focus:border-blue-200 tracking-tight ${isStaffReadOnly ? 'cursor-not-allowed' : ''}`}
-                                                                    />
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                        {isDirectorOrAdmin && (
-                                                            <button
-                                                                onClick={() => {
-                                                                    setSelectedUserSubjects(selectedUserSubjects.filter((_, i) => i !== index))
-                                                                }}
-                                                                className="p-3 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all"
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                ))
-                                            )}
-                                        </div>
-
-                                        {showAddSubject && (
-                                            <div className="mt-8 pt-8 border-t border-gray-100 animate-in slide-in-from-top-4 duration-300">
-                                                <div className="mb-4">
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Buscar materia en el catálogo..."
-                                                        value={searchTerm}
-                                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                                        className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-[1.25rem] text-sm font-bold text-gray-900 focus:bg-white focus:border-blue-500 transition-all outline-none shadow-sm"
-                                                    />
-                                                </div>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
-                                                    {catalogItems
-                                                        .filter(item => {
-                                                            const itemLevel = item.educational_level ? item.educational_level.toUpperCase() : '';
-                                                            const schoolLevel = tenant.educational_level ? tenant.educational_level.toUpperCase() : 'PRIMARY';
-                                                            const matchesLevel = itemLevel === schoolLevel || itemLevel === 'BOTH' || itemLevel === 'TODOS';
-                                                            const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
-                                                            return matchesLevel && matchesSearch;
-                                                        })
-                                                        .length === 0 ? (
-                                                        <div className="col-span-full p-12 text-center bg-gray-50/50 rounded-3xl border-2 border-dashed border-gray-100">
-                                                            <div className="p-3 bg-white rounded-full shadow-sm inline-block mb-3">
-                                                                <AlertCircle className="w-8 h-8 text-gray-200" />
-                                                            </div>
-                                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest leading-relaxed">
-                                                                No se encontraron materias para el nivel<br />
-                                                                <span className="text-blue-500">{tenant.educational_level || 'tu escuela'}</span>
-                                                            </p>
-                                                        </div>
-                                                    ) : (
-                                                        catalogItems
-                                                            .filter(item => {
-                                                                const itemLevel = item.educational_level ? item.educational_level.toUpperCase() : '';
-                                                                const schoolLevel = tenant.educational_level ? tenant.educational_level.toUpperCase() : 'PRIMARY';
-                                                                const matchesLevel = itemLevel === schoolLevel || itemLevel === 'BOTH' || itemLevel === 'TODOS';
-                                                                const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
-                                                                return matchesLevel && matchesSearch;
-                                                            })
-                                                            .map(item => (
-                                                                <button
-                                                                    key={item.id}
-                                                                    onClick={() => {
-                                                                        if (!selectedUserSubjects.some(prev => prev.catalogId === item.id)) {
-                                                                            setSelectedUserSubjects([...selectedUserSubjects, { catalogId: item.id, customDetail: '' }])
-                                                                        }
-                                                                        setSearchTerm('')
-                                                                    }}
-                                                                    className="group text-left p-4 rounded-2xl border border-gray-100 hover:bg-blue-50 hover:border-blue-200 transition-all relative overflow-hidden"
-                                                                >
-                                                                    <div className="absolute top-0 right-0 w-8 h-8 bg-blue-100/50 rounded-bl-full -mr-4 -mt-4 group-hover:scale-150 transition-transform" />
-                                                                    <span className="text-sm font-black text-gray-700 group-hover:text-blue-600 transition-colors relative z-10">
-                                                                        {item.name}
-                                                                    </span>
-                                                                    <span className="block text-[8px] font-black text-gray-300 uppercase tracking-widest mt-1 relative z-10">
-                                                                        {item.is_technology ? 'Tecnología de la Escuela' : 'Catálogo Oficial'}
-                                                                    </span>
-                                                                </button>
-                                                            ))
-                                                    )
-                                                    }
-                                                    <button
-                                                        onClick={() => {
-                                                            setSelectedUserSubjects([...selectedUserSubjects, { catalogId: null, customDetail: '' }])
-                                                            setSearchTerm('')
-                                                        }}
-                                                        className="flex flex-col items-center justify-center p-4 rounded-2xl border-2 border-dashed border-gray-200 hover:bg-gray-50 hover:border-gray-400 transition-all text-gray-400 group"
-                                                    >
-                                                        <Plus className="w-4 h-4 mb-1 group-hover:scale-110 transition-transform" />
-                                                        <span className="text-[10px] font-black uppercase tracking-widest text-center">Otra materia<br />del docente</span>
-                                                    </button>
-
-                                                    {isDirectorOrAdmin && (
-                                                        <button
-                                                            onClick={async () => {
-                                                                const name = prompt('Nombre de la nueva materia personalizada (se agregará a tu catálogo):')?.toUpperCase();
-                                                                if (name && tenant.id) {
-                                                                    setUpdating(true);
-                                                                    try {
-                                                                        // 1. Fetch current school_details to get existing workshops
-                                                                        const { data: currentDetails, error: fetchError } = await supabase
-                                                                            .from('school_details')
-                                                                            .select('workshops')
-                                                                            .eq('tenant_id', tenant.id)
-                                                                            .single();
-
-                                                                        if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
-
-                                                                        const currentWorkshops = currentDetails?.workshops || [];
-
-                                                                        if (currentWorkshops.includes(name)) {
-                                                                            alert('Esta materia ya existe en tu catálogo.');
-                                                                            setUpdating(false);
-                                                                            return;
-                                                                        }
-
-                                                                        const newWorkshops = [...currentWorkshops, name];
-
-                                                                        // 2. Upsert school_details
-                                                                        const { error: updateError } = await supabase
-                                                                            .from('school_details')
-                                                                            .upsert({
-                                                                                tenant_id: tenant.id,
-                                                                                workshops: newWorkshops,
-                                                                                official_name: tenant.name,
-                                                                                cct: tenant.cct || 'PARTICULAR'
-                                                                            }, { onConflict: 'tenant_id' });
-
-                                                                        if (updateError) throw updateError;
-
-                                                                        showSuccess('Materia agregada al catálogo de tu escuela');
-
-                                                                        // 3. Refresh Catalog locally
-                                                                        const newId = `tech-${newWorkshops.length - 1}`;
-                                                                        const newItem = {
-                                                                            id: newId,
-                                                                            name: name,
-                                                                            educational_level: 'SECONDARY',
-                                                                            is_technology: true
-                                                                        };
-
-                                                                        setCatalogItems([...catalogItems, newItem]);
-                                                                        setCatalogNames({ ...catalogNames, [newId]: name });
-
-                                                                        if (confirm('¿Deseas agregar esta materia a tu carga académica ahora?')) {
-                                                                            setSelectedUserSubjects([...selectedUserSubjects, { catalogId: newId, customDetail: '' }]);
-                                                                        }
-
-                                                                    } catch (err: any) {
-                                                                        console.error(err);
-                                                                        alert('Error al crear la materia: ' + err.message);
-                                                                    } finally {
-                                                                        setUpdating(false);
-                                                                    }
-                                                                }
-                                                            }}
-                                                            className="flex flex-col items-center justify-center p-4 rounded-2xl border-2 border-dashed border-blue-100 bg-blue-50/30 hover:bg-blue-50 hover:border-blue-300 transition-all text-blue-500 group"
-                                                        >
-                                                            <Sparkles className="w-4 h-4 mb-1 group-hover:rotate-12 transition-transform" />
-                                                            <span className="text-[10px] font-black uppercase tracking-widest text-center">Crear materia<br />propia</span>
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {isDirectorOrAdmin && (
-                                        <div className="flex justify-end pt-4">
-                                            <button
-                                                onClick={handleUpdateSubjects}
-                                                disabled={updating}
-                                                className="flex items-center px-8 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 disabled:opacity-50"
-                                            >
-                                                <Save className="w-4 h-4 mr-2" />
-                                                {updating ? 'Guardando...' : 'Guardar Cambios en Materias'}
-                                            </button>
-                                        </div>
-                                    )}
-                                    {isStaffReadOnly && (
-                                        <div className="mt-8 bg-amber-50 p-6 rounded-3xl border border-amber-100 flex items-start">
-                                            <AlertCircle className="w-5 h-5 text-amber-600 mr-4 mt-1" />
-                                            <p className="text-xs font-bold text-amber-800 leading-relaxed uppercase tracking-wider">
-                                                La asignación de materias es gestionada por la dirección. Por favor, contacta con tu administrador si requieres cambios.
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {activeTab === 'periods' && (
-                                <div className="space-y-12">
-                                    <div className="flex flex-col md:flex-row justify-between items-start gap-4 border-b border-gray-100 pb-6">
-                                        <div>
-                                            <h3 className="text-2xl font-black text-gray-900 tracking-tight">Periodos de Evaluación</h3>
-                                            <p className="text-sm text-gray-500 font-medium">Configura los trimestres y fechas clave del ciclo escolar.</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-indigo-50/50 p-8 rounded-[2rem] border border-indigo-100/50 relative overflow-hidden">
-                                        <div className="absolute top-0 right-0 p-8 opacity-10">
-                                            <Calendar className="w-24 h-24 text-indigo-600" />
-                                        </div>
-                                        <div className="relative z-10">
-                                            <div className="flex items-center mb-6">
-                                                <div className="p-3 bg-indigo-600 rounded-2xl text-white mr-5 shadow-xl shadow-indigo-100">
-                                                    <Calendar className="w-6 h-6" />
-                                                </div>
-                                                <div>
-                                                    <h4 className="text-lg font-black text-gray-900 uppercase tracking-tight">Sincronización de Tiempos</h4>
-                                                    <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-0.5">Gestión de Calendario</p>
-                                                </div>
-                                            </div>
-                                            <p className="text-sm text-gray-600 leading-relaxed max-w-2xl">
-                                                Los periodos definidos aquí organizan automáticamente tus planeaciones, reportes de asistencia y el concentrado de calificaciones.
-                                                Asegúrate de que las fechas coincidan con el calendario oficial de la SEP.
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-white rounded-[2rem] border border-gray-100 p-2 shadow-sm">
-                                        <PeriodManager />
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* PERSONAL TAB */}
-                            {activeTab === 'personal' && (
-                                <StaffManager />
-                            )}
-
-                            {activeTab === 'security' && (
-                                <SecuritySettings
-                                    profile={profile}
-                                    tenant={tenant}
-                                    isDirectorOrAdmin={isDirectorOrAdmin || isSuperAdmin || profile?.role?.toUpperCase() === 'INDEPENDENT_TEACHER' || profile?.role?.toUpperCase() === 'TEACHER'}
-                                />
-                            )}
-
-                            {activeTab === 'ai' && (
-                                <div className="space-y-12">
-                                    <div className="flex flex-col md:flex-row justify-between items-start gap-4 border-b border-gray-100 pb-6">
-                                        <div>
-                                            <h3 className="text-2xl font-black text-gray-900 tracking-tight">Inteligencia Artificial</h3>
-                                            <p className="text-sm text-gray-500 font-medium tracking-tight">El motor cognitivo que potencia tus planeaciones y evaluaciones.</p>
-                                        </div>
-                                        <button
-                                            onClick={handleUpdateAiSettings}
-                                            disabled={updating}
-                                            className="px-6 py-3 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 disabled:opacity-50 flex items-center"
-                                        >
-                                            <Save className="w-4 h-4 mr-2" />
-                                            {updating ? 'Guardando...' : 'Guardar Configuración'}
-                                        </button>
-                                    </div>
-
-                                    <div className="space-y-8 max-w-2xl">
-                                        <div className="bg-gradient-to-br from-indigo-600 to-blue-700 p-8 rounded-[2.5rem] text-white shadow-2xl shadow-indigo-200 relative overflow-hidden">
-                                            <div className="absolute top-0 right-0 p-8 opacity-20">
-                                                <Sparkles className="w-32 h-32" />
+                                        <div className="bg-indigo-50/50 p-8 rounded-[2rem] border border-indigo-100/50 relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 p-8 opacity-10">
+                                                <Calendar className="w-24 h-24 text-indigo-600" />
                                             </div>
                                             <div className="relative z-10">
                                                 <div className="flex items-center mb-6">
-                                                    <div className="p-3 bg-white/20 backdrop-blur rounded-2xl mr-4">
-                                                        <Sparkles className="w-6 h-6" />
+                                                    <div className="p-3 bg-indigo-600 rounded-2xl text-white mr-5 shadow-xl shadow-indigo-100">
+                                                        <Calendar className="w-6 h-6" />
                                                     </div>
-                                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">AI Core Engine</span>
+                                                    <div>
+                                                        <h4 className="text-lg font-black text-gray-900 uppercase tracking-tight">Sincronización de Tiempos</h4>
+                                                        <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-0.5">Gestión de Calendario</p>
+                                                    </div>
                                                 </div>
-                                                <h4 className="text-xl font-black mb-4">Potencia tu labor docente</h4>
-                                                <p className="text-sm text-indigo-50 leading-relaxed opacity-90">
-                                                    El sistema detecta automáticamente si utilizas <b>Groq (Llama 3)</b> o <b>Google Gemini</b> basándose en tu clave.
-                                                    Recomendamos Groq por su velocidad y estabilidad en tareas de redacción pedagógica.
+                                                <p className="text-sm text-gray-600 leading-relaxed max-w-2xl">
+                                                    Los periodos definidos aquí organizan automáticamente tus planeaciones, reportes de asistencia y el concentrado de calificaciones.
+                                                    Asegúrate de que las fechas coincidan con el calendario oficial de la SEP.
                                                 </p>
                                             </div>
                                         </div>
 
-                                        <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-6">
+                                        <div className="bg-white rounded-[2rem] border border-gray-100 p-2 shadow-sm mb-8">
+                                            <AcademicYearManager />
+                                        </div>
+                                        <div className="bg-white rounded-[2rem] border border-gray-100 p-2 shadow-sm">
+                                            <PeriodManager />
+                                        </div>
+                                    </div>
+                                )
+                            }
+
+                            {/* PERSONAL TAB */}
+                            {
+                                activeTab === 'personal' && (
+                                    <StaffManager />
+                                )
+                            }
+
+
+
+                            {
+                                activeTab === 'ai' && (
+                                    <div className="space-y-12">
+                                        <div className="flex flex-col md:flex-row justify-between items-start gap-4 border-b border-gray-100 pb-6">
                                             <div>
-                                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">API Key (Groq o Gemini)</label>
-                                                <div className="flex flex-col sm:flex-row gap-2">
-                                                    <div className="relative flex-grow">
+                                                <h3 className="text-2xl font-black text-gray-900 tracking-tight">Inteligencia Artificial</h3>
+                                                <p className="text-sm text-gray-500 font-medium tracking-tight">El motor cognitivo que potencia tus planeaciones y evaluaciones.</p>
+                                            </div>
+                                            <button
+                                                onClick={handleUpdateAiSettings}
+                                                disabled={updating}
+                                                className="px-6 py-3 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 disabled:opacity-50 flex items-center"
+                                            >
+                                                <Save className="w-4 h-4 mr-2" />
+                                                {updating ? 'Guardando...' : 'Guardar Configuración'}
+                                            </button>
+                                        </div>
+
+                                        <div className="space-y-8 max-w-2xl">
+                                            <div className="bg-gradient-to-br from-indigo-600 to-blue-700 p-8 rounded-[2.5rem] text-white shadow-2xl shadow-indigo-200 relative overflow-hidden">
+                                                <div className="absolute top-0 right-0 p-8 opacity-20">
+                                                    <Sparkles className="w-32 h-32" />
+                                                </div>
+                                                <div className="relative z-10">
+                                                    <div className="flex items-center mb-6">
+                                                        <div className="p-3 bg-white/20 backdrop-blur rounded-2xl mr-4">
+                                                            <Sparkles className="w-6 h-6" />
+                                                        </div>
+                                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">AI Core Engine</span>
+                                                    </div>
+                                                    <h4 className="text-xl font-black mb-4">Potencia tu labor docente</h4>
+                                                    <p className="text-sm text-indigo-50 leading-relaxed opacity-90">
+                                                        El sistema detecta automáticamente si utilizas <b>Groq (Llama 3)</b> o <b>Google Gemini</b> basándose en tu clave.
+                                                        Recomendamos Groq por su velocidad y estabilidad en tareas de redacción pedagógica.
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-8">
+                                                {/* Groq Key */}
+                                                <div className="space-y-3">
+                                                    <div className="flex justify-between items-center px-1">
+                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Groq API Key (Recomendado)</label>
+                                                        <button
+                                                            onClick={() => window.open('https://console.groq.com/keys', '_blank')}
+                                                            className="text-[10px] font-black text-indigo-500 hover:text-indigo-700 uppercase"
+                                                        >
+                                                            Obtener Key
+                                                        </button>
+                                                    </div>
+                                                    <div className="relative">
                                                         <input
                                                             type="password"
-                                                            placeholder="gsk_... o AIza..."
-                                                            value={aiSettings.apiKey}
-                                                            onChange={(e) => setAiSettings({ apiKey: e.target.value })}
+                                                            placeholder="gsk_..."
+                                                            value={aiSettings.groq_key}
+                                                            onChange={(e) => setAiSettings({ ...aiSettings, groq_key: e.target.value })}
                                                             className="w-full px-5 py-4 bg-gray-50 border-transparent rounded-2xl text-sm font-mono focus:bg-white focus:ring-0 focus:border-indigo-500 transition-all shadow-inner"
                                                         />
                                                         <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                                                            {aiSettings.apiKey.startsWith('gsk_') ? (
-                                                                <span className="text-[10px] font-black bg-orange-100 text-orange-600 px-3 py-1 rounded-full uppercase tracking-tighter">Groq</span>
-                                                            ) : aiSettings.apiKey.startsWith('AIza') ? (
-                                                                <span className="text-[10px] font-black bg-blue-100 text-blue-600 px-3 py-1 rounded-full uppercase tracking-tighter">Gemini</span>
-                                                            ) : null}
+                                                            <span className="text-[10px] font-black bg-orange-100 text-orange-600 px-3 py-1 rounded-full uppercase tracking-tighter">Llama 3</span>
                                                         </div>
                                                     </div>
-                                                    <button
-                                                        onClick={() => window.open(aiSettings.apiKey.startsWith('gsk_') ? 'https://console.groq.com/keys' : 'https://aistudio.google.com/app/apikey', '_blank')}
-                                                        className="px-6 py-4 bg-gray-50 border border-gray-100 text-indigo-600 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-indigo-50 transition-colors whitespace-nowrap"
-                                                    >
-                                                        Obtener Key
-                                                    </button>
                                                 </div>
-                                            </div>
 
-                                            {aiSettings.apiKey && tenant.ai_config?.apiKey === aiSettings.apiKey && (
-                                                <div className="flex items-center bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
-                                                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse mr-3" />
-                                                    <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Motor Configurado y Activo</span>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <div className="pt-12 border-t border-gray-50">
-                                            <div className="flex items-center mb-6">
-                                                <div className="w-1 h-8 bg-amber-400 rounded-full mr-4" />
-                                                <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest">Developer Toolkit</h3>
-                                            </div>
-                                            <div className="bg-gray-50 p-8 rounded-[2.5rem] border border-gray-100 group transition-all hover:bg-white hover:shadow-xl hover:shadow-gray-100">
-                                                <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-                                                    <div className="flex-1 text-center sm:text-left">
-                                                        <h4 className="font-black text-gray-900 uppercase tracking-tight mb-1">Poblar Base de Datos</h4>
-                                                        <p className="text-xs text-gray-500 font-medium">Genera alumnos, grupos y calificaciones de prueba para demostraciones.</p>
+                                                {/* Gemini Key */}
+                                                <div className="space-y-3">
+                                                    <div className="flex justify-between items-center px-1">
+                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Google Gemini API Key</label>
+                                                        <button
+                                                            onClick={() => window.open('https://aistudio.google.com/app/apikey', '_blank')}
+                                                            className="text-[10px] font-black text-indigo-500 hover:text-indigo-700 uppercase"
+                                                        >
+                                                            Obtener Key
+                                                        </button>
                                                     </div>
-                                                    <button
-                                                        onClick={async () => {
-                                                            const confirm = window.confirm('¿Estas seguro? Esto creará muchos datos de prueba.')
-                                                            if (!confirm) return
-                                                            setUpdating(true)
-                                                            try {
-                                                                const { seedDatabase } = await import('../../../utils/seed_data')
-                                                                const result = await seedDatabase(tenant.id)
-                                                                if (result.success) {
-                                                                    showSuccess('Datos generados correctamente')
-                                                                    alert('Log:\n' + result.log.join('\n'))
-                                                                } else {
-                                                                    alert('Error:\n' + result.log.join('\n'))
-                                                                }
-                                                            } catch (e) {
-                                                                console.error(e)
-                                                                alert('Error fatal al ejecutar seed')
-                                                            } finally {
-                                                                setUpdating(false)
-                                                            }
-                                                        }}
-                                                        disabled={updating}
-                                                        className="px-6 py-3 bg-white border border-gray-200 text-gray-900 font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm"
-                                                    >
-                                                        Ejecutar Seed
-                                                    </button>
+                                                    <div className="relative">
+                                                        <input
+                                                            type="password"
+                                                            placeholder="AIza..."
+                                                            value={aiSettings.gemini_key}
+                                                            onChange={(e) => setAiSettings({ ...aiSettings, gemini_key: e.target.value })}
+                                                            className="w-full px-5 py-4 bg-gray-50 border-transparent rounded-2xl text-sm font-mono focus:bg-white focus:ring-0 focus:border-indigo-500 transition-all shadow-inner"
+                                                        />
+                                                        <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                                                            <span className="text-[10px] font-black bg-blue-100 text-blue-600 px-3 py-1 rounded-full uppercase tracking-tighter">Gemini 1.5</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div className="mt-6 flex items-center justify-center sm:justify-start text-[10px] font-black text-amber-600 bg-amber-50 py-2 px-4 rounded-full border border-amber-100 inline-flex">
-                                                    <Lock className="w-3 h-3 mr-2" />
-                                                    ENTORNO DE PRUEBAS SOLAMENTE
+
+                                                {/* OpenAI Key */}
+                                                <div className="space-y-3">
+                                                    <div className="flex justify-between items-center px-1">
+                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">OpenAI API Key (Opcional)</label>
+                                                        <button
+                                                            onClick={() => window.open('https://platform.openai.com/api-keys', '_blank')}
+                                                            className="text-[10px] font-black text-indigo-500 hover:text-indigo-700 uppercase"
+                                                        >
+                                                            Obtener Key
+                                                        </button>
+                                                    </div>
+                                                    <div className="relative">
+                                                        <input
+                                                            type="password"
+                                                            placeholder="sk-..."
+                                                            value={aiSettings.openai_key}
+                                                            onChange={(e) => setAiSettings({ ...aiSettings, openai_key: e.target.value })}
+                                                            className="w-full px-5 py-4 bg-gray-50 border-transparent rounded-2xl text-sm font-mono focus:bg-white focus:ring-0 focus:border-indigo-500 transition-all shadow-inner"
+                                                        />
+                                                        <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                                                            <span className="text-[10px] font-black bg-gray-100 text-gray-600 px-3 py-1 rounded-full uppercase tracking-tighter">GPT-4o</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {(aiSettings.groq_key || aiSettings.gemini_key) && (
+                                                    <div className="flex items-center bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
+                                                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse mr-3" />
+                                                        <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">
+                                                            {aiSettings.groq_key && aiSettings.gemini_key ? 'Motores Configurados y Activos' : 'Motor IA Habilitado'}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="pt-12 border-t border-gray-50">
+                                                <div className="flex items-center mb-6">
+                                                    <div className="w-1 h-8 bg-amber-400 rounded-full mr-4" />
+                                                    <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest">Developer Toolkit</h3>
+                                                </div>
+                                                <div className="bg-gray-50 p-8 rounded-[2.5rem] border border-gray-100 group transition-all hover:bg-white hover:shadow-xl hover:shadow-gray-100">
+                                                    <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+                                                        <div className="flex-1 text-center sm:text-left">
+                                                            <h4 className="font-black text-gray-900 uppercase tracking-tight mb-1">Poblar Base de Datos</h4>
+                                                            <p className="text-xs text-gray-500 font-medium">Genera alumnos, grupos y calificaciones de prueba para demostraciones.</p>
+                                                        </div>
+                                                        <button
+                                                            onClick={async () => {
+                                                                const confirm = window.confirm('¿Estas seguro? Esto creará muchos datos de prueba.')
+                                                                if (!confirm) return
+                                                                setUpdating(true)
+                                                                try {
+                                                                    const { seedDatabase } = await import('../../../utils/seed_data')
+                                                                    const result = await seedDatabase(tenant.id)
+                                                                    if (result.success) {
+                                                                        showSuccess('Datos generados correctamente')
+                                                                        alert('Log:\n' + result.log.join('\n'))
+                                                                    } else {
+                                                                        alert('Error:\n' + result.log.join('\n'))
+                                                                    }
+                                                                } catch (e) {
+                                                                    console.error(e)
+                                                                    alert('Error fatal al ejecutar seed')
+                                                                } finally {
+                                                                    setUpdating(false)
+                                                                }
+                                                            }}
+                                                            disabled={updating}
+                                                            className="px-6 py-3 bg-white border border-gray-200 text-gray-900 font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm"
+                                                        >
+                                                            Ejecutar Seed
+                                                        </button>
+                                                    </div>
+                                                    <div className="mt-6 flex items-center justify-center sm:justify-start text-[10px] font-black text-amber-600 bg-amber-50 py-2 px-4 rounded-full border border-amber-100 inline-flex">
+                                                        <Lock className="w-3 h-3 mr-2" />
+                                                        ENTORNO DE PRUEBAS SOLAMENTE
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            )}
+                                )
+                            }
 
                             {/* BILLING TAB */}
-                            {activeTab === 'billing' && (
-                                <BillingSection />
-                            )}
+                            {
+                                activeTab === 'billing' && (
+                                    <BillingSection />
+                                )
+                            }
 
                             {/* SECURITY TAB */}
+                            {/* SECURITY TAB */}
+                            {activeTab === 'security' && (
+                                <SecuritySettings
+                                    profile={profile}
+                                    tenant={tenant}
+                                    isDirectorOrAdmin={isDirectorOrAdmin}
+                                />
+                            )}
 
                         </div>
                     </div>

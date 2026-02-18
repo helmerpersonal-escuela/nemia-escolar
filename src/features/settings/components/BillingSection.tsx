@@ -14,12 +14,13 @@ export const BillingSection = () => {
     }
 
     const handleManageSubscription = async () => {
+        setShowUpgradeModal(true)
+    }
+
+    const handleRefresh = async () => {
         setLoading(true)
         try {
-            // TODO: Implement Mercado Pago subscription management
-            alert('Funcionalidad de gestión de suscripción próximamente')
-        } catch (error) {
-            console.error('Error managing subscription:', error)
+            await limits.refreshLimits()
         } finally {
             setLoading(false)
         }
@@ -52,9 +53,19 @@ export const BillingSection = () => {
                         </div>
                         <p className="text-gray-600 font-medium">Gestiona tu suscripción y límites</p>
                     </div>
-                    <span className={`px-4 py-2 ${isBasic ? 'bg-gray-200 text-gray-700' : 'bg-indigo-600 text-white'} text-sm font-black rounded-full uppercase shadow-sm`}>
-                        {isBasic ? 'Básico' : 'Pro'}
-                    </span>
+                    <div className="flex flex-col items-end gap-2">
+                        <span className={`px-4 py-2 ${isBasic ? 'bg-gray-200 text-gray-700' : 'bg-indigo-600 text-white'} text-sm font-black rounded-full uppercase shadow-sm`}>
+                            {isBasic ? 'Básico' : 'Pro'}
+                        </span>
+                        <button
+                            onClick={handleRefresh}
+                            disabled={loading}
+                            className="text-[10px] font-bold text-indigo-500 hover:text-indigo-700 flex items-center gap-1 uppercase tracking-tighter"
+                        >
+                            <TrendingUp className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+                            Sincronizar Estado
+                        </button>
+                    </div>
                 </div>
 
                 {/* Plan Details */}
@@ -188,7 +199,7 @@ export const BillingSection = () => {
                         <h3 className="font-bold text-blue-900 mb-1">Información Importante</h3>
                         <p className="text-sm text-blue-700 font-medium">
                             {isBasic
-                                ? 'Actualiza a Pro para acceder a hasta 5 grupos y soporte prioritario 24/7.'
+                                ? 'Actualiza a Pro para acceder a hasta 10 grupos y soporte prioritario 24/7.'
                                 : 'Tienes acceso completo a todas las funcionalidades del plan Pro. ¡Gracias por tu confianza!'
                             }
                         </p>

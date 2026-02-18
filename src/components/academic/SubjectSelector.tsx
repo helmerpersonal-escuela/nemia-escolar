@@ -40,8 +40,24 @@ export const SubjectSelector = ({ educationalLevel, selectedSubjects, onChange, 
         fetchSubjects()
     }, [educationalLevel])
 
+    // Deduplicate subjects by normalized name (preferring UPPERCASE)
+    const uniqueSubjects = availableSubjects.reduce((acc, current) => {
+        const normalized = current.name.toUpperCase().trim()
+
+        if (!acc.has(normalized)) {
+            acc.set(normalized, current)
+        } else {
+            // If current is fully uppercase and stored is not, replace it
+            const stored = acc.get(normalized)!
+            if (current.name === normalized && stored.name !== normalized) {
+                acc.set(normalized, current)
+            }
+        }
+        return acc
+    }, new Map<string, Subject>())
+
     // Group subjects by field
-    const subjectsByField = availableSubjects.reduce((acc, subject) => {
+    const subjectsByField = Array.from(uniqueSubjects.values()).reduce((acc, subject) => {
         if (!acc[subject.field_of_study]) acc[subject.field_of_study] = []
         acc[subject.field_of_study].push(subject)
         return acc

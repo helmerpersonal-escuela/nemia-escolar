@@ -1,4 +1,4 @@
-import { Users, GraduationCap, School, Play, Search, Trash2, Filter, TestTube } from 'lucide-react'
+import { Users, GraduationCap, School, Play, Search, Trash2, Filter, TestTube, Key } from 'lucide-react'
 
 interface RegularUserTableProps {
     users: any[]
@@ -6,9 +6,10 @@ interface RegularUserTableProps {
     onImpersonate: (id: string, role: string) => void
     onDelete: (id: string) => void
     onToggleDemo?: (id: string, currentDemoStatus: boolean) => void
+    onResetPassword?: (email: string) => void
 }
 
-export const RegularUserTable = ({ users, searchTerm, onImpersonate, onDelete, onToggleDemo }: RegularUserTableProps) => {
+export const RegularUserTable = ({ users, searchTerm, onImpersonate, onDelete, onToggleDemo, onResetPassword }: RegularUserTableProps) => {
     // Filter for regular users
     const regularUsers = users.filter(user =>
         ['TEACHER', 'STUDENT', 'FAMILY', 'INDEPENDENT_TEACHER'].includes(user.role) &&
@@ -133,6 +134,15 @@ export const RegularUserTable = ({ users, searchTerm, onImpersonate, onDelete, o
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </button>
+                                        {onResetPassword && (
+                                            <button
+                                                onClick={() => onResetPassword(user.email)}
+                                                className="p-2.5 bg-amber-500/10 text-amber-500 hover:bg-amber-600 hover:text-white rounded-xl transition-all"
+                                                title="Enviar Link de Recuperación"
+                                            >
+                                                <Key className="w-4 h-4" />
+                                            </button>
+                                        )}
                                     </div>
                                 </td>
                             </tr>

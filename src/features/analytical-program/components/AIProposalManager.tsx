@@ -67,7 +67,7 @@ export const AIProposalManager = ({ isOpen, onClose, formData, setFormData, groq
                 ?.filter((s: any) => normalize(s.field_of_study).includes(normalize(fieldId)))
                 .map((s: any) => s.content) || []
 
-            console.log(`[AIProposal] Field: ${fieldId}, Found: ${fieldContents.length} items`);
+
 
             if (fieldContents.length === 0) {
                 alert('No hay contenidos precargados para este campo formativo en la fase actual.')
@@ -83,9 +83,16 @@ export const AIProposalManager = ({ isOpen, onClose, formData, setFormData, groq
                     [fieldId]: result
                 }))
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error generating field:', error)
-            alert('Error al generar este campo. Por favor intenta de nuevo.')
+            const errorMsg = error.message || 'Error al generar este campo.'
+            const isCreditError = errorMsg.includes('credits') || errorMsg.includes('saldo') || errorMsg.includes('payment')
+
+            if (isCreditError) {
+                alert(`Error de Facturación: ${errorMsg}\n\nPor favor revisa tu cuenta en console.x.ai`)
+            } else {
+                alert(`Error de IA: ${errorMsg}`)
+            }
         } finally {
             setIsGenerating(false)
         }
