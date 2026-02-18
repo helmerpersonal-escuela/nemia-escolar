@@ -4,7 +4,10 @@ import { X, Calendar, Sparkles, Loader2, AlertCircle, CheckCircle2, FileText, Pr
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
 import { useProfile } from '../../../hooks/useProfile'
-import { geminiService } from '../../../lib/gemini'
+import { GeminiService } from '../../../lib/gemini'
+// ...
+
+
 import { eachDayOfInterval, format, parseISO, getDay } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { createPortal } from 'react-dom'
@@ -54,7 +57,6 @@ export const AbsenceRequestModal = ({ isOpen, onClose }: AbsenceRequestModalProp
             const days = eachDayOfInterval({ start, end })
 
             // 1. Get teacher's schedule entries
-            // First get what groups/subjects they teach
             const { data: assignments } = await supabase
                 .from('group_subjects')
                 .select('group_id, subject_catalog_id, custom_name')
@@ -87,16 +89,29 @@ export const AbsenceRequestModal = ({ isOpen, onClose }: AbsenceRequestModalProp
                 for (const cls of todaysClasses) {
                     // Try to get context from latest lesson plan
                     let latestPlan = null
+                    let textbookTitle = null
+
                     if (cls.group_id && cls.subject_id) {
                         const { data } = await supabase
                             .from('lesson_plans')
-                            .select('title, contents, pda, activities_sequence')
+                            .select('title, contents, pda, activities_sequence, textbook_id, textbook_pages_from, textbook_pages_to')
                             .eq('group_id', cls.group_id)
                             .eq('subject_id', cls.subject_id)
                             .order('created_at', { ascending: false })
                             .limit(1)
                             .maybeSingle()
+
                         latestPlan = data
+
+                        // Fetch textbook title if exists
+                        if (data?.textbook_id) {
+                            const { data: tb } = await supabase
+                                .from('textbooks')
+                                .select('title')
+                                .eq('id', data.textbook_id)
+                                .single()
+                            if (tb) textbookTitle = tb.title
+                        }
                     }
 
                     // Calcular duración en minutos
@@ -113,6 +128,8 @@ export const AbsenceRequestModal = ({ isOpen, onClose }: AbsenceRequestModalProp
                         topicContext: latestPlan?.title || 'Continuación de programa',
                         pda: Array.isArray(latestPlan?.pda) ? latestPlan.pda[0] : 'No especificado',
                         planningDetail: JSON.stringify(latestPlan?.activities_sequence || []),
+                        textbook: textbookTitle,
+                        pages: latestPlan?.textbook_pages_from ? `${latestPlan.textbook_pages_from}-${latestPlan.textbook_pages_to}` : null,
                         group_id: cls.group_id,
                         subject_id: cls.subject_id
                     })
@@ -154,17 +171,38 @@ export const AbsenceRequestModal = ({ isOpen, onClose }: AbsenceRequestModalProp
                     subject: c.subject,
                     topicContext: c.topicContext,
                     pda: c.pda,
+                    textbook: c.textbook,
+                    pages: c.pages,
                     planningDetail: c.planningDetail
                 }))
             }))
 
-            const generated = await geminiService.generateAbsenceActivities({
+            const aiService = new GeminiService(
+                tenant?.aiConfig?.geminiKey,
+                tenant?.aiConfig?.apiKey || tenant?.groqApiKey
+            )
+
+            const generated = await aiService.generateAbsenceActivities({
                 reason,
                 days: daysContext
             })
 
-            // Mapear con IDs locales para edición fácil si es necesario
-            setGeneratedActivities(generated.map((a: any, i: number) => ({ ...a, id: i })))
+            // Mapear con IDs locales buscando coincidencia en affectedClasses
+            const mappedActivities = generated.map((genAct: any, i: number) => {
+                const originalClass = affectedClasses.find(c =>
+                    c.selected &&
+                    c.date === genAct.date &&
+                    c.time === genAct.time
+                )
+                return {
+                    ...genAct,
+                    id: i,
+                    group_id: originalClass?.group_id,
+                    subject_id: originalClass?.subject_id
+                }
+            })
+
+            setGeneratedActivities(mappedActivities)
             setStep(3)
         } catch (error) {
             console.error('Error generating activities:', error)
@@ -172,6 +210,33 @@ export const AbsenceRequestModal = ({ isOpen, onClose }: AbsenceRequestModalProp
         } finally {
             setLoading(false)
         }
+    }
+
+    const handlePrintSingle = (e: React.MouseEvent, index: number) => {
+        e.stopPropagation()
+
+        const style = document.createElement('style')
+        style.id = 'temp-print-style'
+        style.innerHTML = `
+            @media print {
+                body * { visibility: hidden; }
+                #activity-card-${index}, #activity-card-${index} * { visibility: visible; }
+                #activity-card-${index} { 
+                    position: absolute; 
+                    left: 0; 
+                    top: 0; 
+                    width: 100% !important; 
+                    margin: 0 !important; 
+                    padding: 0 !important; 
+                    border: none !important; 
+                    box-shadow: none !important;
+                }
+                .no-print { display: none !important; }
+            }
+        `
+        document.head.appendChild(style)
+        window.print()
+        document.head.removeChild(style)
     }
 
     const handleSaveFinal = async () => {
@@ -182,29 +247,53 @@ export const AbsenceRequestModal = ({ isOpen, onClose }: AbsenceRequestModalProp
 
         setLoading(true)
         try {
-            const dataToInsert = {
-                tenant_id: tenant.id,
-                profile_id: profile.id,
-                start_date: startDate,
-                end_date: endDate,
-                reason,
-                activities: generatedActivities,
-                status: 'FINAL'
-            }
-
-            console.log('Inserting absence plan:', dataToInsert)
-
-            const { error, data } = await supabase
-                .from('absence_plans')
-                .insert(dataToInsert)
+            // 1. Insert teacher_absence (Plan Maestro)
+            const { data: absenceData, error: absenceError } = await supabase
+                .from('teacher_absences')
+                .insert({
+                    tenant_id: tenant.id,
+                    profile_id: profile.id,
+                    start_date: startDate,
+                    end_date: endDate,
+                    reason: reason,
+                    status: 'PENDING'
+                })
                 .select()
+                .single()
 
-            if (error) {
-                console.error('Supabase Error details:', error)
-                throw error
+            if (absenceError) throw absenceError
+
+            const absenceId = absenceData.id
+
+            // 2. Prepare substitution_activities (Detalle por Grupo)
+            const activitiesToInsert = generatedActivities.map(act => ({
+                tenant_id: tenant.id,
+                absence_id: absenceId,
+                group_id: act.group_id,
+                subject_id: act.subject_id,
+                activity_title: act.title,
+                activity_description: `
+*ACTIVIDAD ALUMNO:*
+${act.student_work}
+
+*PRODUCTO FINAL:*
+${act.final_product}
+
+${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type}):*\n${act.printable_resource.title}\n\n${act.printable_resource.content}` : ''}
+                `.trim(),
+                ai_generated_hints: act.instructions_for_substitute // Instrucciones para el prefecto
+            }))
+
+            // 3. Insert activities batch
+            if (activitiesToInsert.length > 0) {
+                const { error: activitiesError } = await supabase
+                    .from('substitution_activities')
+                    .insert(activitiesToInsert)
+
+                if (activitiesError) throw activitiesError
             }
 
-            console.log('Save successful:', data)
+            console.log('Save successful')
             onClose()
         } catch (error: any) {
             console.error('Error saving:', error)
@@ -500,6 +589,12 @@ export const AbsenceRequestModal = ({ isOpen, onClose }: AbsenceRequestModalProp
                                                         <p className="text-xs font-medium text-slate-500 italic mt-1 flex items-center gap-1">
                                                             <Sparkles className="w-3 h-3 text-indigo-400" />
                                                             Ref: {cls.topicContext}
+                                                            {cls.textbook && (
+                                                                <span className="ml-2 flex items-center gap-1 text-indigo-600 bg-indigo-50 px-1.5 rounded-md text-[9px] not-italic">
+                                                                    <BookOpen className="w-3 h-3" />
+                                                                    {cls.textbook} {cls.pages && `(pp. ${cls.pages})`}
+                                                                </span>
+                                                            )}
                                                         </p>
                                                     )}
                                                 </div>
@@ -554,7 +649,21 @@ export const AbsenceRequestModal = ({ isOpen, onClose }: AbsenceRequestModalProp
 
                             <div className="space-y-4">
                                 {generatedActivities.map((act, idx) => (
-                                    <div key={idx} className="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm activity-card print:border-none print:shadow-none">
+                                    <div
+                                        key={idx}
+                                        id={`activity-card-${idx}`}
+                                        className="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm activity-card print:border-none print:shadow-none relative"
+                                    >
+                                        <div className="absolute top-6 right-6 no-print">
+                                            <button
+                                                onClick={(e) => handlePrintSingle(e, idx)}
+                                                className="p-2 hover:bg-indigo-50 text-indigo-600 rounded-full transition-colors"
+                                                title="Imprimir solo esta actividad"
+                                            >
+                                                <Printer className="w-5 h-5" />
+                                            </button>
+                                        </div>
+
                                         <div className="flex items-center justify-between mb-4 card-header">
                                             <div className="flex flex-col header-info-item">
                                                 <span className="text-[10px] font-black bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full w-fit mb-1 no-print">{act.group} • {act.subject}</span>
@@ -573,8 +682,24 @@ export const AbsenceRequestModal = ({ isOpen, onClose }: AbsenceRequestModalProp
                                                     </div>
                                                 </div>
                                                 <span className="text-[10px] font-bold text-slate-400 ml-1 no-print">{act.date} • {act.time}</span>
+
+                                                {act.textbook && (
+                                                    <div className="mt-2 flex items-center gap-1.5 no-print">
+                                                        <BookOpen className="w-3 h-3 text-indigo-400" />
+                                                        <span className="text-[10px] font-bold text-slate-500">
+                                                            Ref: {act.textbook} {act.pages && `(Págs. ${act.pages})`}
+                                                        </span>
+                                                    </div>
+                                                )}
+
+                                                <div className="hidden print:block mt-2">
+                                                    <span className="header-label">Referencia:</span>
+                                                    <span className="text-xs font-medium block">
+                                                        {act.textbook ? `${act.textbook} ${act.pages ? `(pp. ${act.pages})` : ''}` : 'Sin libro de texto vinculado'}
+                                                    </span>
+                                                </div>
                                             </div>
-                                            <div className="text-right no-print">
+                                            <div className="text-right no-print pr-10">
                                                 <div className="text-[10px] font-black text-amber-600 uppercase tracking-tighter">Duración Sugerida</div>
                                                 <div className="text-sm font-black text-slate-700">{act.duration || '--'} min</div>
                                             </div>
@@ -687,7 +812,7 @@ export const AbsenceRequestModal = ({ isOpen, onClose }: AbsenceRequestModalProp
                                         <div className="hidden print:block mt-8">
                                             <span className="header-label">PRODUCTO ESPERADO:</span>
                                             <span className="block text-sm font-bold product-tag">{act.final_product}</span>
-                                            <p className="mt-8 text-[8px] italic opacity-50">Generado con IA • Sistema de Gestión Escolar • Docente: {profile?.full_name}</p>
+                                            <p className="mt-8 text-[8px] italic opacity-50">Generado con IA • Vunlek • Docente: {profile?.full_name}</p>
                                         </div>
                                     </div>
                                 ))}
