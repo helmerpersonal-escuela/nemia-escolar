@@ -172,28 +172,30 @@ export const BillingSection = () => {
                     </div>
                 )}
 
-                {/* Action Buttons */}
-                <div className="flex gap-4">
-                    {isBasic ? (
-                        <button
-                            onClick={handleUpgrade}
-                            className="flex-1 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-black text-lg hover:from-indigo-700 hover:to-purple-700 shadow-xl shadow-indigo-200 transform hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-                        >
-                            <TrendingUp className="w-5 h-5" />
-                            ¿Quieres más?
-                            <Zap className="w-5 h-5" />
-                        </button>
-                    ) : (
-                        <button
-                            onClick={handleManageSubscription}
-                            disabled={loading}
-                            className="flex-1 py-4 bg-gray-100 text-gray-700 rounded-xl font-bold text-lg hover:bg-gray-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                        >
-                            <CreditCard className="w-5 h-5" />
-                            {loading ? 'Cargando...' : 'Gestionar Suscripción'}
-                        </button>
-                    )}
-                </div>
+                {/* Action Buttons - Hidden on native/mobile per user request */}
+                {!Capacitor.isNativePlatform() && (
+                    <div className="flex gap-4">
+                        {isBasic ? (
+                            <button
+                                onClick={handleUpgrade}
+                                className="flex-1 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-black text-lg hover:from-indigo-700 hover:to-purple-700 shadow-xl shadow-indigo-200 transform hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                            >
+                                <TrendingUp className="w-5 h-5" />
+                                ¿Quieres más?
+                                <Zap className="w-5 h-5" />
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleManageSubscription}
+                                disabled={loading}
+                                className="flex-1 py-4 bg-gray-100 text-gray-700 rounded-xl font-bold text-lg hover:bg-gray-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                            >
+                                <CreditCard className="w-5 h-5" />
+                                {loading ? 'Cargando...' : 'Gestionar Suscripción'}
+                            </button>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Info Card */}

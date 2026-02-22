@@ -50,13 +50,6 @@ export const PaywallPage = () => {
 
                 {isAppMode ? (
                     <div className="flex flex-col items-center gap-8 py-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
-                        <button
-                            onClick={() => window.open('https://vunlek.com', '_system')}
-                            className="w-full max-w-sm py-6 bg-gradient-to-r from-indigo-500 via-purple-600 to-indigo-500 bg-[length:200%_auto] hover:bg-right text-white rounded-[2rem] font-black text-xl uppercase tracking-[0.2em] shadow-2xl shadow-indigo-500/40 hover:scale-[1.05] active:scale-95 transition-all duration-500 flex items-center justify-center gap-4 group"
-                        >
-                            <span className="relative z-10">¿Quieres más?</span>
-                            <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform duration-300" />
-                        </button>
                         <p className="text-slate-500 text-sm font-bold uppercase tracking-widest text-center max-w-xs leading-relaxed">
                             Adquiere una licencia <span className="text-indigo-400">Básica</span> o <span className="text-purple-400">Pro</span> desde nuestra plataforma web
                         </p>

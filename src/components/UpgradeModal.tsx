@@ -267,17 +267,14 @@ export const UpgradeModal = ({ isOpen, onClose, currentPlan, currentGroups, maxG
                                             </p>
                                         </>
                                     ) : (
-                                        <div className="text-center">
-                                            <p className="text-slate-500 font-medium mb-6">
-                                                Para gestionar tu suscripción y acceder a más detalles, por favor ingresa desde nuestra plataforma web.
+                                        <div className="text-center bg-indigo-50/50 rounded-2xl p-6 border border-indigo-100">
+                                            <div className="w-12 h-12 bg-indigo-100 text-indigo-500 flex items-center justify-center rounded-xl mx-auto mb-4">
+                                                <Globe className="w-6 h-6" />
+                                            </div>
+                                            <h4 className="font-black text-slate-800 mb-2">Gestión desde Web</h4>
+                                            <p className="text-slate-500 font-medium text-sm leading-relaxed">
+                                                Por políticas de la tienda de aplicaciones, las actualizaciones de plan y gestiones de facturación solo están disponibles iniciando sesión desde <b>vunlek.com</b> en el navegador de tu computadora o celular.
                                             </p>
-                                            <button
-                                                onClick={() => window.open('https://vunlek.com', '_system')}
-                                                className="w-full py-4 bg-indigo-50 text-indigo-600 rounded-2xl font-black text-lg hover:bg-indigo-100 transition-all flex items-center justify-center gap-2"
-                                            >
-                                                <Globe className="w-5 h-5" />
-                                                Ir a Vunlek Web
-                                            </button>
                                         </div>
                                     )}
                                 </>
