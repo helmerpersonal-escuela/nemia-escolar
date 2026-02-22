@@ -43,93 +43,96 @@ export const PaywallPage = () => {
                             <Zap className="w-4 h-4 text-blue-400" />
                         </div>
                         <p className="text-xs text-blue-200 font-bold">
-                            Estás usando la aplicación móvil. Para gestionar tu suscripción o realizar pagos, por favor inicia sesión desde vunlek.com en tu navegador.
+                            Estás usando la aplicación móvil. Para gestionar tu suscripción y acceder a más detalles, por favor inicia sesión desde vunlek.com en tu navegador.
                         </p>
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-                    {/* Basic Plan Info */}
-                    <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-8 flex flex-col justify-between hover:bg-white/[0.07] transition-colors group">
-                        <div>
-                            <div className="flex justify-between items-start mb-6">
-                                <h3 className="text-2xl font-black text-white uppercase tracking-tighter italic">Plan Básico</h3>
-                                <div className="text-right">
-                                    <div className="text-2xl font-black text-white">${limits.priceAnnual}</div>
-                                    <div className="text-[10px] font-black text-slate-500 uppercase">MXN / Año</div>
+                {isAppMode ? (
+                    <div className="flex flex-col items-center gap-8 py-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                        <button
+                            onClick={() => window.open('https://vunlek.com', '_system')}
+                            className="w-full max-w-sm py-6 bg-gradient-to-r from-indigo-500 via-purple-600 to-indigo-500 bg-[length:200%_auto] hover:bg-right text-white rounded-[2rem] font-black text-xl uppercase tracking-[0.2em] shadow-2xl shadow-indigo-500/40 hover:scale-[1.05] active:scale-95 transition-all duration-500 flex items-center justify-center gap-4 group"
+                        >
+                            <span className="relative z-10">¿Quieres más?</span>
+                            <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform duration-300" />
+                        </button>
+                        <p className="text-slate-500 text-sm font-bold uppercase tracking-widest text-center max-w-xs leading-relaxed">
+                            Adquiere una licencia <span className="text-indigo-400">Básica</span> o <span className="text-purple-400">Pro</span> desde nuestra plataforma web
+                        </p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                        {/* Basic Plan Info */}
+                        <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-8 flex flex-col justify-between hover:bg-white/[0.07] transition-colors group">
+                            <div>
+                                <div className="flex justify-between items-start mb-6">
+                                    <h3 className="text-2xl font-black text-white uppercase tracking-tighter italic">Plan Básico</h3>
+                                    <div className="text-right">
+                                        <div className="text-2xl font-black text-white">${limits.priceAnnual}</div>
+                                        <div className="text-[10px] font-black text-slate-500 uppercase">MXN / Año</div>
+                                    </div>
+                                </div>
+                                <div className="space-y-3 mb-8">
+                                    <div className="flex items-center gap-3 text-slate-300">
+                                        <Check className="w-5 h-5 text-emerald-500" />
+                                        <span className="text-sm font-bold">Hasta {limits.maxGroups} Grupos Activos</span>
+                                    </div>
+                                    <div className="flex items-center gap-3 text-slate-300">
+                                        <Check className="w-5 h-5 text-emerald-500" />
+                                        <span className="text-sm font-bold">{limits.maxStudentsPerGroup} Estudiantes por Grupo</span>
+                                    </div>
+                                    <div className="flex items-center gap-3 text-slate-300">
+                                        <Check className="w-5 h-5 text-emerald-500" />
+                                        <span className="text-sm font-bold">Gestión de Calificaciones</span>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="space-y-3 mb-8">
-                                <div className="flex items-center gap-3 text-slate-300">
-                                    <Check className="w-5 h-5 text-emerald-500" />
-                                    <span className="text-sm font-bold">Hasta {limits.maxGroups} Grupos Activos</span>
-                                </div>
-                                <div className="flex items-center gap-3 text-slate-300">
-                                    <Check className="w-5 h-5 text-emerald-500" />
-                                    <span className="text-sm font-bold">{limits.maxStudentsPerGroup} Estudiantes por Grupo</span>
-                                </div>
-                                <div className="flex items-center gap-3 text-slate-300">
-                                    <Check className="w-5 h-5 text-emerald-500" />
-                                    <span className="text-sm font-bold">Gestión de Calificaciones</span>
-                                </div>
-                            </div>
-                        </div>
-                        {isAppMode ? (
-                            <div className="w-full py-4 bg-white/5 text-slate-400 rounded-2xl text-[10px] font-black uppercase tracking-widest text-center border border-dashed border-white/10">
-                                Gestionar desde Web
-                            </div>
-                        ) : (
                             <button
                                 onClick={() => setShowUpgrade(true)}
                                 className="w-full py-4 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all"
                             >
                                 Activar Básico
                             </button>
-                        )}
-                    </div>
-
-                    {/* Pro Plan Info */}
-                    <div className="bg-gradient-to-br from-indigo-600/20 to-purple-600/20 border-2 border-indigo-500/50 rounded-[2.5rem] p-8 flex flex-col justify-between relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 p-3 bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-bl-2xl">Recomendado</div>
-                        <div>
-                            <div className="flex justify-between items-start mb-6">
-                                <h3 className="text-2xl font-black text-white uppercase tracking-tighter italic flex items-center gap-2">
-                                    Plan Pro <Zap className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-                                </h3>
-                                <div className="text-right">
-                                    <div className="text-2xl font-black text-white">${limits.priceAnnual * 2.5}</div>
-                                    <div className="text-[10px] font-black text-slate-500 uppercase">MXN / Año</div>
-                                </div>
-                            </div>
-                            <div className="space-y-3 mb-8">
-                                <div className="flex items-center gap-3 text-white">
-                                    <Check className="w-5 h-5 text-indigo-400" />
-                                    <span className="text-sm font-black">Hasta {limits.maxGroups * 2} Grupos Activos</span>
-                                </div>
-                                <div className="flex items-center gap-3 text-white">
-                                    <Check className="w-5 h-5 text-indigo-400" />
-                                    <span className="text-sm font-black">Inteligencia Artificial Ilimitada</span>
-                                </div>
-                                <div className="flex items-center gap-3 text-white">
-                                    <Check className="w-5 h-5 text-indigo-400" />
-                                    <span className="text-sm font-black">Soporte Prioritario 24/7</span>
-                                </div>
-                            </div>
                         </div>
-                        {isAppMode ? (
-                            <div className="w-full py-4 bg-indigo-500/10 text-indigo-300 rounded-2xl text-[10px] font-black uppercase tracking-widest text-center border border-dashed border-indigo-500/20">
-                                Gestionar desde Web
+
+                        {/* Pro Plan Info */}
+                        <div className="bg-gradient-to-br from-indigo-600/20 to-purple-600/20 border-2 border-indigo-500/50 rounded-[2.5rem] p-8 flex flex-col justify-between relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-3 bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-bl-2xl">Recomendado</div>
+                            <div>
+                                <div className="flex justify-between items-start mb-6">
+                                    <h3 className="text-2xl font-black text-white uppercase tracking-tighter italic flex items-center gap-2">
+                                        Plan Pro <Zap className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+                                    </h3>
+                                    <div className="text-right">
+                                        <div className="text-2xl font-black text-white">$599</div>
+                                        <div className="text-[10px] font-black text-slate-500 uppercase">MXN / Año</div>
+                                    </div>
+                                </div>
+                                <div className="space-y-3 mb-8">
+                                    <div className="flex items-center gap-3 text-white">
+                                        <Check className="w-5 h-5 text-indigo-400" />
+                                        <span className="text-sm font-black">Hasta 10 Grupos Activos</span>
+                                    </div>
+                                    <div className="flex items-center gap-3 text-white">
+                                        <Check className="w-5 h-5 text-indigo-400" />
+                                        <span className="text-sm font-black">Inteligencia Artificial Ilimitada</span>
+                                    </div>
+                                    <div className="flex items-center gap-3 text-white">
+                                        <Check className="w-5 h-5 text-indigo-400" />
+                                        <span className="text-sm font-black">Soporte Prioritario 24/7</span>
+                                    </div>
+                                </div>
                             </div>
-                        ) : (
                             <button
                                 onClick={() => setShowUpgrade(true)}
                                 className="w-full py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-indigo-500/25 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
                             >
                                 Obtener Pro <ArrowRight className="w-4 h-4" />
                             </button>
-                        )}
+                        </div>
                     </div>
-                </div>
+                )}
 
                 <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-8 border-t border-white/10">
                     <div className="flex items-center gap-4">

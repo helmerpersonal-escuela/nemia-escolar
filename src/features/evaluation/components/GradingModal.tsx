@@ -4,6 +4,10 @@ import { X, Save, AlertCircle, CheckCircle2, Pencil, Trash2, ClipboardCheck, Lay
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
 import { useOfflineSync } from '../../../hooks/useOfflineSync'
+import { DictationModeModal } from './DictationModeModal'
+import { Mic, Sparkles, Loader2 } from 'lucide-react'
+import { GeminiService } from '../../../lib/gemini'
+import { useMemo } from 'react'
 
 type GradingModalProps = {
     isOpen: boolean
@@ -32,6 +36,13 @@ export const GradingModal = ({
 }: GradingModalProps) => {
     const { data: tenant } = useTenant()
     const { isOnline, addToQueue } = useOfflineSync()
+
+    const aiService = useMemo(() => new GeminiService(
+        tenant?.aiConfig?.geminiKey || '',
+        tenant?.aiConfig?.apiKey || '',
+        tenant?.aiConfig?.openaiKey || ''
+    ), [tenant?.aiConfig?.geminiKey, tenant?.aiConfig?.apiKey, tenant?.aiConfig?.openaiKey])
+
     const [isLoading, setIsLoading] = useState(false)
     const [grades, setGrades] = useState<Record<string, { score: string, feedback: string }>>({})
     const [changed, setChanged] = useState<Record<string, boolean>>({})
@@ -39,6 +50,9 @@ export const GradingModal = ({
     const [loadingInstruments, setLoadingInstruments] = useState(false)
     const [rubricSelections, setRubricSelections] = useState<Record<string, Record<number, number>>>({})
     const [expandedId, setExpandedId] = useState<string | null>(null)
+    const [isDictationModeOpen, setIsDictationModeOpen] = useState(false)
+    const [assignmentForDictation, setAssignmentForDictation] = useState<any>(null)
+    const [enrichingId, setEnrichingId] = useState<string | null>(null)
 
     useEffect(() => {
         if (isOpen && assignments.length > 0) {
@@ -82,41 +96,48 @@ export const GradingModal = ({
     }
 
     const handleLevelSelect = (assignmentId: string, criterionIdx: number, scoreValue: number, instrument: any) => {
-        const nextSelections = {
-            ...rubricSelections,
-            [assignmentId]: {
-                ...(rubricSelections[assignmentId] || {}),
-                [criterionIdx]: scoreValue
+        setRubricSelections(prev => {
+            const nextSelections = {
+                ...prev,
+                [assignmentId]: {
+                    ...(prev[assignmentId] || {}),
+                    [criterionIdx]: scoreValue
+                }
             }
-        }
-        setRubricSelections(nextSelections)
 
-        // Calculate weighted average
-        const currentAsmSelections = nextSelections[assignmentId]
-        const rubContent = Array.isArray(instrument.content) ? instrument.content : []
+            // Calculate weighted average using the NEXT selections
+            const currentAsmSelections = nextSelections[assignmentId]
+            const rubContent = Array.isArray(instrument.content) ? instrument.content : []
 
-        let weightedTotal = 0
-        let totalWeight = 0
+            let weightedTotal = 0
+            let totalWeight = 0
 
-        rubContent.forEach((crit: any, idx: number) => {
-            const weight = crit.percentage || 0
-            const selScore = currentAsmSelections[idx]
+            rubContent.forEach((crit: any, idx: number) => {
+                const weight = crit.percentage || 0
+                const selScore = currentAsmSelections[idx]
 
-            if (selScore !== undefined) {
-                // Find max possible score for this criterion to normalize to 10 scale
-                const maxScore = Array.isArray(crit.levels)
-                    ? Math.max(...crit.levels.map((l: any) => l.score || 0))
-                    : 10
+                if (selScore !== undefined) {
+                    // Find max possible score for this criterion to normalize to 10 scale
+                    const maxScore = Array.isArray(crit.levels)
+                        ? Math.max(...crit.levels.map((l: any) => l.score || 0))
+                        : 10
 
-                const normalizedScore = maxScore > 0 ? (selScore / maxScore) * 10 : 0
-                weightedTotal += (normalizedScore * weight) / 100
-                totalWeight += weight
-            }
+                    const normalizedScore = maxScore > 0 ? (selScore / maxScore) * 10 : 0
+                    weightedTotal += (normalizedScore * weight) / 100
+                    totalWeight += weight
+                }
+            })
+
+            // Normalize if weights don't add to 100 (e.g. user selected 2 of 3 criteria)
+            const finalScore = totalWeight > 0 ? (weightedTotal * (100 / totalWeight)) : weightedTotal
+
+            // We call handleScoreChange outside if possible, but inside here we have the guaranteed next selections.
+            // However, handleScoreChange is another setState. To be safe, we can trigger it in a separate effect or just here.
+            // React batching handles multiple setState calls in the same event.
+            handleScoreChange(assignmentId, finalScore.toFixed(1))
+
+            return nextSelections
         })
-
-        // Normalize if weights don't add to 100 (e.g. user selected 2 of 3 criteria)
-        const finalScore = totalWeight > 0 ? (weightedTotal * (100 / totalWeight)) : weightedTotal
-        handleScoreChange(assignmentId, finalScore.toFixed(1))
     }
 
     const handlePrintInstrument = (assignment: any) => {
@@ -343,6 +364,49 @@ export const GradingModal = ({
                                                             >
                                                                 <Printer className="w-4 h-4" />
                                                             </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setAssignmentForDictation(assignment);
+                                                                    setIsDictationModeOpen(true);
+                                                                }}
+                                                                className="p-1.5 text-gray-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition-all font-bold"
+                                                                title="Modo Dictado"
+                                                            >
+                                                                <Mic className="w-4 h-4" />
+                                                            </button>
+                                                            <button
+                                                                disabled={enrichingId === assignment.id}
+                                                                onClick={async (e) => {
+                                                                    e.stopPropagation();
+                                                                    setEnrichingId(assignment.id)
+                                                                    try {
+                                                                        const enriched = await aiService.enrichAssignmentDescription({
+                                                                            title: assignment.title,
+                                                                            description: assignment.description || '',
+                                                                            subject: criterion.subject_name || ''
+                                                                        })
+                                                                        if (enriched) {
+                                                                            const { error } = await supabase
+                                                                                .from('assignments')
+                                                                                .update({ description: enriched })
+                                                                                .eq('id', assignment.id)
+                                                                            if (error) alert('Error al enriquecer: ' + error.message)
+                                                                            else onSuccess() // Refresh data
+                                                                        }
+                                                                    } finally {
+                                                                        setEnrichingId(null)
+                                                                    }
+                                                                }}
+                                                                className="p-1.5 text-gray-400 hover:text-amber-600 rounded-lg hover:bg-amber-50 transition-all font-bold disabled:opacity-50"
+                                                                title="Refuerzo IA (Misión/Entregable/Eval)"
+                                                            >
+                                                                {enrichingId === assignment.id ? (
+                                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                                ) : (
+                                                                    <Sparkles className="w-4 h-4" />
+                                                                )}
+                                                            </button>
                                                             {onEdit && (
                                                                 <button
                                                                     onClick={(e) => { e.stopPropagation(); onEdit(assignment); }}
@@ -524,6 +588,15 @@ export const GradingModal = ({
                     </button>
                 </div>
             </div>
+
+            {assignmentForDictation && (
+                <DictationModeModal
+                    isOpen={isDictationModeOpen}
+                    onClose={() => setIsDictationModeOpen(false)}
+                    title={assignmentForDictation.title}
+                    content={assignmentForDictation.description || 'SIN INSTRUCCIONES'}
+                />
+            )}
         </div>
     )
 }

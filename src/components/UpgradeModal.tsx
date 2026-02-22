@@ -1,9 +1,10 @@
-import { X, Zap, Check, ArrowRight, ShieldCheck, Star } from 'lucide-react'
+import { X, Zap, Check, ArrowRight, ShieldCheck, Star, Globe } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useState, useEffect } from 'react'
 import { useTenant } from '../hooks/useTenant'
 import { useSubscriptionLimits } from '../hooks/useSubscriptionLimits'
 import { PaymentModule } from './payment/PaymentModule'
+import { Capacitor } from '@capacitor/core'
 
 interface UpgradeModalProps {
     isOpen: boolean
@@ -217,45 +218,68 @@ export const UpgradeModal = ({ isOpen, onClose, currentPlan, currentGroups, maxG
                                         <div className="flex justify-between items-end mb-6">
                                             <div>
                                                 <p className="text-sm font-bold text-indigo-500 uppercase tracking-wider mb-1">Anual</p>
-                                                <div className="flex items-baseline gap-1">
-                                                    <span className="text-5xl font-black text-slate-900 tracking-tight">${priceAnnual}</span>
-                                                    <span className="text-xl font-bold text-slate-400">mxn</span>
+                                                {!Capacitor.isNativePlatform() ? (
+                                                    <div className="flex items-baseline gap-1">
+                                                        <span className="text-5xl font-black text-slate-900 tracking-tight">${priceAnnual}</span>
+                                                        <span className="text-xl font-bold text-slate-400">mxn</span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-2xl font-black text-slate-900 tracking-tight">Plan Profesional</div>
+                                                )}
+                                            </div>
+                                            {!Capacitor.isNativePlatform() && (
+                                                <div className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white px-4 py-2 rounded-xl text-sm font-black shadow-lg shadow-indigo-200 transform group-hover:scale-105 transition-transform">
+                                                    AHORRAS 40%
                                                 </div>
-                                            </div>
-                                            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white px-4 py-2 rounded-xl text-sm font-black shadow-lg shadow-indigo-200 transform group-hover:scale-105 transition-transform">
-                                                AHORRAS 40%
-                                            </div>
+                                            )}
                                         </div>
 
                                         <div className="space-y-4">
-                                            <PlanFeature text={`Hasta ${limitMaxGroups * 2} Grupos Activos`} highlight />
-                                            <PlanFeature text={`${limitMaxStudentsPerGroup * 2} Estudiantes por Grupo`} />
+                                            <PlanFeature text="Hasta 10 Grupos Activos" highlight />
+                                            <PlanFeature text="50 Estudiantes por Grupo" />
                                             <PlanFeature text="Soporte Prioritario 24/7" highlight />
                                             <PlanFeature text="Módulo de Inteligencia Artificial" />
                                             <PlanFeature text="Respaldos Automáticos" />
                                         </div>
                                     </div>
 
-                                    <div className="flex gap-4">
-                                        <button
-                                            onClick={handleUpgrade}
-                                            disabled={loading}
-                                            className="
-                                                flex-1 py-5 bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-900 text-white rounded-2xl 
-                                                font-black text-lg hover:shadow-2xl hover:shadow-indigo-500/30 transform hover:-translate-y-1 active:scale-95 
-                                                transition-all duration-300 flex items-center justify-center gap-3 group relative overflow-hidden
-                                            "
-                                        >
-                                            <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-                                            <Zap className="w-5 h-5 group-hover:text-yellow-300 transition-colors" />
-                                            <span>{loading ? 'Cargando...' : 'Desbloquear PRO'}</span>
-                                            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                                        </button>
-                                    </div>
+                                    {!Capacitor.isNativePlatform() ? (
+                                        <>
+                                            <div className="flex gap-4">
+                                                <button
+                                                    onClick={handleUpgrade}
+                                                    disabled={loading}
+                                                    className="
+                                                        flex-1 py-5 bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-900 text-white rounded-2xl 
+                                                        font-black text-lg hover:shadow-2xl hover:shadow-indigo-500/30 transform hover:-translate-y-1 active:scale-95 
+                                                        transition-all duration-300 flex items-center justify-center gap-3 group relative overflow-hidden
+                                                    "
+                                                >
+                                                    <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+                                                    <Zap className="w-5 h-5 group-hover:text-yellow-300 transition-colors" />
+                                                    <span>{loading ? 'Cargando...' : '¿Quieres más?'}</span>
+                                                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                                </button>
+                                            </div>
 
-                                    <p className="text-center text-xs font-bold text-slate-300 mt-6 tracking-wide uppercase">
-                                        Pago único anual • Cancela cuando quieras
-                                    </p>
+                                            <p className="text-center text-xs font-bold text-slate-300 mt-6 tracking-wide uppercase">
+                                                Pago único anual • Cancela cuando quieras
+                                            </p>
+                                        </>
+                                    ) : (
+                                        <div className="text-center">
+                                            <p className="text-slate-500 font-medium mb-6">
+                                                Para gestionar tu suscripción y acceder a más detalles, por favor ingresa desde nuestra plataforma web.
+                                            </p>
+                                            <button
+                                                onClick={() => window.open('https://vunlek.com', '_system')}
+                                                className="w-full py-4 bg-indigo-50 text-indigo-600 rounded-2xl font-black text-lg hover:bg-indigo-100 transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <Globe className="w-5 h-5" />
+                                                Ir a Vunlek Web
+                                            </button>
+                                        </div>
+                                    )}
                                 </>
                             ) : (
                                 <div className="text-center py-12 bg-white rounded-[2.5rem] shadow-xl border border-slate-100">

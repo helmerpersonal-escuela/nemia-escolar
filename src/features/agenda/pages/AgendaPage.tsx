@@ -7,6 +7,7 @@ import { useProfile } from '../../../hooks/useProfile'
 import { supabase } from '../../../lib/supabase'
 import { parseIcsContent } from '../../../utils/icsParser'
 import { useRef } from 'react'
+import { EventModal } from '../components/EventModal'
 
 export const AgendaPage = () => {
     const { data: tenant } = useTenant()
@@ -19,6 +20,8 @@ export const AgendaPage = () => {
     const [selectedEvent, setSelectedEvent] = useState<any>(null)
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
     const [focusedDate, setFocusedDate] = useState<Date | null>(null)
+    const [isEventModalOpen, setIsEventModalOpen] = useState(false)
+    const [modalInitialDate, setModalInitialDate] = useState<Date | undefined>()
     const fileInputRef = useRef<HTMLInputElement>(null)
 
 
@@ -229,46 +232,9 @@ export const AgendaPage = () => {
         fetchEvents()
     }, [tenant?.id, currentDate])
 
-    const handleAddPersonalEvent = async (date: Date) => {
-        const title = window.prompt('Título de mi actividad personal:')
-        if (!title) return
-
-        const time = window.prompt('Hora (HH:MM) - Opcional:', '09:00')
-        const timeValue = time || '09:00'
-        const dateStr = date.toISOString().split('T')[0]
-
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
-
-        const { error } = await supabase.from('teacher_events').insert({
-            title,
-            start_time: `${dateStr}T${timeValue}:00`,
-            end_time: `${dateStr}T${timeValue}:00`,
-            teacher_id: user.id,
-            tenant_id: tenant?.id
-        })
-
-        if (error) {
-            alert('Error al guardar: ' + error.message)
-        } else {
-            setCurrentDate(new Date(currentDate)) // Refresh
-        }
-    }
-
-    const handleAddSchoolEvent = async (date: Date) => {
-        const title = window.prompt('Título del evento escolar:')
-        if (!title) return
-        const isGlobal = window.confirm('¿Es un evento global de la DIRECCIÓN?')
-        const dateStr = date.toISOString().split('T')[0]
-
-        await supabase.from('calendar_events').insert({
-            title,
-            start_date: dateStr,
-            end_date: dateStr,
-            tenant_id: tenant?.id,
-            type: isGlobal ? 'direction' : 'generic'
-        })
-        setCurrentDate(new Date(currentDate)) // Refresh
+    const openCreateModal = (date?: Date) => {
+        setModalInitialDate(date || new Date())
+        setIsEventModalOpen(true)
     }
 
     const handleIcsImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -435,61 +401,12 @@ export const AgendaPage = () => {
                                     Importar
                                 </button>
                             )}
-                            {(['DIRECTOR', 'ADMIN', 'INDEPENDENT_TEACHER'].includes(userRole || '') || isIndependent) && (
-                                <button
-                                    onClick={async () => {
-                                        const title = window.prompt('Título del evento escolar:')
-                                        if (!title) return
-                                        const date = window.prompt('Fecha (YYYY-MM-DD):', new Date().toISOString().split('T')[0])
-                                        if (!date) return
-                                        const isGlobal = window.confirm('¿Es un evento global de la DIRECCIÓN?')
-
-                                        await supabase.from('calendar_events').insert({
-                                            title,
-                                            start_date: date,
-                                            end_date: date,
-                                            tenant_id: tenant?.id,
-                                            type: isGlobal ? 'direction' : 'generic'
-                                        })
-                                        setCurrentDate(new Date(currentDate))
-                                    }}
-                                    className="inline-flex justify-center items-center px-4 py-2 border border-transparent shadow-lg shadow-blue-200 text-sm font-bold rounded-xl text-white bg-blue-600 hover:bg-blue-700 transition-all font-sans"
-                                >
-                                    <Plus className="-ml-1 mr-2 h-4 w-4" />
-                                    Evento Escolar
-                                </button>
-                            )}
                             <button
-                                onClick={async () => {
-                                    const title = window.prompt('Título de mi actividad personal:')
-                                    if (!title) return
-                                    const date = window.prompt('Fecha (YYYY-MM-DD):', new Date().toISOString().split('T')[0])
-                                    if (!date) return
-
-                                    const time = window.prompt('Hora (HH:MM) - Opcional:', '09:00')
-                                    const timeValue = time || '09:00'
-
-                                    const { data: { user } } = await supabase.auth.getUser()
-                                    if (!user) return
-
-                                    const { error } = await supabase.from('teacher_events').insert({
-                                        title,
-                                        start_time: `${date}T${timeValue}:00`,
-                                        end_time: `${date}T${timeValue}:00`,
-                                        teacher_id: user.id,
-                                        tenant_id: tenant?.id
-                                    })
-
-                                    if (error) {
-                                        alert('Error al guardar: ' + error.message)
-                                    } else {
-                                        setCurrentDate(new Date(currentDate))
-                                    }
-                                }}
-                                className="inline-flex justify-center items-center px-4 py-2 border border-gray-200 shadow-sm text-sm font-bold rounded-xl text-gray-700 bg-white hover:bg-gray-50 transition-all"
+                                onClick={() => openCreateModal()}
+                                className="inline-flex justify-center items-center px-4 py-2 border border-blue-600 shadow-lg shadow-blue-200 text-sm font-bold rounded-xl text-white bg-blue-600 hover:bg-blue-700 transition-all font-sans"
                             >
-                                <Plus className="-ml-1 mr-2 h-4 w-4 text-gray-400" />
-                                Mi Evento
+                                <Plus className="-ml-1 mr-2 h-4 w-4" />
+                                Nuevo Evento
                             </button>
                         </div>
                     </div>
@@ -637,35 +554,35 @@ export const AgendaPage = () => {
                                 )}
                             </div>
 
-                            <div className="p-4 bg-gray-50 border-t border-gray-100 flex flex-col gap-2">
+                            <div className="p-4 bg-gray-50 border-t border-gray-100">
                                 <button
                                     onClick={() => {
-                                        handleAddPersonalEvent(focusedDate)
+                                        openCreateModal(focusedDate)
                                         setFocusedDate(null)
                                     }}
                                     className="w-full flex items-center justify-center px-4 py-3 bg-white border border-gray-200 shadow-sm rounded-xl font-bold text-sm text-gray-700 hover:bg-gray-50 transition-all hover:border-blue-300 group"
                                 >
                                     <Plus className="w-4 h-4 mr-2 text-blue-500 group-hover:scale-110 transition-transform" />
-                                    Agregar Evento Personal
+                                    Agregar Evento
                                 </button>
-
-                                {(['DIRECTOR', 'ADMIN', 'INDEPENDENT_TEACHER'].includes(userRole || '') || isIndependent) && (
-                                    <button
-                                        onClick={() => {
-                                            handleAddSchoolEvent(focusedDate)
-                                            setFocusedDate(null)
-                                        }}
-                                        className="w-full flex items-center justify-center px-4 py-3 bg-blue-600 shadow-lg shadow-blue-200 rounded-xl font-bold text-sm text-white hover:bg-blue-700 transition-all hover:scale-[1.02]"
-                                    >
-                                        <Shield className="w-4 h-4 mr-2" />
-                                        Agregar Evento Escolar
-                                    </button>
-                                )}
                             </div>
                         </div>
                     </div>
                 )
             }
+
+            <EventModal
+                isOpen={isEventModalOpen}
+                onClose={() => setIsEventModalOpen(false)}
+                onSuccess={() => {
+                    // Trigger useEffect to refresh events
+                    setCurrentDate(new Date(currentDate))
+                }}
+                tenantId={tenant?.id || ''}
+                userId={profile?.id || ''}
+                userRole={userRole || ''}
+                initialDate={modalInitialDate}
+            />
 
             {/* Event Detail Modal */}
             {
@@ -801,41 +718,6 @@ export const AgendaPage = () => {
                     </div>
                 )
             }
-            {/* Mobile FAB */}
-            <div className="fixed bottom-24 right-6 sm:hidden z-50">
-                <button
-                    onClick={async () => {
-                        const title = window.prompt('Título de mi actividad personal:')
-                        if (!title) return
-                        const date = window.prompt('Fecha (YYYY-MM-DD):', new Date().toISOString().split('T')[0])
-                        if (!date) return
-
-                        const time = window.prompt('Hora (HH:MM) - Opcional:', '09:00')
-                        const timeValue = time || '09:00'
-
-                        const { data: { user } } = await supabase.auth.getUser()
-                        if (!user) return
-
-                        const { error } = await supabase.from('teacher_events').insert({
-                            title,
-                            start_time: `${date}T${timeValue}:00`,
-                            end_time: `${date}T${timeValue}:00`,
-                            teacher_id: user.id,
-                            tenant_id: tenant?.id
-                        })
-
-                        if (error) {
-                            alert('Error al guardar: ' + error.message)
-                        } else {
-                            setCurrentDate(new Date(currentDate))
-                        }
-                    }}
-                    className="flex items-center justify-center w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl hover:bg-blue-700 active:scale-95 transition-all outline-none"
-                    title="Crear actividad personalizada"
-                >
-                    <Plus className="w-8 h-8" />
-                </button>
-            </div>
         </div>
     )
 }

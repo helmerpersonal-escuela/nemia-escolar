@@ -134,7 +134,7 @@ export const CriteriaManager = ({ periodId, groupId }: CriteriaManagerProps) => 
 
     const addCriteria = () => {
         const remaining = Math.max(0, 100 - totalPercentage)
-        setCriteriaList([...criteriaList, { id: `temp-${Date.now()}`, name: 'Nuevo Criterio', percentage: remaining }])
+        setCriteriaList(prev => [...prev, { id: `temp-${Date.now()}`, name: 'Nuevo Criterio', percentage: remaining }])
     }
 
     const removeCriteria = (id: string) => {
@@ -301,7 +301,7 @@ export const CriteriaManager = ({ periodId, groupId }: CriteriaManagerProps) => 
                                         disabled={isAdded}
                                         onClick={() => {
                                             const remaining = Math.max(0, 100 - totalPercentage);
-                                            setCriteriaList([...criteriaList, {
+                                            setCriteriaList(prev => [...prev, {
                                                 id: `cat-${Date.now()}`,
                                                 name: item.name,
                                                 percentage: Math.min(10, remaining),

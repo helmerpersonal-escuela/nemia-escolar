@@ -218,11 +218,37 @@ export const SuperAdminDashboard = () => {
             if (group === 'sounds') toSave = soundSettings
             if (group === 'landing') toSave = landingSettings
 
-            const updates = Object.entries(toSave).map(([key, value]) => ({ key, value: String(value), updated_at: new Date().toISOString() }))
+            const updates = Object.entries(toSave).map(([key, value]) => ({
+                key,
+                value: String(value),
+                updated_at: new Date().toISOString()
+            }))
+
             const { error } = await supabase.from('system_settings').upsert(updates)
             if (error) throw error
-            alert('Configuración guardada.')
-        } catch (err: any) { alert('Error: ' + err.message) } finally { setIsSaving(false) }
+
+            // Update local storage and other services
+            if (group === 'ai') {
+                localStorage.setItem('godmode_ai_settings', JSON.stringify(aiSettings))
+                console.log('[GodMode] AI Settings persisted and synced to LocalStorage')
+            }
+            if (group === 'billing') {
+                localStorage.setItem('godmode_billing_settings', JSON.stringify(billingSettings))
+            }
+            if (group === 'smtp') {
+                localStorage.setItem('godmode_smtp_settings', JSON.stringify(smtpSettings))
+            }
+            if (group === 'sounds') {
+                localStorage.setItem('godmode_sound_settings', JSON.stringify(soundSettings))
+            }
+
+            alert('Configuración guardada exitosamente.')
+        } catch (err: any) {
+            console.error('Error saving settings group:', group, err)
+            alert('Error: ' + err.message)
+        } finally {
+            setIsSaving(false)
+        }
     }
 
     const handleReturnToClassroom = async () => {
@@ -255,6 +281,19 @@ export const SuperAdminDashboard = () => {
         const { error } = await supabase.auth.resetPasswordForEmail(email)
         if (error) alert('Error: ' + error.message)
         else alert('Email de recuperación enviado a ' + email)
+    }
+    const handleSetProvisionalPassword = async (userId: string, email: string) => {
+        const password = Math.floor(100000 + Math.random() * 900000).toString()
+        if (confirm(`¿Resetear contraseña de ${email} a: ${password}?`)) {
+            try {
+                const { data, error } = await supabase.rpc('admin_set_any_password', {
+                    target_user_id: userId,
+                    new_password: password
+                })
+                if (error) throw error
+                alert(`Contrastela actualizada a: ${password}\n\nCompártela con el usuario.`)
+            } catch (err: any) { alert('Error: ' + err.message) }
+        }
     }
     const handleToggleDemo = async (userId: string, currentDemoStatus: boolean) => {
         await supabase.from('profiles').update({ is_demo: !currentDemoStatus }).eq('id', userId)
@@ -429,6 +468,7 @@ export const SuperAdminDashboard = () => {
                             onDelete={handleDeleteUser}
                             onToggleDemo={handleToggleDemo}
                             onResetPassword={handleResetPassword}
+                            onSetProvisionalPassword={handleSetProvisionalPassword}
                         />
                     )}
 

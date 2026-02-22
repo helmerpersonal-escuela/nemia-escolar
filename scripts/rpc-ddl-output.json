@@ -1,0 +1,17 @@
+{
+  "exec_query": [
+    {
+      "prosrc": "\n        DECLARE\n            v_ret JSONB;\n        BEGIN\n            EXECUTE 'SELECT jsonb_agg(t) FROM (' || p_sql || ') t' INTO v_ret;\n            RETURN v_ret;\n        END;\n        ",
+      "prosecdef": true
+    }
+  ],
+  "log_profile_changes": null,
+  "on_profile_update_audit_log": null,
+  "triggers": [
+    {
+      "def": "CREATE TRIGGER tr_audit_profiles AFTER INSERT OR DELETE OR UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION process_audit_log()",
+      "tgname": "tr_audit_profiles",
+      "tgenabled": "O"
+    }
+  ]
+}

@@ -179,7 +179,8 @@ export const AbsenceRequestModal = ({ isOpen, onClose }: AbsenceRequestModalProp
 
             const aiService = new GeminiService(
                 tenant?.aiConfig?.geminiKey,
-                tenant?.aiConfig?.apiKey || tenant?.groqApiKey
+                tenant?.aiConfig?.apiKey || tenant?.groqApiKey,
+                tenant?.aiConfig?.openaiKey
             )
 
             const generated = await aiService.generateAbsenceActivities({
@@ -558,9 +559,11 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
                                         <div
                                             key={idx}
                                             onClick={() => {
-                                                const newClasses = [...affectedClasses]
-                                                newClasses[idx].selected = !newClasses[idx].selected
-                                                setAffectedClasses(newClasses)
+                                                setAffectedClasses(prev => {
+                                                    const next = [...prev]
+                                                    next[idx] = { ...next[idx], selected: !next[idx].selected }
+                                                    return next
+                                                })
                                             }}
                                             className={`
                                                 relative border-2 p-5 rounded-3xl transition-all cursor-pointer group
@@ -714,9 +717,12 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
                                             <input
                                                 value={act.title}
                                                 onChange={(e) => {
-                                                    const newActs = [...generatedActivities]
-                                                    newActs[idx].title = e.target.value
-                                                    setGeneratedActivities(newActs)
+                                                    const value = e.target.value
+                                                    setGeneratedActivities(prev => {
+                                                        const next = [...prev]
+                                                        next[idx] = { ...next[idx], title: value }
+                                                        return next
+                                                    })
                                                 }}
                                                 className="w-full text-lg font-black text-slate-900 border-none bg-slate-50 px-4 py-3 rounded-xl focus:ring-2 focus:ring-indigo-100 no-print"
                                                 placeholder="Título de la actividad"
@@ -734,9 +740,12 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
                                                 <textarea
                                                     value={safeRenderText(act.instructions_for_substitute)}
                                                     onChange={(e) => {
-                                                        const newActs = [...generatedActivities]
-                                                        newActs[idx].instructions_for_substitute = e.target.value
-                                                        setGeneratedActivities(newActs)
+                                                        const value = e.target.value
+                                                        setGeneratedActivities(prev => {
+                                                            const next = [...prev]
+                                                            next[idx] = { ...next[idx], instructions_for_substitute: value }
+                                                            return next
+                                                        })
                                                     }}
                                                     className="w-full h-24 p-4 bg-slate-50 border-none rounded-xl text-sm font-medium text-slate-600 resize-none focus:ring-2 focus:ring-indigo-100 no-print"
                                                 />
@@ -752,9 +761,12 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
                                                 <textarea
                                                     value={safeRenderText(act.student_work)}
                                                     onChange={(e) => {
-                                                        const newActs = [...generatedActivities]
-                                                        newActs[idx].student_work = e.target.value
-                                                        setGeneratedActivities(newActs)
+                                                        const value = e.target.value
+                                                        setGeneratedActivities(prev => {
+                                                            const next = [...prev]
+                                                            next[idx] = { ...next[idx], student_work: value }
+                                                            return next
+                                                        })
                                                     }}
                                                     className="w-full h-24 p-4 bg-slate-50 border-none rounded-xl text-sm font-medium text-slate-600 resize-none focus:ring-2 focus:ring-indigo-100 no-print"
                                                 />
@@ -783,9 +795,13 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
                                                     <textarea
                                                         value={safeRenderText(act.printable_resource.content)}
                                                         onChange={(e) => {
-                                                            const newActs = [...generatedActivities]
-                                                            newActs[idx].printable_resource.content = e.target.value
-                                                            setGeneratedActivities(newActs)
+                                                            const value = e.target.value
+                                                            setGeneratedActivities(prev => {
+                                                                const next = [...prev]
+                                                                const nextResource = { ...next[idx].printable_resource, content: value }
+                                                                next[idx] = { ...next[idx], printable_resource: nextResource }
+                                                                return next
+                                                            })
                                                         }}
                                                         className="w-full h-32 p-4 bg-white/50 border-none rounded-xl text-sm font-medium text-slate-600 resize-none focus:ring-1 focus:ring-amber-200 no-print"
                                                         placeholder="Contenido del recurso para imprimir..."

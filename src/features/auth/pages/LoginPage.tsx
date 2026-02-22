@@ -18,7 +18,7 @@ export const LoginPage = () => {
 
         try {
             const { error } = await supabase.auth.signInWithPassword({
-                email: email.trim(),
+                email: email.trim().toLowerCase(),
                 password: password.trim(),
             })
 
@@ -28,6 +28,7 @@ export const LoginPage = () => {
             setError(err.message === 'Invalid login credentials'
                 ? 'Credenciales incorrectas. Por favor verifica tu correo y contraseña.'
                 : err.message)
+            alert("Error de Inicio de Sesión: " + err.message)
         } finally {
             setLoading(false)
         }
@@ -102,6 +103,8 @@ export const LoginPage = () => {
                                         placeholder="correo@institucion.edu"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
+                                        autoCapitalize="none"
+                                        autoCorrect="off"
                                     />
                                 </div>
 
@@ -117,6 +120,8 @@ export const LoginPage = () => {
                                             placeholder="••••••••••••"
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
+                                            autoCapitalize="none"
+                                            autoCorrect="off"
                                         />
                                     </div>
                                 )}

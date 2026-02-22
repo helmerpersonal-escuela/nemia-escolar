@@ -148,7 +148,7 @@ export const CreateIncidentModal = ({
                         <div className="relative">
                             <select
                                 value={formData.student_id}
-                                onChange={(e) => setFormData({ ...formData, student_id: e.target.value })}
+                                onChange={(e) => setFormData(prev => ({ ...prev, student_id: e.target.value }))}
                                 className="w-full p-4 pl-5 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all text-sm font-bold text-slate-700 appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                 required
                                 disabled={!!incident}
@@ -171,7 +171,7 @@ export const CreateIncidentModal = ({
                             <div className="relative">
                                 <select
                                     value={formData.type}
-                                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
                                     className="w-full p-4 pl-5 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all text-sm font-bold text-slate-700 appearance-none cursor-pointer"
                                 >
                                     <option value="CONDUCTA">Conducta / Disciplina</option>
@@ -188,7 +188,7 @@ export const CreateIncidentModal = ({
                             <div className="relative">
                                 <select
                                     value={formData.severity}
-                                    onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, severity: e.target.value }))}
                                     className="w-full p-4 pl-5 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all text-sm font-bold text-slate-700 appearance-none cursor-pointer"
                                 >
                                     <option value="BAJA">Baja (Observación)</option>
@@ -205,7 +205,7 @@ export const CreateIncidentModal = ({
                         <input
                             type="text"
                             value={formData.title}
-                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                            onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                             placeholder="Ej. Falta de respeto en el aula"
                             className="w-full p-4 pl-5 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all text-sm font-bold text-slate-700 placeholder:text-slate-300 placeholder:font-bold"
                             required
@@ -216,7 +216,7 @@ export const CreateIncidentModal = ({
                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1 group-focus-within/field:text-indigo-500 transition-colors">Descripción Detallada</label>
                         <textarea
                             value={formData.description}
-                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                             rows={4}
                             placeholder="Escribe aquí los motivos del reporte..."
                             className="w-full p-5 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all text-sm font-bold text-slate-700 placeholder:text-slate-300 placeholder:font-bold resize-none"
@@ -241,7 +241,7 @@ export const CreateIncidentModal = ({
                                     type="checkbox"
                                     id="has_commitment"
                                     checked={formData.has_commitment}
-                                    onChange={(e) => setFormData({ ...formData, has_commitment: e.target.checked })}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, has_commitment: e.target.checked }))}
                                     className="sr-only peer"
                                 />
                                 <div className="w-14 h-8 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-indigo-600"></div>
@@ -254,7 +254,7 @@ export const CreateIncidentModal = ({
                                     <p className="text-[10px] text-indigo-500 font-black uppercase tracking-widest mb-3 leading-tight opacity-60">Compromisos específicos</p>
                                     <textarea
                                         value={formData.commitment_description}
-                                        onChange={(e) => setFormData({ ...formData, commitment_description: e.target.value })}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, commitment_description: e.target.value }))}
                                         rows={3}
                                         placeholder="Ej. Mejorar el lenguaje utilizado en el aula..."
                                         className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm font-bold text-slate-700 placeholder:text-slate-300 resize-none"

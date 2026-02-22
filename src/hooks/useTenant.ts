@@ -8,17 +8,27 @@ export const useTenant = () => {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return null
 
+            // Check for impersonation
+            const impersonateId = sessionStorage.getItem('vunlek_impersonate_id')
+            let targetUserId = user.id
+
+            if (impersonateId) {
+                targetUserId = impersonateId
+            }
+
             // Fetch active profile to get the current tenant_id
             const { data: profile, error: pError } = await supabase
                 .from('profiles')
                 .select('tenant_id, role, full_name, first_name, last_name_paternal, last_name_maternal, avatar_url')
-                .eq('id', user.id)
+                .eq('id', targetUserId)
                 .maybeSingle()
+
 
             if (!profile || pError) return null
 
             // If user is SUPER_ADMIN and has NO tenant_id, return a special system tenant
-            if (profile.role === 'SUPER_ADMIN' && !profile.tenant_id) {
+            if (profile.role === 'SUPER_ADMIN' && user.email === 'helmerpersonal@gmail.com' && !profile.tenant_id) {
+
                 const { data: systemSettings } = await supabase.from('system_settings').select('key, value')
                 const settings: any = {}
                 systemSettings?.forEach(s => settings[s.key] = s.value)
@@ -49,6 +59,8 @@ export const useTenant = () => {
             const globalSettings: any = {}
             systemSettings?.forEach(s => globalSettings[s.key] = s.value)
 
+            // SPECIFIC USER OVERRIDE REMOVED
+
             if (!profile.tenant_id) return null
 
             // Get tenant details AND the specific role for THIS workspace
@@ -62,20 +74,29 @@ export const useTenant = () => {
                     avatar_url,
                     tenants (*)
                 `)
-                .eq('profile_id', user.id)
+                .eq('profile_id', targetUserId)
                 .eq('tenant_id', profile.tenant_id)
                 .maybeSingle()
+
 
             if (!ptData || ptError) {
                 // Fallback for cases where profile_tenants might not be populated yet (emergency)
                 const { data: tenant } = await supabase.from('tenants').select('*').eq('id', profile.tenant_id).maybeSingle()
                 if (!tenant) return null
+
+                // Use the profile's actual role if it's a special role (TUTOR, ADMIN, etc.)
+                // Only default to TEACHER/INDEPENDENT_TEACHER for school/independent workspaces
+                const specialRoles = ['TUTOR', 'ADMIN', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD', 'SCHOOL_CONTROL', 'PREFECT', 'SUPPORT', 'STUDENT', 'INDEPENDENT_TEACHER']
+                const fallbackRole = specialRoles.includes(profile.role)
+                    ? profile.role
+                    : tenant.type === 'INDEPENDENT' ? 'INDEPENDENT_TEACHER' : 'TEACHER'
+
                 return {
                     id: tenant.id,
                     name: tenant.name,
                     educationalLevel: tenant.educational_level,
-                    type: tenant.type as 'SCHOOL' | 'INDEPENDENT',
-                    role: tenant.type === 'INDEPENDENT' ? 'INDEPENDENT_TEACHER' : 'TEACHER', // Robust default
+                    type: (tenant.type || 'SCHOOL').toUpperCase() as 'SCHOOL' | 'INDEPENDENT',
+                    role: fallbackRole,
                     fullName: profile.full_name,
                     firstName: profile.first_name,
                     lastNamePaternal: profile.last_name_paternal,
@@ -100,8 +121,9 @@ export const useTenant = () => {
 
             // ROBUST INDEPENDENT CHECK: 
             // If the workspace is independent, the user MUST be treated as INDEPENDENT_TEACHER
-            // regardless of what the old profiles table says.
-            if (tenant.type?.toUpperCase() === 'INDEPENDENT') {
+            // UNLESS they have a special role that should be preserved (TUTOR, DIRECTOR, ADMIN, etc.)
+            const SPECIAL_ROLES = ['TUTOR', 'DIRECTOR', 'ADMIN', 'ACADEMIC_COORD', 'TECH_COORD', 'SCHOOL_CONTROL', 'PREFECT', 'SUPPORT', 'STUDENT', 'SUPER_ADMIN']
+            if (tenant.type?.toUpperCase() === 'INDEPENDENT' && !SPECIAL_ROLES.includes(finalRole)) {
                 finalRole = 'INDEPENDENT_TEACHER'
             }
 
@@ -114,7 +136,7 @@ export const useTenant = () => {
                 id: tenant.id,
                 name: tenant.name,
                 educationalLevel: tenant.educational_level,
-                type: tenant.type as 'SCHOOL' | 'INDEPENDENT',
+                type: (tenant.type || 'SCHOOL').toUpperCase() as 'SCHOOL' | 'INDEPENDENT',
                 role: finalRole,
                 fullName: fullName.toUpperCase(),
                 firstName: ptData.first_name || profile.first_name,

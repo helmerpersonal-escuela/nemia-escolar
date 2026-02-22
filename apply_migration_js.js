@@ -27,7 +27,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
     }
 });
 
-const migrationFile = 'supabase/migrations/20260215000123_add_license_keys.sql';
+const migrationFile = 'supabase/migrations/20260218140000_fix_student_alerts_rls.sql';
 
 async function applyMigration() {
     try {

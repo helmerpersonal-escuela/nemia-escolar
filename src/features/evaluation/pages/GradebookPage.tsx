@@ -38,6 +38,13 @@ import { ClosePeriodModal } from '../components/ClosePeriodModal'
 import { CloseAcademicYearModal } from '../components/CloseAcademicYearModal'
 import { NoPlanningAlert } from '../components/NoPlanningAlert'
 import { ConductReportsTab } from '../components/ConductReportsTab'
+import { ActivitiesManagerModal } from '../components/ActivitiesManagerModal'
+import { DictationModeModal } from '../components/DictationModeModal'
+import { QRScanner } from '../components/QRScanner'
+import { BiometricScannerMock } from '../components/BiometricScannerMock'
+import { Mic } from 'lucide-react'
+import { GeminiService } from '../../../lib/gemini'
+import { useMemo } from 'react'
 
 export const GradebookPage = () => {
     const [searchParams] = useSearchParams()
@@ -48,6 +55,12 @@ export const GradebookPage = () => {
 
     const groupId = searchParams.get('groupId')
     const subjectId = searchParams.get('subjectId')
+
+    const aiService = useMemo(() => new GeminiService(
+        tenant?.aiConfig?.geminiKey || '',
+        tenant?.aiConfig?.apiKey || '',
+        tenant?.aiConfig?.openaiKey || ''
+    ), [tenant?.aiConfig?.geminiKey, tenant?.aiConfig?.apiKey, tenant?.aiConfig?.openaiKey])
 
     const [loading, setLoading] = useState(true)
     const [group, setGroup] = useState<any>(null)
@@ -78,6 +91,10 @@ export const GradebookPage = () => {
     const [selectedCriterionForGrading, setSelectedCriterionForGrading] = useState<any>(null)
     const [editingAssignment, setEditingAssignment] = useState<any>(null)
     const [activeLessonPlanId, setActiveLessonPlanId] = useState<string | null>(null)
+    const [isActivitiesManagerOpen, setIsActivitiesManagerOpen] = useState(false)
+    const [activeAssignmentForDictation, setActiveAssignmentForDictation] = useState<any>(null)
+    const [isGlobalDictationModeOpen, setIsGlobalDictationModeOpen] = useState(false)
+    const [isScanningActive, setIsScanningActive] = useState(false)
 
     // State for Group Selector fallback
     const [availableGroups, setAvailableGroups] = useState<any[]>([])
@@ -781,7 +798,10 @@ export const GradebookPage = () => {
                             ].map(method => (
                                 <button
                                     key={method.id}
-                                    onClick={() => setAttendanceMethod(method.id as any)}
+                                    onClick={() => {
+                                        setAttendanceMethod(method.id as any)
+                                        setIsScanningActive(false)
+                                    }}
                                     className={`flex items-center px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${attendanceMethod === method.id
                                         ? 'bg-blue-600 text-white shadow-md'
                                         : 'text-gray-500 hover:bg-gray-50'
@@ -808,15 +828,21 @@ export const GradebookPage = () => {
                                 <h3 className="text-3xl font-black text-slate-900">{students.length}</h3>
                             </div>
                         </div>
-                        <div className="squishy-card p-6 flex items-center bg-white border-none shadow-lg shadow-slate-100 group/metric">
+                        <button
+                            onClick={() => setIsActivitiesManagerOpen(true)}
+                            className="squishy-card p-6 flex items-center bg-white border-none shadow-lg shadow-slate-100 group/metric hover:bg-amber-50/50 transition-all text-left"
+                        >
                             <div className="bg-amber-100 p-4 rounded-3xl mr-4 shrink-0 group-hover/metric:scale-110 transition-transform">
                                 <CheckSquare className="w-6 h-6 text-amber-600" />
                             </div>
                             <div>
-                                <p className="text-xs text-slate-400 font-black uppercase tracking-widest">Actividades</p>
+                                <p className="text-xs text-slate-400 font-black uppercase tracking-widest flex items-center gap-2">
+                                    Actividades
+                                    <span className="p-1 bg-amber-500 rounded-lg text-[8px] text-white animate-pulse">GESTIONAR</span>
+                                </p>
                                 <h3 className="text-3xl font-black text-slate-900">{assignments.length}</h3>
                             </div>
-                        </div>
+                        </button>
                         <div className="squishy-card p-6 flex items-center bg-indigo-600 border-none shadow-xl shadow-indigo-100 group/metric transition-all hover:bg-indigo-700">
                             <div className="bg-white/20 backdrop-blur-md p-4 rounded-3xl mr-4 shrink-0 group-hover/metric:rotate-12 transition-transform">
                                 <TrendingUp className="w-6 h-6 text-white" />
@@ -866,22 +892,54 @@ export const GradebookPage = () => {
             {
                 activeTab === 'ATTENDANCE' && attendanceMethod !== 'MANUAL' && (
                     <div className="squishy-card p-8 text-center flex flex-col items-center justify-center space-y-4">
-                        <div className="bg-blue-50 p-6 rounded-full">
-                            {attendanceMethod === 'QR' ? <QrCode className="w-12 h-12 text-blue-600 animate-pulse" /> : <Activity className="w-12 h-12 text-blue-600 animate-pulse" />}
-                        </div>
-                        <div>
-                            <h3 className="text-xl font-black text-gray-900">
-                                {attendanceMethod === 'QR' ? 'Escaneo de Código QR Activo' : 'Lectura Biométrica en Espera'}
-                            </h3>
-                            <p className="text-gray-500 mt-1 max-w-sm">
-                                {attendanceMethod === 'QR'
-                                    ? 'Los alumnos pueden escanear su credencial digital para registrar asistencia automáticamente.'
-                                    : 'Coloque el sensor para iniciar la identificación de alumnos por huella digital.'}
-                            </p>
-                        </div>
-                        <button className="px-8 py-3 bg-gray-900 text-white rounded-2xl font-bold hover:bg-gray-800 transition-all shadow-lg btn-tactile">
-                            {attendanceMethod === 'QR' ? 'Encender Cámara' : 'Sincronizar Lector'}
-                        </button>
+                        {isScanningActive ? (
+                            <div className="w-full">
+                                {attendanceMethod === 'QR' ? (
+                                    <QRScanner
+                                        onScanSuccess={(decodedText) => {
+                                            // Handle scanned ID
+                                            const studentExists = students.find(s => s.id === decodedText || s.curp === decodedText)
+                                            if (studentExists) {
+                                                handleAttendanceChange(studentExists.id, 'PRESENT')
+                                            } else {
+                                                console.warn("Student not found:", decodedText)
+                                            }
+                                        }}
+                                        onClose={() => setIsScanningActive(false)}
+                                    />
+                                ) : (
+                                    <BiometricScannerMock
+                                        students={students}
+                                        onScanSuccess={(studentId) => {
+                                            handleAttendanceChange(studentId, 'PRESENT')
+                                        }}
+                                        onClose={() => setIsScanningActive(false)}
+                                    />
+                                )}
+                            </div>
+                        ) : (
+                            <>
+                                <div className="bg-blue-50 p-6 rounded-full">
+                                    {attendanceMethod === 'QR' ? <QrCode className="w-12 h-12 text-blue-600 animate-pulse" /> : <Activity className="w-12 h-12 text-blue-600 animate-pulse" />}
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black text-gray-900">
+                                        {attendanceMethod === 'QR' ? 'Escaneo de Código QR Listo' : 'Lectura Biométrica en Espera'}
+                                    </h3>
+                                    <p className="text-gray-500 mt-1 max-w-sm">
+                                        {attendanceMethod === 'QR'
+                                            ? 'Los alumnos pueden escanear su credencial digital para registrar asistencia automáticamente.'
+                                            : 'Coloque el sensor para iniciar la identificación de alumnos por huella digital.'}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setIsScanningActive(true)}
+                                    className="px-8 py-3 bg-gray-900 text-white rounded-2xl font-bold hover:bg-gray-800 transition-all shadow-lg btn-tactile"
+                                >
+                                    {attendanceMethod === 'QR' ? 'Encender Cámara' : 'Sincronizar Lector'}
+                                </button>
+                            </>
+                        )}
                     </div>
                 )
             }
@@ -1153,16 +1211,72 @@ export const GradebookPage = () => {
                         isOpen={isAssignmentModalOpen}
                         onClose={() => {
                             setIsAssignmentModalOpen(false)
+                            setEditingAssignment(null)
                         }}
-                        onSuccess={loadData}
+                        onSuccess={() => {
+                            loadData()
+                            setIsAssignmentModalOpen(false)
+                            setEditingAssignment(null)
+                        }}
                         groupId={groupId}
                         periodId={selectedPeriodId || undefined}
                         subjectId={subjectId || undefined}
                         defaultSubjectName={subjectId ? groupSubjects.find(s => s.id === subjectId)?.name : 'Actividad General'}
                         lessonPlanId={activeLessonPlanId || undefined}
+                        initialData={editingAssignment}
+                        assignmentId={editingAssignment?.id}
                     />
                 )
             }
+
+            <ActivitiesManagerModal
+                isOpen={isActivitiesManagerOpen}
+                onClose={() => setIsActivitiesManagerOpen(false)}
+                assignments={assignments}
+                onEdit={(asm) => {
+                    setEditingAssignment(asm)
+                    setIsAssignmentModalOpen(true)
+                }}
+                onDelete={async (id) => {
+                    const { error } = await supabase.from('assignments').delete().eq('id', id)
+                    if (error) alert('Error al eliminar: ' + error.message)
+                    else loadData()
+                }}
+                onDictate={(asm) => {
+                    setActiveAssignmentForDictation(asm)
+                    setIsGlobalDictationModeOpen(true)
+                }}
+                onEnrich={async (assignment) => {
+                    if (!aiService) return
+                    const enriched = await aiService.enrichAssignmentDescription({
+                        title: assignment.title,
+                        description: assignment.description || '',
+                        subject: groupSubjects.find(s => s.id === (subjectId || assignment.subject_id))?.name
+                    })
+
+                    if (enriched) {
+                        const { error } = await supabase
+                            .from('assignments')
+                            .update({ description: enriched })
+                            .eq('id', assignment.id)
+
+                        if (error) alert('Error al guardar refuerzo: ' + error.message)
+                        else loadData()
+                    }
+                }}
+            />
+
+            {activeAssignmentForDictation && (
+                <DictationModeModal
+                    isOpen={isGlobalDictationModeOpen}
+                    onClose={() => {
+                        setIsGlobalDictationModeOpen(false)
+                        setActiveAssignmentForDictation(null)
+                    }}
+                    title={activeAssignmentForDictation.title}
+                    content={activeAssignmentForDictation.description}
+                />
+            )}
 
             {group && periods.find(p => p.id === selectedPeriodId) && (
                 <ClosePeriodModal

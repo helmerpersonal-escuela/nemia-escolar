@@ -2,14 +2,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Bell, BellOff, Volume2, VolumeX } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { LocalNotifications } from '@capacitor/local-notifications'
+import { Capacitor } from '@capacitor/core'
 
 export const NotificationManager = () => {
-    const [permission, setPermission] = useState<NotificationPermission>(() => {
-        if (typeof window !== 'undefined' && 'Notification' in window) {
-            return Notification.permission
-        }
-        return 'default'
-    })
+    const [permission, setPermission] = useState<NotificationPermission>('default')
+    const [isNative] = useState(() => Capacitor.isNativePlatform())
     const [isMuted, setIsMuted] = useState(false)
     const [isDismissed, setIsDismissed] = useState(() => {
         if (typeof window !== 'undefined') {
@@ -22,9 +20,15 @@ export const NotificationManager = () => {
 
     useEffect(() => {
         // Check initial permission
-        if ('Notification' in window) {
-            setPermission(Notification.permission)
+        const checkPermission = async () => {
+            if (isNative) {
+                const status = await LocalNotifications.checkPermissions()
+                setPermission(status.display as NotificationPermission)
+            } else if ('Notification' in window) {
+                setPermission(Notification.permission)
+            }
         }
+        checkPermission()
 
         // Load custom sound from system settings
         loadSystemSound()
@@ -61,21 +65,51 @@ export const NotificationManager = () => {
     }
 
     const requestPermission = async () => {
-        if (!('Notification' in window)) return
+        try {
+            let result: NotificationPermission = 'default'
 
-        const result = await Notification.requestPermission()
-        setPermission(result)
+            if (isNative) {
+                const request = await LocalNotifications.requestPermissions()
+                result = request.display as NotificationPermission
+            } else if ('Notification' in window) {
+                result = await Notification.requestPermission()
+            }
 
-        if (result === 'granted') {
-            localStorage.setItem('edu_notifications_dismissed', 'true')
-            setIsDismissed(true)
-            new Notification('Notificaciones Activadas', {
-                body: 'Ahora recibirás alertas y sonidos del sistema.',
-                icon: '/pwa-192x192.png'
-            })
-            playSound()
-        } else {
-            // Mark as dismissed even if denied to stop showing the button
+            setPermission(result)
+
+            if (result === 'granted') {
+                localStorage.setItem('edu_notifications_dismissed', 'true')
+                setIsDismissed(true)
+
+                if (isNative) {
+                    await LocalNotifications.schedule({
+                        notifications: [
+                            {
+                                title: 'Notificaciones Activadas',
+                                body: 'Ahora recibirás alertas y sonidos del sistema.',
+                                id: 1,
+                                schedule: { at: new Date(Date.now() + 1000) },
+                                sound: 'notification.mp3',
+                                actionTypeId: '',
+                                extra: null
+                            }
+                        ]
+                    })
+                } else {
+                    new Notification('Notificaciones Activadas', {
+                        body: 'Ahora recibirás alertas y sonidos del sistema.',
+                        icon: '/pwa-192x192.png'
+                    })
+                }
+                playSound()
+            } else {
+                // Mark as dismissed even if denied to stop showing the button
+                localStorage.setItem('edu_notifications_dismissed', 'true')
+                setIsDismissed(true)
+            }
+        } catch (error) {
+            console.error('Error requesting notification permission:', error)
+            // Fallback: dismiss to avoid stuck UI
             localStorage.setItem('edu_notifications_dismissed', 'true')
             setIsDismissed(true)
         }
@@ -134,9 +168,12 @@ export const NotificationManager = () => {
 
         return () => {
             if (activeChannel) {
-                supabase.removeChannel(activeChannel)
+                // Supabase removeChannel is async but we don't need to await in cleanup 
+                // and we want to avoid "closed before connection established" errors being loud
+                supabase.removeChannel(activeChannel).catch(() => { })
             }
         }
+
     }, [])
 
 

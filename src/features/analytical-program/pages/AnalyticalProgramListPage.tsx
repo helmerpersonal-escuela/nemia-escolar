@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 
 export const AnalyticalProgramListPage = () => {
-    console.log('AnalyticalProgramListPage: MOUNTING...')
+
     const navigate = useNavigate()
     const { data: tenant } = useTenant()
     const { profile } = useProfile()
@@ -79,7 +79,7 @@ export const AnalyticalProgramListPage = () => {
 
             if (error) throw error
 
-            setPrograms(programs.filter(p => p.id !== programId))
+            setPrograms(prev => prev.filter(p => p.id !== programId))
             alert('Programa eliminado correctamente.')
         } catch (error: any) {
             console.error('Delete error:', error)

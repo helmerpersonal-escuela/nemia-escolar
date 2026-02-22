@@ -145,30 +145,30 @@ export const StudentDashboard = () => {
     }
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-700">
-            <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden">
+        <div className="space-y-4 md:space-y-8 animate-in fade-in duration-700">
+            <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-6 md:p-8 text-white shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl" />
-                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between">
-                    <div>
-                        <h1 className="text-4xl font-black tracking-tight">¡Hola, {studentName}!</h1>
-                        <p className="text-indigo-100 text-lg mt-2 font-medium">Aquí está tu resumen académico de hoy.</p>
+                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div className="text-center md:text-left">
+                        <h1 className="text-2xl md:text-4xl font-black tracking-tight">¡Hola, {studentName}!</h1>
+                        <p className="text-indigo-100 text-sm md:text-lg mt-2 font-medium">Aquí está tu resumen académico de hoy.</p>
                     </div>
-                    <div className="mt-6 md:mt-0 flex gap-4">
-                        <div className="bg-white/20 backdrop-blur-md p-4 rounded-2xl text-center min-w-[100px]">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-indigo-200">Promedio</p>
-                            <p className="text-2xl font-black">{stats.average.toFixed(1)}</p>
+                    <div className="mt-2 md:mt-0 flex gap-4 w-full md:w-auto justify-center">
+                        <div className="bg-white/20 backdrop-blur-md p-3 md:p-4 rounded-2xl text-center min-w-[90px] md:min-w-[100px]">
+                            <p className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-indigo-200">Promedio</p>
+                            <p className="text-xl md:text-2xl font-black">{stats.average.toFixed(1)}</p>
                         </div>
-                        <div className="bg-white/20 backdrop-blur-md p-4 rounded-2xl text-center min-w-[100px]">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-indigo-200">Asistencia</p>
-                            <p className="text-2xl font-black">{stats.attendance}%</p>
+                        <div className="bg-white/20 backdrop-blur-md p-3 md:p-4 rounded-2xl text-center min-w-[90px] md:min-w-[100px]">
+                            <p className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-indigo-200">Asistencia</p>
+                            <p className="text-xl md:text-2xl font-black">{stats.attendance}%</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="bg-white p-8 rounded-3xl shadow-xl shadow-slate-100 border border-slate-50">
-                    <h3 className="text-xl font-bold mb-6 flex items-center">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+                <div className="bg-white p-5 md:p-8 rounded-3xl shadow-xl shadow-slate-100 border border-slate-50">
+                    <h3 className="text-lg md:text-xl font-bold mb-4 md:mb-6 flex items-center">
                         <Calendar className="w-5 h-5 mr-3 text-indigo-600" /> Próximas Entregas
                     </h3>
                     <div className="space-y-4">
@@ -192,8 +192,8 @@ export const StudentDashboard = () => {
                     )}
                 </div>
 
-                <div className="bg-white p-8 rounded-3xl shadow-xl shadow-slate-100 border border-slate-50">
-                    <h3 className="text-xl font-bold mb-6 flex items-center">
+                <div className="bg-white p-5 md:p-8 rounded-3xl shadow-xl shadow-slate-100 border border-slate-50">
+                    <h3 className="text-lg md:text-xl font-bold mb-4 md:mb-6 flex items-center">
                         <Mail className="w-5 h-5 mr-3 text-purple-600" /> Avisos Escolares
                     </h3>
                     <div className="space-y-4">

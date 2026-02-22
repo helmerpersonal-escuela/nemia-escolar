@@ -11,6 +11,10 @@ export const useAttendanceReminder = () => {
         // Skip if basic data missing OR if Onboarding is not completed
         if (!tenant || !profile || tenant.onboardingCompleted === false) return
 
+        // Skip for TUTOR and STUDENT roles - they don't need attendance tracking
+        const skipRoles = ['TUTOR', 'STUDENT', 'SUPER_ADMIN']
+        if (skipRoles.includes(profile.role || '') || skipRoles.includes((tenant as any)?.role || '')) return
+
         const checkAttendance = async () => {
             const now = new Date()
 
@@ -55,20 +59,33 @@ export const useAttendanceReminder = () => {
                 })
 
             if (rpcError) {
-                console.error('Error getting system room:', rpcError)
+                // If it's a conflict or other system error, we don't want to spam the console
+                if (rpcError.message?.includes('already exists') || rpcError.code === '42P05') {
+                    return
+                }
+                console.warn('Attendance Reminder: Could not get system room', rpcError.message)
                 return
             }
 
             if (roomId) {
+                console.log('Attendance Reminder: Sending message to room', roomId)
                 // Send System Message via RPC
-                await supabase.rpc('send_system_message', {
+                const { error: sendError } = await supabase.rpc('send_system_message', {
                     p_room_id: roomId,
-                    p_content: `⚠️ **Recordatorio de Asistencia**: Hola ${profile.first_name}, hemos detectado que son las ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} y aún no has registrado tu entrada. Por favor, registra tu asistencia para evitar retardos.`
+                    p_content: `⚠️ **Recordatorio de Asistencia**: Hola ${profile.first_name}, hemos detectado que son las ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} y aún no has registrado tu entrada. Por favor, registra tu asistencia para evitar retardos.`,
+                    p_metadata: {} // Explicitly pass empty metadata to avoid 400 errors in some client versions
                 })
 
-                // Mark as sent
-                localStorage.setItem(storageKey, 'sent')
+                if (sendError) {
+                    console.warn('Attendance Reminder: Error sending message, will not retry today:', sendError)
+                    // Mark as attempted to avoid infinite retries
+                    localStorage.setItem(storageKey, 'error')
+                } else {
+                    // Mark as sent
+                    localStorage.setItem(storageKey, 'sent')
+                }
             }
+
         }
 
         // Run check immediately and then every minute

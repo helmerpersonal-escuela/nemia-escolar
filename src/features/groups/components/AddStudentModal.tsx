@@ -74,6 +74,8 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
     const [invitingTutor, setInvitingTutor] = useState(false)
     const [invitationSent, setInvitationSent] = useState(false)
     const [invitedProfileId, setInvitedProfileId] = useState<string | null>(null)
+    const [existingProfile, setExistingProfile] = useState<{ id: string, first_name: string, last_name_paternal: string } | null>(null)
+    const [searchingProfile, setSearchingProfile] = useState(false)
     const [showUpgradeModal, setShowUpgradeModal] = useState(false)
     const [currentStudentCount, setCurrentStudentCount] = useState(0)
     const limits = useSubscriptionLimits()
@@ -98,7 +100,45 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
     // Use a ref to track if the modal was previously open
     const prevOpenRef = useRef(false)
 
-    // Fetch data for edit mode
+    // Check for existing profile when email changes
+    useEffect(() => {
+        const checkExistingEmail = async () => {
+            if (guardian.email && guardian.email.includes('@') && guardian.email.length > 5) {
+                setSearchingProfile(true)
+                try {
+                    const { data, error } = await supabase
+                        .from('profiles')
+                        .select('id, first_name, last_name_paternal')
+                        .eq('role', 'TUTOR')
+                        .ilike('email', guardian.email)
+                        .maybeSingle()
+
+                    if (data) {
+                        setExistingProfile(data)
+                        setInvitedProfileId(data.id)
+                        // Pre-fill names if they are empty
+                        setGuardian(prev => ({
+                            ...prev,
+                            firstName: prev.firstName || data.first_name || '',
+                            lastNamePaternal: prev.lastNamePaternal || data.last_name_paternal || ''
+                        }))
+                    } else {
+                        setExistingProfile(null)
+                    }
+                } catch (err) {
+                    console.error('Error searching profile:', err)
+                } finally {
+                    setSearchingProfile(false)
+                }
+            } else {
+                setExistingProfile(null)
+            }
+        }
+
+        const timer = setTimeout(checkExistingEmail, 500)
+        return () => clearTimeout(timer)
+    }, [guardian.email])
+
     useEffect(() => {
         const wasJustOpened = isOpen && !prevOpenRef.current
         prevOpenRef.current = isOpen
@@ -234,7 +274,11 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
             return newState
         })
         // Reset invitation state if email changes
-        if (name === 'email') setInvitationSent(false)
+        if (name === 'email') {
+            setInvitationSent(false)
+            setExistingProfile(null)
+            setInvitedProfileId(null)
+        }
     }
 
     const handleInviteTutor = async () => {
@@ -571,18 +615,30 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                                     <input type="email" name="email" value={guardian.email} onChange={handleGuardianChange} className="input-std input-with-icon border-indigo-200 focus:ring-indigo-500" placeholder="tutor@ejemplo.com" />
                                 </div>
                                 <div className="flex items-end">
-                                    <button
-                                        type="button"
-                                        onClick={handleInviteTutor}
-                                        disabled={invitingTutor || !guardian.email || invitationSent}
-                                        className={`w-full py-3 rounded-xl font-bold flex items-center justify-center transition-all ${invitationSent
-                                            ? 'bg-emerald-100 text-emerald-700 border border-emerald-200 cursor-default'
-                                            : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md hover:shadow-indigo-200 active:scale-95 disabled:opacity-50 disabled:pointer-events-none'
-                                            }`}
-                                    >
-                                        <Zap className={`w-4 h-4 mr-2 ${invitationSent ? 'text-emerald-500' : 'text-indigo-200'}`} />
-                                        {invitingTutor ? 'Generando...' : invitationSent ? 'Acceso Enviado' : 'Enviar Credenciales'}
-                                    </button>
+                                    {existingProfile ? (
+                                        <div className="w-full p-4 bg-indigo-50 border-2 border-indigo-100 rounded-2xl flex items-center gap-3 animate-in fade-in zoom-in-95 duration-300">
+                                            <div className="p-2 bg-indigo-600 rounded-xl">
+                                                <User className="w-4 h-4 text-white" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Tutor Reconocido</p>
+                                                <p className="text-xs font-bold text-slate-700">Se vinculará a la cuenta existente.</p>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={handleInviteTutor}
+                                            disabled={invitingTutor || !guardian.email || invitationSent || searchingProfile}
+                                            className={`w-full py-3 rounded-xl font-bold flex items-center justify-center transition-all ${invitationSent
+                                                ? 'bg-emerald-100 text-emerald-700 border border-emerald-200 cursor-default'
+                                                : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md hover:shadow-indigo-200 active:scale-95 disabled:opacity-50 disabled:pointer-events-none'
+                                                }`}
+                                        >
+                                            <Zap className={`w-4 h-4 mr-2 ${invitationSent ? 'text-emerald-500' : 'text-indigo-200'}`} />
+                                            {invitingTutor ? 'Generando...' : searchingProfile ? 'Verificando...' : invitationSent ? 'Acceso Enviado' : 'Enviar Credenciales'}
+                                        </button>
+                                    )}
                                 </div>
                                 <div className="md:col-span-2">
                                     <label className="label-std">Dirección Completa</label>

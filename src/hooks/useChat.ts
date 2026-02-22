@@ -194,16 +194,38 @@ export const useChat = (roomId?: string) => {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return null
 
-        // Get user's tenant_id
+        // Get user's tenant_id — try profiles first, then profile_tenants as fallback
         const { data: profile } = await supabase
             .from('profiles')
             .select('tenant_id')
             .eq('id', user.id)
             .single()
 
-        if (!profile) return null
+        let tenantId = profile?.tenant_id
+
+        // Fallback: look up tenant_id from profile_tenants if not set in profiles
+        if (!tenantId) {
+            const { data: pt } = await supabase
+                .from('profile_tenants')
+                .select('tenant_id')
+                .eq('profile_id', user.id)
+                .limit(1)
+                .single()
+            tenantId = pt?.tenant_id
+            if (tenantId) {
+                console.log('✅ Using tenant_id from profile_tenants:', tenantId)
+                // Also persist it back to profiles so future calls don't need fallback
+                await supabase.from('profiles').update({ tenant_id: tenantId }).eq('id', user.id)
+            }
+        }
+
+        if (!tenantId) {
+            console.error('❌ Cannot start chat: user has no tenant_id in profiles or profile_tenants')
+            return null
+        }
 
         // 1. Check if direct room already exists between these two users
+        // Note: chat_rooms_select RLS filters by participant membership, no need to filter tenant_id
         const { data: allDirectRooms, error: queryError } = await supabase
             .from('chat_rooms')
             .select(`
@@ -213,12 +235,12 @@ export const useChat = (roomId?: string) => {
                 chat_participants!inner(profile_id)
             `)
             .eq('type', 'DIRECT')
-            .eq('tenant_id', profile.tenant_id)
 
         if (queryError) {
             console.error('Error querying rooms:', queryError)
             return null
         }
+
 
         console.log('All direct rooms:', allDirectRooms?.length || 0)
 
@@ -253,7 +275,7 @@ export const useChat = (roomId?: string) => {
             .from('chat_rooms')
             .insert({
                 type: 'DIRECT',
-                tenant_id: profile.tenant_id
+                tenant_id: tenantId
             })
             .select()
             .single()
@@ -263,23 +285,22 @@ export const useChat = (roomId?: string) => {
             throw roomError
         }
 
-        // 3. Add participants
-        // For self-chat, only add the user once
-        const participants = isSelfChat
-            ? [{ room_id: newRoom.id, profile_id: user.id }]
-            : [
-                { room_id: newRoom.id, profile_id: user.id },
-                { room_id: newRoom.id, profile_id: targetProfileId }
-            ]
-
-        const { error: participantsError } = await supabase.from('chat_participants').insert(participants)
-
-        if (participantsError) {
-            console.error('Error adding participants:', participantsError)
+        // 3. Add participants one by one (batch insert fails silently if one violates RLS)
+        const participantIds = isSelfChat ? [user.id] : [user.id, targetProfileId]
+        for (const pid of participantIds) {
+            const { error: pErr } = await supabase
+                .from('chat_participants')
+                .insert({ room_id: newRoom.id, profile_id: pid })
+            if (pErr) {
+                console.error(`Error adding participant ${pid}:`, pErr.message)
+            } else {
+                console.log(`✅ Added participant ${pid} to room ${newRoom.id}`)
+            }
         }
 
         await loadRooms()
         return newRoom.id
+
     }
 
     // Delete Room

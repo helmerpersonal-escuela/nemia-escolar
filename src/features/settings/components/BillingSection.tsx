@@ -3,6 +3,7 @@ import { CreditCard, Zap, Check, TrendingUp, Calendar, Users, GraduationCap, Ale
 import { useSubscriptionLimits } from '../../../hooks/useSubscriptionLimits'
 import { UpgradeModal } from '../../../components/UpgradeModal'
 import { supabase } from '../../../lib/supabase'
+import { Capacitor } from '@capacitor/core'
 
 export const BillingSection = () => {
     const limits = useSubscriptionLimits()
@@ -51,7 +52,9 @@ export const BillingSection = () => {
                             <CreditCard className={`w-8 h-8 ${isBasic ? 'text-gray-600' : 'text-indigo-600'}`} />
                             <h2 className="text-2xl font-black text-gray-900">Plan Actual</h2>
                         </div>
-                        <p className="text-gray-600 font-medium">Gestiona tu suscripción y límites</p>
+                        {!Capacitor.isNativePlatform() && (
+                            <p className="text-gray-600 font-medium">Gestiona tu suscripción y límites</p>
+                        )}
                     </div>
                     <div className="flex flex-col items-end gap-2">
                         <span className={`px-4 py-2 ${isBasic ? 'bg-gray-200 text-gray-700' : 'bg-indigo-600 text-white'} text-sm font-black rounded-full uppercase shadow-sm`}>
@@ -151,21 +154,23 @@ export const BillingSection = () => {
                     </div>
                 </div>
 
-                {/* Pricing */}
-                <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-gray-200 mb-6">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-500 font-medium mb-1">Precio Anual</p>
-                            <div className="flex items-baseline gap-2">
-                                <span className={`text-4xl font-black ${isBasic ? 'text-gray-900' : 'text-indigo-600'}`}>
-                                    ${limits.priceAnnual}
-                                </span>
-                                <span className="text-gray-500 font-bold">MXN / año</span>
+                {/* Pricing - Hidden on native/mobile per user request */}
+                {!Capacitor.isNativePlatform() && (
+                    <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-gray-200 mb-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm text-gray-500 font-medium mb-1">Precio Anual</p>
+                                <div className="flex items-baseline gap-2">
+                                    <span className={`text-4xl font-black ${isBasic ? 'text-gray-900' : 'text-indigo-600'}`}>
+                                        ${limits.priceAnnual}
+                                    </span>
+                                    <span className="text-gray-500 font-bold">MXN / año</span>
+                                </div>
                             </div>
+                            <Calendar className="w-12 h-12 text-gray-300" />
                         </div>
-                        <Calendar className="w-12 h-12 text-gray-300" />
                     </div>
-                </div>
+                )}
 
                 {/* Action Buttons */}
                 <div className="flex gap-4">
@@ -175,7 +180,7 @@ export const BillingSection = () => {
                             className="flex-1 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-black text-lg hover:from-indigo-700 hover:to-purple-700 shadow-xl shadow-indigo-200 transform hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                         >
                             <TrendingUp className="w-5 h-5" />
-                            Actualizar a Pro
+                            ¿Quieres más?
                             <Zap className="w-5 h-5" />
                         </button>
                     ) : (

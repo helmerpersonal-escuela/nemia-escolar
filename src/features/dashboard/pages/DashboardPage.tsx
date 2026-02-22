@@ -23,6 +23,7 @@ export const DashboardPage = () => {
     // Role Dispatcher
     const workspaceType = (tenant as any)?.type || 'SCHOOL'
     const currentRole = (tenant as any)?.role || 'TEACHER'
+    const isImpersonating = !!sessionStorage.getItem('vunlek_impersonate_id')
 
     if (currentRole === 'INDEPENDENT_TEACHER') return <IndependentDashboard />
 
@@ -30,10 +31,12 @@ export const DashboardPage = () => {
         // Only redirect to /admin if they are in the "System" tenant (God Mode) 
         // AND they are at the root (index). If they have a specific tenant or 
         // are trying to see the dashboard, let them through (they can use the switcher).
-        if ((tenant as any)?.id === '00000000-0000-0000-0000-000000000000') {
+        // GUARD: If impersonating, NEVER redirect to /admin loop
+        if ((tenant as any)?.id === '00000000-0000-0000-0000-000000000000' && !isImpersonating) {
             return <Navigate to="/admin" replace />
         }
     }
+
     if (currentRole === 'ADMIN') return <AdminDashboard />
     if (currentRole === 'DIRECTOR') return <DirectorDashboard />
     if (currentRole === 'ACADEMIC_COORD') return <CoordinationDashboard />

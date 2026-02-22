@@ -67,7 +67,7 @@ export const PlanningListPage = () => {
 
             if (error) throw error
 
-            setPlans(plans.filter(p => p.id !== id))
+            setPlans(prev => prev.filter(p => p.id !== id))
         } catch (err: any) {
             console.error('Error deleting plan:', err)
             alert('Error al eliminar la planeación')
@@ -77,23 +77,23 @@ export const PlanningListPage = () => {
     return (
         <div className="min-h-screen bg-[#f8fafc] pb-20">
             {/* Header Section */}
-            <div className="max-w-7xl mx-auto px-6 pt-12">
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 sm:pt-12">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 md:gap-8 mb-8 md:mb-16">
                     <div>
-                        <div className="flex items-center space-x-2 text-indigo-600 font-black uppercase text-[10px] tracking-[0.3em] mb-4">
+                        <div className="flex items-center space-x-2 text-indigo-600 font-black uppercase text-[10px] tracking-[0.3em] mb-2 md:mb-4">
                             <Sparkles className="w-4 h-4" />
                             <span>Gobernanza Pedagógica</span>
                         </div>
-                        <h1 className="text-6xl font-black text-gray-900 tracking-tight leading-none">
+                        <h1 className="text-3xl sm:text-6xl font-black text-gray-900 tracking-tight leading-none">
                             Planeación <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">Didáctica</span>
                         </h1>
-                        <p className="mt-4 text-gray-400 font-medium max-w-xl text-lg">
+                        <p className="mt-2 md:mt-4 text-gray-400 font-medium max-w-xl text-sm md:text-lg">
                             Diseña proyectos y secuencias alineadas a la NEM con asistencia inteligente.
                         </p>
                     </div>
                     <Link
                         to="/planning/new"
-                        className="bg-indigo-600 text-white px-10 py-5 rounded-[2rem] hover:bg-indigo-700 transition-all font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-indigo-100 flex items-center group btn-tactile"
+                        className="bg-indigo-600 text-white px-6 py-4 md:px-10 md:py-5 rounded-[1.5rem] md:rounded-[2rem] hover:bg-indigo-700 transition-all font-black text-[10px] md:text-xs uppercase tracking-[0.2em] shadow-2xl shadow-indigo-100 flex items-center justify-center group btn-tactile w-full md:w-auto"
                     >
                         <Plus className="w-5 h-5 mr-3 group-hover:rotate-90 transition-transform duration-500" />
                         Nueva Planeación
@@ -114,17 +114,17 @@ export const PlanningListPage = () => {
                         </button>
                     </div>
                 ) : plans.length === 0 ? (
-                    <div className="squishy-card border-2 border-dashed border-gray-100 p-24 text-center shadow-sm max-w-4xl mx-auto animate-in fade-in duration-700">
-                        <div className="w-24 h-24 bg-gray-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8">
-                            <FileText className="w-12 h-12 text-gray-200" />
+                    <div className="squishy-card border-2 border-dashed border-gray-100 p-8 md:p-24 text-center shadow-sm max-w-4xl mx-auto animate-in fade-in duration-700">
+                        <div className="w-16 h-16 md:w-24 md:h-24 bg-gray-50 rounded-[1.5rem] md:rounded-[2.5rem] flex items-center justify-center mx-auto mb-6 md:mb-8">
+                            <FileText className="w-8 h-8 md:w-12 md:h-12 text-gray-200" />
                         </div>
-                        <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tighter">No hay documentos aún</h3>
-                        <p className="text-gray-400 max-w-sm mx-auto mt-2 font-medium">
+                        <h3 className="text-xl md:text-2xl font-black text-gray-900 uppercase tracking-tighter">No hay documentos aún</h3>
+                        <p className="text-gray-400 max-w-sm mx-auto mt-2 font-medium text-sm md:text-base">
                             Toda gran enseñanza comienza con un plan. Crea hoy tu primer proyecto o secuencia didáctica.
                         </p>
                         <Link
                             to="/planning/new"
-                            className="mt-10 inline-flex items-center bg-indigo-50 text-indigo-600 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all btn-tactile"
+                            className="mt-6 md:mt-10 inline-flex items-center bg-indigo-50 text-indigo-600 px-6 py-3 md:px-8 md:py-4 rounded-2xl font-black text-[10px] md:text-xs uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all btn-tactile"
                         >
                             Comenzar ahora <ArrowRight className="w-4 h-4 ml-2" />
                         </Link>
@@ -135,9 +135,9 @@ export const PlanningListPage = () => {
                             <Link
                                 key={plan.id}
                                 to={`/planning/${plan.id}`}
-                                className="group block squishy-card p-10 hover:border-indigo-200 shadow-xl shadow-indigo-50/30 hover:shadow-2xl hover:shadow-indigo-100 relative overflow-hidden break-inside-avoid"
+                                className="group block squishy-card p-6 md:p-10 hover:border-indigo-200 shadow-xl shadow-indigo-50/30 hover:shadow-2xl hover:shadow-indigo-100 relative overflow-hidden break-inside-avoid"
                             >
-                                <div className="absolute top-0 right-0 p-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-2">
+                                <div className="absolute top-0 right-0 p-8 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity flex items-center space-x-2 z-10">
                                     <button
                                         onClick={(e) => {
                                             e.preventDefault()

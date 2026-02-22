@@ -122,8 +122,9 @@ export const WorkspaceSwitcher = () => {
                                                 const sqlFix = `
                                                     CREATE OR REPLACE FUNCTION public.back_to_god_mode() RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
                                                     BEGIN
-                                                        IF EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND (email IN ('helmerferras@gmail.com', 'helmerpersonal@gmail.com') OR role = 'SUPER_ADMIN')) THEN
+                                                        IF EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND (email IN ('helmerpersonal@gmail.com') OR role = 'SUPER_ADMIN')) THEN
                                                             UPDATE public.profiles SET tenant_id = NULL, role = 'SUPER_ADMIN' WHERE id = auth.uid();
+
                                                         ELSE RAISE EXCEPTION 'Not authorized'; END IF;
                                                     END; $$;
                                                     GRANT EXECUTE ON FUNCTION public.back_to_god_mode() TO authenticated;

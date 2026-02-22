@@ -139,7 +139,10 @@ export const StudentGradesPage = () => {
                     <div>
                         <h2 className="text-xl font-bold text-gray-900">{selectedChild.first_name} {selectedChild.last_name_paternal}</h2>
                         <p className="text-sm text-gray-500 font-medium">
-                            Grupo {selectedChild.group?.grade}° {selectedChild.group?.section}
+                            {selectedChild.group
+                                ? `Grupo ${selectedChild.group.grade}° ${selectedChild.group.section}`
+                                : 'Sin grupo asignado'
+                            }
                         </p>
                     </div>
                     {/* Placeholder for Print */}

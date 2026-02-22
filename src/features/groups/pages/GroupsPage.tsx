@@ -37,7 +37,9 @@ export const GroupsPage = () => {
     const limits = useSubscriptionLimits()
 
     const isTeacher = profile?.role === 'TEACHER'
+    const isIndependent = profile?.role === 'INDEPENDENT_TEACHER'
     const isStaff = ['ADMIN', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD', 'SCHOOL_CONTROL'].includes(profile?.role || '')
+    const canCreateGroup = isStaff || isIndependent
 
     // Fetch Groups with their subjects
     const { data: groups, isLoading } = useQuery({
@@ -121,6 +123,17 @@ export const GroupsPage = () => {
 
     const createGroupMutation = useMutation({
         mutationFn: async (newGroup: { grade: string; section: string; shift: string; selectedSubjects: any[] }) => {
+            console.log('--- DIAGNOSTIC START ---')
+            const { data: { user: authUser } } = await supabase.auth.getUser()
+            console.log('Auth User ID:', authUser?.id)
+
+            // Get profile directly to see what DB thinks
+            const { data: dbProfile } = await supabase.from('profiles').select('tenant_id, role').eq('id', authUser?.id).single()
+            console.log('DB Profile Tenant:', dbProfile?.tenant_id)
+            console.log('frontend Tenant ID:', tenant?.id)
+            console.log('Match?', dbProfile?.tenant_id === tenant?.id)
+            console.log('--- DIAGNOSTIC END ---')
+
             if (!tenant?.id) throw new Error('No tenant ID')
             if (newGroup.selectedSubjects.length === 0) throw new Error('Debes seleccionar al menos una materia')
 
@@ -199,6 +212,23 @@ export const GroupsPage = () => {
         }
     }
 
+    const deleteGroupMutation = useMutation({
+        mutationFn: async (groupId: string) => {
+            const { error } = await supabase.from('groups').delete().eq('id', groupId)
+            if (error) throw error
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['groups'] })
+            limits.refreshLimits()
+        }
+    })
+
+    const handleDeleteGroup = async (groupId: string) => {
+        if (window.confirm('¿Estás seguro de que deseas eliminar este grupo? Esta acción no se puede deshacer.')) {
+            deleteGroupMutation.mutate(groupId)
+        }
+    }
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
         createGroupMutation.mutate(formData)
@@ -216,16 +246,16 @@ export const GroupsPage = () => {
     }) || []
 
     return (
-        <div className="space-y-6 sm:space-y-8 pb-12 animate-in fade-in duration-500 px-4 sm:px-0">
-            <div className="squishy-card p-6 sm:p-8 relative overflow-hidden">
+        <div className="space-y-4 sm:space-y-8 pb-20 animate-in fade-in duration-500 px-3 sm:px-0">
+            <div className="squishy-card p-5 sm:p-8 relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-cyan-50 opacity-50" />
                 <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div>
-                        <h1 className="text-3xl font-black text-gray-900 flex items-center tracking-tight">
+                        <h1 className="text-2xl sm:text-3xl font-black text-gray-900 flex items-center tracking-tight">
                             <span className="p-2 bg-blue-600 rounded-xl mr-3 shadow-lg shadow-blue-200">
-                                <Users className="h-6 w-6 text-white" />
+                                <Users className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                             </span>
-                            Mis Materias y Grupos
+                            Mis Materias
                         </h1>
                         <p className="mt-2 text-gray-600 font-medium ml-1">
                             Selecciona una materia para gestionar tu libreta de calificaciones.
@@ -241,7 +271,7 @@ export const GroupsPage = () => {
                             </div>
                         )}
                     </div>
-                    {isStaff && (
+                    {canCreateGroup && (
                         <button
                             onClick={() => {
                                 if (!limits.canAddGroup) {
@@ -273,7 +303,7 @@ export const GroupsPage = () => {
                             : "Para comenzar a evaluar y pasar lista, necesitas crear tu primer grupo escolar."
                         }
                     </p>
-                    {!isTeacher && (
+                    {canCreateGroup && (
                         <button
                             onClick={() => {
                                 if (!limits.canAddGroup) {
@@ -295,7 +325,7 @@ export const GroupsPage = () => {
                         <div
                             key={`${item.id}-${idx}`}
                             onClick={() => navigate(`/gradebook?groupId=${item.id}${item.currentSubject ? `&subjectId=${item.currentSubject.subject_catalog_id || item.currentSubject.id}` : ''}`)}
-                            className="squishy-card p-6 h-full flex flex-col justify-between group relative overflow-hidden cursor-pointer"
+                            className="squishy-card p-5 sm:p-6 h-full flex flex-col justify-between group relative overflow-hidden cursor-pointer"
                         >
                             <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                                 <BookOpen className="w-24 h-24 text-blue-600 transform rotate-12" />
@@ -332,8 +362,8 @@ export const GroupsPage = () => {
                                         </div>
                                     </div>
 
-                                    {isStaff && (
-                                        <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {(isStaff || isIndependent || isTeacher) && (
+                                        <div className="flex space-x-1 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation()
@@ -344,6 +374,16 @@ export const GroupsPage = () => {
                                                 title="Editar Grupo"
                                             >
                                                 <Edit className="h-4 w-4" />
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    handleDeleteGroup(item.id)
+                                                }}
+                                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                title="Eliminar Grupo"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
                                             </button>
                                         </div>
                                     )}
@@ -385,7 +425,7 @@ export const GroupsPage = () => {
                                     <select
                                         className="block w-full px-4 py-3 bg-gray-50 border-gray-200 focus:bg-white focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-xl border transition-all"
                                         value={formData.grade}
-                                        onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, grade: e.target.value }))}
                                     >
                                         {getGradeOptions().map(g => <option key={g} value={g}>{g}°</option>)}
                                     </select>
@@ -399,9 +439,9 @@ export const GroupsPage = () => {
                                             onChange={(e) => {
                                                 if (e.target.value === 'CUSTOM') {
                                                     setIsCustomSection(true)
-                                                    setFormData({ ...formData, section: '' })
+                                                    setFormData(prev => ({ ...prev, section: '' }))
                                                 } else {
-                                                    setFormData({ ...formData, section: e.target.value })
+                                                    setFormData(prev => ({ ...prev, section: e.target.value }))
                                                 }
                                             }}
                                         >
@@ -417,7 +457,7 @@ export const GroupsPage = () => {
                                                 maxLength={5}
                                                 className="block w-full px-4 py-3 bg-gray-50 border-gray-200 focus:bg-white focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-xl border transition-all"
                                                 value={formData.section}
-                                                onChange={(e) => setFormData({ ...formData, section: e.target.value.toUpperCase() })}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, section: e.target.value.toUpperCase() }))}
                                             />
                                             <button type="button" onClick={() => setIsCustomSection(false)} className="text-xs text-blue-600 font-bold">Lista</button>
                                         </div>
@@ -430,7 +470,7 @@ export const GroupsPage = () => {
                                 <select
                                     className="block w-full px-4 py-3 bg-gray-50 border-gray-200 focus:bg-white focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-xl border transition-all"
                                     value={formData.shift}
-                                    onChange={(e) => setFormData({ ...formData, shift: e.target.value })}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, shift: e.target.value }))}
                                 >
                                     <option value="MORNING">Matutino</option>
                                     <option value="AFTERNOON">Vespertino</option>
@@ -449,9 +489,9 @@ export const GroupsPage = () => {
                                                 checked={formData.selectedSubjects.some(s => s.id === sub.id && s.name === sub.name)}
                                                 onChange={(e) => {
                                                     if (e.target.checked) {
-                                                        setFormData({ ...formData, selectedSubjects: [...formData.selectedSubjects, sub] })
+                                                        setFormData(prev => ({ ...prev, selectedSubjects: [...prev.selectedSubjects, sub] }))
                                                     } else {
-                                                        setFormData({ ...formData, selectedSubjects: formData.selectedSubjects.filter(s => !(s.id === sub.id && s.name === sub.name)) })
+                                                        setFormData(prev => ({ ...prev, selectedSubjects: prev.selectedSubjects.filter(s => !(s.id === sub.id && s.name === sub.name)) }))
                                                     }
                                                 }}
                                             />

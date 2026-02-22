@@ -37,6 +37,23 @@ export const useProfile = () => {
                 return null
             }
 
+            let targetUserId = user.id
+            let isImpersonating = false
+            let isSuperAdmin = user.email === 'helmerpersonal@gmail.com'
+
+
+            // Security Check Part 1: If not a hardcoded admin, check DB role of REAL user
+            if (!isSuperAdmin) {
+                const { data: realUserProfile } = await supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', user.id)
+                    .maybeSingle()
+                if (realUserProfile?.role === 'SUPER_ADMIN') {
+                    isSuperAdmin = true
+                }
+            }
+
             // Check for impersonation param
             const searchParams = new URLSearchParams(window.location.search)
             let impersonateId = searchParams.get('impersonate')
@@ -49,25 +66,15 @@ export const useProfile = () => {
                 impersonateId = sessionStorage.getItem('vunlek_impersonate_id')
             }
 
-            let targetUserId = user.id
-            let isImpersonating = false
-
-            // Security Check: Only allow impersonation if the REAL user is a Super Admin
-            if (impersonateId) {
-                const { data: realUserProfile } = await supabase
-                    .from('profiles')
-                    .select('role')
-                    .eq('id', user.id)
-                    .maybeSingle()
-
-                const isSuperAdmin = user.email === 'helmerferras@gmail.com' || user.email === 'helmerpersonal@gmail.com' || realUserProfile?.role === 'SUPER_ADMIN'
-
-                if (isSuperAdmin) {
-                    targetUserId = impersonateId
-                    isImpersonating = true
-                } else {
-                    sessionStorage.removeItem('vunlek_impersonate_id')
-                }
+            // Security Check Part 2: Only apply if real user is Super Admin
+            if (impersonateId && isSuperAdmin) {
+                targetUserId = impersonateId
+                isImpersonating = true
+            } else if (impersonateId && !isSuperAdmin) {
+                sessionStorage.removeItem('vunlek_impersonate_id')
+                const url = new URL(window.location.href)
+                url.searchParams.delete('impersonate')
+                window.history.replaceState({}, '', url.toString())
             }
 
             const { data, error } = await supabase
@@ -78,9 +85,8 @@ export const useProfile = () => {
 
             if (error) throw error
 
-            const isSuperAdmin = user.email === 'helmerferras@gmail.com' || user.email === 'helmerpersonal@gmail.com' || data?.role === 'SUPER_ADMIN'
-
             return { ...data, isSuperAdmin, isImpersonating }
+
         },
         staleTime: 1000 * 30, // 30 seconds
     })

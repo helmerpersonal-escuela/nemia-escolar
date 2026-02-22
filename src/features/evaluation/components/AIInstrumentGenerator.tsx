@@ -2,11 +2,12 @@
 import { useState, useEffect, useMemo } from 'react'
 import { X, Wand2, Loader2, Save, Sparkles, Printer } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
-import { GeminiService } from '../../../lib/gemini'
+import { GeminiService, geminiService } from '../../../lib/gemini'
+
 import { useTenant } from '../../../hooks/useTenant'
 
-// Initialize service for use (default instance, overwritten in component)
-let geminiService = new GeminiService()
+// Removed local initialization, using exported singleton
+
 
 type AIInstrumentGeneratorProps = {
     isOpen: boolean
@@ -21,6 +22,7 @@ type AIInstrumentGeneratorProps = {
         type?: string,
         location?: 'HOME' | 'SCHOOL'
     }) => void
+    initialContext?: { type: 'ACTIVITY' | 'TOPIC', value: any, label: string }
 }
 
 export const AIInstrumentGenerator = ({
@@ -29,6 +31,7 @@ export const AIInstrumentGenerator = ({
     lessonPlanId,
     subjectName,
     defaultDate,
+    initialContext,
     onInstrumentCreated
 }: AIInstrumentGeneratorProps) => {
     const { data: tenant } = useTenant()
@@ -37,8 +40,9 @@ export const AIInstrumentGenerator = ({
     // Initialize/Update AI Service with tenant keys
     const aiService = useMemo(() => new GeminiService(
         tenant?.aiConfig?.geminiKey || '',
-        tenant?.aiConfig?.apiKey || ''
-    ), [tenant?.aiConfig?.geminiKey, tenant?.aiConfig?.apiKey])
+        tenant?.aiConfig?.apiKey || '',
+        tenant?.aiConfig?.openaiKey || ''
+    ), [tenant?.aiConfig?.geminiKey, tenant?.aiConfig?.apiKey, tenant?.aiConfig?.openaiKey])
     // State for new workflow
     // Step 1: Context Selection (Activity OR Topic)
     // Step 2: Proposal Selection (AI suggests 3 options)
@@ -128,12 +132,31 @@ export const AIInstrumentGenerator = ({
         ? activities
         : activities.filter(a => a.date === selectedDate)
 
+    // Auto-trigger when initialContext is provided
+    useEffect(() => {
+        if (isOpen && initialContext) {
+            setSelectedContext(initialContext)
+            // Solo auto-generamos si no estamos ya en paso 2 cargando
+            if (step === 1 && proposals.length === 0) {
+                handleGenerateProposals(initialContext)
+            }
+        } else if (!isOpen) {
+            // Reset when closing
+            setStep(1)
+            setSelectedContext(null)
+            setProposals([])
+            setEditedInstrument(null)
+        }
+    }, [isOpen, initialContext])
+
     // Handler: Generate Proposals
-    const handleGenerateProposals = async () => {
-        if (!selectedContext) return
+    const handleGenerateProposals = async (contextArg?: any) => {
+        const isEvent = contextArg && typeof contextArg === 'object' && 'nativeEvent' in contextArg
+        const ctx = (contextArg && !isEvent) ? contextArg : selectedContext
+        if (!ctx) return
         setLoading(true)
         try {
-            const contextText = selectedContext.label
+            const contextText = ctx.label
             console.log('[AIInstrumentGenerator] Generating proposals for:', contextText)
             const result = await aiService.generateAssignmentProposals({
                 topic: contextText,

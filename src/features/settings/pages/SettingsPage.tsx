@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { exportUserData } from '../../../utils/backupUtils'
-import { User, School, Lock, Save, BookOpen, Sparkles, Database, Copy, Trash2, AlertCircle, Calendar, Users, Clock, Plus, DownloadCloud, Shield, CreditCard, ArrowLeft } from 'lucide-react'
+import { User, School, Lock, Save, BookOpen, Sparkles, Database, Copy, Trash2, AlertCircle, Calendar, Users, Clock, Plus, DownloadCloud, Shield, CreditCard, ArrowLeft, ClipboardList } from 'lucide-react'
 import { StaffManager } from '../components/StaffManager'
 import { PeriodManager } from '../../evaluation/components/PeriodManager'
 import { ScheduleConfig } from '../components/ScheduleConfig'
@@ -54,7 +54,7 @@ export const SettingsPage = () => {
 
     const [loading, setLoading] = useState(true)
     const [updating, setUpdating] = useState(false)
-    const [activeTab, setActiveTab] = useState<'profile' | 'school' | 'subjects' | 'periods' | 'horarios' | 'personal' | 'security' | 'ai' | 'billing'>(initialTab)
+    const [activeTab, setActiveTab] = useState<'profile' | 'school' | 'subjects' | 'periods' | 'cycle' | 'horarios' | 'personal' | 'security' | 'ai' | 'billing'>(initialTab)
     const location = useLocation()
     const [successMessage, setSuccessMessage] = useState('')
     const [profile, setProfile] = useState({
@@ -77,9 +77,10 @@ export const SettingsPage = () => {
     }, [profile.role, activeTab])
     */
     const { profile: hookProfile, updateProfile, isUpdating: isProfileUpdating, isSuperAdmin: hookIsSuperAdmin } = useProfile()
-    const isDirectorOrAdmin = ['DIRECTOR', 'ADMIN', 'SUPER_ADMIN', 'INDEPENDENT_TEACHER', 'ACADEMIC_COORD', 'TECH_COORD'].includes(hookProfile?.role?.toUpperCase() || profile?.role?.toUpperCase() || '')
-    const isAcademicCoord = (hookProfile?.role || profile?.role)?.toUpperCase() === 'ACADEMIC_COORD'
-    const isSuperAdmin = hookIsSuperAdmin || ['helmerferras@gmail.com', 'helmerpersonal@gmail.com'].includes(profile?.email || '') || profile?.role?.toUpperCase() === 'SUPER_ADMIN'
+    const currentRole = (hookProfile?.role || profile?.role || '').toUpperCase()
+    const isDirectorOrAdmin = ['DIRECTOR', 'ADMIN', 'SUPER_ADMIN', 'INDEPENDENT_TEACHER', 'ACADEMIC_COORD', 'TECH_COORD'].includes(currentRole)
+    const isAcademicCoord = currentRole === 'ACADEMIC_COORD'
+    const isSuperAdmin = hookIsSuperAdmin || ['helmerferras@gmail.com', 'helmerpersonal@gmail.com'].includes(profile?.email || '') || currentRole === 'SUPER_ADMIN'
     const isStaffReadOnly = !isDirectorOrAdmin
 
     const [tenant, setTenant] = useState({
@@ -305,10 +306,24 @@ export const SettingsPage = () => {
                         // Optional: Check timestamp if needed
                         console.log('Restoring draft:', parsed);
 
-                        if (parsed.profile) setProfile(prev => ({ ...prev, ...parsed.profile }));
-                        if (parsed.tenant) setTenant(prev => ({ ...prev, ...parsed.tenant }));
+                        if (parsed.profile) {
+                            setProfile(prev => ({
+                                ...prev,
+                                first_name: parsed.profile.first_name || prev.first_name,
+                                last_name_paternal: parsed.profile.last_name_paternal || prev.last_name_paternal,
+                                last_name_maternal: parsed.profile.last_name_maternal || prev.last_name_maternal,
+                                avatar_url: parsed.profile.avatar_url || prev.avatar_url
+                            }));
+                        }
+                        if (parsed.tenant && isDirectorOrAdmin) {
+                            setTenant(prev => ({
+                                ...prev,
+                                ...parsed.tenant,
+                                id: prev.id // Never overwrite ID
+                            }));
+                        }
                         if (parsed.selectedUserSubjects) setSelectedUserSubjects(parsed.selectedUserSubjects);
-                        if (parsed.aiSettings) setAiSettings(parsed.aiSettings);
+                        if (parsed.aiSettings && isSuperAdmin) setAiSettings(parsed.aiSettings);
 
                         showSuccess('Se han restaurado tus cambios no guardados');
                     } catch (e) {
@@ -565,11 +580,13 @@ export const SettingsPage = () => {
                                     { id: 'profile', label: 'Mi Perfil', icon: User, color: 'text-blue-600', bg: 'bg-blue-50' },
                                     // Hide subjects for roles that don't teach. 
                                     // INDEPENDENT_TEACHER sees this in Institutional section now.
-                                    ...(['TEACHER', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD'].includes(profile.role?.toUpperCase()) ? [
+                                    ...(['TEACHER', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD', 'ADMIN'].includes(profile.role?.toUpperCase()) ? [
                                         { id: 'subjects', label: 'Mis Materias', icon: BookOpen, color: 'text-purple-600', bg: 'bg-purple-50' }
                                     ] : []),
                                     { id: 'security', label: 'Seguridad', icon: Lock, color: 'text-gray-600', bg: 'bg-gray-100' },
-                                    { id: 'billing', label: 'Plan y Facturación', icon: CreditCard, color: 'text-blue-600', bg: 'bg-blue-50' },
+                                    ...((profile.role?.toUpperCase() !== 'TUTOR') ? [
+                                        { id: 'billing', label: 'Gestión de Cuenta', icon: CreditCard, color: 'text-blue-600', bg: 'bg-blue-50' }
+                                    ] : []),
                                 ].map((item: any) => {
                                     const isActive = activeTab === item.id;
                                     const Icon = item.icon;
@@ -590,8 +607,8 @@ export const SettingsPage = () => {
                             </nav>
                         </div>
 
-                        {/* INSTITUTIONAL SECTION (DIRECTOR/ADMIN ONLY) */}
-                        {isDirectorOrAdmin && (
+                        {/* INSTITUTIONAL SECTION (DIRECTOR/ADMIN/TEACHER/COORD) */}
+                        {(isDirectorOrAdmin || ['TEACHER', 'ACADEMIC_COORD', 'TECH_COORD', 'PREFECT', 'SUPPORT'].includes(currentRole)) && (
                             <div>
                                 <h4 className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Institucional</h4>
                                 <nav className="space-y-1">
@@ -602,7 +619,8 @@ export const SettingsPage = () => {
                                             { id: 'subjects', label: 'Mis Materias', icon: BookOpen, color: 'text-purple-600', bg: 'bg-purple-50' }
                                         ] : []),
                                         { id: 'horarios', label: 'Jornada y Horarios', icon: Clock, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-                                        { id: 'periods', label: 'Periodos y Ciclos', icon: Calendar, color: 'text-amber-600', bg: 'bg-amber-50' },
+                                        { id: 'cycle', label: 'Ciclo Escolar', icon: Calendar, color: 'text-amber-600', bg: 'bg-amber-50' },
+                                        { id: 'periods', label: 'Periodos de Evaluación', icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50' },
                                     ].map((item: any) => {
                                         const isActive = activeTab === item.id;
                                         const Icon = item.icon;
@@ -638,6 +656,7 @@ export const SettingsPage = () => {
 
                                         if (item.adminOnly && !isDirectorOrAdmin) return null;
                                         if (item.superOnly && !isSuperAdmin) return null;
+                                        if (item.id === 'ai' && profile.role?.toUpperCase() === 'TUTOR') return null;
                                         if (item.excludeIndependent && profile.role?.toUpperCase() === 'INDEPENDENT_TEACHER') return null;
                                         const isActive = activeTab === item.id;
                                         const Icon = item.icon;
@@ -950,7 +969,8 @@ export const SettingsPage = () => {
                                                     type="text"
                                                     value={tenant.name}
                                                     onChange={(e) => setTenant({ ...tenant, name: e.target.value })}
-                                                    className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-transparent rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-blue-500 transition-all outline-none"
+                                                    readOnly={!isDirectorOrAdmin}
+                                                    className={`w-full pl-11 pr-4 py-3 bg-gray-50 border border-transparent rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-blue-500 transition-all outline-none ${!isDirectorOrAdmin ? 'opacity-70 cursor-not-allowed bg-gray-100' : ''}`}
                                                     placeholder="Ej. Escuela Secundaria Técnica #45"
                                                 />
                                             </div>
@@ -963,7 +983,8 @@ export const SettingsPage = () => {
                                                     type="text"
                                                     value={tenant.cct || ''}
                                                     onChange={(e) => setTenant({ ...tenant, cct: e.target.value })}
-                                                    className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-transparent rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-blue-500 transition-all outline-none uppercase"
+                                                    readOnly={!isDirectorOrAdmin}
+                                                    className={`w-full pl-11 pr-4 py-3 bg-gray-50 border border-transparent rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-blue-500 transition-all outline-none uppercase ${!isDirectorOrAdmin ? 'opacity-70 cursor-not-allowed bg-gray-100' : ''}`}
                                                     placeholder="Ej. 14DST0045J"
                                                 />
                                             </div>
@@ -986,7 +1007,8 @@ export const SettingsPage = () => {
                                                         ...tenant,
                                                         cte_config: { ...tenant.cte_config, next_date: e.target.value }
                                                     })}
-                                                    className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-blue-500 transition-all outline-none"
+                                                    readOnly={!isDirectorOrAdmin}
+                                                    className={`w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-blue-500 transition-all outline-none ${!isDirectorOrAdmin ? 'opacity-70 cursor-not-allowed bg-gray-100' : ''}`}
                                                 />
                                                 <p className="text-[10px] text-gray-400 mt-1 ml-1">Dejar vacío para cálculo automático (último viernes).</p>
                                             </div>
@@ -999,7 +1021,8 @@ export const SettingsPage = () => {
                                                         ...tenant,
                                                         cte_config: { ...tenant.cte_config, link: e.target.value }
                                                     })}
-                                                    className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-blue-500 transition-all outline-none"
+                                                    readOnly={!isDirectorOrAdmin}
+                                                    className={`w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-blue-500 transition-all outline-none ${!isDirectorOrAdmin ? 'opacity-70 cursor-not-allowed bg-gray-100' : ''}`}
                                                     placeholder="https://drive.google.com/..."
                                                 />
                                             </div>
@@ -1100,7 +1123,7 @@ export const SettingsPage = () => {
                             {activeTab === 'horarios' && (
                                 <div className="space-y-16">
                                     <ScheduleConfig />
-                                    {profile.role?.toUpperCase() !== 'INDEPENDENT_TEACHER' && (
+                                    {['DIRECTOR', 'ADMIN', 'SUPER_ADMIN', 'ACADEMIC_COORD', 'TECH_COORD'].includes(currentRole) && tenant.type?.toUpperCase() !== 'INDEPENDENT' && (
                                         <div className="pt-16 border-t border-gray-100">
                                             <SpecialScheduleManager />
                                         </div>
@@ -1111,12 +1134,28 @@ export const SettingsPage = () => {
 
 
                             {
+                                activeTab === 'cycle' && (
+                                    <div className="space-y-12">
+                                        <div className="flex flex-col md:flex-row justify-between items-start gap-4 border-b border-gray-100 pb-6">
+                                            <div>
+                                                <h3 className="text-2xl font-black text-gray-900 tracking-tight">Ciclo Escolar</h3>
+                                                <p className="text-sm text-gray-500 font-medium">Gestión del calendario escolar activo y vigencia académica.</p>
+                                            </div>
+                                        </div>
+                                        <div className="bg-white rounded-[2rem] border border-gray-100 p-2 shadow-sm mb-8">
+                                            <AcademicYearManager readOnly={!isDirectorOrAdmin} />
+                                        </div>
+                                    </div>
+                                )
+                            }
+
+                            {
                                 activeTab === 'periods' && (
                                     <div className="space-y-12">
                                         <div className="flex flex-col md:flex-row justify-between items-start gap-4 border-b border-gray-100 pb-6">
                                             <div>
                                                 <h3 className="text-2xl font-black text-gray-900 tracking-tight">Periodos de Evaluación</h3>
-                                                <p className="text-sm text-gray-500 font-medium">Configura los trimestres y fechas clave del ciclo escolar.</p>
+                                                <p className="text-sm text-gray-500 font-medium">Configura los trimestres y fechas clave para la captura de calificaciones.</p>
                                             </div>
                                         </div>
 
@@ -1136,16 +1175,12 @@ export const SettingsPage = () => {
                                                 </div>
                                                 <p className="text-sm text-gray-600 leading-relaxed max-w-2xl">
                                                     Los periodos definidos aquí organizan automáticamente tus planeaciones, reportes de asistencia y el concentrado de calificaciones.
-                                                    Asegúrate de que las fechas coincidan con el calendario oficial de la SEP.
                                                 </p>
                                             </div>
                                         </div>
 
-                                        <div className="bg-white rounded-[2rem] border border-gray-100 p-2 shadow-sm mb-8">
-                                            <AcademicYearManager />
-                                        </div>
                                         <div className="bg-white rounded-[2rem] border border-gray-100 p-2 shadow-sm">
-                                            <PeriodManager />
+                                            <PeriodManager readOnly={!isDirectorOrAdmin} />
                                         </div>
                                     </div>
                                 )
@@ -1335,7 +1370,7 @@ export const SettingsPage = () => {
 
                             {/* BILLING TAB */}
                             {
-                                activeTab === 'billing' && (
+                                activeTab === 'billing' && profile.role?.toUpperCase() !== 'TUTOR' && (
                                     <BillingSection />
                                 )
                             }

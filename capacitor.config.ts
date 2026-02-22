@@ -2,11 +2,9 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.nemia.app',
-  appName: 'NEMIA',
+  appName: 'VUNLEK',
   webDir: 'dist',
   server: {
-    androidScheme: 'https',
-    hostname: 'nemia.app', // Custom hostname to look more "native" / secure
     allowNavigation: [
       '*.mercadopago.com',
       '*.mercadopago.com.mx',
@@ -15,8 +13,18 @@ const config: CapacitorConfig = {
     ]
   },
   plugins: {
+    SplashScreen: {
+      launchShowDuration: 1500,
+      launchAutoHide: true,
+      backgroundColor: "#4f46e5",
+      androidScaleType: "CENTER_CROP",
+      showSpinner: true,
+      androidSpinnerStyle: "large",
+      iosSpinnerStyle: "large",
+      spinnerColor: "#ffffff"
+    },
     CapacitorHttp: {
-      enabled: false,
+      enabled: true
     }
   }
 };

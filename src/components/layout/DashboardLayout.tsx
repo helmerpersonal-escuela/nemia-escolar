@@ -30,7 +30,9 @@ import {
     UserCheck,
     Sparkles,
     Zap,
-    Loader2
+    Loader2,
+    MessageSquare,
+    Home
 } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { supabase } from '../../lib/supabase'
@@ -374,12 +376,20 @@ export const DashboardLayout = () => {
                     <div className="flex justify-center">
                         <Loader2 className="w-6 h-6 text-indigo-500 animate-spin" />
                     </div>
-                    <button
-                        onClick={() => window.location.reload()}
-                        className="mt-12 text-xs font-bold text-slate-400 hover:text-indigo-500 uppercase tracking-widest transition-colors"
-                    >
-                        ¿Tarda demasiado? Recargar
-                    </button>
+                    <div className="flex flex-col gap-4 items-center">
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="text-xs font-black text-indigo-500 uppercase tracking-widest hover:underline"
+                        >
+                            ¿Tarda demasiado? Recargar
+                        </button>
+                        <button
+                            onClick={handleLogout}
+                            className="text-[10px] font-bold text-red-400 hover:text-red-500 uppercase tracking-widest"
+                        >
+                            Cerrar Sesión Forzadamente
+                        </button>
+                    </div>
                 </div>
             </div>
         )
@@ -568,15 +578,15 @@ export const DashboardLayout = () => {
             }
         ],
         TUTOR: [
-            { icon: LayoutDashboard, label: 'Espacio de Tutor', path: '/' },
-            { icon: Mail, label: 'Avisos de Dirección', path: '/messages' },
+            { icon: LayoutDashboard, label: 'Inicio', path: '/' },
+            { icon: MessageSquare, label: 'Mensajes con Docentes', path: '/messages' },
             {
                 icon: GraduationCap,
-                label: 'Mi Hijo(a)',
+                label: (sessionStorage.getItem('vunlek_tutor_children_count') || '0') === '1' ? 'Mi Hijo(a)' : 'Mis Hijos',
                 path: '#academic',
                 subItems: [
                     { label: 'Boleta de Calificaciones', path: '/reports' },
-                    { label: 'Reportes de Asistencia', path: '/attendance' },
+                    { label: 'Historial de Asistencia', path: '/attendance' },
                     { label: 'Incidencias / Avisos', path: '/incidents' }
                 ]
             }
@@ -640,25 +650,16 @@ export const DashboardLayout = () => {
     let currentRole: string = (tenant as any)?.role || 'TEACHER'
 
     // Robust Role Enforcement for Independent Workspaces
-    if (workspaceType === 'INDEPENDENT') {
+    // Only override to INDEPENDENT_TEACHER if NOT a special institutional role
+    const PROTECTED_ROLES = ['TUTOR', 'DIRECTOR', 'ADMIN', 'ACADEMIC_COORD', 'TECH_COORD', 'SCHOOL_CONTROL', 'PREFECT', 'SUPPORT', 'STUDENT', 'SUPER_ADMIN']
+    if (workspaceType === 'INDEPENDENT' && !PROTECTED_ROLES.includes(currentRole)) {
         currentRole = 'INDEPENDENT_TEACHER'
     }
 
     const menuItems = menuByRole[currentRole] || menuByRole.TEACHER
 
-    // Mobile App Restrictions (Capacitor)
-    const isNative = Capacitor.isNativePlatform()
-    let finalMenuItems = menuItems
-
-    if (isNative) {
-        // Only allow Dashboard (path='/') and Messages (path='/messages')
-        finalMenuItems = menuItems.filter(item =>
-            item.path === '/' ||
-            item.path === '/messages' ||
-            item.label === 'Mensajes' ||
-            item.label === 'Comunicados'
-        )
-    }
+    // Mobile App Restrictions (Capacitor) - REMOVED per user request to see full menu
+    const finalMenuItems = menuItems
 
     const principalMenu = finalMenuItems.filter(i => !i.path.startsWith('#'))
     const academicMenu = finalMenuItems.filter(i => i.path.startsWith('#'))
@@ -676,6 +677,38 @@ export const DashboardLayout = () => {
                 />
             )}
 
+            {/* Mobile Bottom Navigation */}
+            <div className="fixed bottom-0 left-0 right-0 h-20 bg-white border-t border-slate-200 z-50 lg:hidden flex justify-around items-center px-2 pb-safe-area-bottom shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
+                <Link
+                    to="/"
+                    className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all ${location.pathname === '/' ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400'}`}
+                >
+                    <Home className="w-6 h-6 mb-1" />
+                    <span className="text-[10px] font-bold">Inicio</span>
+                </Link>
+                <Link
+                    to="/messages"
+                    className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all ${location.pathname === '/messages' ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400'}`}
+                >
+                    <Mail className="w-6 h-6 mb-1" />
+                    <span className="text-[10px] font-bold">Mensajes</span>
+                </Link>
+                <Link
+                    to="/agenda"
+                    className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all ${location.pathname === '/agenda' ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400'}`}
+                >
+                    <Calendar className="w-6 h-6 mb-1" />
+                    <span className="text-[10px] font-bold">Agenda</span>
+                </Link>
+                <button
+                    onClick={() => setIsSidebarOpen(true)}
+                    className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all ${isSidebarOpen ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400'}`}
+                >
+                    <Menu className="w-6 h-6 mb-1" />
+                    <span className="text-[10px] font-bold">Menú</span>
+                </button>
+            </div>
+
             {/* Sidebar */}
             <aside
                 className={`
@@ -684,7 +717,7 @@ export const DashboardLayout = () => {
                     ${!isSidebarOpen ? '-translate-x-full' : 'translate-x-0'}
                     lg:static lg:translate-x-0 lg:block lg:m-4 lg:rounded-[2.5rem] lg:h-[calc(100vh-2rem)]
                     glass-panel flex flex-col overflow-hidden border-2 border-white/60
-                    pb-[env(safe-area-inset-bottom)]
+                    pb-24 lg:pb-[env(safe-area-inset-bottom)]
                 `}
             >
                 <div className="h-full flex flex-col relative">
@@ -745,7 +778,7 @@ export const DashboardLayout = () => {
             </aside >
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col min-h-screen relative overflow-hidden transition-all duration-300">
+            <div className="flex-1 flex flex-col min-h-screen relative overflow-hidden transition-all duration-300 pb-24 lg:pb-0">
                 {/* Header */}
                 <header className={`
                     h-20 px-4 sm:px-8 flex items-center justify-between transition-all duration-300 z-20 mt-4 mx-4 rounded-[2rem]
@@ -756,14 +789,14 @@ export const DashboardLayout = () => {
                     <div className="flex items-center gap-4">
                         <button
                             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                            className="p-3 rounded-2xl hover:bg-white/50 text-slate-500 lg:hidden btn-tactile shadow-sm"
+                            className="p-3 rounded-2xl hover:bg-white/50 text-slate-500 lg:hidden btn-tactile shadow-sm hidden"
                         >
                             {!isSidebarOpen ? <Menu className="h-6 w-6" /> : <X className="h-6 w-6" />}
                         </button>
 
                         <div className="flex flex-col">
                             <h1 className="text-xl font-black text-slate-800 tracking-tight hidden sm:block">
-                                {workspaceType === 'INDEPENDENT' ? 'Aula Privada' : 'Panel de Control'}
+                                {workspaceType === 'INDEPENDENT' ? 'Aula Privada' : currentRole === 'TUTOR' ? 'Portal de Tutor' : 'Panel de Control'}
                             </h1>
                             <p className="text-xs text-slate-400 font-bold hidden sm:block">
                                 {new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}

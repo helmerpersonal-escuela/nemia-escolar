@@ -1,53 +1,99 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { getMethodologyInstructions } from './nemMethodologies'
 
 export class GeminiService {
     private genAI: GoogleGenerativeAI
     private apiKey: string
     private groqKey?: string
+    private openaiKey?: string
+    private groq: any = null
+    private groqModel: string = 'llama-3.3-70b-versatile'
     private modelFlash: any
+
+
     private modelPro: any
 
     private static COOLDOWN_KEY = 'gemini_cooldown_timestamp'
     private static GEMINI_COOLDOWN = 1000 * 60 * 60 // 1 hour
 
-    constructor(apiKey?: string, groqKey?: string) {
-        // 1. Try environment variable
-        let key = import.meta.env.VITE_GEMINI_API_KEY
-        let gKey = import.meta.env.VITE_GROQ_API_KEY
-
-        // 2. Try localStorage (God Mode settings)
-        if (!key) {
-            try {
-                const saved = localStorage.getItem('godmode_ai_settings')
-                if (saved && saved !== 'undefined' && saved !== 'null') {
-                    const settings = JSON.parse(saved)
-                    if (settings.gemini_key) {
-                        key = settings.gemini_key
-                        console.log('[GeminiService] Usando API Key de configuración global (God Mode)')
-                    }
-                    if (settings.groq_key) {
-                        gKey = settings.groq_key
-                    }
-                }
-            } catch (e) {
-                console.warn('[GeminiService] Error leyendo configuración local:', e)
-            }
-        }
-
-        // Priority: Argument > Environment > LocalStorage
-        this.apiKey = apiKey || key || ''
-        this.groqKey = groqKey || gKey || ''
-
-        if (!this.apiKey) {
-            console.warn('[GeminiService] No se encontró API Key. La IA no funcionará hasta configurarla.')
-        }
+    constructor(apiKey?: string, groqKey?: string, openaiKey?: string) {
+        // BUG FIX: Sanitizar INMEDIATAMENTE al recibir del constructor
+        // para evitar que refreshConfig use llaves sucias si no hay env/local
+        this.apiKey = this.preSanitize(apiKey)
+        this.groqKey = this.preSanitize(groqKey)
+        this.openaiKey = this.preSanitize(openaiKey)
+        this.refreshConfig()
 
         this.genAI = new GoogleGenerativeAI(this.apiKey)
         this.modelFlash = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
         this.modelPro = this.genAI.getGenerativeModel({ model: "gemini-1.5-pro" })
 
-        console.log(`[GeminiService v2.3] Inicializado. Fallback activo: ${this.isFallingBack}`)
+        console.log(`[GeminiService v2.4] Inicializado. Fallback activo: ${this.isFallingBack}`)
+    }
+
+    private preSanitize(val: any): string {
+        if (!val || val === 'undefined' || val === 'null') return ''
+        let str = String(val).trim()
+        str = str.replace(/["']/g, '')
+        if (str.includes('=') && !str.includes('{')) {
+            const parts = str.split('=')
+            const possibleKey = parts[parts.length - 1].trim()
+            if (possibleKey.length > 10) str = possibleKey
+        }
+        return str
+    }
+
+    private refreshConfig(key?: string, gKey?: string, oKey?: string) {
+        const sanitize = (val: any) => this.preSanitize(val)
+
+        // 1. Try environment variable
+        let envKey = sanitize(import.meta.env.VITE_GEMINI_API_KEY)
+        let envGKey = sanitize(import.meta.env.VITE_GROQ_API_KEY)
+        let envOKey = sanitize(import.meta.env.VITE_OPENAI_API_KEY)
+
+        // 2. Try localStorage (God Mode settings)
+        let localKey = '', localGKey = '', localOKey = ''
+        try {
+            const saved = localStorage.getItem('godmode_ai_settings')
+            if (saved && saved !== 'undefined' && saved !== 'null') {
+                const settings = JSON.parse(saved)
+                localKey = sanitize(settings.gemini_key)
+                localGKey = sanitize(settings.groq_key)
+                localOKey = sanitize(settings.openai_key)
+            }
+        } catch (e) {
+            console.warn('[GeminiService] Error leyendo configuración local:', e)
+        }
+
+        // Final Priority: Argument > God Mode (LocalStorage) > Environment > Current
+        const previousKey = this.apiKey
+        const previousGKey = this.groqKey
+        const previousOKey = this.openaiKey
+
+        this.apiKey = sanitize(key) || localKey || envKey || previousKey
+        this.groqKey = sanitize(gKey) || localGKey || envGKey || previousGKey
+        this.openaiKey = sanitize(oKey) || localOKey || envOKey || previousOKey
+
+        // BUG FIX: Si la llave cambió o el SDK no está listo, re-inicializar
+        if (this.apiKey && (this.apiKey !== previousKey || !this.modelFlash)) {
+            console.log('[GeminiService] Re-inicializando SDK con llave válida...')
+            this.genAI = new GoogleGenerativeAI(this.apiKey)
+            this.modelFlash = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
+            this.modelPro = this.genAI.getGenerativeModel({ model: "gemini-1.5-pro" })
+        }
+
+        if (!this.apiKey && !this.groqKey && !this.openaiKey) {
+            // Only log if not already warned or if we are actually trying to call something
+            if (!(window as any).__GEMINI_KEYS_WARNED__) {
+                console.warn('[GeminiService] API Key (Gemini o Groq) no configurada aún. Se usará LocalStorage o Fallback si están disponibles.');
+                (window as any).__GEMINI_KEYS_WARNED__ = true;
+            }
+        } else {
+            if (this.apiKey) console.log('[GeminiService] Configuración de Gemini lista.')
+            if (this.groqKey) console.log('[GeminiService] Configuración de Groq lista.')
+            if (this.openaiKey) console.log('[GeminiService] Configuración de OpenAI lista.')
+        }
     }
 
     public get isFallingBack(): boolean {
@@ -65,6 +111,11 @@ export class GeminiService {
         } catch { }
     }
 
+    // ...
+
+
+    // ...
+
     async generateLessonPlanSuggestions(context: {
         topic?: string
         subject?: string
@@ -79,21 +130,23 @@ export class GeminiService {
         textbook?: string
         pagesFrom?: string
         pagesTo?: string
+        extractedText?: string
     }) {
         const isProject = context.temporality === 'PROJECT'
         const projectPurpose = context.purpose ? `Propósito del Proyecto: ${context.purpose}` : ''
 
-        const projectInstructions = isProject ? `
+        // Dynamic instructions based on methodology
+        const methodologyBox = getMethodologyInstructions(context.methodology || '', context.sessions?.length || 0)
+
+        // Fallback for "General Project" if no specific methodology matched but it is a project
+        const projectInstructions = (isProject && !methodologyBox) ? `
             ESTRUCTURA DE PROYECTO (MÉTODO DE PROYECTOS):
             Debes organizar las sesiones siguiendo las fases del método de proyectos (Identificación, Recuperación, Planificación, Acercamiento, Comprensión, Reconocimiento, Concreción, Integración, Difusión, Consideraciones, Avances).
             
             IMPORTANTE:
-            - NO pongas solo el nombre de la fase (ej. "Fase de Identificación"). ESO NO SIRVE.
-            - DEBES describir ACTIVIDADES ESPECÍFICAS para el docente y los alumnos.
-            - Incluye preguntas detonadoras, dinámicas de grupo, investigaciones específicas.
-            - Menciona recursos didácticos concretos en la redacción (libros, videos, materiales).
+            - NO pongas solo el nombre de la fase. DESCRIBE ACTIVIDADES ESPECÍFICAS.
             - Distribuye las fases lógicamente en las ${context.sessions?.length} sesiones.
-            ` : ''
+            ` : methodologyBox
 
         const prompt = `
             Actúa como un experto pedagogo de la Nueva Escuela Mexicana (NEM).
@@ -112,6 +165,7 @@ export class GeminiService {
             - Metodología: ${context.methodology || 'Aprendizaje Basado en Proyectos'}
             - PDA: ${context.pdaDetail || 'No especificado'}
             ${context.textbook ? `- LIBRO DE TEXTO: "${context.textbook}" (Páginas: ${context.pagesFrom || ''} a ${context.pagesTo || ''})` : ''}
+            ${context.extractedText ? `\n--- CONTENIDO TEXTUAL EXTRAÍDO DEL LIBRO (ÚSALO COMO BASE PARA LA PLANEACIÓN) ---\n${context.extractedText.substring(0, 8000)}\n---------------------------------------------------------` : ''}
 
             ${projectInstructions}
 
@@ -169,6 +223,51 @@ export class GeminiService {
         } catch (error) {
             console.error('Error generating grading suggestions:', error)
             throw new Error('Falló la generación de sugerencias con IA')
+        }
+    }
+
+    async summarizeLessonPlanSessions(sessions: any[]) {
+        try {
+            const prompt = `
+                Actúa como un analista pedagógico y diseñador de experiencias de aprendizaje gamificadas. Tu misión es transformar sesiones de clase en "Misiones" épicas.
+
+                SECUENCIA ORIGINAL:
+                ${JSON.stringify(sessions)}
+
+                REGLAS CRÍTICAS DE CREATIVIDAD Y COHERENCIA:
+                1. 'summary': Un resumen ultra-breve (MÁXIMO 10-15 palabras) para el dropdown del docente.
+                2. 'suggestedTitle': UN NOMBRE CREATIVO Y RELACIONADO CON LA ESTRATEGIA (Máximo 5 palabras).
+                   - VINCULACIÓN: El título DEBE reflejar tanto el tema como la METODOLOGÍA de la clase.
+                   - EJEMPLOS: 'El Gran Juicio de los Átomos', 'Cartografía Visual del Cerebro', 'Alquimia en la Cocina'.
+                3. 'instructionRoadmap': UNA GUÍA DETALLADA PARA EL ESTUDIANTE (70-100 palabras).
+                   - ESTRUCTURA OBLIGATORIA (usa estos encabezados en MAYÚSCULAS):
+                     * MISIÓN: Describe la actividad principal de forma motivadora.
+                     * ENTREGABLE: Qué producto concreto deben entregar hoy/al final.
+                     * EVALUACIÓN: 2 o 3 criterios clave que tomarás en cuenta para calificar.
+                   - Tono: Aventurero, profesional y altamente pedagógico.
+
+                FORMATO ESPERADO (JSON ESTRICTO):
+                {
+                    "summaries": [
+                        {
+                            "date": "YYYY-MM-DD",
+                            "summary": "Resumen ejecutivo para el docente",
+                            "suggestedTitle": "Título vinculado a la Estrategia",
+                            "instructionRoadmap": "Instrucciones detalladas y motivadoras para el alumno"
+                        }
+                    ]
+                }
+            `
+
+            const text = await this.callWithFallbacks(prompt)
+            const clean = this.cleanJson(text)
+            const data = JSON.parse(clean)
+
+            return this.ensureArray(data, 'summaries')
+
+        } catch (error) {
+            console.error('Error summarizing sessions:', error)
+            return []
         }
     }
 
@@ -307,6 +406,7 @@ export class GeminiService {
     }
 
     private async callWithFallbacks(prompt: string) {
+        this.refreshConfig()
         const now = Date.now()
         const skipGemini = this.isFallingBack
 
@@ -421,6 +521,49 @@ export class GeminiService {
             errors.push(`Groq Error: ${err.name === 'AbortError' ? 'Timeout (15s)' : err.message}`)
         }
 
+        console.log('[OpenAI] Intentando vía OpenAI (GPT-4o mini)...')
+        try {
+            if (this.openaiKey) {
+                const controller = new AbortController()
+                const timeoutId = setTimeout(() => controller.abort(), 15000)
+
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${this.openaiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    signal: controller.signal,
+                    body: JSON.stringify({
+                        model: 'gpt-4o-mini',
+                        messages: [
+                            { role: 'system', content: 'Eres un experto pedagogo de la Nueva Escuela Mexicana (NEM). Responde ÚNICAMENTE con el JSON solicitado.' },
+                            { role: 'user', content: prompt }
+                        ],
+                        temperature: 0.7
+                    })
+                })
+
+                clearTimeout(timeoutId)
+
+                if (response.ok) {
+                    const data = await response.json()
+                    const text = data.choices?.[0]?.message?.content
+                    if (text) {
+                        console.log('[OpenAI] Respuesta recibida exitosamente.')
+                        return text.trim()
+                    }
+                } else {
+                    const errData = await response.json().catch(() => ({}))
+                    errors.push(`OpenAI: ${response.status} ${errData.error?.message || response.statusText}`)
+                }
+            } else {
+                errors.push('OpenAI: Llave no configurada.')
+            }
+        } catch (err: any) {
+            errors.push(`OpenAI Error: ${err.name === 'AbortError' ? 'Timeout (15s)' : err.message}`)
+        }
+
         throw new Error(`Ningún modelo de IA pudo procesar la solicitud.\n\nResumen:\n- ${errors.join('\n- ')}`)
     }
 
@@ -442,6 +585,38 @@ export class GeminiService {
         const text = await this.callWithFallbacks(prompt)
         const clean = this.cleanJson(text)
         return JSON.parse(clean)
+    }
+
+    async extractThemesFromText(context: { text?: string, textbookTitle?: string, field?: string }) {
+        const prompt = `
+            Actúa como un experto pedagogo de la Nueva Escuela Mexicana (NEM).
+            TU OBJETIVO: Extraer o proponer entre 5 y 10 "Temas Clave" o "Contenidos de Interés" para una planeación didáctica.
+            
+            CONTEXTO:
+            - Campo Formativo: ${context.field || 'No especificado'}
+            - Libro de Texto: ${context.textbookTitle || 'No especificado'}
+            ${context.text ? `- TEXTO EXTRAÍDO DEL DOCUMENTO:\n${context.text.substring(0, 5000)}` : ''}
+
+            INSTRUCCIONES:
+            1. Analiza el ${context.text ? 'texto extraído' : 'título del libro'} y el Campo Formativo.
+            2. Identifica temas específicos, lecciones o conceptos centrales que se mencionan o que son propios del grado y campo.
+            3. MUY IMPORTANTE: ESTAS MATERIAS SON DE EDUCACIÓN BÁSICA DE MÉXICO (Primaria/Secundaria). Si el campo formativo es "Lenguajes", se refiere a Español, Inglés o Artes, NUNCA a lenguajes de programación o software.
+            4. Los temas deben ser cortos (máximo 6 palabras cada uno).
+            5. Devuelve ÚNICAMENTE un array de strings en formato JSON.
+
+            Formato de respuesta esperado:
+            ["Tema 1", "Tema 2", "Tema 3", "Tema 4", "Tema 5"]
+        `
+
+        try {
+            const text = await this.callWithFallbacks(prompt)
+            const clean = this.cleanJson(text)
+            const data = JSON.parse(clean)
+            return Array.isArray(data) ? data : []
+        } catch (error) {
+            console.error('[GeminiService] Error extracting themes:', error)
+            return []
+        }
     }
 
     async generateInstrument(context: { activity: string, subject?: string, type: string }) {
@@ -522,7 +697,8 @@ export class GeminiService {
 
             Para cada propuesta, define:
             - Título atractivo.
-            - Descripción clara (instrucciones breves).
+            - Descripción clara y estructurada (100-150 palabras).
+              * Debe incluir: MISIÓN (pasos), ENTREGABLE (producto final) y EVALUACIÓN (criterios de éxito).
             - Tipo (HOMEWORK, CLASSWORK, PROJECT, EXAM, PARTICIPATION).
             - Entorno/Ubicación (HOME, SCHOOL).
             - Instrumento recomendado (ANALYTIC, CHECKLIST).
@@ -548,6 +724,36 @@ export class GeminiService {
         } catch (error) {
             console.error("Error generating proposals:", error)
             return []
+        }
+    }
+
+    async enrichAssignmentDescription(context: { title: string, description: string, subject?: string }) {
+        const prompt = `
+            Actúa como un experto pedagogo. Tu tarea es "REFORZAR" y "REESTRUCTURAR" la descripción de una actividad escolar existente para que sea clara, motivadora y fácil de dictar.
+            
+            DATOS DE LA ACTIVIDAD ACTUAL:
+            - Título: "${context.title}"
+            - Descripción actual: "${context.description}"
+            - Asignatura: "${context.subject || 'General'}"
+            
+            REGLAS DE REFORMULACIÓN:
+            1. No inventes un tema nuevo, mantén el objetivo de la descripción original.
+            2. Usa LENGUAJE 100% CIUDADANO (evita tecnicismos pedagógicos).
+            3. ESTRUCTURA OBLIGATORIA (Usa estos marcadores EXACTOS):
+               MISIÓN: [Contenido aquí]
+               ENTREGABLE: [Contenido aquí]
+               EVALUACIÓN: [Contenido aquí]
+
+            IMPORTANTE: Los marcadores deben estar en una línea nueva. No uses negritas adicionales dentro de los marcadores si interfieren con el texto plano. No incluyas nada más en la respuesta.
+        `
+
+        try {
+            const text = await this.callWithFallbacks(prompt)
+            // No necesitamos limpiar JSON aquí porque pedimos texto plano
+            return text.trim()
+        } catch (error) {
+            console.error("Error enriching assignment:", error)
+            return context.description // Fallback a la original
         }
     }
 

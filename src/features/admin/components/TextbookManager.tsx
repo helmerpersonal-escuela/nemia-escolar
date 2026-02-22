@@ -153,7 +153,7 @@ export const TextbookManager = () => {
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Título del Libro</label>
                         <input
                             value={newBook.title}
-                            onChange={e => setNewBook({ ...newBook, title: e.target.value })}
+                            onChange={e => setNewBook(prev => ({ ...prev, title: e.target.value }))}
                             className="input-squishy w-full"
                             placeholder="Ej: Saberes y Pensamiento Científico"
                         />
@@ -162,7 +162,7 @@ export const TextbookManager = () => {
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Nivel</label>
                         <select
                             value={newBook.level}
-                            onChange={e => setNewBook({ ...newBook, level: e.target.value })}
+                            onChange={e => setNewBook(prev => ({ ...prev, level: e.target.value }))}
                             className="input-squishy w-full"
                         >
                             <option value="PRIMARIA">PRIMARIA</option>
@@ -174,7 +174,7 @@ export const TextbookManager = () => {
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Grado</label>
                         <select
                             value={newBook.grade}
-                            onChange={e => setNewBook({ ...newBook, grade: parseInt(e.target.value) })}
+                            onChange={e => setNewBook(prev => ({ ...prev, grade: parseInt(e.target.value) }))}
                             className="input-squishy w-full"
                         >
                             {[1, 2, 3, 4, 5, 6].map(g => (
@@ -186,7 +186,7 @@ export const TextbookManager = () => {
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Campo Formativo</label>
                         <input
                             value={newBook.field_of_study}
-                            onChange={e => setNewBook({ ...newBook, field_of_study: e.target.value })}
+                            onChange={e => setNewBook(prev => ({ ...prev, field_of_study: e.target.value }))}
                             className="input-squishy w-full"
                             placeholder="Ej: Lenguajes"
                         />

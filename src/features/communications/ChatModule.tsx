@@ -28,50 +28,63 @@ import {
 } from 'lucide-react'
 
 // ProfileItem Component
-const ProfileItem = ({ profile, isSelected, onSelect, onToggle, isOnline }: {
+const ProfileItem = ({ profile, isSelected, onChat, onToggle, isOnline, isStarting }: {
     profile: any
     isSelected: boolean
-    onSelect: () => void
+    onChat: () => void
     onToggle: (e: React.MouseEvent) => void
     isOnline: boolean
+    isStarting?: boolean
 }) => (
     <div
-        onClick={onSelect}
         className={`
-            flex items-center justify-between p-3 sm:p-4 rounded-2xl cursor-pointer transition-all border-2
-            ${isSelected
-                ? 'bg-blue-50 border-blue-600'
-                : 'hover:bg-slate-50 border-transparent'}
+            flex items-center justify-between p-2 sm:p-3 rounded-2xl transition-all border-2
+            ${isSelected ? 'bg-blue-50 border-blue-200' : 'border-transparent'}
         `}
     >
-        <div className="flex items-center gap-3 sm:gap-4">
-            <div className="relative">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-200 flex items-center justify-center font-black text-slate-500 text-sm sm:text-base">
-                    {profile.first_name?.[0]}
+        <button
+            onClick={onChat}
+            disabled={isStarting}
+            className="flex items-center gap-3 sm:gap-4 flex-1 text-left hover:bg-slate-50 rounded-xl p-2 transition-all disabled:opacity-60 group"
+            title="Iniciar conversación"
+        >
+            <div className="relative shrink-0">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center font-black text-white text-sm sm:text-base">
+                    {isStarting
+                        ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        : profile.first_name?.[0]
+                    }
                 </div>
-                {/* Online status indicator */}
-                <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${isOnline ? 'bg-green-500' : 'bg-slate-400'}`} />
+                <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${isOnline ? 'bg-green-500' : 'bg-slate-300'}`} />
             </div>
             <div>
-                <h4 className="font-bold text-slate-800 text-sm sm:text-base">{profile.first_name} {profile.last_name_paternal}</h4>
+                <h4 className="font-bold text-slate-800 text-sm sm:text-base group-hover:text-blue-600 transition-colors">
+                    {profile.first_name} {profile.last_name_paternal}
+                </h4>
                 <div className="flex flex-col gap-0.5">
-                    <p className="text-xs text-slate-400 font-medium uppercase tracking-tighter">{profile.role === 'TUTOR' ? 'Padre de Familia' : profile.role}</p>
-                    {profile.role === 'TUTOR' && profile.student_names && (
+                    <p className="text-xs text-slate-400 font-medium uppercase tracking-tighter">
+                        {profile.role === 'TUTOR' ? 'Padre de Familia' : profile.role === 'TEACHER' ? 'Docente' : profile.role}
+                    </p>
+                    {profile.student_names && (
                         <p className="text-[10px] text-blue-600 font-bold uppercase truncate max-w-[150px]">
-                            Tutor de: {profile.student_names}
+                            {profile.role === 'TEACHER' ? `Docente de: ${profile.student_names}` : `Tutor de: ${profile.student_names}`}
                         </p>
                     )}
                 </div>
             </div>
-        </div>
+        </button>
         <button
             onClick={onToggle}
-            className={`p-2 rounded-xl transition-all ${isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400'}`}
+            title={isSelected ? 'Quitar del grupo' : 'Agregar al grupo'}
+            className={`ml-2 p-2 rounded-xl transition-all shrink-0 ${isSelected ? 'bg-blue-600 text-white shadow-md shadow-blue-100' : 'bg-slate-100 text-slate-400 hover:bg-blue-50 hover:text-blue-600'}`}
         >
             {isSelected ? <UsersIcon className="h-4 w-4 sm:h-5 sm:w-5" /> : <Plus className="h-4 w-4 sm:h-5 sm:w-5" />}
         </button>
     </div>
 )
+
+
+
 
 export const ChatModule = () => {
     const { roomId } = useParams<{ roomId: string }>()
@@ -89,6 +102,7 @@ export const ChatModule = () => {
     const [selectedProfiles, setSelectedProfiles] = useState<string[]>([])
     const [groupName, setGroupName] = useState('')
     const [isCreating, setIsCreating] = useState(false)
+    const [startingProfileId, setStartingProfileId] = useState<string | null>(null)
     const [showEmojiPicker, setShowEmojiPicker] = useState(false)
     const [soundEnabled, setSoundEnabled] = useState(true)
     const [activeTab, setActiveTab] = useState<'chats' | 'announcements'>('chats')
@@ -239,20 +253,55 @@ export const ChatModule = () => {
 
         const { data } = await query.order('first_name', { ascending: true })
 
-        // Fetch guardian relationships for tutors to identify who their children are
+        // Fetch relationships to identify teachers of the tutor's children or students of a tutor
         let profileListWithStudents = data || []
-        if (profileListWithStudents.some(p => p.role === 'TUTOR')) {
+        const currentRole = tenant?.role
+
+        if (currentRole === 'TUTOR') {
+            // Get tutor's children
+            const { data: myGuardianship } = await supabase
+                .from('guardians')
+                .select('student_id')
+                .eq('user_id', user.id)
+
+            const childIds = myGuardianship?.map(g => g.student_id) || []
+
+            if (childIds.length > 0) {
+                // Get teachers of those children
+                const { data: teacherGroups } = await supabase
+                    .from('group_subjects')
+                    .select('teacher_id, group:groups(id, grade, section), students:students(id, first_name, last_name_paternal)')
+                    .in('group_id', (await supabase.from('students').select('group_id').in('id', childIds)).data?.map(s => s.group_id) || [])
+
+                if (teacherGroups) {
+                    profileListWithStudents = profileListWithStudents.map(p => {
+                        if (p.role === 'TEACHER') {
+                            const relatedChildren = teacherGroups
+                                .filter(tg => tg.teacher_id === p.id)
+                                .map(tg => tg.students.find((s: any) => childIds.includes(s.id)))
+                                .filter(Boolean)
+
+                            if (relatedChildren.length > 0) {
+                                const names = Array.from(new Set(relatedChildren.map((s: any) => s.first_name))).join(', ')
+                                return { ...p, student_names: names }
+                            }
+                        }
+                        return p
+                    })
+                }
+            }
+        } else if (profileListWithStudents.some(p => p.role === 'TUTOR')) {
             const tutorIds = profileListWithStudents.filter(p => p.role === 'TUTOR').map(p => p.id)
             const { data: relations } = await supabase
-                .from('guardian_student_relations')
-                .select('guardian_id, student_profiles:profiles!guardian_student_relations_student_id_fkey(first_name, last_name_paternal)')
-                .in('guardian_id', tutorIds)
+                .from('guardians')
+                .select('user_id, student:students(first_name, last_name_paternal)')
+                .in('user_id', tutorIds)
 
             if (relations) {
                 profileListWithStudents = profileListWithStudents.map(p => {
-                    const studentRefs = relations.filter(r => r.guardian_id === p.id)
+                    const studentRefs = relations.filter(r => r.user_id === p.id)
                     if (studentRefs.length > 0) {
-                        const names = studentRefs.map(r => `${(r as any).student_profiles.first_name} ${(r as any).student_profiles.last_name_paternal}`).join(', ')
+                        const names = studentRefs.map(r => `${(r as any).student.first_name} ${(r as any).student.last_name_paternal}`).join(', ')
                         return { ...p, student_names: names }
                     }
                     return p
@@ -289,19 +338,24 @@ export const ChatModule = () => {
     }, [searchQuery])
 
     const handleStartChat = async (profileId: string) => {
-        if (isCreating) return // Prevent multiple simultaneous requests
+        if (isCreating) return
 
         setIsCreating(true)
+        setStartingProfileId(profileId)
         try {
             const newRoomId = await startDirectChat(profileId)
             if (newRoomId) {
                 setShowNewChatModal(false)
                 navigate(`/messages/${newRoomId}`)
+            } else {
+                alert('No se pudo iniciar la conversación. Intenta de nuevo.')
             }
         } catch (error) {
             console.error('Error starting chat:', error)
+            alert('Error al iniciar el chat. Intenta de nuevo.')
         } finally {
             setIsCreating(false)
+            setStartingProfileId(null)
         }
     }
 
@@ -676,13 +730,8 @@ export const ChatModule = () => {
                                                 profile={profile}
                                                 isSelected={selectedProfiles.includes(profile.id)}
                                                 isOnline={isUserOnline(profile.id)}
-                                                onSelect={() => {
-                                                    if (selectedProfiles.length > 0) {
-                                                        toggleProfileSelection(profile.id)
-                                                    } else {
-                                                        handleStartChat(profile.id)
-                                                    }
-                                                }}
+                                                isStarting={startingProfileId === profile.id}
+                                                onChat={() => handleStartChat(profile.id)}
                                                 onToggle={(e) => {
                                                     e.stopPropagation()
                                                     toggleProfileSelection(profile.id)
@@ -705,13 +754,8 @@ export const ChatModule = () => {
                                                 profile={profile}
                                                 isSelected={selectedProfiles.includes(profile.id)}
                                                 isOnline={isUserOnline(profile.id)}
-                                                onSelect={() => {
-                                                    if (selectedProfiles.length > 0) {
-                                                        toggleProfileSelection(profile.id)
-                                                    } else {
-                                                        handleStartChat(profile.id)
-                                                    }
-                                                }}
+                                                isStarting={startingProfileId === profile.id}
+                                                onChat={() => handleStartChat(profile.id)}
                                                 onToggle={(e) => {
                                                     e.stopPropagation()
                                                     toggleProfileSelection(profile.id)
@@ -734,13 +778,8 @@ export const ChatModule = () => {
                                                 profile={profile}
                                                 isSelected={selectedProfiles.includes(profile.id)}
                                                 isOnline={isUserOnline(profile.id)}
-                                                onSelect={() => {
-                                                    if (selectedProfiles.length > 0) {
-                                                        toggleProfileSelection(profile.id)
-                                                    } else {
-                                                        handleStartChat(profile.id)
-                                                    }
-                                                }}
+                                                isStarting={startingProfileId === profile.id}
+                                                onChat={() => handleStartChat(profile.id)}
                                                 onToggle={(e) => {
                                                     e.stopPropagation()
                                                     toggleProfileSelection(profile.id)

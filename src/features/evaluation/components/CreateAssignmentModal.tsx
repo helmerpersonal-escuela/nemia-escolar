@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react'
-import { X, Save, Calendar, Sparkles, ActivitySquare, Clock, RefreshCw } from 'lucide-react'
+import { X, Save, Calendar, Sparkles, ActivitySquare, Clock, RefreshCw, Mic } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
+import { GeminiService } from '../../../lib/gemini'
 import { useTenant } from '../../../hooks/useTenant'
 import { AIInstrumentGenerator } from './AIInstrumentGenerator'
+import { DictationModeModal } from './DictationModeModal'
+import { createAssignmentAlerts } from '../../../utils/notificationUtils'
 
 type CreateAssignmentModalProps = {
     isOpen: boolean
@@ -34,8 +37,26 @@ export const CreateAssignmentModal = ({
     const navigate = useNavigate()
     const [isLoading, setIsLoading] = useState(false)
     const [isAIGeneratorOpen, setIsAIGeneratorOpen] = useState(false)
+    const [isDictationModeOpen, setIsDictationModeOpen] = useState(false)
 
-    // Form State
+    // Memoized AI Service with tenant keys
+    const aiService = useState(() => new GeminiService(
+        tenant?.aiConfig?.geminiKey,
+        tenant?.aiConfig?.apiKey,
+        tenant?.aiConfig?.openaiKey
+    ))[0]
+
+    // Update keys if tenant changes
+    useEffect(() => {
+        if (tenant?.aiConfig) {
+            (aiService as any).refreshConfig(
+                tenant.aiConfig.geminiKey,
+                tenant.aiConfig.apiKey,
+                tenant.aiConfig.openaiKey
+            )
+        }
+    }, [tenant, aiService])
+
     const [formData, setFormData] = useState({
         title: initialData?.title || '',
         description: initialData?.description || '',
@@ -66,6 +87,61 @@ export const CreateAssignmentModal = ({
 
     const [criteria, setCriteria] = useState<any[]>([])
     const [loadingCriteria, setLoadingCriteria] = useState(false)
+
+    // Context from Lesson Plan
+    const [activities, setActivities] = useState<any[]>([])
+    const [availableDates, setAvailableDates] = useState<string[]>([])
+    const [selectedActivityId, setSelectedActivityId] = useState<string>('')
+    const [loadingActivities, setLoadingActivities] = useState(false)
+
+    // Extraer actividades si hay planeacion activa y resumirlas con IA
+    useEffect(() => {
+        if (isOpen && lessonPlanId) {
+            setLoadingActivities(true)
+            const fetchPlan = async () => {
+                const { data } = await supabase
+                    .from('lesson_plans')
+                    .select('activities_sequence')
+                    .eq('id', lessonPlanId)
+                    .single()
+
+                if (data && data.activities_sequence) {
+                    const extractedActivities: any[] = []
+                    const dates = new Set<string>()
+
+                    // Obtener resumen con Gemini para todas las sesiones
+                    const aiSummaries = await aiService.summarizeLessonPlanSessions(data.activities_sequence)
+
+                    data.activities_sequence.forEach((session: any, sIdx: number) => {
+                        if (session.date) dates.add(session.date)
+
+                        const summaryData = aiSummaries.find((s: any) => s.date === session.date)
+                        const shortDescription = summaryData ? summaryData.summary : `Sesión ${sIdx + 1} del ${session.date}`
+                        const suggestedTitle = summaryData ? summaryData.suggestedTitle : `MISIÓN: ${session.date}`
+                        const roadmap = summaryData ? summaryData.instructionRoadmap : `Instrucciones para la sesión del ${session.date}`
+
+                        // Guardamos la sesión completa como contexto oculto ("value") pero mostramos el resumen en UI
+                        extractedActivities.push({
+                            id: `${sIdx}-RESUMEN`,
+                            description: shortDescription,
+                            session: sIdx + 1,
+                            phase: 'Resumen IA',
+                            date: session.date,
+                            suggestedTitle: suggestedTitle,
+                            instructionRoadmap: roadmap,
+                            rawContext: session // Contexto original pesado para el paso 2
+                        })
+                    })
+
+                    setActivities(extractedActivities)
+                    const sortedDates = Array.from(dates).sort() as string[]
+                    setAvailableDates(sortedDates)
+                }
+                setLoadingActivities(false)
+            }
+            fetchPlan()
+        }
+    }, [isOpen, lessonPlanId])
 
     useEffect(() => {
         const fetchCriteria = async () => {
@@ -177,8 +253,18 @@ export const CreateAssignmentModal = ({
                 error = updateError
             } else {
                 // Create new assignment
-                const { error: insertError } = await supabase.from('assignments').insert(payload)
+                const { data: newAssignment, error: insertError } = await supabase
+                    .from('assignments')
+                    .insert(payload)
+                    .select()
+                    .single()
+
                 error = insertError
+
+                // Trigger alerts for tutors
+                if (!error && newAssignment) {
+                    createAssignmentAlerts(newAssignment)
+                }
 
                 // DEFENSIVE: If error is related to missing columns, retry without them
                 if (error && error.code === '42703') {
@@ -269,6 +355,97 @@ export const CreateAssignmentModal = ({
 
                 <div className="overflow-y-auto p-10 pt-2 custom-scrollbar max-h-[70vh]">
                     <form id="assignment-form" onSubmit={handleSubmit} className="space-y-8">
+                        {/* 0. Vinculación Didáctica (Si hay planeación) */}
+                        {lessonPlanId && activities.length > 0 && (
+                            <div className="squishy-card p-8 bg-purple-50/50 border border-purple-100 space-y-6">
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-1.5 h-6 bg-purple-500 rounded-full" />
+                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-600">Vinculación Didáctica</span>
+                                    </div>
+                                    <span className="text-[10px] font-bold bg-purple-100 text-purple-600 px-2 py-1 rounded">Planeación Activa</span>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">
+                                        Estrategia / Actividad a Evaluar
+                                    </label>
+                                    <div className="relative">
+                                        <select
+                                            disabled={loadingActivities}
+                                            className={`input-squishy w-full px-6 py-4 text-xs font-black bg-white border-2 cursor-pointer transition-all appearance-none ${loadingActivities ? 'border-indigo-100 text-indigo-300 animate-pulse' : 'text-purple-900 border-purple-200 focus:border-purple-400 focus:ring-4 focus:ring-purple-100'}`}
+                                            value={selectedActivityId}
+                                            onChange={e => {
+                                                const val = e.target.value
+                                                setSelectedActivityId(val)
+
+                                                // Auto-fill title y description (Hoja de Ruta)
+                                                const act = activities.find(a => a.id === val)
+                                                if (act) {
+                                                    setFormData(prev => ({
+                                                        ...prev,
+                                                        title: act.suggestedTitle.toUpperCase(),
+                                                        description: act.instructionRoadmap.toUpperCase()
+                                                    }))
+                                                }
+                                            }}
+                                        >
+                                            <option value="">{loadingActivities ? '-- Conectando con tu Planeación Didáctica... --' : '-- Selecciona una actividad de tu planeación --'}</option>
+                                            {!loadingActivities && availableDates.map(date => (
+                                                <optgroup key={date} label={`Sesión del ${new Date(date).toLocaleDateString()}`}>
+                                                    {activities.filter(a => a.date === date).map(act => (
+                                                        <option key={act.id} value={act.id}>
+                                                            ✨ {act.description}
+                                                        </option>
+                                                    ))}
+                                                </optgroup>
+                                            ))}
+                                        </select>
+                                        <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none">
+                                            {loadingActivities ? (
+                                                <RefreshCw className="w-4 h-4 text-indigo-400 animate-spin" />
+                                            ) : (
+                                                <Sparkles className="w-4 h-4 text-purple-400" />
+                                            )}
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-purple-500/80 mt-2 ml-1 font-medium flex items-center gap-1.5">
+                                        <Sparkles className="w-3 h-3" />
+                                        La IA ha resumido los párrafos de tu planeación para facilitar tu selección.
+                                    </p>
+
+                                    {/* Previsualización de la Actividad Seleccionada */}
+                                    {selectedActivityId && (
+                                        <div className="mt-4 p-5 bg-purple-50/50 border-2 border-purple-100 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-500">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <ActivitySquare className="w-4 h-4 text-purple-500" />
+                                                <span className="text-[10px] font-black uppercase tracking-widest text-purple-700">Detalle de la Sesión</span>
+                                            </div>
+                                            <div className="space-y-3">
+                                                {(() => {
+                                                    const act = activities.find(a => a.id === selectedActivityId);
+                                                    if (!act || !act.rawContext || !act.rawContext.phases) return null;
+
+                                                    return act.rawContext.phases.map((phase: any, pIdx: number) => (
+                                                        <div key={pIdx} className="flex gap-3">
+                                                            <div className="pt-0.5">
+                                                                <div className="px-2 py-0.5 bg-white border border-purple-200 rounded text-[8px] font-black text-purple-400 uppercase tracking-tighter">
+                                                                    {phase.name}
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-[11px] font-medium text-purple-900/70 leading-relaxed italic">
+                                                                {phase.activities.join(' ')}
+                                                            </div>
+                                                        </div>
+                                                    ));
+                                                })()}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
                         {/* 1. Basic Info Section */}
                         <div className="squishy-card p-8 bg-white border border-indigo-50/50 space-y-6">
                             <div className="flex items-center gap-2 mb-2">
@@ -287,21 +464,31 @@ export const CreateAssignmentModal = ({
                                         placeholder="EJ. MAPA CONCEPTUAL: LA COLONIA"
                                         className="input-squishy w-full px-6 py-4 text-indigo-950 font-black text-sm uppercase placeholder:text-slate-300"
                                         value={formData.title}
-                                        onChange={e => setFormData({ ...formData, title: e.target.value.toUpperCase() })}
+                                        onChange={e => setFormData(prev => ({ ...prev, title: e.target.value.toUpperCase() }))}
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">
-                                        Hoja de Ruta / Instrucciones <span className="text-rose-500">*</span>
-                                    </label>
+                                    <div className="flex justify-between items-center mb-2 ml-1">
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                            Hoja de Ruta / Instrucciones <span className="text-rose-500">*</span>
+                                        </label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsDictationModeOpen(true)}
+                                            className="flex items-center gap-1.5 px-3 py-1 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-all text-[9px] font-black uppercase tracking-widest group"
+                                        >
+                                            <Mic className="w-3 h-3 group-hover:scale-110 transition-transform" />
+                                            Dictado
+                                        </button>
+                                    </div>
                                     <textarea
                                         required
                                         rows={3}
                                         placeholder="DETALLA LOS PASOS PARA EL ÉXITO..."
                                         className="input-squishy w-full px-6 py-4 text-sm font-bold text-slate-700 resize-none uppercase placeholder:text-slate-300"
                                         value={formData.description}
-                                        onChange={e => setFormData({ ...formData, description: e.target.value.toUpperCase() })}
+                                        onChange={e => setFormData(prev => ({ ...prev, description: e.target.value.toUpperCase() }))}
                                     />
                                 </div>
                             </div>
@@ -322,7 +509,7 @@ export const CreateAssignmentModal = ({
                                         <select
                                             className="input-squishy w-full px-6 py-4 text-xs font-black text-indigo-900 bg-slate-50 appearance-none cursor-pointer"
                                             value={formData.type}
-                                            onChange={e => setFormData({ ...formData, type: e.target.value })}
+                                            onChange={e => setFormData(prev => ({ ...prev, type: e.target.value }))}
                                         >
                                             <option value="HOMEWORK">Tarea</option>
                                             <option value="CLASSWORK">Trabajo en Clase</option>
@@ -372,7 +559,7 @@ export const CreateAssignmentModal = ({
                                             <select
                                                 className="input-squishy w-full px-6 py-4 text-xs font-black text-amber-700 bg-amber-50/30 cursor-pointer"
                                                 value={formData.criterion_id}
-                                                onChange={e => setFormData({ ...formData, criterion_id: e.target.value })}
+                                                onChange={e => setFormData(prev => ({ ...prev, criterion_id: e.target.value }))}
                                                 required
                                             >
                                                 <option value="">Seleccionar Ponderación...</option>
@@ -403,7 +590,7 @@ export const CreateAssignmentModal = ({
                                         <select
                                             className="input-squishy w-full px-6 py-4 text-xs font-black text-slate-600 bg-slate-50 appearance-none"
                                             value={formData.instrument_id}
-                                            onChange={e => setFormData({ ...formData, instrument_id: e.target.value })}
+                                            onChange={e => setFormData(prev => ({ ...prev, instrument_id: e.target.value }))}
                                         >
                                             <option value="">Ninguno / Manual</option>
                                             {rubrics.map(r => (
@@ -431,7 +618,7 @@ export const CreateAssignmentModal = ({
                                             type="date"
                                             className="w-full bg-indigo-900/50 border-2 border-indigo-800 rounded-2xl px-6 py-4 text-white font-black text-sm outline-none focus:border-indigo-400 transition-all shadow-inner"
                                             value={formData.start_date || ''}
-                                            onChange={e => setFormData({ ...formData, start_date: e.target.value })}
+                                            onChange={e => setFormData(prev => ({ ...prev, start_date: e.target.value }))}
                                         />
                                     </div>
                                 )}
@@ -445,7 +632,7 @@ export const CreateAssignmentModal = ({
                                         required
                                         className="w-full bg-indigo-900/50 border-2 border-indigo-800 rounded-2xl px-6 py-4 text-white font-black text-sm outline-none focus:border-indigo-400 transition-all shadow-inner"
                                         value={formData.due_date}
-                                        onChange={e => setFormData({ ...formData, due_date: e.target.value })}
+                                        onChange={e => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
                                     />
                                 </div>
                             </div>
@@ -500,7 +687,21 @@ export const CreateAssignmentModal = ({
                 onClose={() => setIsAIGeneratorOpen(false)}
                 lessonPlanId={lessonPlanId}
                 subjectName={defaultSubjectName}
-                defaultDate={formData.due_date}
+                initialContext={(() => {
+                    const act = activities.find(a => a.id === selectedActivityId)
+                    if (!act) return undefined
+
+                    let fullContext = act.description
+                    if (act.rawContext && act.rawContext.phases) {
+                        try {
+                            fullContext = act.rawContext.phases.map((p: any) => `${p.name}: ${p.activities.join(' ')}`).join('\n')
+                        } catch (e) {
+                            console.error('Error stringifying raw context', e)
+                        }
+                    }
+
+                    return { type: 'ACTIVITY', value: act, label: fullContext }
+                })()}
                 onInstrumentCreated={(data: any) => {
                     console.log('[CreateAssignmentModal] AI Instrument created callback data:', data)
 
@@ -532,6 +733,12 @@ export const CreateAssignmentModal = ({
                     }
                     alert(`¡Misión "${data.title}" reforzada con IA!`)
                 }}
+            />
+            <DictationModeModal
+                isOpen={isDictationModeOpen}
+                onClose={() => setIsDictationModeOpen(false)}
+                title={formData.title || 'SIN TÍTULO'}
+                content={formData.description || 'SIN INSTRUCCIONES'}
             />
         </div>
     )

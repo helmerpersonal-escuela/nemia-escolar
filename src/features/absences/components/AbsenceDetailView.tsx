@@ -267,9 +267,12 @@ export const AbsenceDetailView = ({ isOpen, absence, onClose, onUpdate }: Absenc
                                             <input
                                                 value={act.activity_title}
                                                 onChange={(e) => {
-                                                    const newActs = [...editableActivities]
-                                                    newActs[idx].activity_title = e.target.value
-                                                    setEditableActivities(newActs)
+                                                    const value = e.target.value
+                                                    setEditableActivities(prev => {
+                                                        const next = [...prev]
+                                                        next[idx] = { ...next[idx], activity_title: value }
+                                                        return next
+                                                    })
                                                 }}
                                                 className="w-full text-lg font-black text-slate-800 border-b-2 border-slate-100 focus:border-indigo-600 outline-none pb-2"
                                             />
@@ -290,9 +293,12 @@ export const AbsenceDetailView = ({ isOpen, absence, onClose, onUpdate }: Absenc
                                             <textarea
                                                 value={act.ai_generated_hints || ''}
                                                 onChange={(e) => {
-                                                    const newActs = [...editableActivities]
-                                                    newActs[idx].ai_generated_hints = e.target.value
-                                                    setEditableActivities(newActs)
+                                                    const value = e.target.value
+                                                    setEditableActivities(prev => {
+                                                        const next = [...prev]
+                                                        next[idx] = { ...next[idx], ai_generated_hints: value }
+                                                        return next
+                                                    })
                                                 }}
                                                 className="w-full h-32 p-4 bg-slate-50 rounded-xl font-medium text-slate-700 outline-none resize-none"
                                             />
@@ -313,9 +319,12 @@ export const AbsenceDetailView = ({ isOpen, absence, onClose, onUpdate }: Absenc
                                             <textarea
                                                 value={act.activity_description || ''}
                                                 onChange={(e) => {
-                                                    const newActs = [...editableActivities]
-                                                    newActs[idx].activity_description = e.target.value
-                                                    setEditableActivities(newActs)
+                                                    const value = e.target.value
+                                                    setEditableActivities(prev => {
+                                                        const next = [...prev]
+                                                        next[idx] = { ...next[idx], activity_description: value }
+                                                        return next
+                                                    })
                                                 }}
                                                 className="w-full h-64 p-4 bg-slate-50 rounded-xl font-medium text-slate-700 outline-none resize-none"
                                             />

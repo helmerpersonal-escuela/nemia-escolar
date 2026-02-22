@@ -17,11 +17,20 @@ export const useSubscription = () => {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return null
 
+            // Check for impersonation
+            const impersonateId = sessionStorage.getItem('vunlek_impersonate_id')
+            let targetUserId = user.id
+
+            if (impersonateId) {
+                targetUserId = impersonateId
+            }
+
             const { data, error: subError } = await supabase
                 .from('subscriptions')
                 .select('*')
-                .eq('user_id', user.id)
+                .eq('user_id', targetUserId)
                 .maybeSingle()
+
 
             if (subError && subError.code !== 'PGRST116') throw subError
             return data

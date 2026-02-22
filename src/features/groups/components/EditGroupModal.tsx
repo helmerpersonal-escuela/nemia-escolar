@@ -175,7 +175,7 @@ export const EditGroupModal = ({ isOpen, onClose, onSuccess, group }: EditGroupM
                             <select
                                 className="input-squishy w-full"
                                 value={formData.grade}
-                                onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
+                                onChange={(e) => setFormData(prev => ({ ...prev, grade: e.target.value }))}
                             >
                                 {getGradeOptions().map(g => <option key={g} value={g}>{g}°</option>)}
                             </select>
@@ -189,9 +189,7 @@ export const EditGroupModal = ({ isOpen, onClose, onSuccess, group }: EditGroupM
                                     onChange={(e) => {
                                         if (e.target.value === 'CUSTOM') {
                                             setIsCustomSection(true)
-                                            setFormData({ ...formData, section: '' })
-                                        } else {
-                                            setFormData({ ...formData, section: e.target.value })
+                                            setFormData(prev => ({ ...prev, section: e.target.value }))
                                         }
                                     }}
                                 >
@@ -208,7 +206,7 @@ export const EditGroupModal = ({ isOpen, onClose, onSuccess, group }: EditGroupM
                                         placeholder="Ej. G"
                                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                         value={formData.section}
-                                        onChange={(e) => setFormData({ ...formData, section: e.target.value.toUpperCase() })}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, section: e.target.value.toUpperCase() }))}
                                     />
                                     <button
                                         type="button"
@@ -227,7 +225,7 @@ export const EditGroupModal = ({ isOpen, onClose, onSuccess, group }: EditGroupM
                         <select
                             className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md border"
                             value={formData.shift}
-                            onChange={(e) => setFormData({ ...formData, shift: e.target.value })}
+                            onChange={(e) => setFormData(prev => ({ ...prev, shift: e.target.value }))}
                         >
                             <option value="MORNING">Matutino</option>
                             <option value="AFTERNOON">Vespertino</option>
@@ -251,9 +249,9 @@ export const EditGroupModal = ({ isOpen, onClose, onSuccess, group }: EditGroupM
                                                 checked={isSelected}
                                                 onChange={(e) => {
                                                     if (e.target.checked) {
-                                                        setFormData({ ...formData, selectedSubjects: [...formData.selectedSubjects, { ...sub, teacher_id: isStaff ? null : (profile?.id || null) }] })
+                                                        setFormData(prev => ({ ...prev, selectedSubjects: [...prev.selectedSubjects, { ...sub, teacher_id: isStaff ? null : (profile?.id || null) }] }))
                                                     } else {
-                                                        setFormData({ ...formData, selectedSubjects: formData.selectedSubjects.filter(s => s.id !== sub.id) })
+                                                        setFormData(prev => ({ ...prev, selectedSubjects: prev.selectedSubjects.filter(s => s.id !== sub.id) }))
                                                     }
                                                 }}
                                             />
@@ -266,10 +264,12 @@ export const EditGroupModal = ({ isOpen, onClose, onSuccess, group }: EditGroupM
                                                     className="block w-full text-xs border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                                                     value={selectedSub?.teacher_id || ''}
                                                     onChange={(e) => {
-                                                        const newSelected = formData.selectedSubjects.map(s =>
-                                                            s.id === sub.id ? { ...s, teacher_id: e.target.value } : s
-                                                        )
-                                                        setFormData({ ...formData, selectedSubjects: newSelected })
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            selectedSubjects: prev.selectedSubjects.map(s =>
+                                                                s.id === sub.id ? { ...s, teacher_id: e.target.value } : s
+                                                            )
+                                                        }))
                                                     }}
                                                 >
                                                     <option value="">-- Seleccionar Docente --</option>

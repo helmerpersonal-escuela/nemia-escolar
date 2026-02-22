@@ -1,0 +1,106 @@
+{
+  "schema": [
+    {
+      "data_type": "uuid",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "data_type": "uuid",
+      "column_name": "student_id",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "data_type": "text",
+      "column_name": "first_name",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "data_type": "text",
+      "column_name": "last_name_paternal",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "data_type": "text",
+      "column_name": "last_name_maternal",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "data_type": "text",
+      "column_name": "relationship",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "data_type": "text",
+      "column_name": "email",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "data_type": "text",
+      "column_name": "phone",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "data_type": "text",
+      "column_name": "occupation",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "data_type": "text",
+      "column_name": "address",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "column_name": "created_at",
+      "is_nullable": "NO",
+      "column_default": "timezone('utc'::text, now())"
+    },
+    {
+      "data_type": "uuid",
+      "column_name": "profile_id",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "data_type": "uuid",
+      "column_name": "user_id",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "data_type": "uuid",
+      "column_name": "tenant_id",
+      "is_nullable": "YES",
+      "column_default": null
+    }
+  ],
+  "sample": [
+    {
+      "id": "6c78507c-e620-48b0-bf46-e7d13d16c453",
+      "email": "helmerferras@gmail.com",
+      "phone": "9613444444",
+      "address": null,
+      "user_id": null,
+      "tenant_id": "efc61ce1-32c2-47b6-9751-95becd7ddc33",
+      "created_at": "2026-02-18T14:28:50.44754+00:00",
+      "first_name": "HELMER ",
+      "occupation": "EMPRESARIO",
+      "profile_id": "ecd127be-a39c-48a9-8661-e50ffb2248fd",
+      "student_id": "a0f1f865-6389-4da9-b451-b968eb1b3717",
+      "relationship": "PADRE",
+      "last_name_maternal": "COUTIÑO",
+      "last_name_paternal": "FERRAS"
+    }
+  ]
+}

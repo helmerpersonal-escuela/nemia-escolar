@@ -542,7 +542,16 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                                     <Zap className="w-10 h-10 text-indigo-600 mb-4" />
                                     <h3 className="text-xl font-black mb-2">Suscripción PRO</h3>
                                     <div className="mb-6"><span className="text-3xl font-black text-indigo-600">$599</span><span className="text-slate-400 font-bold">/año</span></div>
-                                    <button onClick={handleActivateSubscription} className="clay-button w-full py-4 bg-indigo-500 text-white rounded-2xl font-black">Activar Ahora</button>
+                                    {!Capacitor.isNativePlatform() ? (
+                                        <button onClick={handleActivateSubscription} className="clay-button w-full py-4 bg-indigo-500 text-white rounded-2xl font-black">Activar Ahora</button>
+                                    ) : (
+                                        <button
+                                            onClick={() => window.open('https://vunlek.com', '_system')}
+                                            className="clay-button w-full py-4 bg-indigo-50 text-indigo-600 rounded-2xl font-black text-xs uppercase"
+                                        >
+                                            Gestionar en Web
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>

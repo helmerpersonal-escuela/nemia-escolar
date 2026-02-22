@@ -1,0 +1,21 @@
+{
+  "tenants": [
+    {
+      "id": "8e3fcc38-c1ed-4466-9860-15b5c7ba4d0c",
+      "name": "SECUNDARIA TECNICA NO 37"
+    },
+    {
+      "id": "efc61ce1-32c2-47b6-9751-95becd7ddc33",
+      "name": "SECUNDARIA TECNICA NO 37"
+    }
+  ],
+  "students": [
+    {
+      "id": "a0f1f865-6389-4da9-b451-b968eb1b3717",
+      "tenant_id": "efc61ce1-32c2-47b6-9751-95becd7ddc33",
+      "first_name": "HELMER",
+      "last_name_maternal": "HERNANDEZ",
+      "last_name_paternal": "FERRAS"
+    }
+  ]
+}

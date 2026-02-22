@@ -187,10 +187,10 @@ export const TeacherDashboard = () => {
     if (error) return <div className="p-8 text-red-600">Error: {error}</div>
 
     return (
-        <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-1000 pb-20 px-4 sm:px-6">
+        <div className="max-w-7xl mx-auto space-y-4 sm:space-y-8 animate-in fade-in duration-1000 pb-20 px-3 sm:px-6">
 
             {/* 1. Header & Quick Actions */}
-            <header className="relative overflow-hidden bg-slate-900 rounded-[2.5rem] sm:rounded-[3rem] p-6 sm:p-12 text-white shadow-2xl">
+            <header className="relative overflow-hidden bg-slate-900 rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-12 text-white shadow-2xl">
                 {/* Background Pattern */}
                 <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-blue-500/20 to-transparent skew-x-12 translate-x-1/4 pointer-events-none" />
 
@@ -204,7 +204,7 @@ export const TeacherDashboard = () => {
                                 {currentTime.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}
                             </span>
                         </div>
-                        <h1 className="text-4xl sm:text-5xl font-black tracking-tight leading-tight">
+                        <h1 className="text-2xl sm:text-5xl font-black tracking-tight leading-tight">
                             {currentTime.getHours() < 12 ? 'Buenos días' : currentTime.getHours() < 19 ? 'Buenas tardes' : 'Buenas noches'},<br />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-indigo-300">
                                 {profile?.first_name || 'Profesor'}
@@ -227,7 +227,7 @@ export const TeacherDashboard = () => {
                             <Printer className="w-4 h-4 text-blue-600 group-hover:rotate-12 transition-transform" />
                             Informe Alumno
                         </button>
-                        {tenant?.type !== 'INDEPENDENT' && (
+                        {tenant?.type !== 'INDEPENDENT' && tenant?.role !== 'INDEPENDENT_TEACHER' && profile?.role !== 'INDEPENDENT_TEACHER' && (
                             <button
                                 onClick={() => setIsAgendaModalOpen(true)}
                                 className="bg-indigo-600 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center gap-3 shadow-xl group btn-tactile"
@@ -258,7 +258,7 @@ export const TeacherDashboard = () => {
                 {/* Main Action Card (Contextual) */}
                 <div className={`lg:col-span-${tenant?.type === 'INDEPENDENT' ? '2' : '2'} space-y-6`}>
                     {currentClass ? (
-                        <div className="bg-blue-600 rounded-[3rem] p-8 text-white shadow-2xl shadow-blue-200 relative overflow-hidden h-full flex flex-col justify-between squishy-card border-none">
+                        <div className="bg-blue-600 rounded-[2.5rem] p-6 sm:p-8 text-white shadow-2xl shadow-blue-200 relative overflow-hidden h-full flex flex-col justify-between squishy-card border-none">
                             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none" />
 
                             <div>
@@ -271,7 +271,7 @@ export const TeacherDashboard = () => {
                                         {currentClass.start_time} - {currentClass.end_time}
                                     </span>
                                 </div>
-                                <h2 className="text-4xl font-black leading-tight mb-2 uppercase">
+                                <h2 className="text-2xl sm:text-4xl font-black leading-tight mb-2 uppercase">
                                     {currentClass.subject?.name || currentClass.custom_subject || 'Clase Actual'}
                                 </h2>
                                 <p className="text-blue-100 flex items-center gap-2 font-bold text-lg">
@@ -301,7 +301,7 @@ export const TeacherDashboard = () => {
                             </div>
                         </div>
                     ) : currentBreak ? (
-                        <div className="bg-emerald-500 rounded-[3rem] p-12 text-white shadow-2xl shadow-emerald-200 flex flex-col items-center justify-center text-center h-full squishy-card border-none">
+                        <div className="bg-emerald-500 rounded-[2.5rem] p-6 sm:p-12 text-white shadow-2xl shadow-emerald-200 flex flex-col items-center justify-center text-center h-full squishy-card border-none">
                             <div className="p-6 bg-white/20 rounded-full mb-6">
                                 <Coffee className="w-12 h-12" />
                             </div>
@@ -311,7 +311,7 @@ export const TeacherDashboard = () => {
                             </p>
                         </div>
                     ) : (
-                        <div className="squishy-card p-12 text-center border-2 border-dashed border-slate-200 h-full flex flex-col items-center justify-center">
+                        <div className="squishy-card p-6 sm:p-12 text-center border-2 border-dashed border-slate-200 h-full flex flex-col items-center justify-center">
                             <div className="p-6 bg-slate-50 rounded-full mb-6">
                                 <Clock className="w-12 h-12 text-slate-300" />
                             </div>
@@ -342,8 +342,8 @@ export const TeacherDashboard = () => {
             {/* 3. Bottom Bento Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Recent Chats */}
-                <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-                    <div className="p-8 border-b border-slate-50 flex items-center justify-between">
+                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+                    <div className="p-6 sm:p-8 border-b border-slate-50 flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-purple-600 rounded-2xl text-white shadow-lg shadow-purple-100">
                                 <MessageSquare className="w-5 h-5" />
@@ -382,8 +382,8 @@ export const TeacherDashboard = () => {
                 </div>
 
                 {/* Announcements */}
-                <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-                    <div className="p-8 border-b border-slate-50 flex items-center gap-4">
+                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+                    <div className="p-6 sm:p-8 border-b border-slate-50 flex items-center gap-4">
                         <div className="p-3 bg-amber-500 rounded-2xl text-white shadow-lg shadow-amber-100">
                             <Bell className="w-5 h-5" />
                         </div>

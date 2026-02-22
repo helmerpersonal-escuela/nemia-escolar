@@ -16,6 +16,8 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import type { Session } from '@supabase/supabase-js'
 import { Loader2 } from 'lucide-react'
+import { SplashScreen } from '@capacitor/splash-screen'
+import { Capacitor } from '@capacitor/core'
 
 import { TeacherDashboard } from './features/evaluation/pages/TeacherDashboard'
 import { EvaluationSetupPage } from './features/evaluation/pages/EvaluationSetupPage'
@@ -52,7 +54,7 @@ import { SchoolStatsPage } from './features/dashboard/pages/SchoolStatsPage'
 import { RoleSelectionPage } from './features/auth/pages/RoleSelectionPage'
 import { TrackingPage } from './features/dashboard/components/roles/TrackingPage'
 import { AuditOverviewPage } from './features/admin/pages/AuditOverviewPage'
-import { ReportsRoute, AttendanceRoute } from './components/routes/RoleRoutes'
+import { ReportsRoute, AttendanceRoute, IncidentsRoute } from './components/routes/RoleRoutes'
 import { ProtectedRoute } from './components/routes/ProtectedRoute'
 import { SubscriptionGuard } from './components/routes/SubscriptionGuard'
 
@@ -70,6 +72,10 @@ function App() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setLoading(false)
+      // Hide SplashScreen once app is ready
+      if (Capacitor.isNativePlatform()) {
+        SplashScreen.hide().catch((err: any) => console.warn('SplashScreen hide error:', err))
+      }
     })
 
     const {
@@ -165,7 +171,7 @@ function App() {
                 <DashboardLayout />
               </SubscriptionGuard>
             ) : (
-              <LandingPage />
+              Capacitor.isNativePlatform() ? <Navigate to="/login" replace /> : <LandingPage />
             )
           }
         >
@@ -223,7 +229,7 @@ function App() {
           <Route path="students/:studentId" element={<StudentTrackingPage />} />
           <Route path="tracking" element={<StudentTrackingPage />} />
           <Route path="tracking/:studentId" element={<StudentTrackingPage />} />
-          <Route path="incidents" element={<IncidentsLogPage />} />
+          <Route path="incidents" element={<IncidentsRoute />} />
           <Route path="bap" element={<StudentTrackingPage />} />
           <Route path="stats" element={<SchoolStatsPage />} />
           <Route path="reports/student/:studentId" element={<StudentReportPage />} />

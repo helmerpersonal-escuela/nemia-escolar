@@ -1,4 +1,6 @@
 
+import { getMethodologyInstructions } from './nemMethodologies'
+
 export class GroqService {
     private apiKey: string;
     private baseUrl = 'https://api.groq.com/openai/v1/chat/completions';
@@ -58,21 +60,23 @@ export class GroqService {
         textbook?: string
         pagesFrom?: string
         pagesTo?: string
+        extractedText?: string
     }) {
         const isProject = context.temporality === 'PROJECT'
         const projectPurpose = context.purpose ? `Propósito del Proyecto: ${context.purpose}` : ''
 
-        const projectInstructions = isProject ? `
+        // Dynamic instructions based on methodology
+        const methodologyBox = getMethodologyInstructions(context.methodology || '', context.sessions?.length || 0)
+
+        // Fallback for "General Project" if no specific methodology matched but it is a project
+        const projectInstructions = (isProject && !methodologyBox) ? `
             ESTRUCTURA DE PROYECTO (MÉTODO DE PROYECTOS):
             Debes organizar las sesiones siguiendo las fases del método de proyectos (Identificación, Recuperación, Planificación, Acercamiento, Comprensión, Reconocimiento, Concreción, Integración, Difusión, Consideraciones, Avances).
             
             IMPORTANTE:
-            - NO pongas solo el nombre de la fase (ej. "Fase de Identificación"). ESO NO SIRVE.
-            - DEBES describir ACTIVIDADES ESPECÍFICAS para el docente y los alumnos.
-            - Incluye preguntas detonadoras, dinámicas de grupo, investigaciones específicas.
-            - Menciona recursos didácticos concretos en la redacción (libros, videos, materiales).
+            - NO pongas solo el nombre de la fase. DESCRIBE ACTIVIDADES ESPECÍFICAS.
             - Distribuye las fases lógicamente en las ${context.sessions?.length} sesiones.
-            ` : ''
+            ` : methodologyBox
 
         const prompt = `
             Actúa como un experto pedagogo de la Nueva Escuela Mexicana (NEM).
@@ -91,6 +95,7 @@ export class GroqService {
             - Metodología: ${context.methodology || 'Aprendizaje Basado en Proyectos'}
             - PDA: ${context.pdaDetail || 'No especificado'}
             ${context.textbook ? `- LIBRO DE TEXTO: "${context.textbook}" (Páginas: ${context.pagesFrom || ''} a ${context.pagesTo || ''})` : ''}
+            ${context.extractedText ? `\n--- CONTENIDO TEXTUAL EXTRAÍDO DEL LIBRO (ÚSALO COMO BASE PARA LA PLANEACIÓN) ---\n${context.extractedText.substring(0, 8000)}\n---------------------------------------------------------` : ''}
 
             ${projectInstructions}
 
@@ -231,6 +236,42 @@ export class GroqService {
             Formato: Lista numerada.
         `;
         return this.callGroq(prompt);
+    }
+
+    async extractThemesFromText(context: { text?: string, textbookTitle?: string, field?: string }) {
+        const prompt = `
+            Actúa como un experto pedagogo de la Nueva Escuela Mexicana (NEM).
+            TU OBJETIVO: Extraer o proponer entre 5 y 10 "Temas Clave" o "Contenidos de Interés" para una planeación didáctica.
+            
+            CONTEXTO:
+            - Campo Formativo: ${context.field || 'No especificado'}
+            - Libro de Texto: ${context.textbookTitle || 'No especificado'}
+            ${context.text ? `- TEXTO EXTRAÍDO DEL DOCUMENTO:\n${context.text.substring(0, 5000)}` : ''}
+
+            INSTRUCCIONES:
+            1. Analiza el ${context.text ? 'texto extraído' : 'título del libro'} y el Campo Formativo.
+            2. Identifica temas específicos, lecciones o conceptos centrales que se mencionan o que son propios del grado y campo.
+            3. MUY IMPORTANTE: ESTAS MATERIAS SON DE EDUCACIÓN BÁSICA DE MÉXICO (Primaria/Secundaria). Si el campo formativo es "Lenguajes", se refiere a Español, Inglés o Artes, NUNCA a lenguajes de programación o software.
+            4. Los temas deben ser cortos (máximo 6 palabras cada uno).
+            5. Devuelve ÚNICAMENTE un array de strings en formato JSON.
+
+            Formato de respuesta esperado:
+            ["Tema 1", "Tema 2", "Tema 3", "Tema 4", "Tema 5"]
+        `;
+
+        try {
+            const responseText = await this.callGroq(prompt, true);
+            const data = JSON.parse(responseText || '[]');
+            // Llama a veces devuelve un objeto {"temas": [...]} en lugar de un array plano
+            if (Array.isArray(data)) return data;
+
+            const values = Object.values(data);
+            const firstArray = values.find(Array.isArray);
+            return firstArray || [];
+        } catch (error) {
+            console.error('[GroqService] Error extracting themes:', error);
+            return [];
+        }
     }
 
     async generateStructuredProgram(context: {

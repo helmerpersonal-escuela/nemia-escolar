@@ -1,0 +1,59 @@
+{
+  "helmerferras@gmail.com": null,
+  "helmerferras@gmail.co": null,
+  "DANIELA profiles": [
+    {
+      "id": "85870a47-4730-401d-a96c-a3712e821b3d",
+      "tenant_id": "efc61ce1-32c2-47b6-9751-95becd7ddc33",
+      "full_name": null,
+      "role": "ADMIN",
+      "created_at": "2026-02-17T01:23:14.041829+00:00",
+      "last_name_paternal": "HERNANDEZ",
+      "last_name_maternal": "LOPEZ",
+      "avatar_url": null,
+      "nationality": null,
+      "birth_date": null,
+      "sex": null,
+      "marital_status": null,
+      "curp": null,
+      "rfc": null,
+      "address_particular": null,
+      "phone_contact": null,
+      "profile_setup_completed": false,
+      "work_start_time": "07:00:00",
+      "deleted_at": null,
+      "first_name": "DANIELA",
+      "advisory_group_id": null,
+      "last_tenant_id": null
+    },
+    {
+      "id": "ecd127be-a39c-48a9-8661-e50ffb2248fd",
+      "tenant_id": "efc61ce1-32c2-47b6-9751-95becd7ddc33",
+      "full_name": null,
+      "role": "TUTOR",
+      "created_at": "2026-02-17T13:52:51.340028+00:00",
+      "last_name_paternal": "HERNANDEZ ",
+      "last_name_maternal": "",
+      "avatar_url": null,
+      "nationality": null,
+      "birth_date": null,
+      "sex": null,
+      "marital_status": null,
+      "curp": null,
+      "rfc": null,
+      "address_particular": null,
+      "phone_contact": null,
+      "profile_setup_completed": false,
+      "work_start_time": "07:00:00",
+      "deleted_at": null,
+      "first_name": "DANIELA ",
+      "advisory_group_id": null,
+      "last_tenant_id": null
+    }
+  ],
+  "counts_by_role": {
+    "ADMIN": 1,
+    "TUTOR": 1,
+    "SUPER_ADMIN": 1
+  }
+}

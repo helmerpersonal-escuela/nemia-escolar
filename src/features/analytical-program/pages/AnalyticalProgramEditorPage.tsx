@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
+// Force rebuild to fix intermittent 500 errors in some environments
 import { useTenant } from '../../../hooks/useTenant'
 import { GroqService } from '../../../lib/groq'
 import { useProfile } from '../../../hooks/useProfile'
@@ -9,88 +10,63 @@ import {
     ArrowLeft,
     Sparkles,
     CheckCircle2,
-    Layers,
-    Plus,
-    Trash2,
-    Info,
+    Briefcase,
+    School,
+    BookOpen,
+    Target,
+    Users,
     ChevronLeft,
     ChevronRight,
-    MessageSquare,
-    BookOpen,
-    Search,
-    BookMarked,
-    Brain,
-    Printer,
-    FileText,
-    AlertCircle,
-    Layout,
-    Clock,
-    User,
-    FileDown,
-    X,
-    LayoutDashboard,
-    Shield
+    Loader2,
+    Check,
+    RotateCcw
 } from 'lucide-react'
-import { ErrorModal } from '../../../components/common/ErrorModal'
-import {
-    EXTERNAL_CONTEXT_CATALOG,
-    INTERNAL_CONTEXT_CATALOG,
-    PROBLEM_SITUATIONS_CATALOG,
-    INTEREST_TOPICS_CATALOG,
-    GROUP_DIAGNOSIS_CATALOG
-} from '../constants/nemCatalogs'
-import { AIProposalManager } from '../components/AIProposalManager'
-import { PDFUpload } from '../../../components/common/PDFUpload'
-// Constants derived from NEM
-const CAMPOS = [
-    { id: 'lenguajes', name: 'Lenguajes', color: 'bg-orange-50 text-orange-700 border-orange-200' },
-    { id: 'saberes', name: 'Saberes y Pensamiento Científico', color: 'bg-blue-50 text-blue-700 border-blue-200' },
-    { id: 'etica', name: 'Ética, Naturaleza y Sociedades', color: 'bg-green-50 text-green-700 border-green-200' },
-    { id: 'humano', name: 'De lo Humano y lo Comunitario', color: 'bg-rose-50 text-rose-700 border-rose-200' }
+
+// Wizard Steps Configuration
+const STEPS = [
+    { id: 1, title: 'Datos de la Escuela', icon: School, description: 'Información básica del centro escolar' },
+    { id: 2, title: 'Lectura de la Realidad', icon: BookOpen, description: 'Diagnóstico socioeducativo (Primer Plano)' },
+    { id: 3, title: 'Problemática', icon: Target, description: 'Selección y vinculación con ejes' },
+    { id: 4, title: 'Contextualización', icon: Users, description: 'Selección de contenidos (Segundo Plano)' },
+    { id: 5, title: 'Proceso de Codiseño', icon: Briefcase, description: 'Construcción colectiva y problematización' },
+    { id: 6, title: 'Codiseño de Contenidos', icon: Briefcase, description: 'Planeación didáctica (Tercer Plano)' },
+    { id: 7, title: 'Revisión Final', icon: CheckCircle2, description: 'Ajustes y validación' }
 ]
 
-const STRATEGIES_MET = [
-    'Aprendizaje Basado en Proyectos Comunitarios',
-    'Enfoque STEAM',
-    'Aprendizaje Basado en Problemas',
-    'Aprendizaje en el Servicio',
-    'Tutorías-Comunidades de aprendizaje'
-]
+// Default Initial States
+const DEFAULT_SCHOOL_DATA = {
+    name: '',
+    cct: '',
+    zone: '',
+    sector: '',
+    state: 'Guanajuato',
+    municipality: '',
+    level: 'Secundaria',
+    turn: 'Matutino',
+    students_total: '',
+    teachers_count: '',
+    logo_url: ''
+}
 
-const EVALUATION_INSTRUMENTS = [
-    'Rúbricas',
-    'Diario de clase',
-    'Guía de observación',
-    'Escala de actitudes',
-    'Registro anecdótico',
-    'Portafolio de evidencias',
-    'Cuaderno del alumno',
-    'Grupos de discusión',
-    'Debates'
-]
+const DEFAULT_FIELDS = {
+    lenguajes: [],
+    saberes: [],
+    etica: [],
+    humano: []
+}
 
-const NATIONAL_STRATEGIES = [
-    { id: 'lectura', name: 'Estrategia Nacional de Lectura' },
-    { id: 'inclusiva', name: 'Estrategia Nacional de Educación Inclusiva' },
-    { id: 'multilingue', name: 'Estrategia Nacional de Educación Multilingüe e Intercultural' },
-    { id: 'genero', name: 'Estrategia Nacional para la Igualdad de Género' }
-]
-
-const NIVELES_CATALOG = ['SECUNDARIA', 'TELESECUNDARIA']
-const MODALIDADES_CATALOG = ['GENERAL', 'INDÍGENA', 'TÉCNICA', 'TELESECUNDARIA']
-const SOSTENIMIENTO_CATALOG = ['FEDERAL', 'ESTATAL', 'PARTICULAR']
-const TURNOS_CATALOG = ['MATUTINO', 'VESPERTINO', 'NOCTURNO', 'TIEMPO COMPLETO']
-const ESTADOS_CATALOG = [
-    'AGUASCALIENTES', 'BAJA CALIFORNIA', 'BAJA CALIFORNIA SUR', 'CAMPECHE', 'CHIAPAS', 'CHIHUAHUA', 'CIUDAD DE MÉXICO', 'COAHUILA',
-    'COLIMA', 'DURANGO', 'ESTADO DE MÉXICO', 'GUANAJUATO', 'GUERRERO', 'HIDALGO', 'JALISCO', 'MICHOACÁN', 'MORELOS', 'NAYARIT',
-    'NUEVO LEÓN', 'OAXACA', 'PUEBLA', 'QUERÉTARO', 'QUINTANA ROO', 'SAN LUIS POTOSÍ', 'SINALOA', 'SONORA', 'TABASCO',
-    'TAMAULIPAS', 'TLAXCALA', 'VERACRUZ', 'YUCATÁN', 'ZACATECAS'
-]
-
-const getPhase = (level: string): number => {
-    const lvl = level.toUpperCase()
-    if (lvl === 'SECUNDARIA' || lvl === 'TELESECUNDARIA') return 6
-    return 6 // Default to Phase 6 for Secundaria
+const DEFAULT_CODESIGN = {
+    dialogue_notes: '',
+    dialogue: [] as { role: string, name: string, content: string }[],
+    problematization_table: [] as any[],
+    prioritization_criteria: {
+        interrupts_pda: false,
+        school_intervention: false,
+        docent_resource: false,
+        requires_change: false
+    },
+    reflexive_questions: [] as string[],
+    collective_notes: [] as string[]
 }
 
 export const AnalyticalProgramEditorPage = () => {
@@ -98,2017 +74,1348 @@ export const AnalyticalProgramEditorPage = () => {
     const navigate = useNavigate()
     const { profile } = useProfile()
     const { data: tenant } = useTenant()
-    const isIndependent = tenant?.type === 'INDEPENDENT'
-    const isDirectorOrAdmin = ['DIRECTOR', 'ADMIN', 'INDEPENDENT_TEACHER'].includes(profile?.role || '') || isIndependent
-    const isReadOnly = (!isDirectorOrAdmin && id !== 'new') || profile?.is_demo
 
     // Service Instance
     const groqService = useMemo(() => new GroqService((tenant as any)?.groqApiKey || ''), [(tenant as any)?.groqApiKey])
 
-    // UI State
-    const [step, setStep] = useState(1)
+    // State
+    const [currentStep, setCurrentStep] = useState(1)
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
-
-    // Form Data
-    const [formData, setFormData] = useState({
-        academic_year_id: '',
-        diagnosis_narrative: '',
-        problems: [] as { id: string, description: string }[],
-        contents: [] as any[],
-        last_cte_session: '',
-        status: 'DRAFT',
-
-        // New NEM Format Fields
-        school_data: {
-            name: '',
-            cct: '',
-            level: 'Secundaria',
-            modality: 'General',
-            support: 'Federal',
-            grades: '',
-            shift: 'Matutino',
-            state: 'Guanajuato',
-            municipality: '',
-            location: '',
-            total_students: '',
-            total_groups: '',
-            avg_students_per_group: '',
-            total_teachers: '',
-            group_students_info: ''
-        },
-        external_context: {
-            favors: '',
-            difficults: ''
-        },
-        internal_context: {
-            favors: '',
-            difficults: ''
-        },
-        group_diagnosis: {
-            narrative: '',
-            problem_situations: [] as string[],
-            interest_topics: [] as string[]
-        },
-        pedagogical_strategies: [] as string[],
-        evaluation_strategies: {
-            description: '',
-            instruments: [] as string[],
-            feedback_guidelines: [] as string[]
-        },
-        national_strategies: [] as { name: string, description: string }[],
-        program_by_fields: {
-            lenguajes: [] as any[],
-            saberes: [] as any[],
-            etica: [] as any[],
-            humano: [] as any[]
-        },
-        source_document_url: '',
-        extracted_text: ''
-    })
-
-    const [isSyntheticModalOpen, setIsSyntheticModalOpen] = useState(false)
-    const [isAIProposalManagerOpen, setIsAIProposalManagerOpen] = useState(false)
-    const [syntheticSearch, setSyntheticSearch] = useState('')
-    const [editingContentIdx, setEditingContentIdx] = useState<number | null>(null)
-
-    const [errorModal, setErrorModal] = useState<{
-        isOpen: boolean
-        title: string
-        message: string
-        details?: string
-    }>({
-        isOpen: false,
-        title: '',
-        message: ''
-    })
-
-    const [subjectsCatalog, setSubjectsCatalog] = useState<any[]>([])
+    const [isGenerating, setIsGenerating] = useState(false)
     const [syntheticCatalog, setSyntheticCatalog] = useState<any[]>([])
-    const [cycles, setCycles] = useState<any[]>([])
+    const [suggestedContents, setSuggestedContents] = useState<any[]>([])
+    const [customInputs, setCustomInputs] = useState({
+        geo: '', social: '', cultural: '', infra: '', academic: ''
+    })
 
-    const currentPhase = getPhase(formData.school_data.level)
+    // Steps Data Enums (Extended)
+    const CONTEXT_OPTIONS = {
+        geo: [
+            'Urbana', 'Rural', 'Semi-urbana', 'Indígena', 'Marginal',
+            'Céntrica', 'Periférica', 'Industrial', 'Agrícola', 'Turística',
+            'Fronteriza', 'Costera', 'Montañosa', 'De difícil acceso', 'Residencial', 'Comercial'
+        ],
+        social: [
+            'Migración alta', 'Violencia', 'Desempleo', 'Comercio informal', 'Participación comunitaria alta',
+            'Familias disfuncionales', 'Pobreza extrema', 'Alto nivel educativo', 'Padres trabajadores', 'Inseguridad',
+            'Pandillerismo', 'Adicciones', 'Cohesión social fuerte', 'Apoyo municipal', 'Desnutrición', 'Vandalismo'
+        ],
+        cultural: [
+            'Diversidad lingüística', 'Tradiciones arraigadas', 'Población flotante', 'Identidad local fuerte', 'Festividades religiosas',
+            'Gastronomía típica', 'Artesanías', 'Música regional', 'Danza folklórica', 'Multiculturalidad',
+            'Cosmovisión indígena', 'Machismo arraigado', 'Valoración de la educación', 'Uso de tecnologías', 'Prácticas solidarias'
+        ]
+    }
 
+    const INTERNAL_OPTIONS = {
+        infra: [
+            'Aulas insuficientes', 'Buen equipamiento', 'Sin internet', 'Espacios deportivos', 'Biblioteca funcional',
+            'Techumbre en patio', 'Comedor escolar', 'Sanitarios dignos', 'Barda perimetral', 'Áreas verdes',
+            'Accesibilidad (rampas)', 'Laboratorio de cómputo', 'Taller de usos múltiples', 'Drenaje deficiente', 'Falta de agua', 'Iluminación adecuada'
+        ],
+        academic: [
+            'Rezago en lectura', 'Ausentismo', 'Interés en tecnología', 'Ritmos de aprendizaje diversos', 'Participativos',
+            'Kinestésicos', 'Visuales', 'Auditivos', 'Discapacidad motriz', 'Aptitudes sobresalientes',
+            'Problemas de conducta', 'Trabajo colaborativo', 'Falta de motivación', 'Apoyo familiar bajo', 'Dominio de lengua indígena'
+        ]
+    }
+
+    // Helpers
+    const toggleOption = (category: string, sub: string, value: string) => {
+        setFormData(prev => {
+            const current = (prev.diagnosis as any)[category][sub] || ''
+            const currentArr = current ? current.split(', ') : []
+            const newArr = currentArr.includes(value)
+                ? currentArr.filter((i: string) => i !== value)
+                : [...currentArr, value]
+
+            return {
+                ...prev,
+                diagnosis: {
+                    ...prev.diagnosis,
+                    [category]: {
+                        ...(prev.diagnosis as any)[category],
+                        [sub]: newArr.join(', ')
+                    }
+                }
+            }
+        })
+    }
+
+    // Main Form Data
+    const [formData, setFormData] = useState({
+        school_data: DEFAULT_SCHOOL_DATA,
+        diagnosis: {
+            external_context: { geo: '', social: '', cultural: '' },
+            internal_context: { infrastructure: '', resources: '', environment: '' },
+            students: { characteristics: '', needs: '', interests: '' },
+            teachers: { strengths: '', areas_opportunity: '' },
+            narrative_final: ''
+        },
+        problems: [] as any[],
+        program_by_fields: DEFAULT_FIELDS,
+        codesign_process: DEFAULT_CODESIGN
+    })
+
+    // Initialization & Persistence
     useEffect(() => {
-        const fetchSynthetic = async () => {
-            const { data } = await supabase
+        const init = async () => {
+            setLoading(true)
+
+            // 1. Fetch Synthetic Catalog
+            const { data: catalog } = await supabase
                 .from('synthetic_program_contents')
                 .select('*')
-                .eq('phase', currentPhase)
+                .eq('phase', 6)
+            if (catalog) setSyntheticCatalog(catalog)
 
-            if (data) setSyntheticCatalog(data)
-        }
-        fetchSynthetic()
-    }, [currentPhase])
-
-    // Persistence: Save to localStorage (GUARDED BY LOADING)
-    useEffect(() => {
-        if (loading) return // Don't save while we are still loading initial data from server
-        const draftId = id || 'new'
-        const draft = { formData, step, timestamp: new Date().getTime() }
-        localStorage.setItem(`ap_draft_${draftId}`, JSON.stringify(draft))
-    }, [formData, step, id, loading])
-
-    useEffect(() => {
-        if (!tenant) return
-        const fetchData = async () => {
-            setLoading(true)
-            console.log('Fetching initialization data for ID:', id || 'NEW')
-
-            // Parallel fetch for catalogs and config
-            const [catRes, cyclesRes, schoolRes, profileSubjectsRes] = await Promise.all([
-                supabase.from('subject_catalog').select('*').order('name'),
-                supabase.from('academic_years').select('id, name, is_active').eq('tenant_id', tenant.id).order('name', { ascending: false }),
-                supabase.from('school_details').select('*').eq('tenant_id', tenant.id).maybeSingle(),
-                profile ? supabase.from('profile_subjects').select('*, subject_catalog(*)').eq('profile_id', profile.id) : Promise.resolve({ data: null })
-            ])
-
-            // 1. Process Subjects Catalog (Case-Insensitive Merge)
-            if (catRes.data) {
-                const uniqueSubjects = catRes.data.reduce((acc: any[], curr: any) => {
-                    const normalizedName = curr.name.toUpperCase()
-                    if (!acc.find(s => s.name.toUpperCase() === normalizedName)) {
-                        acc.push({ ...curr, name: normalizedName });
-                    }
-                    return acc
-                }, [])
-
-                const userSubjects = profileSubjectsRes.data?.map((ps: any) => ({
-                    ...ps.subject_catalog,
-                    id: ps.subject_catalog_id,
-                    custom_detail: ps.custom_detail,
-                    name: ps.subject_catalog?.name?.toUpperCase()
-                })) || []
-
-                const mergedSubjects = [...userSubjects]
-                uniqueSubjects.forEach(s => {
-                    const normalizedSName = s.name.toUpperCase()
-                    if (!mergedSubjects.find(us => us.name.toUpperCase() === normalizedSName)) {
-                        mergedSubjects.push({ ...s, name: normalizedSName })
-                    }
-                })
-                setSubjectsCatalog(mergedSubjects)
-            }
-
-            if (cyclesRes.data) setCycles(cyclesRes.data)
-
-            const isNew = !id || id === 'new' || id === 'undefined' || id.includes('undefined')
-            let finalDraftId = id || 'new'
-            let initialFormData = { ...formData }
-
-            if (isNew) {
-                // Pre-calculate server-side school fallbacks
-                const schoolDetails = schoolRes.data
-                const rawEducationalLevel = (schoolDetails?.educational_level || tenant.educationalLevel as string || '').toUpperCase()
-
-                let mappedLevel = 'SECUNDARIA' // Default
-                if (rawEducationalLevel.includes('TELE')) {
-                    mappedLevel = 'TELESECUNDARIA'
-                } else if (rawEducationalLevel.includes('SECUND') || rawEducationalLevel.includes('SECOND')) {
-                    mappedLevel = 'SECUNDARIA'
-                }
-
-                const activeCycle = cyclesRes.data?.find((c: any) => c.is_active)
-                const defaultCycle = activeCycle ? activeCycle.id : (cyclesRes.data && cyclesRes.data.length > 0 ? cyclesRes.data[0].id : '')
-
-                const [groupsRes, profilesRes] = await Promise.all([
-                    supabase.from('groups').select('grade, section, students(count)').eq('tenant_id', tenant.id),
-                    supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('tenant_id', tenant.id).eq('role', 'TEACHER')
-                ])
-
-                const groups = groupsRes.data || []
-                const teacherCount = profilesRes.count || 0
-                const totalStudents = groups.reduce((acc, g: any) => acc + (g.students?.[0]?.count || 0), 0)
-                const groupInfo = groups.map((g: any) => `${g.grade}°${g.section} (${g.students?.[0]?.count || 0})`).join(', ')
-
-                initialFormData = {
-                    ...initialFormData,
-                    academic_year_id: defaultCycle,
-                    school_data: {
-                        ...initialFormData.school_data,
-                        name: schoolDetails?.official_name || tenant.name || '',
-                        cct: schoolDetails?.cct || tenant.cct || '',
-                        level: mappedLevel,
-                        modality: schoolDetails?.educational_level?.toUpperCase() || initialFormData.school_data.modality,
-                        support: schoolDetails?.regime?.toUpperCase() || initialFormData.school_data.support,
-                        shift: schoolDetails?.shift === 'MORNING' ? 'MATUTINO' :
-                            schoolDetails?.shift === 'AFTERNOON' ? 'VESPERTINO' :
-                                schoolDetails?.shift === 'FULL_TIME' ? 'TIEMPO COMPLETO' :
-                                    initialFormData.school_data.shift,
-                        state: schoolDetails?.address_state || initialFormData.school_data.state,
-                        municipality: schoolDetails?.address_municipality || '',
-                        location: schoolDetails?.address_neighborhood || '',
-                        total_students: totalStudents.toString(),
-                        total_groups: groups.length.toString(),
-                        total_teachers: teacherCount.toString(),
-                        group_students_info: groupInfo
-                    }
-                }
-
-                // CHECK DRAFT FOR NEW
-                const localDraft = localStorage.getItem('ap_draft_new')
-                if (localDraft) {
-                    try {
-                        const parsed = JSON.parse(localDraft)
-                        initialFormData = {
-                            ...parsed.formData,
-                            academic_year_id: parsed.formData.academic_year_id || initialFormData.academic_year_id,
-                            school_data: {
-                                ...initialFormData.school_data, // Use fresh server data as base
-                                ...parsed.formData.school_data, // Merge with draft
-                                // Re-override Essentials if empty in draft
-                                name: parsed.formData.school_data.name || initialFormData.school_data.name,
-                                cct: parsed.formData.school_data.cct || initialFormData.school_data.cct,
-                                level: (parsed.formData.school_data.level && NIVELES_CATALOG.includes(parsed.formData.school_data.level))
-                                    ? parsed.formData.school_data.level
-                                    : initialFormData.school_data.level,
-                                modality: parsed.formData.school_data.modality || initialFormData.school_data.modality,
-                                support: parsed.formData.school_data.support || initialFormData.school_data.support,
-                                shift: parsed.formData.school_data.shift || initialFormData.school_data.shift,
-                                municipality: parsed.formData.school_data.municipality || initialFormData.school_data.municipality,
-                                location: parsed.formData.school_data.location || initialFormData.school_data.location
-                            }
+            // 2. Load from LocalStorage (Draft)
+            const savedDraft = localStorage.getItem(`analytical_program_draft_${id || 'new'}`)
+            if (savedDraft) {
+                try {
+                    const parsed = JSON.parse(savedDraft)
+                    // Merge with current initial state to avoid missing fields if schema changed
+                    setFormData(prev => ({
+                        ...prev,
+                        ...parsed.formData,
+                        diagnosis: { ...prev.diagnosis, ...parsed.formData?.diagnosis },
+                        school_data: { ...prev.school_data, ...parsed.formData?.school_data },
+                        // Ensure codesign_process exists even in old drafts
+                        codesign_process: {
+                            ...prev.codesign_process,
+                            ...(parsed.formData?.codesign_process || {})
                         }
-                        setStep(parsed.step || 1)
-                        console.log('NEW draft merged with server data correctly')
-                    } catch (e) {
-                        console.error('Draft parse error:', e)
-                    }
+                    }))
+                    setCurrentStep(parsed.currentStep || 1)
+                    if (parsed.suggestedContents) setSuggestedContents(parsed.suggestedContents)
+
+                } catch (e) {
+                    console.error('Error restoring draft', e)
                 }
-                setFormData(initialFormData)
-            } else {
-                // LOADING EXISTING
-                const [{ data: program }, { data: contents }] = await Promise.all([
-                    supabase.from('analytical_programs').select('*').eq('id', id).maybeSingle(),
-                    supabase.from('analytical_program_contents').select('*').eq('program_id', id)
-                ])
+            } else if (id && id !== 'new') {
+                // 3. Fetch from DB if no draft
+                const { data: program } = await supabase
+                    .from('analytical_programs')
+                    .select('*')
+                    .eq('id', id)
+                    .maybeSingle()
 
                 if (program) {
-                    const dbData = {
-                        ...formData,
-                        ...program,
-                        academic_year_id: program.academic_year_id || '',
-                        diagnosis_narrative: program.diagnosis_context || '', // Map diagnosis_context from DB to diagnosis_narrative for UI
-                        problems: program.problem_statements || [],
-                        contents: contents || [],
-                        status: program.status,
-                        school_data: program.school_data || formData.school_data,
-                        program_by_fields: program.program_by_fields || formData.program_by_fields
-                    }
-
-                    const localDraft = localStorage.getItem(`ap_draft_${id}`)
-                    if (localDraft) {
-                        try {
-                            const parsed = JSON.parse(localDraft)
-                            setFormData(parsed.formData)
-                            setStep(parsed.step || 1)
-                        } catch (e) {
-                            setFormData(dbData)
-                        }
-                    } else {
-                        setFormData(dbData)
-                    }
+                    const groupDiag = program.group_diagnosis || {}
+                    setFormData({
+                        school_data: program.school_data || DEFAULT_SCHOOL_DATA,
+                        diagnosis: {
+                            ...groupDiag,
+                            narrative_final: groupDiag.narrative_final || ''
+                        },
+                        problems: groupDiag.problem_situations || [],
+                        program_by_fields: program.program_by_fields || DEFAULT_FIELDS,
+                        codesign_process: groupDiag.codesign_process || DEFAULT_CODESIGN
+                    })
                 }
+            } else {
+                // 4. Default Fill for New
+                setFormData(prev => ({
+                    ...prev,
+                    school_data: {
+                        ...prev.school_data,
+                        name: tenant?.name || '',
+                        cct: tenant?.cct || '',
+                        level: (tenant?.educationalLevel as string) || prev.school_data.level,
+                    }
+                }))
             }
             setLoading(false)
         }
-        fetchData()
-    }, [tenant?.id, id])
+        init()
+    }, [id, tenant])
 
-    const cleanUuid = (id: any) => {
-        if (!id) return null
-        if (typeof id === 'string') {
-            if (id === 'undefined' || id === 'null' || id.trim() === '') return null
-        }
-        return id
-    }
-
-
-
-    const validateStep = (s: number) => {
-        const errors: string[] = []
-
-        if (s === 1) {
-            if (!formData.academic_year_id) errors.push('Ciclo Escolar')
-            if (!formData.school_data.name) errors.push('Nombre de la Escuela')
-            if (!formData.school_data.cct) errors.push('CCT')
-            if (!formData.school_data.level) errors.push('Nivel')
-            if (!formData.school_data.modality) errors.push('Modalidad')
-            if (!formData.school_data.support) errors.push('Sostenimiento')
-            if (!formData.school_data.shift) errors.push('Turno')
-            if (!formData.school_data.state) errors.push('Estado')
-            if (!formData.school_data.municipality) errors.push('Municipio')
-            if (!formData.school_data.location) errors.push('Localidad')
-            if (!formData.school_data.total_teachers) errors.push('No. Docentes')
-            if (!formData.school_data.group_students_info) errors.push('Alumnos del Grupo')
-
-            if (!formData.external_context.favors) errors.push('Contexto Externo (Favorecen)')
-            if (!formData.external_context.difficults) errors.push('Contexto Externo (Dificultan)')
-            if (!formData.internal_context.favors) errors.push('Contexto Interno (Favorecen)')
-            if (!formData.internal_context.difficults) errors.push('Contexto Interno (Dificultan)')
-        }
-
-        if (s === 2) {
-            if (!formData.group_diagnosis.narrative || formData.group_diagnosis.narrative.length < 50) {
-                errors.push('Narrativa Pedagógica (mínimo 50 caracteres)')
-            }
-            if (formData.group_diagnosis.problem_situations.filter(p => p.trim()).length === 0) {
-                errors.push('Al menos una Situación-Problema')
-            }
-            if (formData.group_diagnosis.interest_topics.filter(t => t.trim()).length === 0) {
-                errors.push('Al menos un Tema de Interés')
-            }
-        }
-
-        if (s === 3) {
-            if (formData.contents.length === 0) {
-                errors.push('Al menos un Contenido para la Contextualización')
-            } else {
-                formData.contents.forEach((c, i) => {
-                    if (!c.subject_id) errors.push(`Asignatura en el contenido ${i + 1} `)
-                    if (!c.campo_formativo) errors.push(`Campo Formativo en el contenido ${i + 1} `)
-                    if (!c.temporality) errors.push(`Temporalidad en el contenido ${i + 1} `)
-                    if (!c.custom_content) errors.push(`Contenido / Codiseño en el contenido ${i + 1} `)
-                })
-            }
-        }
-
-        if (s === 4) {
-            if (formData.pedagogical_strategies.length === 0) errors.push('Al menos una Metodología Sociocrítica')
-            if (formData.evaluation_strategies.instruments.length === 0) errors.push('Al menos un Instrumento de Evaluación')
-            if (!formData.evaluation_strategies.description) errors.push('Pautas para la retroalimentación')
-            if (formData.national_strategies.length === 0) {
-                errors.push('Al menos una Estrategia Nacional')
-            } else {
-                formData.national_strategies.forEach((s) => {
-                    if (!s.description) errors.push(`Descripción para la estrategia: ${s.name} `)
-                })
-            }
-        }
-
-        if (errors.length > 0) {
-            setErrorModal({
-                isOpen: true,
-                title: 'Campos Obligatorios Faltantes',
-                message: 'Para generar un Programa Analítico eficiente, por favor completa los siguientes campos:',
-                details: errors.join('\n • ')
-            })
-            return false
-        }
-
-        return true
-    }
-
-    const handleSave = async (redirect = true) => {
-        // Enforce validation on save too
-        for (let i = 1; i <= 4; i++) {
-            if (!validateStep(i)) {
-                setStep(i)
-                return null
-            }
-        }
-        if (profile?.is_demo) {
-            alert('Modo Demo: El guardado de programas analíticos está deshabilitado.')
-            return null
-        }
-        setSaving(true)
-        try {
-            let academicYearId = cleanUuid(formData.academic_year_id)
-            if (!academicYearId) {
-                // Try to find the active cycle if not selected
-                const { data: ayData } = await supabase
-                    .from('academic_years')
-                    .select('id')
-                    .eq('tenant_id', tenant?.id)
-                    .eq('is_active', true)
-                    .maybeSingle()
-
-                if (ayData) academicYearId = ayData.id
-            }
-
-            if (!academicYearId) {
-                throw new Error('Debes seleccionar un Ciclo Escolar válido para guardar el programa.')
-            }
-
-            const cleanTenantId = cleanUuid(tenant?.id)
-            if (!cleanTenantId) throw new Error('No se ha detectado una sesión válida. Recarga la página.')
-
-            const programData = {
-                tenant_id: cleanTenantId,
-                academic_year_id: academicYearId,
-                diagnosis_context: formData.group_diagnosis.narrative, // DB uses diagnosis_context, UI uses diagnosis_narrative
-                problem_statements: formData.group_diagnosis.problem_situations,
-                last_cte_session: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-                status: 'ACTIVE',
-                school_data: formData.school_data,
-                external_context: formData.external_context,
-                internal_context: formData.internal_context,
-                group_diagnosis: formData.group_diagnosis,
-                pedagogical_strategies: formData.pedagogical_strategies,
-                evaluation_strategies: formData.evaluation_strategies,
-                national_strategies: formData.national_strategies,
-                program_by_fields: (formData as any).program_by_fields,
-                source_document_url: (formData as any).source_document_url,
-                extracted_text: (formData as any).extracted_text
-            }
-
-            let programId = id
-
-            // Define isColumnError early to use in both branches
-            let isColumnError = false
-
-            // Safely handle 'undefined' string or null in URL params
-            const isNew = !id || id === 'new' || id === 'undefined' || id.includes('undefined')
-
-            if (isNew) {
-                const { data, error: insertError } = await supabase.from('analytical_programs').insert([programData]).select().single()
-
-                isColumnError = !!insertError && (insertError.code === 'PGRST204' || insertError.message?.includes('program_by_fields') || insertError.message?.includes('diagnosis_context'))
-
-                if (isColumnError) {
-                    console.warn('Fallback: inserting without experimental or renamed columns (INSERT)')
-                    const { program_by_fields, diagnosis_context, ...safeData } = programData
-                    const { data: retryData, error: retryError } = await supabase.from('analytical_programs').insert([safeData]).select().single()
-                    if (retryError) throw retryError
-                    programId = retryData.id
-                } else if (insertError) {
-                    throw insertError
-                } else {
-                    programId = data.id
-                }
-
-                window.history.replaceState(null, '', `/analytical-program/${programId}`)
-            } else {
-                const { error } = await supabase.from('analytical_programs').update(programData).eq('id', id)
-
-                isColumnError = !!error && (error.code === 'PGRST204' || error.message?.includes('program_by_fields') || error.message?.includes('diagnosis_context'))
-
-                if (isColumnError) {
-                    console.warn('Fallback: saving without experimental or renamed columns (UPDATE)')
-                    const { program_by_fields, ...safeData } = programData
-                    // Ensure diagnosis_context is used even in retry
-                    if (!safeData.diagnosis_context) safeData.diagnosis_context = formData.group_diagnosis.narrative
-
-                    const { error: retryError } = await supabase.from('analytical_programs').update(safeData).eq('id', id)
-                    if (retryError) throw retryError
-                } else if (error) {
-                    throw error
-                }
-            }
-
-            // Save contents sanitized
-            await supabase.from('analytical_program_contents').delete().eq('program_id', programId)
-
-            if (formData.contents.length > 0) {
-                const contentsToInsert = formData.contents.map(c => ({
-                    program_id: cleanUuid(programId), // Ensure programId is clean
-                    subject_id: cleanUuid(c.subject_id),
-                    campo_formativo: c.campo_formativo,
-                    content_id: cleanUuid(c.content_id),
-                    custom_content: c.custom_content,
-                    temporality: c.temporality || '',
-                    pda_ids: c.pda_ids || [],
-                    justification: c.justification || '',
-                    ejes_articuladores: c.ejes_articuladores || []
-                }))
-
-                const { error: contentError } = await supabase.from('analytical_program_contents').insert(contentsToInsert)
-                if (contentError) throw contentError
-            }
-
-            // Success: Clear Persistence
-            localStorage.removeItem(`ap_draft_${id || 'new'}`)
-            localStorage.removeItem(`ap_draft_${programId}`) // Also clear with the new real ID
-
-            if (redirect) navigate('/analytical-program')
-            return programId
-        } catch (error: any) {
-            console.error(error)
-            setErrorModal({
-                isOpen: true,
-                title: 'Error al Guardar',
-                message: 'No se pudo guardar el Programa Analítico.',
-                details: error.message || 'Verifica que hayas seleccionado un Ciclo Escolar.'
-            })
-            return null
-        } finally {
-            setSaving(false)
-        }
-    }
-
-
-
-
-
-    const [searchParams] = useSearchParams()
-    const isPrintViewFromUrl = searchParams.get('print') === 'true'
-    const [isPrintView, setIsPrintView] = useState(false)
-
+    // Save Draft on Change
     useEffect(() => {
-        setIsPrintView(isPrintViewFromUrl)
-    }, [isPrintViewFromUrl])
+        if (!loading) {
+            const draftState = {
+                formData,
+                currentStep,
+                suggestedContents
+            }
+            localStorage.setItem(`analytical_program_draft_${id || 'new'}`, JSON.stringify(draftState))
+        }
+    }, [formData, currentStep, suggestedContents, loading, id])
 
-    if (loading) return <div className="p-20 text-center animate-pulse text-gray-400 font-bold uppercase tracking-widest italic">Cargando editor inteligente...</div>
+    // --- Actions ---
 
-    if (isPrintView) {
+    const handleNext = () => {
+        if (currentStep < STEPS.length) setCurrentStep(c => c + 1)
+    }
+
+    const handleBack = () => {
+        if (currentStep > 1) setCurrentStep(c => c - 1)
+    }
+
+    const generateDiagnosisNarrative = async () => {
+        setIsGenerating(true)
+        try {
+            const prompt = `
+                Actúa como un experto pedagogo de la Nueva Escuela Mexicana (NEM).
+                Genera una narrativa diagnóstica socioeducativa (Primer Plano) coherente y profesional para la escuela "${formData.school_data.name}" (CCT: ${formData.school_data.cct}).
+                
+                Contexto proporcionado:
+                - Entorno Geográfico: ${formData.diagnosis.external_context.geo}
+                - Factores Sociales: ${formData.diagnosis.external_context.social}
+                - Factores Culturales: ${formData.diagnosis.external_context.cultural}
+                - Infraestructura: ${formData.diagnosis.internal_context.infrastructure}
+                - Características Alumnos: ${formData.diagnosis.internal_context.environment}
+
+                REGLAS DE REDACCIÓN:
+                1. Redacta en párrafos fluidos (3-5 párrafos).
+                2. Usa un lenguaje pedagógico crítico propio de la NEM.
+                3. Identifica cómo el contexto influye en el proceso de enseñanza-aprendizaje.
+                4. No uses viñetas ni listas.
+                5. Menciona explícitamente el nombre de la escuela si es posible.
+            `
+
+            const narrative = await groqService.generateContent(prompt)
+
+            setFormData(prev => ({
+                ...prev,
+                diagnosis: {
+                    ...prev.diagnosis,
+                    narrative_final: narrative || 'Error generando narrativa. Intenta de nuevo.'
+                }
+            }))
+        } catch (e) {
+            console.error(e)
+            alert('Error generando narrativa diagnóstica')
+        } finally {
+            setIsGenerating(false)
+        }
+    }
+
+
+    // --- Render Steps ---
+
+    const renderStep1 = () => (
+        <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+            <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                <h3 className="text-lg font-black text-gray-800 mb-6 uppercase tracking-wide">Datos de Identificación</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Nombre de la Escuela</label>
+                        <input
+                            value={formData.school_data.name}
+                            onChange={e => setFormData({ ...formData, school_data: { ...formData.school_data, name: e.target.value } })}
+                            className="w-full bg-gray-50 border-gray-200 rounded-xl px-4 py-3 font-bold text-gray-700"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">CCT</label>
+                        <input
+                            value={formData.school_data.cct}
+                            onChange={e => setFormData({ ...formData, school_data: { ...formData.school_data, cct: e.target.value } })}
+                            className="w-full bg-gray-50 border-gray-200 rounded-xl px-4 py-3 font-bold text-gray-700"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Zona Escolar</label>
+                        <input
+                            value={formData.school_data.zone}
+                            onChange={e => setFormData({ ...formData, school_data: { ...formData.school_data, zone: e.target.value } })}
+                            className="w-full bg-gray-50 border-gray-200 rounded-xl px-4 py-3 font-bold text-gray-700"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Sector</label>
+                        <input
+                            value={formData.school_data.sector}
+                            onChange={e => setFormData({ ...formData, school_data: { ...formData.school_data, sector: e.target.value } })}
+                            className="w-full bg-gray-50 border-gray-200 rounded-xl px-4 py-3 font-bold text-gray-700"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Municipio</label>
+                        <input
+                            value={formData.school_data.municipality}
+                            onChange={e => setFormData({ ...formData, school_data: { ...formData.school_data, municipality: e.target.value } })}
+                            className="w-full bg-gray-50 border-gray-200 rounded-xl px-4 py-3 font-bold text-gray-700"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Matrícula Total</label>
+                        <input
+                            value={formData.school_data.students_total}
+                            onChange={e => setFormData({ ...formData, school_data: { ...formData.school_data, students_total: e.target.value } })}
+                            className="w-full bg-gray-50 border-gray-200 rounded-xl px-4 py-3 font-bold text-gray-700"
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+
+    const handleAddCustom = (category: string, sub: string, inputKey: string) => {
+        // @ts-ignore
+        const val = customInputs[inputKey].trim()
+        if (!val) return
+        toggleOption(category, sub, val)
+        setCustomInputs(prev => ({ ...prev, [inputKey]: '' }))
+    }
+
+    const renderOptionGroup = (title: string, options: string[], category: string, sub: string, inputKey: string) => {
+        // @ts-ignore
+        const currentSelection = formData.diagnosis[category][sub].split(', ').filter(Boolean)
+        // Find selected items that are NOT in the default options (custom ones)
+        const customSelected = currentSelection.filter((s: string) => !options.includes(s))
+
         return (
-            <div className="bg-white p-12 max-w-5xl mx-auto print:p-0 text-gray-900">
-                {/* Header Impresión */}
-                <div className="border-2 border-black p-4 mb-8 bg-gray-50">
-                    <div className="flex justify-between items-center mb-4">
-                        <div className="w-24 h-24 flex items-center justify-center">
-                            {(tenant as any)?.logoLeftUrl && <img src={(tenant as any).logoLeftUrl} alt="Logo Izquierdo" className="max-w-full max-h-full object-contain" />}
+            <div>
+                <label className="text-xs font-bold text-gray-400 uppercase mb-3 block">{title}</label>
+                <div className="flex flex-wrap gap-2 mb-3">
+                    {/* Default Options */}
+                    {options.map(opt => (
+                        <button
+                            key={opt}
+                            onClick={() => toggleOption(category, sub, opt)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${currentSelection.includes(opt)
+                                ? 'bg-indigo-600 border-indigo-600 text-white shadow-md'
+                                : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                                }`}
+                        >
+                            {opt}
+                        </button>
+                    ))}
+                    {/* Render Custom Selected items as Chips */}
+                    {customSelected.map((opt: string) => (
+                        <button
+                            key={opt}
+                            onClick={() => toggleOption(category, sub, opt)}
+                            className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border bg-indigo-600 border-indigo-600 text-white shadow-md flex items-center gap-1"
+                        >
+                            {opt} <span className="opacity-50">×</span>
+                        </button>
+                    ))}
+                </div>
+                {/* Custom Input */}
+                <div className="flex items-center gap-2 max-w-sm">
+                    <input
+                        type="text"
+                        placeholder="Agregar otro..."
+                        className="flex-1 bg-gray-50 border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 outline-none"
+                        // @ts-ignore
+                        value={customInputs[inputKey]}
+                        // @ts-ignore
+                        onChange={(e) => setCustomInputs(prev => ({ ...prev, [inputKey]: e.target.value }))}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault()
+                                handleAddCustom(category, sub, inputKey)
+                            }
+                        }}
+                    />
+                    <button
+                        onClick={() => handleAddCustom(category, sub, inputKey)}
+                        className="bg-gray-200 hover:bg-gray-300 text-gray-600 rounded-lg p-1.5 transition-colors"
+                    >
+                        <Check className="w-4 h-4" />
+                    </button>
+                </div>
+            </div>
+        )
+    }
+
+    const renderStep2 = () => (
+        <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
+            <div className="bg-indigo-50 border border-indigo-100 p-6 rounded-3xl flex items-start gap-4">
+                <div className="p-3 bg-white rounded-xl shadow-sm">
+                    <Sparkles className="w-6 h-6 text-indigo-600" />
+                </div>
+                <div>
+                    <h3 className="text-sm font-black text-indigo-900 uppercase tracking-wide">Asistente de Diagnóstico IA</h3>
+                    <p className="text-sm text-indigo-700 mt-1">
+                        Selecciona o agrega las características de tu escuela. La IA usará estos datos para redactar el diagnóstico.
+                    </p>
+                </div>
+            </div>
+
+            {/* Contexto Externo */}
+            <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                <h3 className="text-lg font-black text-gray-800 mb-6 uppercase tracking-wide flex items-center">
+                    <BookOpen className="w-5 h-5 mr-2" /> 1. Contexto Externo
+                </h3>
+                <div className="space-y-8">
+                    {renderOptionGroup('Entorno Geográfico', CONTEXT_OPTIONS.geo, 'external_context', 'geo', 'geo')}
+                    {renderOptionGroup('Factores Sociales', CONTEXT_OPTIONS.social, 'external_context', 'social', 'social')}
+                    {renderOptionGroup('Factores Culturales', CONTEXT_OPTIONS.cultural, 'external_context', 'cultural', 'cultural')}
+                </div>
+            </div>
+
+            {/* Contexto Interno */}
+            <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                <h3 className="text-lg font-black text-gray-800 mb-6 uppercase tracking-wide flex items-center">
+                    <School className="w-5 h-5 mr-2" /> 2. Contexto Interno
+                </h3>
+                <div className="space-y-8">
+                    {renderOptionGroup('Infraestructura', INTERNAL_OPTIONS.infra, 'internal_context', 'infrastructure', 'infra')}
+                    {renderOptionGroup('Características Alumnos', INTERNAL_OPTIONS.academic, 'internal_context', 'environment', 'academic')}
+                </div>
+            </div>
+
+            {/* Generar Narrativa */}
+            <div className="flex justify-center pt-8">
+                <button
+                    onClick={generateDiagnosisNarrative}
+                    disabled={isGenerating}
+                    className="bg-gray-900 text-white px-10 py-5 rounded-3xl font-black uppercase tracking-widest shadow-2xl hover:scale-105 transition-all flex items-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed group"
+                >
+                    {isGenerating ? <Loader2 className="w-6 h-6 animate-spin" /> : <Sparkles className="w-6 h-6 text-yellow-400 group-hover:rotate-12 transition-transform" />}
+                    <span className="text-lg">Generar Diagnóstico IA</span>
+                </button>
+            </div>
+
+            {/* Resultado Narrativa - Editable */}
+            {formData.diagnosis.narrative_final && (
+                <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-xl animate-in zoom-in duration-300 ring-4 ring-yellow-50/50">
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-sm font-black text-gray-800 uppercase tracking-wide flex items-center">
+                            <CheckCircle2 className="w-5 h-5 mr-2 text-green-500" /> Diagnóstico Generado
+                        </h3>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase bg-gray-100 px-3 py-1 rounded-full">Editable</span>
+                    </div>
+                    <textarea
+                        className="w-full bg-gray-50 border-gray-100 rounded-xl p-6 text-sm leading-relaxed font-medium text-gray-700 focus:ring-2 focus:ring-indigo-500 min-h-[300px]"
+                        value={formData.diagnosis.narrative_final}
+                        onChange={e => setFormData({ ...formData, diagnosis: { ...formData.diagnosis, narrative_final: e.target.value } })}
+                    />
+                </div>
+            )}
+        </div>
+    )
+
+    // --- Step 3: Problemática ---
+    const PROBLEMS_CATALOG = [
+        'Bajo nivel de comprensión lectora y escritura',
+        'Dificultades en el pensamiento lógico-matemático',
+        'Violencia escolar y acoso (bullying)',
+        'Contaminación ambiental y falta de conciencia ecológica',
+        'Malos hábitos alimenticios y sedentarismo',
+        'Falta de identidad cultural y sentido de pertenencia',
+        'Uso irresponsable de redes sociales y tecnología'
+    ]
+
+    const handleGenerateLinkage = async () => {
+        setIsGenerating(true)
+        try {
+            const problems = formData.problems
+            if (problems.length === 0) return
+
+            const prompt = `
+                Actúa como un experto de la NEM.
+                Para las siguientes problemáticas, identifica para CADA UNA el Rasgo del Perfil de Egreso más relevante y los Ejes Articuladores que se vinculan directamente.
+
+                Problemáticas:
+                ${problems.map((p, i) => `${i + 1}. ${p.description}`).join('\n')}
+
+                Responde ÚNICAMENTE un objeto JSON con este formato:
+                {
+                    "linkages": [
+                        { 
+                            "description": "Texto exacto de la problemática",
+                            "trait_id": "Descripción corta del rasgo del perfil de egreso",
+                            "axes_ids": ["Eje 1", "Eje 2"]
+                        }
+                    ]
+                }
+
+                Ejes Articuladores válidos: Inclusión, Pensamiento Crítico, Interculturalidad crítica, Igualdad de género, Vida saludable, Apropiación de las culturas a través de la lectura y la escritura, Artes y experiencias estéticas.
+            `
+
+            const response = await groqService.generateContent(prompt, true)
+            const data = JSON.parse(response)
+
+            const updatedProblems = problems.map(prob => {
+                const match = (data.linkages || []).find((l: any) => l.description === prob.description)
+                return {
+                    ...prob,
+                    trait_id: match?.trait_id || prob.trait_id || 'Rasgo no identificado',
+                    axes_ids: match?.axes_ids || prob.axes_ids || []
+                }
+            })
+
+            setFormData(prev => ({ ...prev, problems: updatedProblems }))
+        } catch (e) {
+            console.error(e)
+            alert('Error vinculando problemáticas con NEM')
+        } finally {
+            setIsGenerating(false)
+        }
+    }
+
+    const toggleProblem = (prob: string) => {
+        setFormData(prev => {
+            const exists = prev.problems.some(p => p.description === prob)
+            if (exists) {
+                return { ...prev, problems: prev.problems.filter(p => p.description !== prob) }
+            } else {
+                return { ...prev, problems: [...prev.problems, { id: Date.now(), description: prob }] }
+            }
+        })
+    }
+
+    const renderStep3 = () => (
+        <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
+            <div className="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-lg text-center">
+                <div className="w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                    <Target className="w-8 h-8 text-rose-500" />
+                </div>
+                <h2 className="text-2xl font-black text-gray-900 mb-2">Selecciona las Problemáticas</h2>
+                <p className="text-gray-500 max-w-lg mx-auto mb-8">Elige una o más situaciones prioritarias (se recomiendan 2 o 3). La IA las vinculará con el Perfil de Egreso y los Ejes Articuladores.</p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left max-w-4xl mx-auto">
+                    {PROBLEMS_CATALOG.map((prob, idx) => {
+                        const isSelected = formData.problems.some(p => p.description === prob)
+                        return (
+                            <button
+                                key={idx}
+                                onClick={() => toggleProblem(prob)}
+                                className={`p-6 rounded-2xl border-2 transition-all flex items-center ${isSelected
+                                    ? 'bg-rose-50 border-rose-500 shadow-xl shadow-rose-100 scale-105'
+                                    : 'bg-white border-gray-100 hover:border-gray-200 text-gray-600'
+                                    }`}
+                            >
+                                <div className={`w-6 h-6 rounded-full border-2 mr-4 flex items-center justify-center ${isSelected ? 'border-rose-500 bg-rose-500' : 'border-gray-300'
+                                    }`}>
+                                    {isSelected && <Check className="w-4 h-4 text-white" />}
+                                </div>
+                                <span className={`font-bold text-sm ${isSelected ? 'text-rose-900' : 'text-gray-600'
+                                    }`}>{prob}</span>
+                            </button>
+                        )
+                    })}
+                </div>
+
+                {/* Custom Problem */}
+                <div className="max-w-4xl mx-auto mt-6 flex gap-2">
+                    <input
+                        id="custom-problem-input"
+                        placeholder="O escribe otra problemática personalizada..."
+                        className="flex-1 text-center bg-gray-50 border-transparent rounded-2xl py-4 font-bold text-gray-600 focus:bg-white focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-all"
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                toggleProblem((e.target as HTMLInputElement).value)
+                                // @ts-ignore
+                                e.target.value = ''
+                            }
+                        }}
+                    />
+                    <button
+                        onClick={() => {
+                            const input = document.getElementById('custom-problem-input') as HTMLInputElement
+                            if (input.value) {
+                                toggleProblem(input.value)
+                                input.value = ''
+                            }
+                        }}
+                        className="bg-rose-500 text-white px-6 rounded-2xl font-bold uppercase text-xs"
+                    >
+                        Agregar
+                    </button>
+                </div>
+            </div>
+
+            {/* Auto-Linkage Section */}
+            {formData.problems.length > 0 && formData.problems.some(p => !p.trait_id) && (
+                <div className="flex justify-center">
+                    <button
+                        onClick={handleGenerateLinkage}
+                        disabled={isGenerating}
+                        className="bg-gray-900 text-white px-8 py-4 rounded-full font-black uppercase tracking-widest shadow-xl hover:scale-105 transition-all flex items-center gap-3"
+                    >
+                        {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5 text-yellow-400" />}
+                        Vincular con NEM (IA)
+                    </button>
+                </div>
+            )}
+
+            {/* Linkage Result */}
+            {formData.problems.length > 0 && formData.problems.every(p => p.trait_id) && (
+                <div className="space-y-6">
+                    <div className="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-[2.5rem] p-10 text-white shadow-2xl animate-in fade-in slide-in-from-bottom-8">
+                        <div className="flex items-center gap-4 mb-8 border-b border-white/10 pb-6">
+                            <Sparkles className="w-8 h-8 text-yellow-400" />
+                            <div>
+                                <h3 className="text-xl font-black">Vinculación Metodológica Generada</h3>
+                                <p className="text-indigo-200 text-sm font-medium">La IA ha conectado tus problemáticas con el currículo oficial.</p>
+                            </div>
                         </div>
-                        <div className="text-center flex-1 px-4">
-                            <h1 className="text-2xl font-black uppercase mb-1 leading-tight">Programa Analítico (NEM)</h1>
-                            <p className="text-sm font-bold uppercase tracking-widest">
-                                {formData.school_data.name || tenant?.name} • {cycles.find(c => c.id === formData.academic_year_id)?.name || 'Ciclo Escolar'}
-                            </p>
-                        </div>
-                        <div className="w-24 h-24 flex items-center justify-center">
-                            {(tenant as any)?.logoRightUrl && <img src={(tenant as any).logoRightUrl} alt="Logo Derecho" className="max-w-full max-h-full object-contain" />}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            {formData.problems.map((prob, idx) => (
+                                <div key={idx} className="bg-white/10 p-8 rounded-3xl backdrop-blur-sm border border-white/5">
+                                    <span className="text-indigo-300 text-[10px] font-black uppercase tracking-widest block mb-3">Problemática {idx + 1}</span>
+                                    <p className="font-bold text-lg leading-tight mb-6">{prob.description}</p>
+
+                                    <div className="space-y-4 pt-4 border-t border-white/10">
+                                        <div>
+                                            <span className="text-indigo-300 text-[10px] font-black uppercase tracking-widest block mb-2">Rasgo Perfil de Egreso</span>
+                                            <p className="text-sm font-medium leading-relaxed">{prob.trait_id}</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-indigo-300 text-[10px] font-black uppercase tracking-widest block mb-2">Ejes Articuladores</span>
+                                            <div className="flex flex-wrap gap-2">
+                                                {prob.axes_ids?.map((axis: string) => (
+                                                    <span key={axis} className="bg-indigo-500/50 px-3 py-1 rounded-lg text-xs font-bold border border-indigo-400/30">{axis}</span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
-                    <div className="flex justify-center space-x-8 mt-2 text-[10px] font-black uppercase text-gray-500 border-t border-gray-300 pt-2">
-                        <span>CCT: {formData.school_data.cct}</span>
-                        <span>Grados: {formData.school_data.grades}</span>
-                        <span>Turno: {formData.school_data.shift}</span>
+                </div>
+            )}
+        </div>
+    )
+
+    const handleSuggestContents = async () => {
+        setIsGenerating(true)
+        try {
+            const level = formData.school_data.level || 'Secundaria'
+            const problemsString = formData.problems.map(p => p.description).join('; ') || 'General'
+
+            // Limit catalog to avoid token limits, but keep relevant items
+            // In a real app we'd filter by keywords, here we take a sample + top matches if possible
+            const catalogSample = syntheticCatalog.slice(0, 30).map(c => ({
+                id: c.id,
+                content: c.content,
+                field: c.field_of_study
+            }))
+
+            const prompt = `
+                Actúa como un experto pedagogo de la NEM.
+                Para el nivel ${level} y las problemáticas siguientes: "${problemsString}", selecciona los 6 contenidos del Programa Sintético más pertinentes de la siguiente lista:
+
+                ${JSON.stringify(catalogSample)}
+
+                Para cada contenido seleccionado, propón un PDA (Proceso de Desarrollo de Aprendizaje) breve y contextualizado.
+
+                Responde ÚNICAMENTE un objeto JSON con este formato:
+                {
+                    "selected": [
+                        { "id": "ID_DEL_CONTENIDO", "pda": "Texto del PDA contextualizado" }
+                    ]
+                }
+            `
+
+            const response = await groqService.generateContent(prompt, true)
+            const data = JSON.parse(response)
+
+            const suggested = (data.selected || []).map((sel: any) => {
+                const original = syntheticCatalog.find(c => c.id === sel.id)
+                if (!original) return null
+                return {
+                    ...original,
+                    selected: true,
+                    pda: sel.pda || original.pda_grade_1 || 'PDA no generado'
+                }
+            }).filter(Boolean)
+
+            setSuggestedContents(suggested)
+        } catch (e) {
+            console.error(e)
+            alert('Error sugiriendo contenidos con IA')
+        } finally {
+            setIsGenerating(false)
+        }
+    }
+
+    const renderStep4 = () => {
+        const grouped = suggestedContents.reduce((acc: any, curr) => {
+            const field = curr.field_of_study || 'Otros'
+            if (!acc[field]) acc[field] = []
+            acc[field].push(curr)
+            return acc
+        }, {})
+
+        return (
+            <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
+                <div className="bg-indigo-50 border border-indigo-100 p-6 rounded-3xl flex items-start gap-4">
+                    <div className="p-3 bg-white rounded-xl shadow-sm">
+                        <Users className="w-6 h-6 text-indigo-600" />
+                    </div>
+                    <div>
+                        <h3 className="text-sm font-black text-indigo-900 uppercase tracking-wide">Segundo Plano: Contextualización</h3>
+                        <p className="text-sm text-indigo-700 mt-1">
+                            La IA analizará el Programa Sintético y seleccionará los contenidos que mejor atiendan tus problemáticas: <strong>"{formData.problems.map(p => p.description).join(', ')}"</strong>.
+                        </p>
                     </div>
                 </div>
 
-                {/* 1. Contexto Socioeducativo */}
-                <section className="mb-10 page-break-after-avoid">
-                    <h2 className="text-sm font-black bg-black text-white px-4 py-2 uppercase mb-4">1. Contexto Socioeducativo de la Escuela</h2>
-
-                    <div className="grid grid-cols-2 gap-px bg-black border border-black text-[10px] mb-6">
-                        <div className="bg-white p-2"><strong>Nombre:</strong> {formData.school_data.name}</div>
-                        <div className="bg-white p-2"><strong>CCT:</strong> {formData.school_data.cct}</div>
-                        <div className="bg-white p-2"><strong>Nivel:</strong> {formData.school_data.level}</div>
-                        <div className="bg-white p-2"><strong>Modalidad:</strong> {formData.school_data.modality}</div>
-                        <div className="bg-white p-2"><strong>Sostenimiento:</strong> {formData.school_data.support}</div>
-                        <div className="bg-white p-2"><strong>Grados:</strong> {formData.school_data.grades}</div>
-                        <div className="bg-white p-2"><strong>Turno:</strong> {formData.school_data.shift}</div>
-                        <div className="bg-white p-2"><strong>Estado:</strong> {formData.school_data.state}</div>
-                        <div className="bg-white p-2"><strong>Municipio:</strong> {formData.school_data.municipality}</div>
-                        <div className="bg-white p-2"><strong>Localidad:</strong> {formData.school_data.location}</div>
-                        <div className="bg-white p-2"><strong>Docentes:</strong> {formData.school_data.total_teachers}</div>
-                        <div className="bg-white p-2"><strong>Alumnos del grupo:</strong> {formData.school_data.group_students_info}</div>
+                {suggestedContents.length === 0 ? (
+                    <div className="flex justify-center py-10">
+                        <button
+                            onClick={handleSuggestContents}
+                            disabled={isGenerating}
+                            className="bg-gray-900 text-white px-10 py-5 rounded-3xl font-black uppercase tracking-widest shadow-2xl hover:scale-105 transition-all flex items-center gap-4 group"
+                        >
+                            {isGenerating ? <Loader2 className="w-6 h-6 animate-spin" /> : <Sparkles className="w-6 h-6 text-yellow-400 group-hover:rotate-12 transition-transform" />}
+                            <span className="text-lg">Sugerir Contenidos (IA)</span>
+                        </button>
                     </div>
-
-                    <h3 className="text-[11px] font-black uppercase mb-3 text-gray-700">1.2 Análisis del Contexto Externo</h3>
-                    <div className="grid grid-cols-2 gap-6 mb-6">
-                        <div className="border border-gray-200 p-4 rounded-lg bg-green-50/20">
-                            <h4 className="text-[9px] font-black uppercase text-green-700 mb-2">Favorecen el Aprendizaje</h4>
-                            <p className="text-[10px] leading-relaxed whitespace-pre-wrap">{formData.external_context.favors}</p>
-                        </div>
-                        <div className="border border-gray-200 p-4 rounded-lg bg-rose-50/20">
-                            <h4 className="text-[9px] font-black uppercase text-rose-700 mb-2">Dificultan el Aprendizaje</h4>
-                            <p className="text-[10px] leading-relaxed whitespace-pre-wrap">{formData.external_context.difficults}</p>
-                        </div>
+                ) : (
+                    <div className="grid grid-cols-1 gap-6">
+                        {Object.entries(grouped).map(([field, contents]: any) => (
+                            <div key={field} className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
+                                <div className="bg-gray-50 px-8 py-4 border-b border-gray-100">
+                                    <h4 className="font-black text-gray-700 uppercase tracking-wide text-sm">{field}</h4>
+                                </div>
+                                <div className="p-4 space-y-2">
+                                    {contents.map((content: any) => (
+                                        <label key={content.id} className="flex items-start gap-4 p-4 rounded-xl hover:bg-gray-50 transition-all cursor-pointer group">
+                                            <input
+                                                type="checkbox"
+                                                checked={content.selected}
+                                                onChange={() => {
+                                                    const newSugg = suggestedContents.map(c => c.id === content.id ? { ...c, selected: !c.selected } : c)
+                                                    setSuggestedContents(newSugg)
+                                                }}
+                                                className="mt-1 w-5 h-5 rounded-md border-gray-300 text-indigo-600 focus:ring-indigo-500 transition-all"
+                                            />
+                                            <div className="flex-1">
+                                                <p className="font-bold text-gray-800 text-sm mb-1">{content.content}</p>
+                                                <p className="text-xs text-gray-400 font-medium line-clamp-2">{content.pda_grade_1 || content.pda_grade_2 || content.pda_grade_3}</p>
+                                            </div>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
                     </div>
+                )}
+            </div>
+        )
+    }
 
-                    <h3 className="text-[11px] font-black uppercase mb-3 text-gray-700">1.3 Análisis del Contexto Interno</h3>
-                    <div className="grid grid-cols-2 gap-6 mb-6">
-                        <div className="border border-gray-200 p-4 rounded-lg bg-green-50/20">
-                            <h4 className="text-[9px] font-black uppercase text-green-700 mb-2">Favorecen el Aprendizaje</h4>
-                            <p className="text-[10px] leading-relaxed whitespace-pre-wrap">{formData.internal_context.favors}</p>
-                        </div>
-                        <div className="border border-gray-200 p-4 rounded-lg bg-rose-50/20">
-                            <h4 className="text-[9px] font-black uppercase text-rose-700 mb-2">Dificultan el Aprendizaje</h4>
-                            <p className="text-[10px] leading-relaxed whitespace-pre-wrap">{formData.internal_context.difficults}</p>
-                        </div>
+    // --- Step 5: Codiseño ---
+    const handleGenerateDidactic = async () => {
+        setIsGenerating(true)
+        try {
+            const selected = suggestedContents.filter(c => c.selected)
+            if (selected.length === 0) return
+
+            const problemsString = formData.problems.map(p => p.description).join('; ')
+
+            const prompt = `
+                Actúa como un experto de la NEM.
+                Para los siguientes contenidos y las problemáticas: "${problemsString}", genera una propuesta didáctica técnica (Tercer Plano).
+                
+                Contenidos:
+                ${selected.map(c => `- ${c.content} (PDA: ${c.pda})`).join('\n')}
+
+                Para cada contenido, define:
+                1. Metodología sugerida (ABP, STEAM, Aprendizaje de Servicio, etc.)
+                2. Sugerencia de evaluación formativa.
+                3. Temporalidad (ej. 2 semanas).
+
+                Responde ÚNICAMENTE un objeto JSON con este formato:
+                {
+                    "proposals": [
+                        {
+                            "contentId": "ID_DEL_CONTENIDO",
+                            "methodology": "Nombre de la metodología",
+                            "evaluation": "Sugerencia de evaluación",
+                            "timeframe": "Temporalidad"
+                        }
+                    ]
+                }
+            `
+
+            const response = await groqService.generateContent(prompt, true)
+            const data = JSON.parse(response)
+
+            const newProgramByFields = { ...formData.program_by_fields }
+
+            selected.forEach(item => {
+                const proposal = (data.proposals || []).find((p: any) => p.contentId === item.id)
+                const field = item.field_of_study || 'Otros'
+
+                // @ts-ignore
+                if (!newProgramByFields[field]) newProgramByFields[field] = []
+
+                // @ts-ignore
+                const existingIndex = newProgramByFields[field].findIndex(x => x.contentId === item.id)
+
+                const fieldData = {
+                    contentId: item.id,
+                    contentName: item.content,
+                    pda_grade_1: item.pda, // Usamos el PDA sugerido en el paso anterior
+                    pda_grade_2: item.pda,
+                    pda_grade_3: item.pda,
+                    methodology: proposal?.methodology || 'Aprendizaje Basado en Proyectos (ABP)',
+                    evaluation: proposal?.evaluation || 'Evaluación formativa continua.',
+                    timeframe: proposal?.timeframe || '2 semanas'
+                }
+
+                if (existingIndex >= 0) {
+                    // @ts-ignore
+                    newProgramByFields[field][existingIndex] = fieldData
+                } else {
+                    // @ts-ignore
+                    newProgramByFields[field].push(fieldData)
+                }
+            })
+
+            setFormData(prev => ({ ...prev, program_by_fields: newProgramByFields }))
+        } catch (e) {
+            console.error(e)
+            alert('Error generando diseño didáctico con IA')
+        } finally {
+            setIsGenerating(false)
+        }
+    }
+
+    // --- Step 5: Proceso de Codiseño ---
+    const handleGenerateCodesign = async () => {
+        setIsGenerating(true)
+        try {
+            const problems = formData.problems.map(p => p.description).join('; ') || 'Problemática no definida'
+            const userNotes = formData.codesign_process?.dialogue_notes || ''
+
+            const prompt = `
+                Actúa como un experto pedagogo de la Nueva Escuela Mexicana (NEM). 
+                Genera el contenido para el "Proceso de Codiseño" del Programa Analítico.
+                
+                Problemáticas seleccionadas: "${problems}"
+                Notas del colectivo docente: "${userNotes || 'No hay notas previas, propón tú el inicio del diálogo.'}"
+                
+                Debes generar:
+                1. Un diálogo de 3 turnos (Director y 2 docentes) que refleje la discusión colectiva. SI HAY NOTAS DEL USUARIO, ÚSALAS COMO BASE Y MEJORA SU REDACCIÓN PEDAGÓGICA. Si no hay notas, propón un diálogo realista de planeación.
+                2. Una fila para la tabla de problematización técnica.
+                3. 3 preguntas reflexivas para el colectivo.
+                4. 2 notas finales para el colectivo.
+
+                Estructura de respuesta requerida (JSON estricto):
+                {
+                    "dialogue": [
+                        { "role": "Director", "name": "Director(a)", "content": "..." },
+                        { "role": "Docente", "name": "Mtra. Ruth", "content": "..." },
+                        { "role": "Docente", "name": "Mtro. Antonio", "content": "..." }
+                    ],
+                    "problematization_table": [
+                        {
+                            "synthesis_info": "Descripción técnica del programa sintético",
+                            "missing_info": "Qué hace falta contextualizar",
+                            "certainties": "Problemas o certezas identificadas",
+                            "causes": "Causas y consecuencias",
+                            "learning_goal": "Objetivo de aprendizaje comunitario"
+                        }
+                    ],
+                    "reflexive_questions": ["Pregunta 1", "Pregunta 2", "Pregunta 3"],
+                    "collective_notes": ["Nota 1", "Nota 2"]
+                }
+            `
+
+            const responseText = await groqService.generateContent(prompt, true)
+            const data = JSON.parse(responseText)
+
+            setFormData(prev => ({
+                ...prev,
+                codesign_process: {
+                    ...prev.codesign_process,
+                    dialogue: data.dialogue || [],
+                    problematization_table: data.problematization_table || [],
+                    reflexive_questions: data.reflexive_questions || [],
+                    collective_notes: data.collective_notes || []
+                }
+            }))
+        } catch (e) {
+            console.error(e)
+            alert('Error generando proceso de codiseño con IA. Por favor verifica tu conexión o API Key.')
+        } finally {
+            setIsGenerating(false)
+        }
+    }
+
+    const renderStep5_Process = () => {
+        const hasProcess = formData.codesign_process?.dialogue?.length > 0
+
+        return (
+            <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
+                <div className="bg-indigo-50 border border-indigo-100 p-6 rounded-3xl flex items-start gap-4">
+                    <div className="p-3 bg-white rounded-xl shadow-sm">
+                        <Users className="w-6 h-6 text-indigo-600" />
                     </div>
-                </section>
-
-                {/* 2. Diagnóstico del Grupo */}
-                <section className="mb-10 page-break-after-avoid">
-                    <h2 className="text-sm font-black bg-black text-white px-4 py-2 uppercase mb-4">2. Diagnóstico del Grupo</h2>
-                    <div className="border-l-4 border-gray-200 pl-4 py-2 mb-6">
-                        <p className="text-[11px] leading-relaxed italic text-gray-700 whitespace-pre-wrap">{formData.group_diagnosis.narrative}</p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-8">
-                        <div>
-                            <h3 className="text-[10px] font-black uppercase mb-3 flex items-center">
-                                <span className="w-1.5 h-1.5 bg-rose-500 rounded-full mr-2"></span>
-                                Situaciones-problema
-                            </h3>
-                            <ul className="space-y-2">
-                                {formData.group_diagnosis.problem_situations.map((p, i) => (
-                                    <li key={i} className="text-[10px] p-2 bg-gray-50 border border-gray-100 rounded-md">• {p}</li>
-                                ))}
-                            </ul>
-                        </div>
-                        <div>
-                            <h3 className="text-[10px] font-black uppercase mb-3 flex items-center">
-                                <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full mr-2"></span>
-                                Temas de interés
-                            </h3>
-                            <ul className="space-y-2">
-                                {formData.group_diagnosis.interest_topics.map((t, i) => (
-                                    <li key={i} className="text-[10px] p-2 bg-gray-50 border border-gray-100 rounded-md">• {t}</li>
-                                ))}
-                            </ul>
-                        </div>
-                    </div>
-                </section>
-
-                {/* 3. Propuesta Didáctica (Fase 6) - Generado por IA */}
-                <section className="mb-10 page-break-after-avoid">
-                    <h2 className="text-sm font-black bg-black text-white px-4 py-2 uppercase mb-4">3. Propuesta Didáctica (Fase {currentPhase})</h2>
-
-                    {Object.keys(formData.program_by_fields).some(k => formData.program_by_fields[k as keyof typeof formData.program_by_fields].length > 0) ? (
-                        <div className="space-y-8">
-                            {CAMPOS.map(campo => {
-                                const items = formData.program_by_fields[campo.id as keyof typeof formData.program_by_fields] || []
-                                if (items.length === 0) return null
-
-                                return (
-                                    <div key={campo.id} className="avoid-break-inside">
-                                        <h3 className={`text-[10px] font-black uppercase p-2 border-l-4 mb-2 ${campo.color}`}>{campo.name}</h3>
-                                        <table className="w-full border-collapse border border-gray-300">
-                                            <thead>
-                                                <tr className="bg-gray-100 text-[9px] uppercase font-black">
-                                                    <th className="border border-gray-300 p-1.5 text-left w-1/5">Contenidos (Sintético)</th>
-                                                    <th className="border border-gray-300 p-1.5 text-left w-1/4">Procesos de Desarrollo de Aprendizaje (PDA)</th>
-                                                    <th className="border border-gray-300 p-1.5 text-left w-1/6">Problemática / Interés</th>
-                                                    <th className="border border-gray-300 p-1.5 text-left w-1/6">Ejes Articuladores</th>
-                                                    <th className="border border-gray-300 p-1.5 text-left">Orientaciones Didácticas</th>
-                                                    <th className="border border-gray-300 p-1.5 text-center w-12">Días</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="text-[9px]">
-                                                {items.map((item: any, idx: number) => (
-                                                    <tr key={idx}>
-                                                        <td className="border border-gray-300 p-2 align-top">
-                                                            {typeof item.content === 'object' ? JSON.stringify(item.content) : (item.content || 'Sin contenido')}
-                                                        </td>
-                                                        <td className="border border-gray-300 p-2 align-top italic text-gray-700">
-                                                            {typeof item.pda === 'object' ? JSON.stringify(item.pda) : (item.pda || '')}
-                                                        </td>
-                                                        <td className="border border-gray-300 p-2 align-top text-red-700 font-bold">
-                                                            {typeof item.problem === 'object' ? JSON.stringify(item.problem) : (item.problem || '')}
-                                                        </td>
-                                                        <td className="border border-gray-300 p-2 align-top">
-                                                            <div className="flex flex-wrap gap-1">
-                                                                {Array.isArray(item.axes) ? item.axes.map((ax: any, i: number) => (
-                                                                    <span key={i} className="inline-block bg-gray-50 border border-gray-200 px-1 rounded">
-                                                                        {typeof ax === 'object' ? JSON.stringify(ax) : ax}
-                                                                    </span>
-                                                                )) : <span className="text-gray-400 italic">No asignados</span>}
-                                                            </div>
-                                                        </td>
-                                                        <td className="border border-gray-300 p-2 align-top text-gray-600">
-                                                            {typeof item.guidelines === 'object' ? JSON.stringify(item.guidelines) : (item.guidelines || '')}
-                                                        </td>
-                                                        <td className="border border-gray-300 p-2 align-top text-center font-black">{item.duration || '10'}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    ) : (
-                        <p className="text-[10px] text-gray-400 italic text-center p-4 border border-dashed border-gray-300 rounded">
-                            No se ha generado una propuesta estructurada con IA para esta sección.
+                    <div>
+                        <h3 className="text-sm font-black text-indigo-900 uppercase tracking-wide">Paso 5: Proceso de Codiseño</h3>
+                        <p className="text-sm text-indigo-700 mt-1">
+                            Reflejamos el trabajo colectivo del CTE. La IA simulará el diálogo y la problematización basada en tu diagnóstico.
                         </p>
-                    )}
-                </section>
+                    </div>
+                </div>
 
-                {/* 4. Contextualización y Codiseño (Manual) */}
-                <section className="mb-10">
-                    <h2 className="text-sm font-black bg-black text-white px-4 py-2 uppercase mb-4">4. Contextualización y Codiseño (Adicional)</h2>
-                    {CAMPOS.map(campo => {
-                        const campoContents = formData.contents.filter(c => c.campo_formativo === campo.name)
-                        if (campoContents.length === 0) return null
-                        return (
-                            <div key={campo.id} className="mb-6 last:mb-0">
-                                <h3 className={`text-[10px] font-black uppercase p-2 border-l-4 mb-2 ${campo.color}`}>{campo.name}</h3>
-                                <table className="w-full border-collapse border border-gray-300">
+                {!hasProcess ? (
+                    <div className="space-y-6 max-w-2xl mx-auto">
+                        <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                            <label className="block text-sm font-black text-gray-400 uppercase tracking-widest mb-4">Notas previas del colectivo (Opcional)</label>
+                            <textarea
+                                placeholder="Describe brevemente con tus palabras qué se discutió, qué dudas surgieron o qué acuerdos preliminares tomaron..."
+                                className="w-full bg-gray-50 border-transparent rounded-2xl p-4 text-sm font-medium text-gray-700 min-h-[120px] focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all"
+                                value={formData.codesign_process?.dialogue_notes || ''}
+                                onChange={e => setFormData({
+                                    ...formData,
+                                    codesign_process: { ...formData.codesign_process, dialogue_notes: e.target.value }
+                                })}
+                            />
+                            <p className="mt-4 text-xs text-gray-400 italic">
+                                La IA usará tus palabras para redactar un diálogo más realista y fiel a tu realidad escolar.
+                            </p>
+                        </div>
+                        <div className="flex justify-center py-4">
+                            <button
+                                onClick={handleGenerateCodesign}
+                                disabled={isGenerating}
+                                className="bg-gray-900 text-white px-10 py-5 rounded-3xl font-black uppercase tracking-widest shadow-2xl hover:scale-105 transition-all flex items-center gap-4 group"
+                            >
+                                {isGenerating ? <Loader2 className="w-6 h-6 animate-spin" /> : <Sparkles className="w-6 h-6 text-yellow-400" />}
+                                <span className="text-lg">Mejorar Redacción y Generar Diálogo (IA)</span>
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="space-y-10">
+                        {/* Diálogo Colectivo */}
+                        <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm relative group">
+                            <button
+                                onClick={() => setFormData({ ...formData, codesign_process: { ...formData.codesign_process, dialogue: [] } })}
+                                className="absolute top-6 right-8 text-[10px] font-bold text-gray-400 uppercase hover:text-rose-500 transition-colors flex items-center gap-1 opacity-0 group-hover:opacity-100"
+                            >
+                                <RotateCcw className="w-3 h-3" /> Reiniciar y Editar Notas
+                            </button>
+                            <h4 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-6 border-b pb-4">Diálogo del Colectivo Docente</h4>
+                            <div className="space-y-6">
+                                {formData.codesign_process?.dialogue?.map((chat, idx) => (
+                                    <div key={idx} className={`flex gap-4 ${chat.role === 'Director' ? 'flex-row' : 'flex-row-reverse'}`}>
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-xs shrink-0 ${chat.role === 'Director' ? 'bg-indigo-600 text-white' : 'bg-rose-100 text-rose-600'}`}>
+                                            {chat.name[0]}
+                                        </div>
+                                        <div className={`p-4 rounded-2xl text-sm max-w-[80%] ${chat.role === 'Director' ? 'bg-indigo-50 text-indigo-900' : 'bg-gray-50 text-gray-700'}`}>
+                                            <span className="block font-black text-[10px] uppercase opacity-50 mb-1">{chat.name}</span>
+                                            {chat.content}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Tabla de Problematización */}
+                        <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-lg overflow-hidden">
+                            <div className="bg-gray-900 px-8 py-5">
+                                <h4 className="font-black text-white uppercase tracking-widest text-sm">Tabla de Problematización</h4>
+                            </div>
+                            <div className="p-6 overflow-x-auto">
+                                <table className="w-full text-xs text-left border-collapse">
                                     <thead>
-                                        <tr className="bg-gray-100 text-[9px] uppercase font-black">
-                                            <th className="border border-gray-300 p-2 text-left w-1/4">Disciplina</th>
-                                            <th className="border border-gray-300 p-2 text-left">Contenido Contextualizado / Codiseño</th>
-                                            <th className="border border-gray-300 p-2 text-center w-24">Tiempo</th>
+                                        <tr className="border-b border-gray-100">
+                                            <th className="pb-4 font-black text-gray-400 uppercase w-1/5 pr-4">¿Qué hay en el P. Sintético?</th>
+                                            <th className="pb-4 font-black text-gray-400 uppercase w-1/5 px-4">¿Qué NO hay / Falta?</th>
+                                            <th className="pb-4 font-black text-gray-400 uppercase w-1/5 px-4">Certezas / Problemas</th>
+                                            <th className="pb-4 font-black text-gray-400 uppercase w-1/5 px-4">Causas / Consecuencias</th>
+                                            <th className="pb-4 font-black text-gray-400 uppercase w-1/5 pl-4">¿Qué queremos logar?</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="text-[10px]">
-                                        {campoContents.map((c, i) => (
-                                            <tr key={i}>
-                                                <td className="border border-gray-300 p-2 font-bold">{subjectsCatalog.find(s => s.id === c.subject_id)?.name || 'Materia'}</td>
-                                                <td className="border border-gray-300 p-2 italic leading-relaxed text-gray-700">{c.custom_content}</td>
-                                                <td className="border border-gray-300 p-2 text-center font-black uppercase">{c.temporality}</td>
+                                    <tbody className="divide-y divide-gray-50">
+                                        {formData.codesign_process?.problematization_table?.map((row, idx) => (
+                                            <tr key={idx}>
+                                                <td className="py-4 pr-4 align-top"><textarea className="w-full bg-gray-50 border-transparent rounded-lg p-2 focus:bg-white transition-all min-h-[100px]" value={row.synthesis_info} readOnly /></td>
+                                                <td className="py-4 px-4 align-top"><textarea className="w-full bg-gray-50 border-transparent rounded-lg p-2 focus:bg-white transition-all min-h-[100px]" value={row.missing_info} readOnly /></td>
+                                                <td className="py-4 px-4 align-top"><textarea className="w-full bg-gray-50 border-transparent rounded-lg p-2 focus:bg-white transition-all min-h-[100px]" value={row.certainties} readOnly /></td>
+                                                <td className="py-4 px-4 align-top"><textarea className="w-full bg-gray-50 border-transparent rounded-lg p-2 focus:bg-white transition-all min-h-[100px]" value={row.causes} readOnly /></td>
+                                                <td className="py-4 pl-4 align-top"><textarea className="w-full bg-gray-50 border-transparent rounded-lg p-2 focus:bg-white transition-all min-h-[100px]" value={row.learning_goal} readOnly /></td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
                             </div>
-                        )
-                    })}
-                </section>
+                        </div>
 
-                {/* 4. Estrategias */}
-                <section className="mb-10 grid grid-cols-2 gap-8 page-break-before-auto">
-                    <div>
-                        <h2 className="text-sm font-black bg-black text-white px-4 py-2 uppercase mb-4">4. Estrategias Metodológicas</h2>
-                        <ul className="space-y-1">
-                            {formData.pedagogical_strategies.map((s, i) => (
-                                <li key={i} className="text-[10px] flex items-center p-2 border border-gray-100 rounded-md">
-                                    <span className="w-1 h-1 bg-black rounded-full mr-2"></span>
-                                    {s}
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                    <div>
-                        <h2 className="text-sm font-black bg-black text-white px-4 py-2 uppercase mb-4">5. Estrategias de Evaluación</h2>
-                        <div className="space-y-4">
-                            <div>
-                                <h4 className="text-[9px] font-black uppercase text-gray-400 mb-2">Instrumentos a emplear:</h4>
-                                <div className="flex flex-wrap gap-2">
-                                    {formData.evaluation_strategies.instruments.map((ins, i) => (
-                                        <span key={i} className="text-[9px] px-2 py-1 bg-gray-50 border border-gray-200 rounded-md">{ins}</span>
+                        {/* Reflexión e Interiorización */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="bg-green-50/50 p-8 rounded-[2rem] border border-green-100">
+                                <h4 className="font-black text-green-700 uppercase tracking-widest text-xs mb-6 flex items-center">
+                                    <div className="w-3 h-3 bg-green-500 rounded-full mr-2" /> Para Interiorizar
+                                </h4>
+                                <ul className="space-y-4">
+                                    {formData.codesign_process?.reflexive_questions?.map((q, idx) => (
+                                        <li key={idx} className="flex items-start gap-4">
+                                            <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center shrink-0 border border-green-200 text-[10px] font-black text-green-600">{idx + 1}</div>
+                                            <p className="text-sm font-medium text-green-800">{q}</p>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                            <div className="bg-rose-50/50 p-8 rounded-[2rem] border border-rose-100">
+                                <h4 className="font-black text-rose-700 uppercase tracking-widest text-xs mb-6 px-4 py-1 bg-rose-100 rounded-full inline-block">
+                                    Notas para el colectivo
+                                </h4>
+                                <div className="space-y-4">
+                                    {formData.codesign_process?.collective_notes?.map((note, idx) => (
+                                        <div key={idx} className="bg-white p-4 rounded-xl border border-rose-100 text-sm font-bold text-rose-900 shadow-sm leading-relaxed italic">
+                                            "{note}"
+                                        </div>
                                     ))}
                                 </div>
                             </div>
                         </div>
                     </div>
-                </section>
+                )}
+            </div>
+        )
+    }
 
-                {/* 6. Estrategias Nacionales */}
-                <section className="mb-10">
-                    <h2 className="text-sm font-black bg-black text-white px-4 py-2 uppercase mb-4">6. Estrategias Nacionales a Incorporar</h2>
-                    <div className="space-y-3">
-                        {formData.national_strategies.map((s, i) => (
-                            <div key={i} className="p-4 border border-gray-200 rounded-lg bg-gray-50/30">
-                                <h4 className="text-[10px] font-black uppercase mb-1">{s.name}</h4>
-                                <p className="text-[10px] leading-relaxed text-gray-600">{s.description}</p>
+    // --- Step 6: Codiseño de Contenidos ---
+    const renderStep6_Didactic = () => {
+        const hasContents = Object.values(formData.program_by_fields).some((arr: any) => arr.length > 0)
+
+        return (
+            <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
+                <div className="bg-indigo-50 border border-indigo-100 p-6 rounded-3xl flex items-start gap-4">
+                    <div className="p-3 bg-white rounded-xl shadow-sm">
+                        <Briefcase className="w-6 h-6 text-indigo-600" />
+                    </div>
+                    <div>
+                        <h3 className="text-sm font-black text-indigo-900 uppercase tracking-wide">Tercer Plano: Codiseño</h3>
+                        <p className="text-sm text-indigo-700 mt-1">
+                            Define los PDAs contextualizados, la metodología y la evaluación para cada contenido seleccionado. La IA puede generar una propuesta inicial.
+                        </p>
+                    </div>
+                </div>
+
+                {!hasContents ? (
+                    <div className="flex justify-center py-10">
+                        <button
+                            onClick={handleGenerateDidactic}
+                            disabled={isGenerating}
+                            className="bg-gray-900 text-white px-10 py-5 rounded-3xl font-black uppercase tracking-widest shadow-2xl hover:scale-105 transition-all flex items-center gap-4 group"
+                        >
+                            {isGenerating ? <Loader2 className="w-6 h-6 animate-spin" /> : <Sparkles className="w-6 h-6 text-yellow-400 group-hover:rotate-12 transition-transform" />}
+                            <span className="text-lg">Generar Propuesta Didáctica (IA)</span>
+                        </button>
+                    </div>
+                ) : (
+                    <div className="space-y-8">
+                        {Object.entries(formData.program_by_fields).map(([field, items]: any) => {
+                            if (items.length === 0) return null
+                            return (
+                                <div key={field} className="bg-white rounded-[2.5rem] border border-gray-100 shadow-lg overflow-hidden">
+                                    <div className="bg-indigo-600 px-8 py-5 border-b border-indigo-700">
+                                        <h4 className="font-black text-white uppercase tracking-widest text-sm flex items-center">
+                                            <Briefcase className="w-5 h-5 mr-3 text-indigo-200" /> {field === 'saberes' ? 'Saberes y Pensamiento' : field}
+                                        </h4>
+                                    </div>
+                                    <div className="p-6 overflow-x-auto">
+                                        <table className="w-full text-sm text-left">
+                                            <thead>
+                                                <tr className="border-b border-gray-100">
+                                                    <th className="pb-4 font-black text-gray-400 uppercase text-xs w-1/4">Contenido</th>
+                                                    <th className="pb-4 font-black text-gray-400 uppercase text-xs w-1/4">PDA Contextualizado</th>
+                                                    <th className="pb-4 font-black text-gray-400 uppercase text-xs w-1/4">Metodología / Proyecto</th>
+                                                    <th className="pb-4 font-black text-gray-400 uppercase text-xs w-1/4">Evaluación</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-50">
+                                                {items.map((item: any, idx: number) => (
+                                                    <tr key={idx} className="group hover:bg-gray-50/50 transition-colors">
+                                                        <td className="py-6 pr-4 align-top">
+                                                            <p className="font-bold text-gray-800 mb-1">{item.contentName}</p>
+                                                            <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-1 rounded-full font-bold uppercase">{item.timeframe}</span>
+                                                        </td>
+                                                        <td className="py-6 px-4 align-top space-y-4">
+                                                            <div>
+                                                                <span className="text-[10px] text-indigo-400 font-bold uppercase mb-1 block">1er Grado</span>
+                                                                <textarea
+                                                                    className="w-full bg-white border-gray-200 rounded-lg text-xs p-2 focus:ring-2 focus:ring-indigo-500"
+                                                                    value={item.pda_grade_1}
+                                                                    onChange={(e) => {
+                                                                        const newItems = [...items]
+                                                                        newItems[idx].pda_grade_1 = e.target.value
+                                                                        setFormData(prev => ({ ...prev, program_by_fields: { ...prev.program_by_fields, [field]: newItems } }))
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                            {/* Add logic/UI for 2nd and 3rd grade if needed or tabbed */}
+                                                        </td>
+                                                        <td className="py-6 px-4 align-top">
+                                                            <textarea
+                                                                className="w-full bg-white border-gray-200 rounded-lg text-xs p-2 focus:ring-2 focus:ring-indigo-500 h-24"
+                                                                value={item.methodology}
+                                                                onChange={(e) => {
+                                                                    const newItems = [...items]
+                                                                    newItems[idx].methodology = e.target.value
+                                                                    setFormData(prev => ({ ...prev, program_by_fields: { ...prev.program_by_fields, [field]: newItems } }))
+                                                                }}
+                                                            />
+                                                        </td>
+                                                        <td className="py-6 pl-4 align-top">
+                                                            <textarea
+                                                                className="w-full bg-white border-gray-200 rounded-lg text-xs p-2 focus:ring-2 focus:ring-indigo-500 h-24"
+                                                                value={item.evaluation}
+                                                                onChange={(e) => {
+                                                                    const newItems = [...items]
+                                                                    newItems[idx].evaluation = e.target.value
+                                                                    setFormData(prev => ({ ...prev, program_by_fields: { ...prev.program_by_fields, [field]: newItems } }))
+                                                                }}
+                                                            />
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
+                )}
+            </div>
+        )
+    }
+
+    // --- Step 7: Revisión ---
+    const renderStep7_Review = () => {
+        return (
+            <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
+                <div className="bg-indigo-50 border border-indigo-100 p-6 rounded-3xl flex items-start gap-4">
+                    <div className="p-3 bg-white rounded-xl shadow-sm">
+                        <CheckCircle2 className="w-6 h-6 text-indigo-600" />
+                    </div>
+                    <div>
+                        <h3 className="text-sm font-black text-indigo-900 uppercase tracking-wide">Revisión Final</h3>
+                        <p className="text-sm text-indigo-700 mt-1">
+                            Verifica que toda la información sea correcta antes de generar el documento final.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-8">
+                    {/* 1. School Data */}
+                    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm relative group hover:border-indigo-200 transition-all">
+                        <button onClick={() => setCurrentStep(1)} className="absolute top-6 right-6 text-xs font-bold text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity uppercase">Editar</button>
+                        <h4 className="font-black text-gray-800 uppercase tracking-wide text-sm mb-4 flex items-center"><School className="w-4 h-4 mr-2" /> Datos Generales</h4>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
+                            <div><span className="block text-xs font-bold text-gray-400 uppercase">Escuela</span>{formData.school_data.name}</div>
+                            <div><span className="block text-xs font-bold text-gray-400 uppercase">CCT</span>{formData.school_data.cct}</div>
+                            <div><span className="block text-xs font-bold text-gray-400 uppercase">Zona</span>{formData.school_data.zone}</div>
+                            <div><span className="block text-xs font-bold text-gray-400 uppercase">Nivel</span>{formData.school_data.level}</div>
+                        </div>
+                    </div>
+
+                    {/* 2. Diagnosis */}
+                    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm relative group hover:border-indigo-200 transition-all">
+                        <button onClick={() => setCurrentStep(2)} className="absolute top-6 right-6 text-xs font-bold text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity uppercase">Editar</button>
+                        <h4 className="font-black text-gray-800 uppercase tracking-wide text-sm mb-4 flex items-center"><BookOpen className="w-4 h-4 mr-2" /> Diagnóstico</h4>
+                        <div className="text-sm text-gray-600 italic leading-relaxed whitespace-pre-line">
+                            {formData.diagnosis.narrative_final || (
+                                <span className="text-gray-400">Sin diagnóstico generado aún. Regresa al paso 2 para generarlo con IA.</span>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* 3. Problem */}
+                    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm relative group hover:border-indigo-200 transition-all">
+                        <button onClick={() => setCurrentStep(3)} className="absolute top-6 right-6 text-xs font-bold text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity uppercase">Editar</button>
+                        <h4 className="font-black text-gray-800 uppercase tracking-wide text-sm mb-4 flex items-center"><Target className="w-4 h-4 mr-2" /> Problemática</h4>
+                        {formData.problems.map((p, idx) => (
+                            <div key={idx} className="mb-2">
+                                <p className="font-bold text-gray-800">{p.description}</p>
+                                <div className="flex gap-2 mt-1">
+                                    <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded">Rasgo: {p.trait_id}</span>
+                                    {p.axes_ids?.map((a: string) => <span key={a} className="text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded">{a}</span>)}
+                                </div>
                             </div>
                         ))}
                     </div>
-                </section>
 
-                {/* Footer Navegación */}
-                <div className="fixed bottom-8 right-8 print:hidden flex space-x-4">
-                    <button
-                        onClick={() => navigate(`/analytical-program/${id}`)}
-                        className="bg-white text-gray-700 border-2 border-gray-200 px-8 py-3 rounded-2xl font-bold shadow-lg hover:bg-gray-50 transition-all"
-                    >
-                        Volver al Editor
-                    </button>
-                    <button
-                        onClick={() => window.print()}
-                        className="bg-black text-white px-8 py-3 rounded-2xl font-bold shadow-lg hover:bg-gray-800 transition-all font-black uppercase tracking-widest"
-                    >
-                        Imprimir Formato Final
-                    </button>
+                    {/* 5. Codesign Summary */}
+                    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm relative group hover:border-indigo-200 transition-all">
+                        <button onClick={() => setCurrentStep(6)} className="absolute top-6 right-6 text-xs font-bold text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity uppercase">Editar</button>
+                        <h4 className="font-black text-gray-800 uppercase tracking-wide text-sm mb-4 flex items-center"><Briefcase className="w-4 h-4 mr-2" /> Plano Didáctico</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                            {Object.entries(formData.program_by_fields).map(([field, items]: any) => (
+                                <div key={field} className="bg-gray-50 rounded-xl p-3 text-center">
+                                    <span className="block text-xs font-bold text-gray-400 uppercase mb-1">{field}</span>
+                                    <span className="text-2xl font-black text-indigo-600">{items.length}</span>
+                                    <span className="block text-[10px] text-gray-500">Contenidos</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
-            </div >
+            </div>
         )
     }
 
-    if (loading || !tenant) {
-        return (
-            <div className="min-h-[60vh] flex flex-col items-center justify-center">
-                <div className="w-16 h-16 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-6"></div>
-                <p className="text-xs font-black text-gray-400 uppercase tracking-widest animate-pulse">Cargando Entorno NEM...</p>
-            </div>
-        )
+    // --- Actions ---
+
+    const handleSaveProgram = async () => {
+        if (!tenant) return
+        setSaving(true)
+
+        try {
+            // 0. Fetch Active Academic Year
+            const { data: activeYear } = await supabase
+                .from('academic_years')
+                .select('id')
+                .eq('tenant_id', tenant.id)
+                .eq('is_active', true)
+                .maybeSingle()
+
+            if (!activeYear) {
+                alert('Advertencia: No se encontró un ciclo escolar activo. El programa se guardará sin ciclo asociado.')
+            }
+
+            // 1. Prepare Data for DB
+            // MAP PROBLEMS INTO group_diagnosis since schema doesn't have 'problems' column
+            const updatedDiagnosis = {
+                ...formData.diagnosis,
+                problem_situations: formData.problems, // Store problems here
+                codesign_process: formData.codesign_process // Store codiseño here
+            }
+
+            const programData = {
+                tenant_id: tenant.id,
+                school_data: formData.school_data,
+                group_diagnosis: updatedDiagnosis,
+                program_by_fields: formData.program_by_fields,
+                status: 'COMPLETED',
+                updated_at: new Date().toISOString(),
+                academic_year_id: activeYear?.id || null
+            }
+
+            let error
+            let data
+
+            if (id && id !== 'new') {
+                // Update
+                const res = await supabase
+                    .from('analytical_programs')
+                    .update(programData)
+                    .eq('id', id)
+                    .select()
+                error = res.error
+                data = res.data
+            } else {
+                // Insert
+                const res = await supabase
+                    .from('analytical_programs')
+                    .insert([programData])
+                    .select()
+                error = res.error
+                data = res.data
+            }
+
+            if (error) {
+                console.error('Buscando error de esquema:', error)
+                throw error
+            }
+
+            // 2. Update URL if valid
+            if (data && data[0] && (!id || id === 'new')) {
+                navigate(`/analytical-program/${data[0].id}`, { replace: true })
+            }
+
+            // 3. Clear Draft
+            localStorage.removeItem(`analytical_program_draft_${id || 'new'}`)
+
+            alert('Programa Analítico guardado correctamente en la base de datos.')
+
+        } catch (err: any) {
+            console.error('Error saving program:', err)
+            alert('Error al guardar: ' + err.message + ' (Ver consola para más detalles)')
+        } finally {
+            setSaving(false)
+        }
     }
 
     return (
-        <div className="max-w-6xl mx-auto pb-32">
-            {/* Cabecera */}
-            <div className="flex justify-between items-center mb-8">
-                <button onClick={() => navigate('/analytical-program')} className="flex items-center text-gray-500 hover:text-gray-900 font-bold text-sm">
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Volver Listado
-                </button>
-                <div className="flex items-center space-x-4">
-                    {!isIndependent && (
-                        <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
-                            Sesión Permanente NEM
+        <div className="min-h-screen bg-gray-50/50 pb-20">
+            {/* Header */}
+            <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => navigate('/analytical-program')} className="p-2 hover:bg-gray-100 rounded-full transition-all">
+                            <ArrowLeft className="w-6 h-6 text-gray-500" />
+                        </button>
+                        <div>
+                            <h1 className="text-xl font-black text-gray-900 tracking-tight">Constructor de Programa Analítico</h1>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider hidden sm:block">Nueva Escuela Mexicana • Fase 6</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
+                            Paso {currentStep} de {STEPS.length}
                         </span>
-                    )}
-                    {isDirectorOrAdmin && (
+                    </div>
+                </div>
+                {/* Progress Bar */}
+                <div className="h-1 bg-gray-100 w-full">
+                    <div
+                        className="h-full bg-indigo-600 transition-all duration-500 ease-out"
+                        style={{ width: `${(currentStep / STEPS.length) * 100}%` }}
+                    />
+                </div>
+            </div>
+
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+                {/* Step Title */}
+                <div className="mb-10 text-center">
+                    <div className="w-16 h-16 bg-white rounded-2xl shadow-lg border border-gray-100 flex items-center justify-center mx-auto mb-4">
+                        {(() => {
+                            const step = STEPS[currentStep - 1]
+                            if (!step) return <School className="w-8 h-8 text-indigo-600" />
+                            const Icon = step.icon
+                            return <Icon className="w-8 h-8 text-indigo-600" />
+                        })()}
+                    </div>
+                    <h2 className="text-3xl font-black text-gray-900 mb-2">{STEPS[currentStep - 1]?.title || 'Paso'}</h2>
+                    <p className="text-gray-500 font-medium">{STEPS[currentStep - 1]?.description || ''}</p>
+                </div>
+
+                {/* Step Content */}
+                <div className="mb-12">
+                    {currentStep === 1 && renderStep1()}
+                    {currentStep === 2 && renderStep2()}
+                    {currentStep === 3 && renderStep3()}
+                    {currentStep === 4 && renderStep4()}
+                    {currentStep === 5 && renderStep5_Process()}
+                    {currentStep === 6 && renderStep6_Didactic()}
+                    {currentStep === 7 && renderStep7_Review()}
+                </div>
+
+                {/* Footer Navigation */}
+                <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50">
+                    <div className="max-w-5xl mx-auto flex justify-between items-center">
                         <button
-                            onClick={() => handleSave()}
+                            onClick={handleBack}
+                            disabled={currentStep === 1}
+                            className="bg-white border border-gray-200 text-gray-600 px-6 py-3 rounded-xl font-bold text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center"
+                        >
+                            <ChevronLeft className="w-4 h-4 mr-2" />
+                            Anterior
+                        </button>
+                        <button
+                            onClick={currentStep === STEPS.length ? handleSaveProgram : handleNext}
                             disabled={saving}
-                            className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center scale-100 hover:scale-105 active:scale-95 disabled:opacity-50"
+                            className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold text-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-indigo-200 flex items-center min-w-[160px] justify-center"
                         >
-                            <Save className="w-4 h-4 mr-2" />
-                            {saving ? 'Guardando...' : 'Guardar Programa'}
+                            {saving ? (
+                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            ) : null}
+                            {saving ? 'Guardando...' : currentStep === STEPS.length ? 'Guardar Programa' : 'Siguiente'}
+                            {!saving && <ChevronRight className="w-4 h-4 ml-2" />}
                         </button>
-                    )}
+                    </div>
                 </div>
             </div>
-
-            {/* Stepper Progresivo (5 Etapas) */}
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 mb-8 overflow-x-auto">
-                <div className="flex justify-between items-center min-w-[700px] relative">
-                    {/* Connecting Line */}
-                    <div className="absolute top-1/2 left-0 w-full h-1 bg-gray-50 -translate-y-1/2 z-0"></div>
-
-                    {[
-                        { n: 1, label: 'Contexto', icon: MessageSquare },
-                        { n: 2, label: 'Diagnóstico G.', icon: Layers },
-                        { n: 3, label: 'Contextualización', icon: BookOpen },
-                        { n: 4, label: 'Estrategias', icon: Info },
-                        { n: 5, label: 'Resumen', icon: CheckCircle2 }
-                    ].map((s) => (
-                        <button
-                            key={s.n}
-                            onClick={() => {
-                                // Only allow going back or to next step if current is valid
-                                if (s.n < step) {
-                                    setStep(s.n)
-                                } else if (s.n > step) {
-                                    if (validateStep(step)) {
-                                        // Special case: if trying to jump far ahead, we'd need to validate intermediate steps
-                                        // For simplicity, we only allow +1 or validate all intermediate
-                                        let valid = true
-                                        for (let i = step; i < s.n; i++) {
-                                            if (!validateStep(i)) {
-                                                setStep(i)
-                                                valid = false
-                                                break
-                                            }
-                                        }
-                                        if (valid) setStep(s.n)
-                                    }
-                                }
-                            }}
-                            className={`relative z-10 flex flex-col items-center group focus:outline-none transition-all ${step === s.n ? 'scale-110' : 'opacity-60 hover:opacity-100'}`}
-                        >
-                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border-4 transition-all duration-300
-                                ${step >= s.n
-                                    ? 'bg-indigo-600 border-indigo-100 text-white shadow-lg shadow-indigo-100'
-                                    : 'bg-white border-gray-100 text-gray-300'
-                                }`}
-                            >
-                                <s.icon className="w-5 h-5" />
-                            </div>
-                            <span className={`text-[10px] font-black uppercase mt-3 tracking-wider bg-white px-2 rounded-full
-                                ${step >= s.n ? 'text-indigo-600' : 'text-gray-400'}`}>
-                                {s.label}
-                            </span>
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* ERI: Etapa 1 - Contexto Socioeducativo */}
-            {step === 1 && (
-                <div className="animate-in fade-in slide-in-from-bottom-6 duration-500">
-                    <div className="bg-white rounded-[2.5rem] p-12 shadow-xl border border-gray-50 mb-10">
-                        <div className="flex justify-between items-center mb-8">
-                            <h2 className="text-2xl font-black text-gray-900 flex items-center">
-                                <div className="p-3 bg-indigo-50 rounded-2xl text-indigo-600 mr-5">
-                                    <MessageSquare className="w-7 h-7" />
-                                </div>
-                                1. Contexto Socioeducativo de la Escuela
-                            </h2>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-6 mb-12 bg-gray-50/50 p-8 rounded-3xl border border-gray-100">
-                            {/* PDF Upload Section - Only when creating new */}
-                            {(!id || id === 'new') && (
-                                <div className="col-span-3 mb-8 bg-white p-6 rounded-2xl shadow-sm border border-indigo-50">
-                                    <h3 className="text-sm font-bold text-indigo-900 uppercase mb-2 flex items-center">
-                                        <BookOpen className="w-4 h-4 mr-2 text-indigo-600" />
-                                        Cargar Programa Analítico Existente (PDF)
-                                    </h3>
-                                    <p className="text-xs text-gray-500 mb-4 leading-relaxed">
-                                        Si ya tienes un documento PDF de tu Programa Analítico, súbelo aquí para extraer el diagnóstico y contexto automáticamente.
-                                    </p>
-                                    <PDFUpload
-                                        label="Subir Programa Analítico (PDF)"
-                                        validationKeywords={['Diagnóstico', 'Contexto', 'Problemática', 'Escuela']}
-                                        onUploadComplete={(url, text) => {
-                                            setFormData(prev => ({
-                                                ...prev,
-                                                source_document_url: url,
-                                                extracted_text: text,
-                                                diagnosis_narrative: text ? text.substring(0, 5000) : prev.diagnosis_narrative // Auto-fill diagnosis with extracted text safe-guard
-                                            }))
-                                        }}
-                                        currentFileUrl={formData.source_document_url}
-                                    />
-                                </div>
-                            )}
-
-                            <div className="col-span-3 mb-4">
-                                <label className="text-[10px] font-black text-indigo-500 uppercase mb-2 block ml-1 tracking-widest">Ciclo Escolar (Vigencia del Programa)</label>
-                                <select
-                                    disabled={isReadOnly}
-                                    value={formData.academic_year_id}
-                                    onChange={e => setFormData({ ...formData, academic_year_id: e.target.value })}
-                                    className="w-full bg-indigo-50/50 border-indigo-200 text-indigo-700 rounded-xl px-4 py-3 text-sm font-black shadow-sm focus:ring-2 focus:ring-indigo-500 uppercase disabled:opacity-75 disabled:cursor-not-allowed"
-                                >
-                                    <option value="">SELECCIONAR CICLO...</option>
-                                    {cycles.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block ml-1">Nombre de la Escuela</label>
-                                <input
-                                    disabled={isReadOnly}
-                                    value={formData.school_data.name}
-                                    onChange={e => setFormData({
-                                        ...formData,
-                                        school_data: { ...formData.school_data, name: e.target.value.toUpperCase() }
-                                    })}
-                                    className="w-full bg-white border-gray-100 rounded-xl px-4 py-3 text-sm font-bold shadow-sm focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block ml-1">CCT</label>
-                                <input
-                                    disabled={isReadOnly}
-                                    value={formData.school_data.cct}
-                                    onChange={e => setFormData({
-                                        ...formData,
-                                        school_data: { ...formData.school_data, cct: e.target.value.toUpperCase() }
-                                    })}
-                                    className="w-full bg-white border-gray-100 rounded-xl px-4 py-3 text-sm font-bold shadow-sm focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block ml-1">Nivel</label>
-                                <select
-                                    disabled={isReadOnly}
-                                    value={formData.school_data.level}
-                                    onChange={e => setFormData({
-                                        ...formData,
-                                        school_data: { ...formData.school_data, level: e.target.value }
-                                    })}
-                                    className="w-full bg-white border-gray-100 rounded-xl px-4 py-3 text-sm font-bold shadow-sm focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
-                                >
-                                    <option value="">SELECCIONAR...</option>
-                                    {NIVELES_CATALOG.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block ml-1">Modalidad</label>
-                                <select
-                                    value={formData.school_data.modality}
-                                    onChange={e => setFormData({
-                                        ...formData,
-                                        school_data: { ...formData.school_data, modality: e.target.value }
-                                    })}
-                                    className="w-full bg-white border-gray-100 rounded-xl px-4 py-3 text-sm font-bold shadow-sm focus:ring-2 focus:ring-indigo-500"
-                                >
-                                    <option value="">SELECCIONAR...</option>
-                                    {MODALIDADES_CATALOG.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block ml-1">Sostenimiento</label>
-                                <select
-                                    value={formData.school_data.support}
-                                    onChange={e => setFormData({
-                                        ...formData,
-                                        school_data: { ...formData.school_data, support: e.target.value }
-                                    })}
-                                    className="w-full bg-white border-gray-100 rounded-xl px-4 py-3 text-sm font-bold shadow-sm focus:ring-2 focus:ring-indigo-500"
-                                >
-                                    <option value="">SELECCIONAR...</option>
-                                    {SOSTENIMIENTO_CATALOG.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block ml-1">Grados</label>
-                                <input
-                                    value={formData.school_data.grades}
-                                    readOnly
-                                    className="w-full bg-gray-50 border-gray-100 rounded-xl px-4 py-3 text-sm font-bold shadow-sm cursor-not-allowed"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block ml-1">Turno</label>
-                                <select
-                                    disabled={isReadOnly}
-                                    value={formData.school_data.shift}
-                                    onChange={e => setFormData({
-                                        ...formData,
-                                        school_data: { ...formData.school_data, shift: e.target.value }
-                                    })}
-                                    className="w-full bg-white border-gray-100 rounded-xl px-4 py-3 text-sm font-bold shadow-sm focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
-                                >
-                                    <option value="">SELECCIONAR...</option>
-                                    {TURNOS_CATALOG.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block ml-1">Estado</label>
-                                <select
-                                    value={formData.school_data.state}
-                                    onChange={e => setFormData({
-                                        ...formData,
-                                        school_data: { ...formData.school_data, state: e.target.value }
-                                    })}
-                                    className="w-full bg-white border-gray-100 rounded-xl px-4 py-3 text-sm font-bold shadow-sm focus:ring-2 focus:ring-indigo-500"
-                                >
-                                    <option value="">SELECCIONAR...</option>
-                                    {ESTADOS_CATALOG.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block ml-1">Municipio</label>
-                                <input
-                                    value={formData.school_data.municipality}
-                                    onChange={e => setFormData({
-                                        ...formData,
-                                        school_data: { ...formData.school_data, municipality: e.target.value.toUpperCase() }
-                                    })}
-                                    className="w-full bg-white border-gray-100 rounded-xl px-4 py-3 text-sm font-bold shadow-sm focus:ring-2 focus:ring-indigo-500"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block ml-1">Localidad</label>
-                                <input
-                                    value={formData.school_data.location}
-                                    onChange={e => setFormData({
-                                        ...formData,
-                                        school_data: { ...formData.school_data, location: e.target.value.toUpperCase() }
-                                    })}
-                                    className="w-full bg-white border-gray-100 rounded-xl px-4 py-3 text-sm font-bold shadow-sm focus:ring-2 focus:ring-indigo-500"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block ml-1">No. Docentes</label>
-                                <input
-                                    value={formData.school_data.total_teachers}
-                                    onChange={e => setFormData({
-                                        ...formData,
-                                        school_data: { ...formData.school_data, total_teachers: e.target.value }
-                                    })}
-                                    className="w-full bg-white border-gray-100 rounded-xl px-4 py-3 text-sm font-bold shadow-sm focus:ring-2 focus:ring-indigo-500"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block ml-1">Alumnos Grupo</label>
-                                <input
-                                    value={formData.school_data.group_students_info}
-                                    onChange={e => setFormData({
-                                        ...formData,
-                                        school_data: { ...formData.school_data, group_students_info: e.target.value.toUpperCase() }
-                                    })}
-                                    placeholder="EJEM: 27 (12N / 15M)"
-                                    className="w-full bg-white border-gray-100 rounded-xl px-4 py-3 text-sm font-bold shadow-sm focus:ring-2 focus:ring-indigo-500"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-10">
-                            <div className="space-y-8">
-                                <h3 className="text-xs font-black uppercase text-gray-400 border-l-4 border-indigo-200 pl-4">1.2 Análisis Contexto Externo</h3>
-                                <div className="space-y-4">
-                                    <textarea
-                                        value={formData.external_context.favors}
-                                        onChange={e => setFormData({ ...formData, external_context: { ...formData.external_context, favors: e.target.value } })}
-                                        rows={4}
-                                        disabled={isReadOnly}
-                                        className="w-full bg-white border-2 border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold shadow-sm focus:border-green-300 transition-all disabled:bg-gray-50"
-                                        placeholder="Escolaridad de padres, acceso a internet, festividades..."
-                                    />
-                                    {!isReadOnly && (
-                                        <div className="flex flex-wrap gap-2 mt-2">
-                                            {EXTERNAL_CONTEXT_CATALOG.favors.slice(0, 8).map(opt => (
-                                                <button
-                                                    key={opt}
-                                                    onClick={() => {
-                                                        const current = formData.external_context.favors
-                                                        const newValue = current ? `${current} \n• ${opt} ` : `• ${opt} `
-                                                        setFormData({ ...formData, external_context: { ...formData.external_context, favors: newValue } })
-                                                    }}
-                                                    className="text-[9px] font-black uppercase tracking-tighter bg-green-50 text-green-700 px-3 py-1.5 rounded-lg border border-green-100 hover:bg-green-100 transition-all"
-                                                >
-                                                    + {opt.split(' ')[0]} {opt.split(' ')[1]}...
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                    <label className="text-[10px] font-black text-rose-500 uppercase block mt-6">Aspectos que DIFICULTAN</label>
-                                    <textarea
-                                        value={formData.external_context.difficults}
-                                        onChange={e => setFormData({ ...formData, external_context: { ...formData.external_context, difficults: e.target.value } })}
-                                        rows={4}
-                                        className="w-full bg-white border-2 border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold shadow-sm focus:border-rose-300 transition-all"
-                                        placeholder="Inseguridad, falta de valores, economía..."
-                                    />
-                                    <div className="flex flex-wrap gap-2 mt-2">
-                                        {EXTERNAL_CONTEXT_CATALOG.difficults.slice(0, 8).map(opt => (
-                                            <button
-                                                key={opt}
-                                                onClick={() => {
-                                                    const current = formData.external_context.difficults
-                                                    const newValue = current ? `${current} \n• ${opt} ` : `• ${opt} `
-                                                    setFormData({ ...formData, external_context: { ...formData.external_context, difficults: newValue } })
-                                                }}
-                                                className="text-[9px] font-black uppercase tracking-tighter bg-rose-50 text-rose-700 px-3 py-1.5 rounded-lg border border-rose-100 hover:bg-rose-100 transition-all"
-                                            >
-                                                + {opt.split(' ')[0]} {opt.split(' ')[1]}...
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="space-y-8">
-                                <h3 className="text-xs font-black uppercase text-gray-400 border-l-4 border-indigo-200 pl-4">1.3 Análisis Contexto Interno</h3>
-                                <div className="space-y-4">
-                                    <textarea
-                                        value={formData.internal_context.favors}
-                                        onChange={e => setFormData({ ...formData, internal_context: { ...formData.internal_context, favors: e.target.value } })}
-                                        rows={4}
-                                        className="w-full bg-white border-2 border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold shadow-sm focus:border-green-300 transition-all font-sans"
-                                        placeholder="Acceso a TICs, bibilioteca, espacios recreativos..."
-                                    />
-                                    <div className="flex flex-wrap gap-2 mt-2">
-                                        {INTERNAL_CONTEXT_CATALOG.favors.slice(0, 8).map(opt => (
-                                            <button
-                                                key={opt}
-                                                onClick={() => {
-                                                    const current = formData.internal_context.favors
-                                                    const newValue = current ? `${current} \n• ${opt} ` : `• ${opt} `
-                                                    setFormData({ ...formData, internal_context: { ...formData.internal_context, favors: newValue } })
-                                                }}
-                                                className="text-[9px] font-black uppercase tracking-tighter bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg border border-emerald-100 hover:bg-emerald-100 transition-all"
-                                            >
-                                                + {opt.split(' ')[0]} {opt.split(' ')[1]}...
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <label className="text-[10px] font-black text-rose-500 uppercase block mt-6">Aspectos que DIFICULTAN</label>
-                                    <textarea
-                                        value={formData.internal_context.difficults}
-                                        onChange={e => setFormData({ ...formData, internal_context: { ...formData.internal_context, difficults: e.target.value } })}
-                                        rows={4}
-                                        className="w-full bg-white border-2 border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold shadow-sm focus:border-rose-300 transition-all font-sans"
-                                        placeholder="Inasistencias, rezago, falta de hábitos..."
-                                    />
-                                    <div className="flex flex-wrap gap-2 mt-2">
-                                        {INTERNAL_CONTEXT_CATALOG.difficults.slice(0, 8).map(opt => (
-                                            <button
-                                                key={opt}
-                                                onClick={() => {
-                                                    const current = formData.internal_context.difficults
-                                                    const newValue = current ? `${current} \n• ${opt} ` : `• ${opt} `
-                                                    setFormData({ ...formData, internal_context: { ...formData.internal_context, difficults: newValue } })
-                                                }}
-                                                className="text-[9px] font-black uppercase tracking-tighter bg-rose-50 text-rose-700 px-3 py-1.5 rounded-lg border border-rose-100 hover:bg-rose-100 transition-all"
-                                            >
-                                                + {opt.split(' ')[0]} {opt.split(' ')[1]}...
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-
-                    <div className="flex justify-between items-center bg-gray-50 p-6 rounded-2xl border border-gray-100 mt-12">
-                        <div></div> {/* Spacer */}
-                        <div className="text-xs font-black text-gray-300 uppercase tracking-widest">
-                            Paso 1 de 5
-                        </div>
-                        <button
-                            onClick={() => {
-                                if (validateStep(1)) setStep(2)
-                            }}
-                            className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-black text-sm flex items-center shadow-indigo-100 shadow-xl hover:bg-indigo-700 hover:scale-105 transition-all"
-                        >
-                            Siguiente: Diagnóstico
-                            <ChevronRight className="w-5 h-5 ml-2" />
-                        </button>
-                    </div>
-                </div>
-            )
-            }
-
-
-            {/* Stage 2: Diagnóstico del Grupo */}
-            {
-                step === 2 && (
-
-                    <div className="animate-in fade-in slide-in-from-bottom-6 duration-500">
-                        <div className="bg-white rounded-[2.5rem] p-12 shadow-xl border border-gray-50 mb-10">
-                            <h2 className="text-2xl font-black text-gray-900 mb-8 flex items-center">
-                                <div className="p-3 bg-pink-50 rounded-2xl text-pink-600 mr-5">
-                                    <Layers className="w-7 h-7" />
-                                </div>
-                                2. Diagnóstico del Grupo
-                            </h2>
-
-                            <div className="mb-10">
-                                <label className="text-[10px] font-black text-gray-400 uppercase mb-4 block">Narrativa Pedagógica del Grupo</label>
-                                <textarea
-                                    value={formData.group_diagnosis.narrative}
-                                    onChange={e => setFormData({
-                                        ...formData,
-                                        group_diagnosis: { ...formData.group_diagnosis, narrative: e.target.value }
-                                    })}
-                                    rows={8}
-                                    disabled={isReadOnly}
-                                    className="w-full bg-pink-50/20 border-pink-100 rounded-3xl px-8 py-6 text-sm font-bold text-gray-700 focus:ring-2 focus:ring-pink-500 shadow-sm disabled:cursor-not-allowed"
-                                    placeholder="Describe el rezago, intereses, dinámicas de colaboración..."
-                                />
-                            </div>
-
-                            {/* Predefined Options for Narrative */}
-                            {!isReadOnly && (
-                                <div className="mb-10 p-6 bg-indigo-50/50 rounded-3xl border border-indigo-100">
-                                    <h3 className="text-xs font-black uppercase text-indigo-400 mb-4 flex items-center">
-                                        <Sparkles className="w-4 h-4 mr-2" />
-                                        Sugerencias de Redacción (Clic para agregar)
-                                    </h3>
-                                    <div className="space-y-6">
-                                        <div>
-                                            <label className="text-[10px] font-black text-gray-400 uppercase block mb-2">Contexto del Grupo</label>
-                                            <div className="flex flex-wrap gap-2">
-                                                {GROUP_DIAGNOSIS_CATALOG.context.map((opt, idx) => (
-                                                    <button
-                                                        key={idx}
-                                                        onClick={() => {
-                                                            const current = formData.group_diagnosis.narrative
-                                                            const newValue = current ? `${current} \n - ${opt} ` : ` - ${opt} `
-                                                            setFormData({ ...formData, group_diagnosis: { ...formData.group_diagnosis, narrative: newValue } })
-                                                        }}
-                                                        className="text-[10px] bg-white border border-indigo-100 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-indigo-100 hover:text-indigo-700 transition-all text-left"
-                                                    >
-                                                        + {opt.length > 50 ? opt.substring(0, 50) + '...' : opt}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="text-[10px] font-black text-gray-400 uppercase block mb-2">Práctica Pedagógica</label>
-                                            <div className="flex flex-wrap gap-2">
-                                                {GROUP_DIAGNOSIS_CATALOG.pedagogy.map((opt, idx) => (
-                                                    <button
-                                                        key={idx}
-                                                        onClick={() => {
-                                                            const current = formData.group_diagnosis.narrative
-                                                            const newValue = current ? `${current} \n - ${opt} ` : ` - ${opt} `
-                                                            setFormData({ ...formData, group_diagnosis: { ...formData.group_diagnosis, narrative: newValue } })
-                                                        }}
-                                                        className="text-[10px] bg-white border border-indigo-100 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-indigo-100 hover:text-indigo-700 transition-all text-left"
-                                                    >
-                                                        + {opt.length > 50 ? opt.substring(0, 50) + '...' : opt}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <div className="grid grid-cols-3 gap-4">
-                                            <div>
-                                                <label className="text-[10px] font-black text-gray-400 uppercase block mb-2">Análisis PDA</label>
-                                                <div className="flex flex-col gap-2">
-                                                    {GROUP_DIAGNOSIS_CATALOG.pda.map((opt, idx) => (
-                                                        <button
-                                                            key={idx}
-                                                            onClick={() => {
-                                                                const current = formData.group_diagnosis.narrative
-                                                                const newValue = current ? `${current} \n - ${opt} ` : ` - ${opt} `
-                                                                setFormData({ ...formData, group_diagnosis: { ...formData.group_diagnosis, narrative: newValue } })
-                                                            }}
-                                                            className="text-[10px] bg-white border border-indigo-100 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-indigo-100 hover:text-indigo-700 transition-all text-left truncate"
-                                                            title={opt}
-                                                        >
-                                                            + {opt}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label className="text-[10px] font-black text-gray-400 uppercase block mb-2">Evidencias Impacto</label>
-                                                <div className="flex flex-col gap-2">
-                                                    {GROUP_DIAGNOSIS_CATALOG.evidence.map((opt, idx) => (
-                                                        <button
-                                                            key={idx}
-                                                            onClick={() => {
-                                                                const current = formData.group_diagnosis.narrative
-                                                                const newValue = current ? `${current} \n - ${opt} ` : ` - ${opt} `
-                                                                setFormData({ ...formData, group_diagnosis: { ...formData.group_diagnosis, narrative: newValue } })
-                                                            }}
-                                                            className="text-[10px] bg-white border border-indigo-100 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-indigo-100 hover:text-indigo-700 transition-all text-left truncate"
-                                                            title={opt}
-                                                        >
-                                                            + {opt}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label className="text-[10px] font-black text-gray-400 uppercase block mb-2">Reflexión Crítica</label>
-                                                <div className="flex flex-col gap-2">
-                                                    {GROUP_DIAGNOSIS_CATALOG.reflection.map((opt, idx) => (
-                                                        <button
-                                                            key={idx}
-                                                            onClick={() => {
-                                                                const current = formData.group_diagnosis.narrative
-                                                                const newValue = current ? `${current} \n - ${opt} ` : ` - ${opt} `
-                                                                setFormData({ ...formData, group_diagnosis: { ...formData.group_diagnosis, narrative: newValue } })
-                                                            }}
-                                                            className="text-[10px] bg-white border border-indigo-100 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-indigo-100 hover:text-indigo-700 transition-all text-left truncate"
-                                                            title={opt}
-                                                        >
-                                                            + {opt}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="grid grid-cols-2 gap-12">
-                                <div>
-                                    <h3 className="text-xs font-black uppercase text-gray-400 mb-6 flex items-center">
-                                        <Info className="w-4 h-4 mr-2 text-rose-500" />
-                                        2.1 Situaciones-problema
-                                    </h3>
-                                    <div className="space-y-3">
-                                        {formData.group_diagnosis.problem_situations.map((prob, idx) => (
-                                            <div key={idx} className="flex items-center group">
-                                                <input
-                                                    value={prob}
-                                                    onChange={e => {
-                                                        const newProb = [...formData.group_diagnosis.problem_situations]
-                                                        newProb[idx] = e.target.value
-                                                        setFormData({ ...formData, group_diagnosis: { ...formData.group_diagnosis, problem_situations: newProb } })
-                                                    }}
-                                                    className="flex-1 bg-gray-50 border-gray-100 rounded-xl px-4 py-3 text-xs font-bold"
-                                                />
-                                                <button
-                                                    onClick={() => {
-                                                        const newProb = formData.group_diagnosis.problem_situations.filter((_, i) => i !== idx)
-                                                        setFormData({ ...formData, group_diagnosis: { ...formData.group_diagnosis, problem_situations: newProb } })
-                                                    }}
-                                                    className="ml-2 text-rose-300 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        ))}
-                                        <button
-                                            onClick={() => setFormData({
-                                                ...formData,
-                                                group_diagnosis: {
-                                                    ...formData.group_diagnosis,
-                                                    problem_situations: [...formData.group_diagnosis.problem_situations, '']
-                                                }
-                                            })}
-                                            className="w-full py-3 border-2 border-dashed border-gray-100 rounded-xl text-[10px] font-black uppercase text-gray-400 hover:border-rose-200 hover:text-rose-500 transition-all"
-                                        >
-                                            + Agregar Situación
-                                        </button>
-                                        <div className="flex flex-wrap gap-2 mt-4">
-                                            {PROBLEM_SITUATIONS_CATALOG.slice(0, 8).map(opt => (
-                                                <button
-                                                    key={opt}
-                                                    onClick={() => {
-                                                        const current = formData.group_diagnosis.problem_situations
-                                                        if (!current.includes(opt)) {
-                                                            setFormData({
-                                                                ...formData,
-                                                                group_diagnosis: {
-                                                                    ...formData.group_diagnosis,
-                                                                    problem_situations: [...current, opt]
-                                                                }
-                                                            })
-                                                        }
-                                                    }}
-                                                    className="text-[9px] font-black uppercase tracking-tighter bg-rose-50 text-rose-700 px-3 py-1.5 rounded-lg border border-rose-100 hover:bg-rose-100 transition-all"
-                                                >
-                                                    + {opt.split(' ').slice(0, 3).join(' ')}...
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <h3 className="text-xs font-black uppercase text-gray-400 mb-6 flex items-center">
-                                        <Sparkles className="w-4 h-4 mr-2 text-indigo-500" />
-                                        2.2 Temas de interés
-                                    </h3>
-                                    <div className="space-y-3">
-                                        {formData.group_diagnosis.interest_topics.map((topic, idx) => (
-                                            <div key={idx} className="flex items-center group">
-                                                <input
-                                                    value={topic}
-                                                    onChange={e => {
-                                                        const newT = [...formData.group_diagnosis.interest_topics]
-                                                        newT[idx] = e.target.value
-                                                        setFormData({ ...formData, group_diagnosis: { ...formData.group_diagnosis, interest_topics: newT } })
-                                                    }}
-                                                    disabled={isReadOnly}
-                                                    className="flex-1 bg-gray-50 border-gray-100 rounded-xl px-4 py-3 text-xs font-bold disabled:bg-gray-100"
-                                                />
-                                                {!isReadOnly && (
-                                                    <button
-                                                        onClick={() => {
-                                                            const newT = formData.group_diagnosis.interest_topics.filter((_, i) => i !== idx)
-                                                            setFormData({ ...formData, group_diagnosis: { ...formData.group_diagnosis, interest_topics: newT } })
-                                                        }}
-                                                        className="ml-2 text-indigo-300 hover:text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                )}
-                                            </div>
-                                        ))}
-                                        {!isReadOnly && (
-                                            <button
-                                                onClick={() => setFormData({
-                                                    ...formData,
-                                                    group_diagnosis: {
-                                                        ...formData.group_diagnosis,
-                                                        interest_topics: [...formData.group_diagnosis.interest_topics, '']
-                                                    }
-                                                })}
-                                                className="w-full py-3 border-2 border-dashed border-gray-100 rounded-xl text-[10px] font-black uppercase text-gray-400 hover:border-indigo-200 hover:text-indigo-500 transition-all"
-                                            >
-                                                + Agregar Tema
-                                            </button>
-                                        )}
-                                        {!isReadOnly && (
-                                            <div className="flex flex-wrap gap-2 mt-4">
-                                                {INTEREST_TOPICS_CATALOG.slice(0, 8).map(opt => (
-                                                    <button
-                                                        key={opt}
-                                                        onClick={() => {
-                                                            const current = formData.group_diagnosis.interest_topics
-                                                            if (!current.includes(opt)) {
-                                                                setFormData({
-                                                                    ...formData,
-                                                                    group_diagnosis: {
-                                                                        ...formData.group_diagnosis,
-                                                                        interest_topics: [...current, opt]
-                                                                    }
-                                                                })
-                                                            }
-                                                        }}
-                                                        className="text-[9px] font-black uppercase tracking-tighter bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition-all"
-                                                    >
-                                                        + {opt.split(' ').slice(0, 3).join(' ')}...
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="flex justify-between items-center bg-gray-50 p-6 rounded-2xl border border-gray-100 mt-12">
-                                <button onClick={() => setStep(1)} className="text-gray-500 font-bold text-sm flex items-center px-6 py-3 rounded-xl hover:bg-white transition-all">
-                                    <ChevronLeft className="w-5 h-5 mr-2" />
-                                    Anterior
-                                </button>
-                                <div className="text-xs font-black text-gray-300 uppercase tracking-widest">
-                                    Paso 2 de 5
-                                </div>
-                                <button
-                                    onClick={() => {
-                                        if (validateStep(2)) setStep(3)
-                                    }}
-                                    className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-black text-sm flex items-center shadow-indigo-100 shadow-xl hover:bg-indigo-700 hover:scale-105 transition-all"
-                                >
-                                    Siguiente: Contextualización
-                                    <ChevronRight className="w-5 h-5 ml-2" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )
-            }
-
-
-            {/* Stage 3: Contextualización (Reuse existing optimized UI) */}
-            {
-                step === 3 && (
-                    <div className="animate-in fade-in slide-in-from-bottom-6 duration-500">
-                        <div className="bg-white rounded-[2.5rem] p-12 shadow-xl border border-gray-50 mb-10">
-
-                            <div className="flex items-center mb-8">
-                                <div className="p-3 bg-blue-50 rounded-2xl text-blue-600 mr-5">
-                                    <BookOpen className="w-7 h-7" />
-                                </div>
-                                <div>
-                                    <h2 className="text-2xl font-black text-gray-900">3. Contextualización y Codiseño</h2>
-                                    <p className="text-sm text-gray-400 font-bold uppercase tracking-tight">Vinculación de contenidos con la realidad</p>
-                                </div>
-                            </div>
-
-                            <div className="space-y-6">
-                                {formData.contents.map((item, idx) => (
-                                    <div key={idx} className="bg-gray-50/50 rounded-3xl p-8 border border-gray-100 relative group animate-in fade-in slide-in-from-bottom-2">
-                                        {!isReadOnly && (
-                                            <div className="absolute top-6 right-6 flex items-center space-x-2">
-                                                <button
-                                                    onClick={() => {
-                                                        setEditingContentIdx(idx)
-                                                        setIsSyntheticModalOpen(true)
-                                                    }}
-                                                    className="text-[10px] font-black uppercase text-indigo-500 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition-all flex items-center"
-                                                >
-                                                    <Search className="w-3 h-3 mr-1.5" />
-                                                    Programa Sintético
-                                                </button>
-                                                <button
-                                                    onClick={() => setFormData({ ...formData, contents: formData.contents.filter((_, i) => i !== idx) })}
-                                                    className="p-2 text-gray-300 hover:text-rose-500 transition-colors"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        )}
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            <div>
-                                                <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 ml-1">Asignatura</label>
-                                                <select
-                                                    value={item.subject_id}
-                                                    onChange={e => {
-                                                        const newC = [...formData.contents]
-                                                        newC[idx].subject_id = e.target.value
-                                                        setFormData({ ...formData, contents: newC })
-                                                    }}
-                                                    disabled={isReadOnly}
-                                                    className="w-full bg-white border-gray-200 rounded-2xl px-4 py-3 font-bold text-sm shadow-sm focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100"
-                                                >
-                                                    <option value="">Seleccionar...</option>
-                                                    {subjectsCatalog.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 ml-1">Campo Formativo</label>
-                                                <select
-                                                    value={item.campo_formativo}
-                                                    onChange={e => {
-                                                        const newC = [...formData.contents]
-                                                        newC[idx].campo_formativo = e.target.value
-                                                        setFormData({ ...formData, contents: newC })
-                                                    }}
-                                                    disabled={isReadOnly}
-                                                    className="w-full bg-white border-gray-200 rounded-2xl px-4 py-3 font-bold text-sm shadow-sm disabled:bg-gray-100"
-                                                >
-                                                    <option value="">Seleccionar...</option>
-                                                    {CAMPOS.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 ml-1">Temporalidad</label>
-                                                <input
-                                                    value={item.temporality}
-                                                    onChange={e => {
-                                                        const newC = [...formData.contents]
-                                                        newC[idx].temporality = e.target.value
-                                                        setFormData({ ...formData, contents: newC })
-                                                    }}
-                                                    disabled={isReadOnly}
-                                                    placeholder="Ej: Sept - Oct"
-                                                    className="w-full bg-white border-gray-200 rounded-2xl px-4 py-3 font-bold text-sm shadow-sm disabled:bg-gray-100"
-                                                />
-                                            </div>
-                                            <div className="md:col-span-2 lg:col-span-3">
-                                                <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 ml-1">Contenido / Codiseño</label>
-                                                <textarea
-                                                    value={item.custom_content}
-                                                    onChange={e => {
-                                                        const newC = [...formData.contents]
-                                                        newC[idx].custom_content = e.target.value
-                                                        setFormData({ ...formData, contents: newC })
-                                                    }}
-                                                    disabled={isReadOnly}
-                                                    rows={2}
-                                                    className="w-full bg-white border-gray-200 rounded-2xl px-6 py-4 font-bold text-sm disabled:bg-gray-100"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                                {syntheticCatalog.length === 0 && (
-                                    <div className="bg-amber-50 border border-amber-200 p-6 rounded-[2rem] mb-10 text-center animate-pulse">
-                                        <p className="text-xs font-bold text-amber-700 uppercase tracking-widest">
-                                            ⚠️ Advertencia: El catálogo de la Fase {currentPhase} está vacío en la base de datos.
-                                        </p>
-                                        <p className="text-[10px] text-amber-600 mt-1 uppercase font-black italic">
-                                            Asegúrate de ejecutar las migraciones SQL en Supabase para cargar los contenidos.
-                                        </p>
-                                    </div>
-                                )}
-                                {!isReadOnly && (
-                                    <button
-                                        onClick={() => setFormData({ ...formData, contents: [...formData.contents, { subject_id: '', campo_formativo: '', custom_content: '', temporality: '' }] })}
-                                        className="w-full py-10 border-2 border-dashed border-gray-100 rounded-[2rem] text-[11px] font-black uppercase text-gray-400 hover:border-indigo-200 hover:text-indigo-600 hover:bg-slate-50/50 transition-all flex flex-col items-center justify-center group"
-                                    >
-                                        <Plus className="w-6 h-6 mb-2 text-gray-200 group-hover:text-indigo-500" />
-                                    </button>
-                                )}
-                            </div>
-
-
-                            <div className="flex justify-between items-center bg-gray-50 p-6 rounded-2xl border border-gray-100 mt-12">
-                                <button onClick={() => setStep(2)} className="text-gray-500 font-bold text-sm flex items-center px-6 py-3 rounded-xl hover:bg-white transition-all">
-                                    <ChevronLeft className="w-5 h-5 mr-2" />
-                                    Anterior
-                                </button>
-                                <div className="text-xs font-black text-gray-300 uppercase tracking-widest">
-                                    Paso 3 de 5
-                                </div>
-                                <button
-                                    onClick={() => {
-                                        if (validateStep(3)) setStep(4)
-                                    }}
-                                    className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-black text-sm flex items-center shadow-indigo-100 shadow-xl hover:bg-indigo-700 hover:scale-105 transition-all"
-                                >
-                                    Siguiente: Estrategias
-                                    <ChevronRight className="w-5 h-5 ml-2" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )
-            }
-
-
-            {/* Stage 4: Estrategias */}
-            {
-                step === 4 && (
-                    <div className="animate-in fade-in slide-in-from-bottom-6 duration-500">
-                        <div className="bg-white rounded-[2.5rem] p-12 shadow-xl border border-gray-50 mb-10">
-                            <h2 className="text-2xl font-black text-gray-900 mb-10 flex items-center">
-                                <div className="p-3 bg-amber-50 rounded-2xl text-amber-600 mr-5">
-                                    <Sparkles className="w-7 h-7" />
-                                </div>
-                                4 y 5. Estrategias Metodológicas y de Evaluación
-                            </h2>
-
-                            <div className="grid grid-cols-2 gap-12">
-                                <div>
-                                    <h3 className="text-xs font-black uppercase text-gray-400 mb-6 underline decoration-amber-200 decoration-4 underline-offset-8">Metodologías Sociocríticas</h3>
-                                    <div className="space-y-4">
-                                        {STRATEGIES_MET.map(met => (
-                                            <label key={met} className={`flex items-center p-4 rounded-2xl border-2 transition-all cursor-pointer ${formData.pedagogical_strategies.includes(met) ? 'bg-indigo-50 border-indigo-200 shadow-sm' : 'bg-white border-gray-50 hover:border-gray-200'}`}>
-                                                <input
-                                                    type="checkbox"
-                                                    disabled={isReadOnly}
-                                                    checked={formData.pedagogical_strategies.includes(met)}
-                                                    onChange={() => {
-                                                        const exists = formData.pedagogical_strategies.includes(met)
-                                                        const newS = exists
-                                                            ? formData.pedagogical_strategies.filter(s => s !== met)
-                                                            : [...formData.pedagogical_strategies, met]
-                                                        setFormData({ ...formData, pedagogical_strategies: newS })
-                                                    }}
-                                                    className="w-5 h-5 rounded-lg border-2 border-indigo-100 text-indigo-600 focus:ring-0 mr-4 disabled:opacity-50"
-                                                />
-                                                <span className="text-xs font-black text-gray-700">{met}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div>
-                                    <h3 className="text-xs font-black uppercase text-gray-400 mb-6 underline decoration-emerald-200 decoration-4 underline-offset-8">Evaluación Formativa</h3>
-                                    <div className="mb-8 p-6 bg-emerald-50/20 rounded-3xl border border-emerald-50">
-                                        <label className="text-[10px] font-black text-emerald-600 uppercase mb-3 block">Instrumentos de Evaluación</label>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {EVALUATION_INSTRUMENTS.map(ins => (
-                                                <label key={ins} className="flex items-center text-[10px] font-bold text-gray-600">
-                                                    <input
-                                                        type="checkbox"
-                                                        disabled={isReadOnly}
-                                                        checked={formData.evaluation_strategies.instruments.includes(ins)}
-                                                        onChange={() => {
-                                                            const current = formData.evaluation_strategies.instruments
-                                                            const newI = current.includes(ins) ? current.filter(i => i !== ins) : [...current, ins]
-                                                            setFormData({ ...formData, evaluation_strategies: { ...formData.evaluation_strategies, instruments: newI } })
-                                                        }}
-                                                        className="w-3.5 h-3.5 rounded bg-white border-gray-200 text-emerald-600 mr-2 disabled:opacity-50"
-                                                    />
-                                                    {ins}
-                                                </label>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div className="space-y-4">
-                                        <h4 className="text-[10px] font-black text-gray-400 uppercase block ml-1">Pautas para retroalimentación</h4>
-                                        <textarea
-                                            value={formData.evaluation_strategies.description}
-                                            onChange={e => setFormData({
-                                                ...formData,
-                                                evaluation_strategies: { ...formData.evaluation_strategies, description: e.target.value }
-                                            })}
-                                            disabled={isReadOnly}
-                                            rows={4}
-                                            className="w-full bg-gray-50 border-gray-50 rounded-2xl px-6 py-4 text-xs font-bold text-gray-700 shadow-inner disabled:opacity-75"
-                                            placeholder="Define cómo se brindará la retroalimentación a los alumnos..."
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="mt-16 pt-10 border-t border-gray-50">
-                                <h3 className="text-xs font-black uppercase text-gray-400 mb-8 flex items-center">
-                                    <CheckCircle2 className="w-5 h-5 mr-3 text-emerald-500" />
-                                    6. Estrategias Nacionales
-                                </h3>
-                                <div className="grid grid-cols-2 gap-6">
-                                    {NATIONAL_STRATEGIES.map(nat => (
-                                        <div key={nat.id} className={`p-6 rounded-3xl border-2 transition-all ${formData.national_strategies.find(s => s.name === nat.name) ? 'bg-indigo-50 border-indigo-100' : 'bg-gray-50/50 border-transparent'}`}>
-                                            <label className="flex items-center cursor-pointer mb-3">
-                                                <input
-                                                    type="checkbox"
-                                                    disabled={isReadOnly}
-                                                    checked={!!formData.national_strategies.find(s => s.name === nat.name)}
-                                                    onChange={() => {
-                                                        const exists = formData.national_strategies.find(s => s.name === nat.name)
-                                                        const newN = exists
-                                                            ? formData.national_strategies.filter(s => s.name !== nat.name)
-                                                            : [...formData.national_strategies, { name: nat.name, description: '' }]
-                                                        setFormData({ ...formData, national_strategies: newN })
-                                                    }}
-                                                    className="w-5 h-5 rounded-lg border-2 border-indigo-200 text-indigo-600 focus:ring-0 mr-4 disabled:opacity-50"
-                                                />
-                                                <span className="text-xs font-black text-indigo-900">{nat.name}</span>
-                                            </label>
-                                            {formData.national_strategies.find(s => s.name === nat.name) && (
-                                                <textarea
-                                                    value={formData.national_strategies.find(s => s.name === nat.name)?.description}
-                                                    onChange={e => {
-                                                        const newN = formData.national_strategies.map(s => s.name === nat.name ? { ...s, description: e.target.value } : s)
-                                                        setFormData({ ...formData, national_strategies: newN })
-                                                    }}
-                                                    disabled={isReadOnly}
-                                                    placeholder="¿Cómo se incorpora esta estrategia en el plano didáctico?"
-                                                    rows={2}
-                                                    className="w-full bg-white border-indigo-50 rounded-xl px-4 py-3 text-[10px] font-bold text-indigo-700 shadow-sm disabled:bg-gray-50"
-                                                />
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="flex justify-between items-center bg-gray-50 p-6 rounded-2xl border border-gray-100 mt-12">
-                                <button onClick={() => setStep(3)} className="text-gray-500 font-bold text-sm flex items-center px-6 py-3 rounded-xl hover:bg-white transition-all">
-                                    <ChevronLeft className="w-5 h-5 mr-2" />
-                                    Anterior
-                                </button>
-                                <div className="text-xs font-black text-gray-300 uppercase tracking-widest">
-                                    Paso 4 de 5
-                                </div>
-                                <button
-                                    onClick={() => {
-                                        if (validateStep(4)) setStep(5)
-                                    }}
-                                    className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-black text-sm flex items-center shadow-indigo-100 shadow-xl hover:bg-indigo-700 hover:scale-105 transition-all"
-                                >
-                                    Finalizar: Resumen y Formato
-                                    <ChevronRight className="w-5 h-5 ml-2" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )
-            }
-
-            {/* Stage 5: Final Summary & Print Preview */}
-            {
-                step === 5 && (
-                    <div className="animate-in fade-in slide-in-from-bottom-6 duration-500">
-                        <div className="bg-white rounded-[2.5rem] p-12 shadow-xl border border-gray-50 mb-10 text-center">
-                            <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center text-green-500 mx-auto mb-8 shadow-inner">
-                                <CheckCircle2 className="w-12 h-12" />
-                            </div>
-                            <h2 className="text-3xl font-black text-gray-900 mb-4">Programa Analítico Consolidado</h2>
-                            <p className="max-w-xl mx-auto text-gray-500 text-sm font-bold mb-12">
-                                Has completado todas las etapas según la NEM. Ahora puedes generar el formato oficial de impresión para tu centro escolar.
-                            </p>
-
-                            <div className="grid grid-cols-2 gap-6 max-w-2xl mx-auto">
-                                <div className="p-8 bg-gray-50 rounded-3xl border border-gray-100 text-left">
-                                    <h3 className="text-[10px] font-black text-gray-400 uppercase mb-4 tracking-widest">Estado del Documento</h3>
-                                    <div className="space-y-4">
-                                        <div className="flex justify-between items-center text-xs font-bold">
-                                            <span className="text-gray-600">Contexto y Diagnóstico</span>
-                                            <span className="text-green-500">Completado</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-xs font-bold">
-                                            <span className="text-gray-600">Codiseño / Disciplinas</span>
-                                            <span className="text-green-500">{formData.contents.length} Registradas</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-xs font-bold">
-                                            <span className="text-gray-600">Estrategias</span>
-                                            <span className="text-green-500">Definidas</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                {isDirectorOrAdmin && (
-                                    <>
-                                        <div className="p-8 bg-indigo-50/30 rounded-3xl border border-indigo-100 text-left flex flex-col justify-center">
-                                            <h4 className="font-bold text-gray-700 mb-2">Resumen de Propuesta</h4>
-
-                                            {!(tenant as any)?.groqApiKey && (
-                                                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start">
-                                                    <AlertCircle className="w-4 h-4 text-amber-500 mr-2 mt-0.5" />
-                                                    <p className="text-[10px] font-bold text-amber-700 uppercase leading-tight">
-                                                        IA no configurada. Ve a Ajustes para añadir tu clave de Groq.
-                                                    </p>
-                                                </div>
-                                            )}
-
-                                            <div className="space-y-3 mt-4">
-                                                <div className="flex justify-between items-center text-xs font-bold">
-                                                    <span className="text-gray-600">Sesiones</span>
-                                                    <span className="text-green-500">{formData.contents.length} Registradas</span>
-                                                </div>
-                                                <div className="flex justify-between items-center text-xs font-bold">
-                                                    <span className="text-gray-600">Estrategias</span>
-                                                    <span className="text-green-500">Definidas</span>
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => {
-                                                    if (!(tenant as any)?.groqApiKey) {
-                                                        alert('Por favor, configura tu clave API de Groq en la sección de Ajustes > Configuración IA antes de continuar.')
-                                                        return
-                                                    }
-                                                    setIsAIProposalManagerOpen(true)
-                                                }}
-                                                className={`w-full mt-6 flex items-center justify-center px-4 py-3 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-indigo-100 shadow-xl ${!(tenant as any)?.groqApiKey ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-indigo-800 hover:shadow-lg hover:scale-105'}`}
-                                            >
-                                                <Sparkles className="w-4 h-4 mr-2" />
-                                                Gestionar Propuesta Didáctica (IA)
-                                            </button>
-                                        </div>
-                                        <div className="p-8 bg-indigo-50/30 rounded-3xl border border-indigo-100 text-left flex flex-col justify-center">
-                                            <h4 className="font-bold text-gray-700 mb-2">Editor de Propuesta</h4>
-                                            <p className="text-xs text-gray-500 mb-6">Utiliza el gestor para redactar los PDAs, problemáticas y orientaciones de forma asistida.</p>
-                                            <button
-                                                onClick={() => {
-                                                    if (profile?.is_demo) {
-                                                        alert('Modo Demo: El gestor de propuestas IA está deshabilitado.')
-                                                        return
-                                                    }
-                                                    if (!(tenant as any)?.groqApiKey) {
-                                                        alert('Por favor, configura tu clave API de Groq en la sección de Ajustes > Configuración IA antes de continuar.')
-                                                        return
-                                                    }
-                                                    setIsAIProposalManagerOpen(true)
-                                                }}
-                                                className={`w-full flex items-center justify-center px-4 py-3 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-indigo-100 shadow-xl ${profile?.is_demo || !(tenant as any)?.groqApiKey ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-indigo-800 hover:shadow-lg hover:scale-105'
-                                                    }`}
-                                            >
-                                                <Sparkles className="w-4 h-4 mr-2" />
-                                                Abrir Gestor de Propuesta
-                                            </button>
-                                        </div>
-                                    </>
-                                )}
-                                <div className="p-8 bg-indigo-50/30 rounded-3xl border border-indigo-100 text-left flex flex-col justify-center mt-6">
-                                    <button
-                                        onClick={async () => {
-                                            const savedId = await handleSave(false)
-                                            if (savedId) navigate(`/analytical-program/${savedId}?print=true`)
-                                        }}
-                                        className="w-full bg-white hover:bg-gray-50 text-gray-800 py-6 rounded-2xl font-black text-sm shadow-sm border border-gray-100 transition-all flex items-center justify-center"
-                                    >
-                                        <span className="mr-3 text-xl">🖨️</span>
-                                        Vista Previa Formato NEM
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="flex justify-between items-center bg-gray-50 p-6 rounded-2xl border border-gray-100 mt-12">
-                                <button onClick={() => setStep(4)} className="text-gray-500 font-bold text-sm flex items-center px-6 py-3 rounded-xl hover:bg-white transition-all">
-                                    <ChevronLeft className="w-5 h-5 mr-2" />
-                                    Anterior
-                                </button>
-                                <div className="text-xs font-black text-gray-300 uppercase tracking-widest">
-                                    Paso 5 de 5
-                                </div>
-                                {isDirectorOrAdmin && (
-                                    <button
-                                        onClick={() => {
-                                            if (profile?.is_demo) {
-                                                alert('Modo Demo: El guardado final está deshabilitado.')
-                                                return
-                                            }
-                                            handleSave(true)
-                                        }}
-                                        className={`px-8 py-3 rounded-xl font-black text-sm flex items-center shadow-indigo-100 shadow-xl transition-all ${profile?.is_demo ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-105'
-                                            }`}
-                                    >
-                                        <Save className="w-4 h-4 mr-2" />
-                                        {isIndependent ? 'Finalizar y Guardar Programa' : 'Finalizar y Cerrar Sesión CTE'}
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )
-            }
-
-            {/* Synthetic Program Modal (Reusable) */}
-            {
-                isSyntheticModalOpen && (
-                    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-                        <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl border border-indigo-100 overflow-hidden anime-in fade-in zoom-in duration-300">
-                            {/* Modal Header */}
-                            <div className="p-8 border-b border-gray-50 flex justify-between items-center bg-indigo-50/30">
-                                <div>
-                                    <h3 className="text-lg font-black text-gray-900 uppercase tracking-tighter flex items-center">
-                                        <BookMarked className="w-5 h-5 mr-3 text-indigo-600" />
-                                        Programa Sintético - Fase {currentPhase}
-                                    </h3>
-                                    <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mt-1">
-                                        Referencia oficial de contenidos nacionales
-                                    </p>
-                                </div>
-                                <button onClick={() => setIsSyntheticModalOpen(false)} className="text-gray-400 hover:text-gray-600">
-                                    <Plus className="w-6 h-6 rotate-45" />
-                                </button>
-                            </div>
-
-                            {/* Search Bar */}
-                            <div className="p-8 bg-indigo-50/10 border-b border-indigo-50">
-                                <div className="relative">
-                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-400" />
-                                    <input
-                                        type="text"
-                                        placeholder="Buscar por contenido, materia o campo..."
-                                        value={syntheticSearch}
-                                        onChange={(e) => setSyntheticSearch(e.target.value)}
-                                        className="w-full bg-white border-2 border-indigo-50/50 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-gray-700 focus:ring-2 focus:ring-indigo-500 transition-all shadow-inner"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* List */}
-                            <div className="p-8 max-h-[50vh] overflow-y-auto space-y-4">
-                                {syntheticCatalog
-                                    .filter(s =>
-                                        s.content.toLowerCase().includes(syntheticSearch.toLowerCase()) ||
-                                        (s.subject_name?.toLowerCase().includes(syntheticSearch.toLowerCase()) || '') ||
-                                        s.field_of_study.toLowerCase().includes(syntheticSearch.toLowerCase())
-                                    )
-                                    .map((item) => (
-                                        <button
-                                            key={item.id}
-                                            onClick={() => {
-                                                if (editingContentIdx !== null) {
-                                                    const newContents = [...formData.contents]
-                                                    const subjectInCatalog = subjectsCatalog.find(s => s.name === item.subject_name)
-                                                    newContents[editingContentIdx] = {
-                                                        ...newContents[editingContentIdx],
-                                                        subject_id: subjectInCatalog?.id || newContents[editingContentIdx].subject_id,
-                                                        campo_formativo: item.field_of_study,
-                                                        custom_content: item.content
-                                                    }
-                                                    setFormData({ ...formData, contents: newContents })
-                                                }
-                                                setIsSyntheticModalOpen(false)
-                                            }}
-                                            className="w-full text-left p-5 rounded-2xl border border-gray-100 hover:border-indigo-500 hover:bg-indigo-50 transition-all group"
-                                        >
-                                            <div className="flex justify-between items-start mb-2">
-                                                <span className="text-[9px] font-black uppercase text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">{item.field_of_study}</span>
-                                                <span className="text-[9px] font-black uppercase text-gray-400">{item.subject_name || ''}</span>
-                                            </div>
-                                            <p className="text-sm font-bold text-gray-800 leading-relaxed">{item.content}</p>
-                                        </button>
-                                    ))}
-                            </div>
-                        </div>
-                    </div>
-                )
-            }
-
-            <AIProposalManager
-                isOpen={isAIProposalManagerOpen}
-                onClose={() => setIsAIProposalManagerOpen(false)}
-                formData={{ ...formData, syntheticCatalog }}
-                setFormData={setFormData}
-                groqService={groqService}
-                phase={currentPhase}
-            />
-
-            <ErrorModal
-                isOpen={errorModal.isOpen}
-                onClose={() => setErrorModal({ ...errorModal, isOpen: false })}
-                title={errorModal.title}
-                message={errorModal.message}
-                details={errorModal.details}
-            />
-        </div >
-    );
-};
-
-
-
+        </div>
+    )
+}

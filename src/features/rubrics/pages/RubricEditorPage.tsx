@@ -85,25 +85,31 @@ export const RubricEditorPage = () => {
     }
 
     const addLevel = () => {
-        setLevels([...levels, { title: 'Nuevo Nivel', score: 0, order_index: levels.length }])
+        setLevels(prev => [...prev, { title: 'Nuevo Nivel', score: 0, order_index: prev.length }])
     }
 
     const addCriterion = () => {
-        setCriteria([...criteria, { title: 'Nuevo Criterio', order_index: criteria.length }])
+        setCriteria(prev => [...prev, { title: 'Nuevo Criterio', order_index: prev.length }])
     }
 
     const removeLevel = (index: number) => {
-        if (levels.length <= 1) return alert('Debe haber al menos un nivel')
-        const newLevels = levels.filter((_, i) => i !== index)
-        setLevels(newLevels)
-        // Note: Descriptors map keys might needs re-indexing if we were strict, 
-        // but for a strictly visual editor before save, we might lose data if we don't handle this carefully.
-        // For MVP, we warn or accept data loss on column delete.
+        setLevels(prev => {
+            if (prev.length <= 1) {
+                alert('Debe haber al menos un nivel')
+                return prev
+            }
+            return prev.filter((_, i) => i !== index)
+        })
     }
 
     const removeCriterion = (index: number) => {
-        if (criteria.length <= 1) return alert('Debe haber al menos un criterio')
-        setCriteria(criteria.filter((_, i) => i !== index))
+        setCriteria(prev => {
+            if (prev.length <= 1) {
+                alert('Debe haber al menos un criterio')
+                return prev
+            }
+            return prev.filter((_, i) => i !== index)
+        })
     }
 
     const handleSave = async () => {
@@ -260,9 +266,12 @@ export const RubricEditorPage = () => {
                                     <input
                                         value={level.title}
                                         onChange={(e) => {
-                                            const newLevels = [...levels]
-                                            newLevels[idx].title = e.target.value
-                                            setLevels(newLevels)
+                                            const value = e.target.value
+                                            setLevels(prev => {
+                                                const next = [...prev]
+                                                next[idx] = { ...next[idx], title: value }
+                                                return next
+                                            })
                                         }}
                                         className="w-full bg-transparent font-semibold text-gray-900 border-none focus:ring-0 p-0 mb-1"
                                     />
@@ -272,9 +281,12 @@ export const RubricEditorPage = () => {
                                             type="number"
                                             value={level.score}
                                             onChange={(e) => {
-                                                const newLevels = [...levels]
-                                                newLevels[idx].score = Number(e.target.value)
-                                                setLevels(newLevels)
+                                                const value = Number(e.target.value)
+                                                setLevels(prev => {
+                                                    const next = [...prev]
+                                                    next[idx] = { ...next[idx], score: value }
+                                                    return next
+                                                })
                                             }}
                                             className="w-12 ml-1 bg-white border border-gray-200 rounded px-1 py-0.5 text-xs text-center"
                                         />
@@ -305,9 +317,12 @@ export const RubricEditorPage = () => {
                                     <input
                                         value={criterion.title}
                                         onChange={(e) => {
-                                            const newCriteria = [...criteria]
-                                            newCriteria[cIdx].title = e.target.value
-                                            setCriteria(newCriteria)
+                                            const value = e.target.value
+                                            setCriteria(prev => {
+                                                const next = [...prev]
+                                                next[cIdx] = { ...next[cIdx], title: value }
+                                                return next
+                                            })
                                         }}
                                         className="w-full font-bold text-gray-800 border-b border-transparent hover:border-gray-300 focus:border-blue-500 bg-transparent focus:ring-0 px-0 py-1 transition-colors"
                                     />

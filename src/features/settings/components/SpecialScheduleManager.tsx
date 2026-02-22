@@ -134,7 +134,10 @@ export const SpecialScheduleManager = () => {
         fetchSpecialSchedules()
     }
 
-    if (loading) return null
+    const normalizedType = tenant?.type?.toUpperCase()
+    const normalizedRole = tenant?.role?.toUpperCase()
+    const isIndependent = normalizedType === 'INDEPENDENT' || normalizedRole === 'INDEPENDENT_TEACHER'
+    if (loading || isIndependent) return null
 
     return (
         <div className="space-y-12">

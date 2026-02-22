@@ -7,15 +7,17 @@ interface RegularUserTableProps {
     onDelete: (id: string) => void
     onToggleDemo?: (id: string, currentDemoStatus: boolean) => void
     onResetPassword?: (email: string) => void
+    onSetProvisionalPassword?: (id: string, email: string) => void
 }
 
-export const RegularUserTable = ({ users, searchTerm, onImpersonate, onDelete, onToggleDemo, onResetPassword }: RegularUserTableProps) => {
+export const RegularUserTable = ({ users, searchTerm, onImpersonate, onDelete, onToggleDemo, onResetPassword, onSetProvisionalPassword }: RegularUserTableProps) => {
     // Filter for regular users
     const regularUsers = users.filter(user =>
-        ['TEACHER', 'STUDENT', 'FAMILY', 'INDEPENDENT_TEACHER'].includes(user.role) &&
+        ['TEACHER', 'STUDENT', 'FAMILY', 'INDEPENDENT_TEACHER', 'TUTOR'].includes(user.role) &&
         (user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.last_name?.toLowerCase().includes(searchTerm.toLowerCase()))
+            user.last_name_paternal?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.last_name_maternal?.toLowerCase().includes(searchTerm.toLowerCase()))
     )
 
     const getRoleBadgeCheck = (role: string) => {
@@ -24,6 +26,7 @@ export const RegularUserTable = ({ users, searchTerm, onImpersonate, onDelete, o
             case 'INDEPENDENT_TEACHER': return 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
             case 'STUDENT': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
             case 'FAMILY': return 'bg-orange-500/10 text-orange-400 border-orange-500/20'
+            case 'TUTOR': return 'bg-purple-500/10 text-purple-400 border-purple-500/20'
             default: return 'bg-slate-500/10 text-slate-400'
         }
     }
@@ -34,6 +37,7 @@ export const RegularUserTable = ({ users, searchTerm, onImpersonate, onDelete, o
             case 'INDEPENDENT_TEACHER': return <School className="w-3 h-3 mr-1" />
             case 'STUDENT': return <GraduationCap className="w-3 h-3 mr-1" />
             case 'FAMILY': return <Users className="w-3 h-3 mr-1" />
+            case 'TUTOR': return <Users className="w-3 h-3 mr-1" />
             default: return null
         }
     }
@@ -74,11 +78,13 @@ export const RegularUserTable = ({ users, searchTerm, onImpersonate, onDelete, o
                                 <td className="px-8 py-6">
                                     <div className="flex items-center">
                                         <div className="w-10 h-10 rounded-xl bg-slate-700 flex items-center justify-center font-bold text-xs text-slate-300 mr-4">
-                                            {user.first_name?.[0]}{user.last_name?.[0]}
+                                            {user.first_name?.[0] || 'U'}{user.last_name_paternal?.[0] || ''}
                                         </div>
                                         <div>
-                                            <p className="text-md font-bold text-white">{user.first_name} {user.last_name}</p>
-                                            <p className="text-[11px] text-slate-500 font-mono">{user.email}</p>
+                                            <p className="text-md font-bold text-white">
+                                                {user.first_name} {user.last_name_paternal} {user.last_name_maternal}
+                                            </p>
+                                            <p className="text-[11px] text-slate-500 font-mono italic">{user.email || 'Sin correo vinculado'}</p>
                                         </div>
                                     </div>
                                 </td>
@@ -141,6 +147,15 @@ export const RegularUserTable = ({ users, searchTerm, onImpersonate, onDelete, o
                                                 title="Enviar Link de Recuperación"
                                             >
                                                 <Key className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                        {onSetProvisionalPassword && (
+                                            <button
+                                                onClick={() => onSetProvisionalPassword(user.id, user.email)}
+                                                className="p-2.5 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-600 hover:text-white rounded-xl transition-all"
+                                                title="Resetear a Contraseña Provisional"
+                                            >
+                                                <Key className="w-4 h-4 fill-emerald-500/20" />
                                             </button>
                                         )}
                                     </div>

@@ -1,0 +1,88 @@
+{
+  "profile": [
+    {
+      "id": "ecd127be-a39c-48a9-8661-e50ffb2248fd",
+      "rfc": null,
+      "sex": null,
+      "curp": null,
+      "role": "TUTOR",
+      "email": "helmerferras@gmail.com",
+      "full_name": "HELMER FERRAS COUTIÑO",
+      "tenant_id": "efc61ce1-32c2-47b6-9751-95becd7ddc33",
+      "avatar_url": null,
+      "birth_date": null,
+      "created_at": "2026-02-17T13:52:51.340028+00:00",
+      "deleted_at": null,
+      "first_name": "HELMER",
+      "nationality": null,
+      "phone_contact": null,
+      "last_tenant_id": null,
+      "marital_status": null,
+      "work_start_time": "07:00:00",
+      "advisory_group_id": null,
+      "address_particular": null,
+      "last_name_maternal": "COUTIÑO",
+      "last_name_paternal": "FERRAS",
+      "profile_setup_completed": false
+    }
+  ],
+  "allTenants": [
+    {
+      "id": "8e3fcc38-c1ed-4466-9860-15b5c7ba4d0c",
+      "name": "SECUNDARIA TECNICA NO 37",
+      "type": "INDEPENDENT"
+    },
+    {
+      "id": "efc61ce1-32c2-47b6-9751-95becd7ddc33",
+      "name": "SECUNDARIA TECNICA NO 37",
+      "type": "SCHOOL"
+    }
+  ],
+  "ptSchema": [
+    {
+      "column_name": "profile_id",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "tenant_id",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "role",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "is_default",
+      "is_nullable": "YES",
+      "column_default": "false"
+    },
+    {
+      "column_name": "created_at",
+      "is_nullable": "YES",
+      "column_default": "now()"
+    },
+    {
+      "column_name": "first_name",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "column_name": "last_name_paternal",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "column_name": "last_name_maternal",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "column_name": "avatar_url",
+      "is_nullable": "YES",
+      "column_default": null
+    }
+  ]
+}

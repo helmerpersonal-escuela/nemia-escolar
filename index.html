@@ -19,6 +19,22 @@
 </head>
 
 <body>
+  <div id="error-log" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,0,0,0.8);color:#fff;overflow:auto;z-index:999999;display:none;padding:20px;box-sizing:border-box;"></div>
+  <script>
+    window.onerror = function (message, source, lineno, colno, error) {
+      var log = document.getElementById('error-log');
+      log.style.display = 'block';
+      log.innerHTML += '<p><strong>Error:</strong> ' + message + '</p>' +
+                       '<p><strong>Source:</strong> ' + source + ':' + lineno + ':' + colno + '</p>' +
+                       '<p><strong>Detail:</strong> ' + (error ? error.stack : '') + '</p><hr>';
+      return false;
+    };
+    window.addEventListener('unhandledrejection', function(event) {
+      var log = document.getElementById('error-log');
+      log.style.display = 'block';
+      log.innerHTML += '<p><strong>Promise Rejection:</strong> ' + event.reason + '</p><hr>';
+    });
+  </script>
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>

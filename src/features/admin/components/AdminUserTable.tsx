@@ -50,11 +50,11 @@ export const AdminUserTable = ({ users, searchTerm, onResetPassword, onImpersona
                                 <td className="px-8 py-6">
                                     <div className="flex items-center">
                                         <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center font-black text-xs text-white shadow-lg mr-4 border-2 border-slate-800">
-                                            {user.first_name?.[0] || 'A'}{user.last_name?.[0] || 'D'}
+                                            {user.first_name?.[0] || 'A'}{user.last_name_paternal?.[0] || 'D'}
                                         </div>
                                         <div>
-                                            <p className="text-sm font-black text-white">{user.first_name} {user.last_name}</p>
-                                            <p className="text-[11px] text-slate-500 font-mono">{user.email}</p>
+                                            <p className="text-sm font-black text-white">{user.first_name} {user.last_name_paternal} {user.last_name_maternal}</p>
+                                            <p className="text-[11px] text-slate-500 font-mono italic">{user.email || 'Sin correo vinculado'}</p>
                                         </div>
                                     </div>
                                 </td>

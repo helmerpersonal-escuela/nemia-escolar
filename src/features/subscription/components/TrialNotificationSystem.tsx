@@ -3,16 +3,18 @@ import { useTrialStatus } from '../../../hooks/useTrialStatus'
 import { Clock, AlertTriangle, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAppMode } from '../../../hooks/useAppMode'
+import { useProfile } from '../../../hooks/useProfile'
 
 export const TrialNotificationSystem = () => {
     const { daysRemaining, isTrial, isExpired } = useTrialStatus()
     const { isAppMode } = useAppMode()
+    const { profile } = useProfile()
     const [isVisible, setIsVisible] = useState(false)
     const [message, setMessage] = useState('')
     const navigate = useNavigate()
 
     useEffect(() => {
-        if (!isTrial || isExpired) return
+        if (!isTrial || isExpired || profile?.role?.toUpperCase() === 'TUTOR') return
 
         const checkNotification = () => {
             const today = new Date().toLocaleDateString()

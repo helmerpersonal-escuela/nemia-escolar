@@ -135,12 +135,14 @@ export const StudentTrackingPage = () => {
     )
 
     return (
-        <div className="p-8 max-w-7xl mx-auto space-y-8">
+        <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 pb-24">
             {/* Header */}
             <div className="flex justify-between items-end">
                 <div>
-                    <h1 className="text-3xl font-black text-gray-900 tracking-tighter uppercase">Bitácora Escolar</h1>
-                    <p className="text-gray-400 font-bold text-sm uppercase tracking-widest mt-1">Seguimiento Rápido • {selectedStudent ? `${selectedStudent.first_name} ${selectedStudent.last_name_paternal}` : 'Selecciona un Alumno'}</p>
+                    <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tighter uppercase">Bitácora Escolar</h1>
+                    <p className="text-gray-400 font-bold text-xs sm:text-sm uppercase tracking-widest mt-1">
+                        Seguimiento Rápido {selectedStudent ? `• ${selectedStudent.first_name} ${selectedStudent.last_name_paternal}` : ''}
+                    </p>
                 </div>
                 <div className="flex space-x-4">
                     {/* Role-based restriction: Only staff can register incidents */}
@@ -224,18 +226,18 @@ export const StudentTrackingPage = () => {
                     {selectedStudent ? (
                         <>
                             {/* Student Hub Card */}
-                            <div className="bg-indigo-600 rounded-[2.5rem] shadow-2xl p-8 text-white relative overflow-hidden group">
+                            <div className="bg-indigo-600 rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl p-6 sm:p-8 text-white relative overflow-hidden group">
                                 <Activity className="absolute right-[-20px] top-[-20px] w-64 h-64 text-white/5 rotate-12 group-hover:scale-110 transition-transform duration-700" />
-                                <div className="relative z-10 flex justify-between items-start">
-                                    <div className="flex space-x-6 items-center">
-                                        <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center border border-white/30 shadow-2xl">
-                                            <User className="w-10 h-10 text-white" />
+                                <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start gap-4">
+                                    <div className="flex space-x-4 sm:space-x-6 items-center">
+                                        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center border border-white/30 shadow-2xl shrink-0">
+                                            <User className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
                                         </div>
                                         <div>
-                                            <h2 className="text-3xl font-black tracking-tighter leading-tight">
-                                                {selectedStudent.first_name} {selectedStudent.last_name_paternal}
+                                            <h2 className="text-2xl sm:text-3xl font-black tracking-tighter leading-tight">
+                                                {selectedStudent.first_name} <br className="sm:hidden" /> {selectedStudent.last_name_paternal}
                                             </h2>
-                                            <p className="text-indigo-100 font-bold uppercase text-[10px] tracking-widest mt-1 bg-white/10 px-3 py-1 rounded-full inline-block">
+                                            <p className="text-indigo-100 font-bold uppercase text-[9px] sm:text-[10px] tracking-widest mt-1 bg-white/10 px-3 py-1 rounded-full inline-block">
                                                 {selectedStudent.group?.grade}° "{selectedStudent.group?.section}" • Expediente Activo
                                             </p>
                                         </div>
@@ -282,16 +284,16 @@ export const StudentTrackingPage = () => {
 
                             {/* Full Timeline List */}
                             <div className="squishy-card overflow-hidden">
-                                <div className="p-8 border-b border-gray-50 flex justify-between items-center">
+                                <div className="p-5 sm:p-8 border-b border-gray-50 flex justify-between items-center">
                                     <div className="flex items-center space-x-3">
                                         <div className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse" />
-                                        <h3 className="font-black text-gray-900 uppercase text-sm tracking-widest">Historial de Bitácora</h3>
+                                        <h3 className="font-black text-gray-900 uppercase text-xs sm:text-sm tracking-widest">Historial de Bitácora</h3>
                                     </div>
-                                    <span className="text-[10px] font-black text-gray-300 uppercase">{incidents.length} Registros Totales</span>
+                                    <span className="text-[9px] sm:text-[10px] font-black text-gray-300 uppercase">{incidents.length} Registros Totales</span>
                                 </div>
                                 <div className="divide-y divide-gray-50 bg-gray-50/30">
                                     {incidents.map(incident => (
-                                        <div key={incident.id} className="p-8 hover:bg-white transition-all group">
+                                        <div key={incident.id} className="p-5 sm:p-8 hover:bg-white transition-all group">
                                             <div className="flex justify-between items-start mb-4">
                                                 <div className="flex items-center space-x-4">
                                                     <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider shadow-sm
@@ -373,7 +375,7 @@ export const StudentTrackingPage = () => {
                                     {Object.keys(QUICK_PHRASES).map(cat => (
                                         <button
                                             key={cat}
-                                            onClick={() => setNewIncident({ ...newIncident, type: cat, description: '' })}
+                                            onClick={() => setNewIncident(prev => ({ ...prev, type: cat, description: '' }))}
                                             className={`px-3 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-tight border-2 transition-all
                                                 ${newIncident.type === cat
                                                     ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg scale-105'
@@ -396,7 +398,7 @@ export const StudentTrackingPage = () => {
                                     {QUICK_PHRASES[newIncident.type].map((phrase: string) => (
                                         <button
                                             key={phrase}
-                                            onClick={() => setNewIncident({ ...newIncident, description: phrase })}
+                                            onClick={() => setNewIncident(prev => ({ ...prev, description: phrase }))}
                                             className={`px-3 py-2.5 rounded-lg text-[10px] font-bold text-left transition-all border
                                                 ${newIncident.description === phrase
                                                     ? 'bg-indigo-50 border-indigo-200 text-indigo-700 font-black'
@@ -406,7 +408,7 @@ export const StudentTrackingPage = () => {
                                         </button>
                                     ))}
                                     <button
-                                        onClick={() => setNewIncident({ ...newIncident, description: '' })}
+                                        onClick={() => setNewIncident(prev => ({ ...prev, description: '' }))}
                                         className="px-3 py-2.5 rounded-lg text-[10px] font-black border-2 border-dashed border-gray-200 text-gray-400 hover:border-indigo-300 hover:text-indigo-400 transition-all"
                                     >
                                         + Otro
@@ -421,7 +423,7 @@ export const StudentTrackingPage = () => {
                                     <textarea
                                         rows={2}
                                         value={newIncident.description}
-                                        onChange={e => setNewIncident({ ...newIncident, description: e.target.value })}
+                                        onChange={e => setNewIncident(prev => ({ ...prev, description: e.target.value }))}
                                         className="w-full bg-gray-50 border-2 border-transparent focus:border-indigo-500 rounded-xl px-4 py-3 font-medium text-gray-700 outline-none transition-all placeholder:text-[10px] text-xs"
                                         placeholder="Escribe aquí..."
                                     />
@@ -432,7 +434,7 @@ export const StudentTrackingPage = () => {
                                         {['BAJA', 'MEDIA', 'ALTA'].map(sev => (
                                             <button
                                                 key={sev}
-                                                onClick={() => setNewIncident({ ...newIncident, severity: sev })}
+                                                onClick={() => setNewIncident(prev => ({ ...prev, severity: sev }))}
                                                 className={`flex-1 py-3 rounded-xl text-[9px] font-black transition-all border-2
                                                     ${newIncident.severity === sev
                                                         ? (sev === 'ALTA' ? 'bg-red-600 border-red-600 text-white' :

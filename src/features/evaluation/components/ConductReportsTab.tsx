@@ -56,6 +56,37 @@ export const ConductReportsTab = ({
         setIsCreateModalOpen(true)
     }
 
+    const handleExportCSV = () => {
+        if (filteredIncidents.length === 0) {
+            alert('No hay reportes para exportar.')
+            return
+        }
+
+        const headers = ['Fecha', 'Alumno', 'Grado/Grupo', 'Tipo', 'Gravedad', 'Título', 'Descripción', 'Compromiso']
+        const rows = filteredIncidents.map(incident => {
+            const student = students.find(s => s.id === incident.student_id)
+            return [
+                new Date(incident.created_at).toLocaleDateString(),
+                `"${student?.last_name_paternal} ${student?.last_name_maternal} ${student?.first_name}"`,
+                `"${student?.group?.grade || ''}° ${student?.group?.section || ''}"`,
+                incident.type,
+                incident.severity,
+                `"${incident.title.replace(/"/g, '""')}"`,
+                `"${incident.description?.replace(/"/g, '""') || ''}"`,
+                `"${incident.has_commitment ? 'SI' : 'NO'}"`
+            ].join(',')
+        })
+
+        const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(','), ...rows].join('\n')
+        const encodedUri = encodeURI(csvContent)
+        const link = document.createElement("a")
+        link.setAttribute("href", encodedUri)
+        link.setAttribute("download", `Reportes_Conducta_${new Date().toISOString().split('T')[0]}.csv`)
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+    }
+
     const handlePrintCommitment = (incident: any, student: any) => {
         const printWindow = window.open('', '_blank')
         if (!printWindow) return
@@ -189,17 +220,27 @@ export const ConductReportsTab = ({
                     </div>
                 </div>
 
-                <button
-                    onClick={() => {
-                        setSelectedStudentId(null)
-                        setIncidentToEdit(null)
-                        setIsCreateModalOpen(true)
-                    }}
-                    className="btn-tactile w-full md:w-auto px-8 py-3 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2"
-                >
-                    <Plus className="w-4 h-4" />
-                    Nuevo Reporte
-                </button>
+                <div className="flex w-full md:w-auto gap-3">
+                    <button
+                        onClick={handleExportCSV}
+                        className="btn-tactile w-full md:w-auto px-6 py-3 bg-white text-indigo-600 border border-slate-200 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 hover:bg-slate-50 shadow-sm"
+                        title="Exportar a CSV"
+                    >
+                        <Download className="w-4 h-4" />
+                        Exportar
+                    </button>
+                    <button
+                        onClick={() => {
+                            setSelectedStudentId(null)
+                            setIncidentToEdit(null)
+                            setIsCreateModalOpen(true)
+                        }}
+                        className="btn-tactile w-full md:w-auto px-8 py-3 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Nuevo Reporte
+                    </button>
+                </div>
             </div>
 
             {/* Incidents Grid */}

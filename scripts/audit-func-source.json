@@ -1,0 +1,12 @@
+[
+  {
+    "args": "sql_query text",
+    "prosrc": "\r\nBEGIN\r\n  EXECUTE sql_query;\r\nEND;\r\n",
+    "proname": "exec_sql"
+  },
+  {
+    "args": "",
+    "prosrc": "\r\nBEGIN\r\n    IF (TG_OP = 'DELETE') THEN\r\n        INSERT INTO public.audit_logs (table_name, record_id, action, old_data, changed_by)\r\n        VALUES (TG_TABLE_NAME, OLD.id, TG_OP, to_jsonb(OLD), auth.uid());\r\n        RETURN OLD;\r\n    ELSIF (TG_OP = 'UPDATE') THEN\r\n        INSERT INTO public.audit_logs (table_name, record_id, action, old_data, new_data, changed_by)\r\n        VALUES (TG_TABLE_NAME, NEW.id, TG_OP, to_jsonb(OLD), to_jsonb(NEW), auth.uid());\r\n        RETURN NEW;\r\n    ELSIF (TG_OP = 'INSERT') THEN\r\n        INSERT INTO public.audit_logs (table_name, record_id, action, new_data, changed_by)\r\n        VALUES (TG_TABLE_NAME, NEW.id, TG_OP, to_jsonb(NEW), auth.uid());\r\n        RETURN NEW;\r\n    END IF;\r\n    RETURN NULL;\r\nEND;\r\n",
+    "proname": "process_audit_log"
+  }
+]

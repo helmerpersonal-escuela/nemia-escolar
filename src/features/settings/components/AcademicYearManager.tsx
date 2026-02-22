@@ -11,7 +11,7 @@ interface AcademicYear {
     is_active: boolean
 }
 
-export const AcademicYearManager = () => {
+export const AcademicYearManager = ({ readOnly = false }: { readOnly?: boolean }) => {
     const { data: tenant } = useTenant()
     const [years, setYears] = useState<AcademicYear[]>([])
     const [loading, setLoading] = useState(true)
@@ -137,13 +137,15 @@ export const AcademicYearManager = () => {
                     <h3 className="text-xl font-black text-gray-900 tracking-tight">Ciclos Escolares</h3>
                     <p className="text-sm text-gray-500 font-medium">Define los años lectivos (ej. 2024-2025). Solo uno puede estar activo.</p>
                 </div>
-                <button
-                    onClick={() => setIsCreating(true)}
-                    className="px-6 py-3 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-gray-200 flex items-center"
-                >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Nuevo Ciclo
-                </button>
+                {!readOnly && (
+                    <button
+                        onClick={() => setIsCreating(true)}
+                        className="px-6 py-3 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-gray-200 flex items-center"
+                    >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Nuevo Ciclo
+                    </button>
+                )}
             </div>
 
             {(isCreating || years.length === 0) && (
@@ -155,7 +157,7 @@ export const AcademicYearManager = () => {
                             placeholder="Ej. Ciclo Escolar 2024-2025"
                             className="w-full px-4 py-3 bg-white border border-transparent rounded-xl text-sm font-bold text-gray-900 focus:ring-4 focus:ring-blue-100 outline-none"
                             value={newYear.name}
-                            onChange={e => setNewYear({ ...newYear, name: e.target.value })}
+                            onChange={e => setNewYear(prev => ({ ...prev, name: e.target.value }))}
                             required
                         />
                     </div>
@@ -166,7 +168,7 @@ export const AcademicYearManager = () => {
                                 type="date"
                                 className="w-full px-4 py-3 bg-white border border-transparent rounded-xl text-sm font-bold text-gray-900 focus:ring-4 focus:ring-blue-100 outline-none"
                                 value={newYear.start_date}
-                                onChange={e => setNewYear({ ...newYear, start_date: e.target.value })}
+                                onChange={e => setNewYear(prev => ({ ...prev, start_date: e.target.value }))}
                                 required
                             />
                         </div>
@@ -176,7 +178,7 @@ export const AcademicYearManager = () => {
                                 type="date"
                                 className="w-full px-4 py-3 bg-white border border-transparent rounded-xl text-sm font-bold text-gray-900 focus:ring-4 focus:ring-blue-100 outline-none"
                                 value={newYear.end_date}
-                                onChange={e => setNewYear({ ...newYear, end_date: e.target.value })}
+                                onChange={e => setNewYear(prev => ({ ...prev, end_date: e.target.value }))}
                                 required
                             />
                         </div>
@@ -247,12 +249,14 @@ export const AcademicYearManager = () => {
                                     )}
                                 </div>
 
-                                <button
-                                    onClick={() => handleDelete(year.id, year.is_active)}
-                                    className={`p-2 rounded-xl transition-all ${year.is_active ? 'text-blue-200 hover:bg-white/10 hover:text-white' : 'text-gray-300 hover:bg-red-50 hover:text-red-500'}`}
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
+                                {!readOnly && (
+                                    <button
+                                        onClick={() => handleDelete(year.id, year.is_active)}
+                                        className={`p-2 rounded-xl transition-all ${year.is_active ? 'text-blue-200 hover:bg-white/10 hover:text-white' : 'text-gray-300 hover:bg-red-50 hover:text-red-500'}`}
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                )}
                             </div>
 
                             {/* Decorative Background */}

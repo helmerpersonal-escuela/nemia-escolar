@@ -67,9 +67,10 @@ export const useSubscriptionLimits = () => {
                     .eq('tenant_id', profile.tenant_id)
 
                 const currentGroups = groupCount || 0
-                const maxGroups = planLimits?.max_groups || (planType === 'pro' ? 10 : 5)
+                const rawMaxGroups = planLimits?.max_groups || (planType === 'pro' ? 10 : 5)
+                const maxGroups = Math.max(rawMaxGroups, planType === 'pro' ? 10 : 5) // Enforce minimums
                 const maxStudentsPerGroup = planLimits?.max_students_per_group || (planType === 'pro' ? 100 : 50)
-                const priceAnnual = planLimits?.price_annual || (planType === 'pro' ? 999 : 399)
+                const priceAnnual = planLimits?.price_annual || (planType === 'pro' ? 599 : 399)
 
                 setLimits({
                     maxGroups,
@@ -128,13 +129,16 @@ export const useSubscriptionLimits = () => {
                 .select('*', { count: 'exact', head: true })
                 .eq('tenant_id', profile.tenant_id)
 
+            const rawMaxGroups = planLimits?.max_groups || (planType === 'pro' ? 10 : 5)
+            const resolvedMaxGroups = Math.max(rawMaxGroups, planType === 'pro' ? 10 : 5)
+
             setLimits({
-                maxGroups: planLimits?.max_groups || (planType === 'pro' ? 10 : 5),
+                maxGroups: resolvedMaxGroups,
                 maxStudentsPerGroup: planLimits?.max_students_per_group || (planType === 'pro' ? 100 : 50),
                 currentGroups: groupCount || 0,
                 planType: planType as 'basic' | 'pro',
-                priceAnnual: planLimits?.price_annual || (planType === 'pro' ? 999 : 399),
-                canAddGroup: (groupCount || 0) < (planLimits?.max_groups || (planType === 'pro' ? 10 : 5)),
+                priceAnnual: planLimits?.price_annual || (planType === 'pro' ? 599 : 399),
+                canAddGroup: (groupCount || 0) < resolvedMaxGroups,
                 isLoading: false
             })
         } catch (err) {
