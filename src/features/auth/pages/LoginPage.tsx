@@ -104,9 +104,7 @@ export const LoginPage = () => {
                                         className="input-squishy block w-full pl-11 pr-4 py-4 font-bold text-slate-700 placeholder:text-slate-300"
                                         placeholder="correo@institucion.edu"
                                         value={email}
-                                        onChange={(e) => setEmail(e.target.value.replace(/\s/g, ''))}
-                                        autoCapitalize="none"
-                                        autoCorrect="off"
+                                        onChange={(e) => setEmail(e.target.value)}
                                     />
                                 </div>
 
