@@ -220,7 +220,7 @@ export const UpgradeModal = ({ isOpen, onClose, currentPlan, currentGroups, maxG
                                                 <p className="text-sm font-bold text-indigo-500 uppercase tracking-wider mb-1">Anual</p>
                                                 {!Capacitor.isNativePlatform() ? (
                                                     <div className="flex items-baseline gap-1">
-                                                        <span className="text-5xl font-black text-slate-900 tracking-tight">${priceAnnual}</span>
+                                                        <span className="text-5xl font-black text-slate-900 tracking-tight">$599</span>
                                                         <span className="text-xl font-bold text-slate-400">mxn</span>
                                                     </div>
                                                 ) : (
