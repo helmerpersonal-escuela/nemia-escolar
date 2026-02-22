@@ -17,8 +17,9 @@ export const LoginPage = () => {
         setError(null)
 
         try {
+            const cleanEmail = email.replace(/\s+/g, '').toLowerCase()
             const { error } = await supabase.auth.signInWithPassword({
-                email: email.trim().toLowerCase(),
+                email: cleanEmail,
                 password: password.trim(),
             })
 
@@ -40,7 +41,8 @@ export const LoginPage = () => {
         setError(null)
 
         try {
-            const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+            const cleanEmail = email.replace(/\s+/g, '').toLowerCase()
+            const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
                 redirectTo: `${window.location.origin}/reset-password`,
             })
 
@@ -102,7 +104,7 @@ export const LoginPage = () => {
                                         className="input-squishy block w-full pl-11 pr-4 py-4 font-bold text-slate-700 placeholder:text-slate-300"
                                         placeholder="correo@institucion.edu"
                                         value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
+                                        onChange={(e) => setEmail(e.target.value.replace(/\s/g, ''))}
                                         autoCapitalize="none"
                                         autoCorrect="off"
                                     />
