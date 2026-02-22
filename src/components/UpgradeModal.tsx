@@ -188,8 +188,8 @@ export const UpgradeModal = ({ isOpen, onClose, currentPlan, currentGroups, maxG
                                 <div className="inline-flex p-4 bg-green-100 text-green-600 rounded-full mb-4 shadow-sm animate-bounce">
                                     <ShieldCheck className="w-8 h-8" />
                                 </div>
-                                <h3 className="text-2xl font-black text-slate-900 mb-2">Pago 100% Seguro</h3>
-                                <p className="text-slate-500 font-medium">Completa tu suscripción con Mercado Pago</p>
+                                <h3 className="text-2xl font-black text-slate-900 mb-2">Transacción Protegida</h3>
+                                <p className="text-slate-500 font-medium">Activa tu licencia mediante Mercado Pago</p>
                             </div>
 
                             <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-2 transform transition-all hover:shadow-2xl">
@@ -257,13 +257,13 @@ export const UpgradeModal = ({ isOpen, onClose, currentPlan, currentGroups, maxG
                                                 >
                                                     <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
                                                     <Zap className="w-5 h-5 group-hover:text-yellow-300 transition-colors" />
-                                                    <span>{loading ? 'Cargando...' : '¿Quieres más?'}</span>
+                                                    <span>{loading ? 'Cargando...' : 'Desbloquear PRO'}</span>
                                                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                                 </button>
                                             </div>
 
                                             <p className="text-center text-xs font-bold text-slate-300 mt-6 tracking-wide uppercase">
-                                                Pago único anual • Cancela cuando quieras
+                                                Inversión anual • Renovación y cancelación flexibles
                                             </p>
                                         </>
                                     ) : (

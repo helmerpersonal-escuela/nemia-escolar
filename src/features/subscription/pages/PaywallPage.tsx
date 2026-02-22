@@ -33,7 +33,7 @@ export const PaywallPage = () => {
                         Acceso restringido
                     </h1>
                     <p className="text-slate-400 text-lg font-medium max-w-xl mx-auto">
-                        Tu periodo de prueba o suscripción ha finalizado. Para seguir utilizando las herramientas profesionales de Vunlek, activa tu plan hoy mismo.
+                        Tu periodo de prueba o licencia ha finalizado. Para seguir utilizando las herramientas profesionales de Vunlek, adquiere tu licencia escolar hoy mismo.
                     </p>
                 </div>
 
@@ -63,7 +63,7 @@ export const PaywallPage = () => {
                                     <h3 className="text-2xl font-black text-white uppercase tracking-tighter italic">Plan Básico</h3>
                                     <div className="text-right">
                                         <div className="text-2xl font-black text-white">${limits.priceAnnual}</div>
-                                        <div className="text-[10px] font-black text-slate-500 uppercase">MXN / Año</div>
+                                        <div className="text-[10px] font-black text-slate-500 uppercase">MXN / anual</div>
                                     </div>
                                 </div>
                                 <div className="space-y-3 mb-8">
@@ -99,7 +99,7 @@ export const PaywallPage = () => {
                                     </h3>
                                     <div className="text-right">
                                         <div className="text-2xl font-black text-white">$599</div>
-                                        <div className="text-[10px] font-black text-slate-500 uppercase">MXN / Año</div>
+                                        <div className="text-[10px] font-black text-slate-500 uppercase">MXN / anual</div>
                                     </div>
                                 </div>
                                 <div className="space-y-3 mb-8">

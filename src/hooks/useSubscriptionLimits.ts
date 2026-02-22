@@ -69,7 +69,7 @@ export const useSubscriptionLimits = () => {
                 const currentGroups = groupCount || 0
                 const rawMaxGroups = planLimits?.max_groups || (planType === 'pro' ? 10 : 5)
                 const maxGroups = Math.max(rawMaxGroups, planType === 'pro' ? 10 : 5) // Enforce minimums
-                const maxStudentsPerGroup = planLimits?.max_students_per_group || (planType === 'pro' ? 100 : 50)
+                const maxStudentsPerGroup = planLimits?.max_students_per_group || 50
                 const priceAnnual = planLimits?.price_annual || (planType === 'pro' ? 599 : 399)
 
                 setLimits({
@@ -134,7 +134,7 @@ export const useSubscriptionLimits = () => {
 
             setLimits({
                 maxGroups: resolvedMaxGroups,
-                maxStudentsPerGroup: planLimits?.max_students_per_group || (planType === 'pro' ? 100 : 50),
+                maxStudentsPerGroup: planLimits?.max_students_per_group || 50,
                 currentGroups: groupCount || 0,
                 planType: planType as 'basic' | 'pro',
                 priceAnnual: planLimits?.price_annual || (planType === 'pro' ? 599 : 399),
