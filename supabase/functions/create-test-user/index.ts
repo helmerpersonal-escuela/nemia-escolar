@@ -1,7 +1,11 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { corsHeaders } from "../_shared/cors.ts"
+import { errorResponse, getAdminClient, getRoleInTenant, HttpError, isSuperAdmin, requireUser } from "../_shared/auth.ts"
 
-console.log("Create Test User Function Initialized (Deno.serve)")
+// Roles que pueden dar de alta personal directamente
+const STAFF_MANAGERS = ['DIRECTOR', 'ADMIN', 'ACADEMIC_COORD', 'TECH_COORD']
+// Roles que solo DIRECTOR/ADMIN (o Super Admin) pueden asignar
+const PRIVILEGED_ROLES = ['DIRECTOR', 'ADMIN']
+const ASSIGNABLE_ROLES = ['DIRECTOR', 'ADMIN', 'ACADEMIC_COORD', 'TECH_COORD', 'SCHOOL_CONTROL', 'TEACHER', 'PREFECT', 'SUPPORT']
 
 Deno.serve(async (req) => {
     if (req.method === 'OPTIONS') {
@@ -9,30 +13,53 @@ Deno.serve(async (req) => {
     }
 
     try {
-        const supabaseAdmin = createClient(
-            Deno.env.get('SUPABASE_URL') ?? '',
-            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-        )
+        const admin = getAdminClient()
+        const caller = await requireUser(req, admin)
 
         const { email, password, firstName, lastNamePaternal, lastNameMaternal, role, tenantId } = await req.json()
 
-        // 1. Create a dummy invitation to get a token and link to tenant via trigger
-        const { data: invite, error: inviteError } = await supabaseAdmin
+        if (!email || !password || !tenantId || !role) {
+            throw new HttpError(400, 'Faltan datos: correo, contraseña, rol y escuela son obligatorios')
+        }
+        if (String(password).length < 8) {
+            throw new HttpError(400, 'La contraseña debe tener al menos 8 caracteres')
+        }
+
+        const requestedRole = String(role).toUpperCase()
+        if (!ASSIGNABLE_ROLES.includes(requestedRole)) {
+            throw new HttpError(403, `No se puede asignar el rol ${requestedRole}`)
+        }
+
+        // --- Autorización: el que llama debe administrar ESA escuela ---
+        const superAdmin = await isSuperAdmin(admin, caller)
+        if (!superAdmin) {
+            const callerRole = await getRoleInTenant(admin, caller.id, tenantId)
+            if (!callerRole || !STAFF_MANAGERS.includes(callerRole)) {
+                throw new HttpError(403, 'No tienes permiso para dar de alta personal en esta escuela')
+            }
+            if (PRIVILEGED_ROLES.includes(requestedRole) && !PRIVILEGED_ROLES.includes(callerRole)) {
+                throw new HttpError(403, 'Solo Dirección puede crear usuarios de Dirección o Administración')
+            }
+        }
+
+        // 1. Invitación (el trigger la usa para vincular al usuario con la escuela)
+        const { data: invite, error: inviteError } = await admin
             .from('staff_invitations')
             .insert({
                 tenant_id: tenantId,
-                email: email.toLowerCase(),
-                role: role,
-                status: 'PENDING'
+                email: String(email).toLowerCase().trim(),
+                role: requestedRole,
+                status: 'PENDING',
+                created_by: caller.id,
             })
             .select()
             .single()
 
         if (inviteError) throw inviteError
 
-        // 2. Create User with Auth Admin API
-        const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-            email,
+        // 2. Crear usuario
+        const { data: newUser, error: createError } = await admin.auth.admin.createUser({
+            email: String(email).toLowerCase().trim(),
             password,
             email_confirm: true,
             user_metadata: {
@@ -40,21 +67,19 @@ Deno.serve(async (req) => {
                 lastNamePaternal,
                 lastNameMaternal: lastNameMaternal || '',
                 invitationToken: invite.token,
-                role
-            }
+                mode: 'JOIN',
+                role: requestedRole,
+            },
         })
 
         if (createError) throw createError
 
-        return new Response(JSON.stringify({ success: true, user: newUser.user }), {
+        return new Response(JSON.stringify({ success: true, user: { id: newUser.user.id, email: newUser.user.email } }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200,
         })
-
-    } catch (error: any) {
-        return new Response(JSON.stringify({ error: error.message }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 400,
-        })
+    } catch (error) {
+        console.error('create-test-user error:', error instanceof Error ? error.message : error)
+        return errorResponse(error, corsHeaders)
     }
 })

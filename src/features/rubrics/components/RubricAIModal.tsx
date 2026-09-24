@@ -84,7 +84,7 @@ export const RubricAIModal = ({ isOpen, onClose, onGenerate }: RubricAIModalProp
 
                 {/* Header */}
                 <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-white relative">
-                    <button
+                    <button aria-label="Cerrar"
                         onClick={onClose}
                         className="absolute top-4 right-4 text-white/70 hover:text-white transition-colors"
                     >
@@ -107,7 +107,7 @@ export const RubricAIModal = ({ isOpen, onClose, onGenerate }: RubricAIModalProp
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Tema o Actividad a Evaluar
                         </label>
-                        <input
+                        <input aria-label="Tema o Actividad a Evaluar"
                             type="text"
                             value={topic}
                             onChange={(e) => setTopic(e.target.value)}
@@ -120,7 +120,7 @@ export const RubricAIModal = ({ isOpen, onClose, onGenerate }: RubricAIModalProp
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Grado Escolar (Opcional)
                         </label>
-                        <select
+                        <select aria-label="Grado Escolar (Opcional)"
                             value={grade}
                             onChange={(e) => setGrade(e.target.value)}
                             className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 bg-white"

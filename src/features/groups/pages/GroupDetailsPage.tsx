@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Plus, CreditCard, Edit, Trash2, BookOpen, UserPlus } from 'lucide-react'
+import { ArrowLeft, CreditCard, Edit, Trash2, BookOpen, UserPlus, Users } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { AddStudentModal } from '../components/AddStudentModal'
+import { BulkImportStudentsModal } from '../components/BulkImportStudentsModal'
 import { StudentCredential } from '../components/StudentCredential'
 import { CriteriaManager } from '../../evaluation/components/CriteriaManager'
-
 import { EditGroupModal } from '../components/EditGroupModal'
 import { useTenant } from '../../../hooks/useTenant'
 
@@ -19,6 +19,7 @@ export const GroupDetailsPage = () => {
     const [isAddModalOpen, setIsAddModalOpen] = useState(() => {
         return sessionStorage.getItem('vunlek_is_add_student_modal_open') === 'true'
     })
+    const [isBulkImportOpen, setIsBulkImportOpen] = useState(false)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
     const [editingStudentId, setEditingStudentId] = useState<string | null>(() => {
         return sessionStorage.getItem('vunlek_editing_student_id')
@@ -164,6 +165,14 @@ Esta acción NO se puede deshacer.`
                                 <UserPlus className="h-5 w-5 mr-2" />
                                 Agregar Alumno
                             </button>
+                            <button
+                                onClick={() => setIsBulkImportOpen(true)}
+                                className="flex items-center px-4 py-2.5 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-xl hover:bg-indigo-100 font-bold shadow-sm transition-all btn-tactile"
+                                title="Importación Masiva (Excel/CSV)"
+                            >
+                                <Users className="h-5 w-5 sm:mr-2" />
+                                <span className="hidden sm:inline">Importar Masivo</span>
+                            </button>
                             <div className="flex bg-gray-100 rounded-xl p-1">
                                 <button
                                     onClick={() => setIsEditModalOpen(true)}
@@ -222,6 +231,7 @@ Esta acción NO se puede deshacer.`
                             No hay alumnos registrados en este grupo.
                         </div>
                     ) : (
+                        <div className="table-scroll">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-indigo-50/50">
                                 <tr>
@@ -283,6 +293,7 @@ Esta acción NO se puede deshacer.`
                                 ))}
                             </tbody>
                         </table>
+                        </div>
                     )}
                 </div>
             )
@@ -308,7 +319,7 @@ Esta acción NO se puede deshacer.`
                                 </button>
                             ))}
                             {(!periods || periods.length === 0) && (
-                                <span className="text-sm text-gray-400 italic">No hay trimestres configurados</span>
+                                <span className="text-sm text-gray-500 italic">No hay trimestres configurados</span>
                             )}
                         </div>
                     </div>
@@ -324,7 +335,7 @@ Esta acción NO se puede deshacer.`
                             <div className="bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 h-full flex flex-col items-center justify-center text-center p-8">
                                 <BookOpen className="w-12 h-12 text-gray-300 mb-4" />
                                 <h3 className="font-bold text-gray-500 mb-2">Selecciona un trimestre</h3>
-                                <p className="text-sm text-gray-400 max-w-xs">Configura las fechas de los trimestres en el menú de Evaluación para empezar.</p>
+                                <p className="text-sm text-gray-500 max-w-xs">Configura las fechas de los trimestres en el menú de Evaluación para empezar.</p>
                             </div>
                         )}
                     </div>
@@ -347,6 +358,18 @@ Esta acción NO se puede deshacer.`
                             setEditingStudentId(null)
                         }}
                         studentId={editingStudentId}
+                    />
+                )
+            }
+
+            {
+                tenant?.id && (
+                    <BulkImportStudentsModal
+                        isOpen={isBulkImportOpen}
+                        onClose={() => setIsBulkImportOpen(false)}
+                        groupId={groupId!}
+                        tenantId={tenant.id}
+                        onSuccess={() => refetch()}
                     />
                 )
             }

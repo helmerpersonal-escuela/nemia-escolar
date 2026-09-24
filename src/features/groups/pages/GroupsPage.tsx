@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Users, School, Trash2, Edit, AlertTriangle, ArrowRight, BookOpen, GraduationCap, ClipboardList } from 'lucide-react'
+import { Plus, Users, School, Trash2, Edit, ArrowRight, BookOpen, GraduationCap, ClipboardList } from 'lucide-react'
 import { EditGroupModal } from '../components/EditGroupModal'
 import { UpgradeModal } from '../../../components/UpgradeModal'
+import { ErrorModal } from '../../planning/components/editor/modals/ErrorModal'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
@@ -31,6 +32,11 @@ export const GroupsPage = () => {
     const [isModifyingGroup, setIsModifyingGroup] = useState<Group | null>(null)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
     const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+    const [errorModal, setErrorModal] = useState<{ isOpen: boolean; title: string; message: string; action?: () => void; buttonText?: string }>({
+        isOpen: false,
+        title: '',
+        message: ''
+    })
     const queryClient = useQueryClient()
     const { data: tenant } = useTenant()
     const { profile } = useProfile()
@@ -138,18 +144,10 @@ export const GroupsPage = () => {
             if (newGroup.selectedSubjects.length === 0) throw new Error('Debes seleccionar al menos una materia')
 
             const { data: years } = await supabase.from('academic_years').select('id').eq('is_active', true).limit(1)
-            let yearId = years?.[0]?.id
+            const yearId = years?.[0]?.id
 
             if (!yearId) {
-                const { data: newYear, error: yearError } = await supabase.from('academic_years').insert({
-                    tenant_id: tenant.id,
-                    name: 'Ciclo Actual',
-                    start_date: new Date().toISOString(),
-                    end_date: new Date().toISOString(),
-                    is_active: true
-                }).select().single()
-                if (yearError) throw yearError
-                yearId = newYear.id
+                throw new Error('Configuración incompleta: No se encontró un Ciclo Escolar activo.')
             }
 
             const { data: group, error: groupError } = await supabase
@@ -255,10 +253,10 @@ export const GroupsPage = () => {
                             <span className="p-2 bg-blue-600 rounded-xl mr-3 shadow-lg shadow-blue-200">
                                 <Users className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                             </span>
-                            Mis Materias
+                            Mis Grupos
                         </h1>
                         <p className="mt-2 text-gray-600 font-medium ml-1">
-                            Selecciona una materia para gestionar tu libreta de calificaciones.
+                            Selecciona un grupo para gestionar tu libreta de calificaciones.
                         </p>
                         {!limits.isLoading && (
                             <div className="mt-3 flex items-center gap-2">
@@ -273,11 +271,27 @@ export const GroupsPage = () => {
                     </div>
                     {canCreateGroup && (
                         <button
-                            onClick={() => {
+                            onClick={async () => {
                                 if (!limits.canAddGroup) {
                                     setShowUpgradeModal(true)
                                     return
                                 }
+
+                                // Prerequisite Check: Academic Year and Periods
+                                const { data: years } = await supabase.from('academic_years').select('id').eq('is_active', true).eq('tenant_id', tenant?.id)
+                                const { data: periods } = await supabase.from('evaluation_periods').select('id').eq('tenant_id', tenant?.id)
+
+                                if (!years || years.length === 0 || !periods || periods.length === 0) {
+                                    setErrorModal({
+                                        isOpen: true,
+                                        title: 'Configuración Requerida',
+                                        message: 'Antes de crear grupos, debes configurar tu Ciclo Escolar y los Periodos de Evaluación para organizar correctamente tu ciclo académico.',
+                                        buttonText: 'Ir a Configuración',
+                                        action: () => navigate('/settings?tab=school')
+                                    })
+                                    return
+                                }
+
                                 setIsModalOpen(true)
                             }}
                             className="inline-flex justify-center items-center px-6 py-3 border border-transparent shadow-lg shadow-blue-200 text-sm font-bold rounded-xl text-white bg-blue-600 hover:bg-blue-700 btn-tactile"
@@ -294,7 +308,7 @@ export const GroupsPage = () => {
             ) : subjectCards.length === 0 ? (
                 <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-300 shadow-sm">
                     <div className="mx-auto w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                        <School className="h-10 w-10 text-gray-400" />
+                        <School className="h-10 w-10 text-gray-500" />
                     </div>
                     <h3 className="text-xl font-bold text-gray-900 mb-2">No hay grupos registrados</h3>
                     <p className="text-gray-500 max-w-sm mx-auto mb-8">
@@ -334,14 +348,14 @@ export const GroupsPage = () => {
                             <div className="relative z-10">
                                 <div className="flex justify-between items-start mb-4">
                                     <div className={`p-3 rounded-xl transition-colors ${item.grade === '1' ? 'bg-blue-100 text-blue-600' :
-                                        item.grade === '2' ? 'bg-emerald-100 text-emerald-600' :
+                                        item.grade === '2' ? 'bg-emerald-100 text-emerald-700' :
                                             item.grade === '3' ? 'bg-violet-100 text-violet-600' :
-                                                item.grade === '4' ? 'bg-amber-100 text-amber-600' :
+                                                item.grade === '4' ? 'bg-amber-100 text-amber-700' :
                                                     'bg-gray-100 text-gray-600'
                                         }`}>
                                         <GraduationCap className="h-6 w-6" />
                                     </div>
-                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-gray-50 text-gray-500 border border-gray-100 shadow-sm">
+                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-widest bg-gray-50 text-gray-500 border border-gray-100 shadow-sm">
                                         {item.shift === 'MORNING' ? 'Matutino' : item.shift === 'AFTERNOON' ? 'Vespertino' : 'Tiempo Completo'}
                                     </span>
                                 </div>
@@ -356,7 +370,7 @@ export const GroupsPage = () => {
                                                 {item.grade}° "{item.section}"
                                             </span>
                                             <div className="h-1.5 w-1.5 bg-gray-300 rounded-full" />
-                                            <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">
+                                            <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">
                                                 Ciclo Actual
                                             </p>
                                         </div>
@@ -370,7 +384,7 @@ export const GroupsPage = () => {
                                                     setIsModifyingGroup(item)
                                                     setIsEditModalOpen(true)
                                                 }}
-                                                className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                                 title="Editar Grupo"
                                             >
                                                 <Edit className="h-4 w-4" />
@@ -380,7 +394,7 @@ export const GroupsPage = () => {
                                                     e.stopPropagation()
                                                     handleDeleteGroup(item.id)
                                                 }}
-                                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                                 title="Eliminar Grupo"
                                             >
                                                 <Trash2 className="h-4 w-4" />
@@ -397,7 +411,7 @@ export const GroupsPage = () => {
                                 </div>
 
                                 <div className="mt-8 pt-4 border-t border-gray-50 flex items-center justify-between">
-                                    <div className="flex items-center text-[10px] text-gray-400 font-black uppercase tracking-widest">
+                                    <div className="flex items-center text-[11px] text-gray-500 font-black uppercase tracking-widest">
                                         <ClipboardList className="w-3.5 h-3.5 mr-1.5" />
                                         Evaluar Materia
                                     </div>
@@ -422,7 +436,7 @@ export const GroupsPage = () => {
                             <div className="grid grid-cols-2 gap-6">
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-2">Grado</label>
-                                    <select
+                                    <select aria-label="Grado"
                                         className="block w-full px-4 py-3 bg-gray-50 border-gray-200 focus:bg-white focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-xl border transition-all"
                                         value={formData.grade}
                                         onChange={(e) => setFormData(prev => ({ ...prev, grade: e.target.value }))}
@@ -433,7 +447,7 @@ export const GroupsPage = () => {
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-2">Sección</label>
                                     {!isCustomSection ? (
-                                        <select
+                                        <select aria-label="Sección"
                                             className="block w-full px-4 py-3 bg-gray-50 border-gray-200 focus:bg-white focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-xl border transition-all"
                                             value={formData.section}
                                             onChange={(e) => {
@@ -467,7 +481,7 @@ export const GroupsPage = () => {
 
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-2">Turno</label>
-                                <select
+                                <select aria-label="Turno"
                                     className="block w-full px-4 py-3 bg-gray-50 border-gray-200 focus:bg-white focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-xl border transition-all"
                                     value={formData.shift}
                                     onChange={(e) => setFormData(prev => ({ ...prev, shift: e.target.value }))}
@@ -499,7 +513,7 @@ export const GroupsPage = () => {
                                         </label>
                                     ))}
                                 </div>
-                                <p className="mt-2 text-[10px] text-gray-400 font-medium italic">Selecciona las materias que impartes a este grupo.</p>
+                                <p className="mt-2 text-[11px] text-gray-500 font-medium italic">Selecciona las materias que impartes a este grupo.</p>
                             </div>
 
                             <div className="flex justify-end space-x-3 pt-4">
@@ -544,6 +558,15 @@ export const GroupsPage = () => {
                 currentGroups={limits.currentGroups}
                 maxGroups={limits.maxGroups}
                 reason="groups"
+            />
+
+            <ErrorModal
+                isOpen={errorModal.isOpen}
+                title={errorModal.title}
+                message={errorModal.message}
+                buttonText={errorModal.buttonText}
+                action={errorModal.action}
+                onClose={() => setErrorModal(prev => ({ ...prev, isOpen: false }))}
             />
         </div>
     )

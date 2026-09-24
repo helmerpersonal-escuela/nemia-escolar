@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Calendar, UserPlus, ClipboardList, CheckCircle2, AlertCircle, Trash2, ExternalLink } from 'lucide-react'
+import { Calendar, ClipboardList, CheckCircle2, AlertCircle } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
 
@@ -72,21 +72,21 @@ export const SubstitutionDashboard = () => {
                     </h3>
                     <div className="space-y-4">
                         {loading ? (
-                            <div className="p-4 bg-slate-50 rounded-2xl animate-pulse text-xs font-bold text-slate-400 text-center">Cargando ausencias...</div>
+                            <div className="p-4 bg-slate-50 rounded-2xl animate-pulse text-xs font-bold text-slate-500 text-center">Cargando ausencias...</div>
                         ) : absences.length > 0 ? (
                             absences.map(abs => (
                                 <div key={abs.id} className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group">
                                     <div className={`absolute top-0 left-0 bottom-0 w-1 ${abs.status === 'PENDING' ? 'bg-amber-400' : 'bg-emerald-400'}`} />
                                     <h4 className="font-bold text-slate-900">{abs.profile?.full_name}</h4>
                                     <div className="flex gap-2 mt-2">
-                                        <span className="text-[10px] font-black text-slate-400 uppercase">{new Date(abs.start_date).toLocaleDateString()} al {new Date(abs.end_date).toLocaleDateString()}</span>
+                                        <span className="text-[11px] font-black text-slate-500 uppercase">{new Date(abs.start_date).toLocaleDateString()} al {new Date(abs.end_date).toLocaleDateString()}</span>
                                     </div>
                                     <p className="mt-2 text-xs text-slate-500 font-medium italic">"{abs.reason || 'Sin motivo especificado'}"</p>
                                 </div>
                             ))
                         ) : (
                             <div className="p-8 border-2 border-dashed border-slate-100 rounded-2xl text-center">
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Sin ausencias reportadas</p>
+                                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Sin ausencias reportadas</p>
                             </div>
                         )}
                     </div>
@@ -99,13 +99,13 @@ export const SubstitutionDashboard = () => {
                     </h3>
                     <div className="space-y-4">
                         {loading ? (
-                            <div className="p-10 text-center text-slate-400">Cargando actividades...</div>
+                            <div className="p-10 text-center text-slate-500">Cargando actividades...</div>
                         ) : activities.length > 0 ? (
                             activities.map(act => (
                                 <div key={act.id} className={`p-6 bg-white rounded-[2rem] border shadow-md transition-all ${act.is_completed ? 'border-emerald-100 bg-emerald-50/10 opacity-70' : 'border-slate-100 hover:shadow-lg'}`}>
                                     <div className="flex justify-between items-start mb-4">
                                         <div>
-                                            <span className="inline-block px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest mb-2">
+                                            <span className="inline-block px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[11px] font-black uppercase tracking-widest mb-2">
                                                 Grupo {act.group?.grade}° "{act.group?.section}" - {act.subject?.name || 'Varios'}
                                             </span>
                                             <h4 className="text-xl font-black text-slate-900">{act.activity_title}</h4>
@@ -113,12 +113,12 @@ export const SubstitutionDashboard = () => {
                                         {!act.is_completed ? (
                                             <button
                                                 onClick={() => handleCompleteActivity(act.id)}
-                                                className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all flex items-center gap-2"
+                                                className="px-4 py-2 bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-100 hover:bg-emerald-800 transition-all flex items-center gap-2"
                                             >
                                                 <CheckCircle2 className="w-4 h-4" /> Marcar Atendido
                                             </button>
                                         ) : (
-                                            <div className="flex items-center gap-2 text-emerald-600 font-bold text-xs">
+                                            <div className="flex items-center gap-2 text-emerald-700 font-bold text-xs">
                                                 <CheckCircle2 className="w-5 h-5" /> Atendido
                                             </div>
                                         )}
@@ -127,7 +127,7 @@ export const SubstitutionDashboard = () => {
 
                                     {act.ai_generated_hints && (
                                         <div className="mt-4 p-4 bg-amber-50 rounded-2xl border border-amber-100">
-                                            <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest flex items-center mb-1">
+                                            <p className="text-[11px] font-black text-amber-700 uppercase tracking-widest flex items-center mb-1">
                                                 <AlertCircle className="w-3 h-3 mr-1" /> Sugerencia de la IA para el Prefecto
                                             </p>
                                             <p className="text-xs text-amber-800 font-medium italic">{act.ai_generated_hints}</p>
@@ -139,7 +139,7 @@ export const SubstitutionDashboard = () => {
                             <div className="p-20 border-2 border-dashed border-slate-100 rounded-[2rem] text-center bg-slate-50/50">
                                 <ClipboardList className="w-12 h-12 text-slate-200 mx-auto mb-4" />
                                 <h4 className="text-slate-900 font-bold">Sin tareas asignadas</h4>
-                                <p className="text-slate-400 text-sm">Cuando un docente reporte una inasistencia, aquí aparecerán las actividades para los grupos sugeridas por IA.</p>
+                                <p className="text-slate-500 text-sm">Cuando un docente reporte una inasistencia, aquí aparecerán las actividades para los grupos sugeridas por IA.</p>
                             </div>
                         )}
                     </div>

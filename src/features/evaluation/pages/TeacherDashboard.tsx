@@ -5,9 +5,9 @@ import { supabase } from '../../../lib/supabase'
 import { useNavigate, Link } from 'react-router-dom'
 import { useChat } from '../../../hooks/useChat'
 import {
-    Clock, Users, CheckSquare, Coffee, ArrowRight, Calendar, Settings,
+    Clock, Users, CheckSquare, Coffee, ArrowRight,
     BookOpen, ClipboardList, MessageSquare, Bell, ChevronRight,
-    Printer, Plus, ArrowUpRight, GraduationCap, Presentation
+    Printer, Plus
 } from 'lucide-react'
 import { CreateAssignmentModal } from '../components/CreateAssignmentModal'
 import { DayScheduleModal } from '../../schedule/components/DayScheduleModal'
@@ -197,10 +197,10 @@ export const TeacherDashboard = () => {
                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
                     <div>
                         <div className="flex items-center gap-3 mb-4">
-                            <span className="px-3 py-1 bg-blue-500/20 border border-blue-400/30 rounded-full text-[10px] font-black uppercase tracking-widest text-blue-300 backdrop-blur-md">
+                            <span className="px-3 py-1 bg-blue-500/20 border border-blue-400/30 rounded-full text-[11px] font-black uppercase tracking-widest text-blue-300 backdrop-blur-md">
                                 {tenant?.name || 'Escuela'}
                             </span>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
                                 {currentTime.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}
                             </span>
                         </div>
@@ -263,7 +263,7 @@ export const TeacherDashboard = () => {
 
                             <div>
                                 <div className="flex justify-between items-center mb-6">
-                                    <span className="px-3 py-1 bg-white/20 border border-white/30 rounded-full text-[10px] font-black uppercase tracking-widest animate-pulse">
+                                    <span className="px-3 py-1 bg-white/20 border border-white/30 rounded-full text-[11px] font-black uppercase tracking-widest animate-pulse">
                                         En Curso Ahora
                                     </span>
                                     <span className="text-blue-100 font-black text-xs flex items-center gap-2">
@@ -316,12 +316,12 @@ export const TeacherDashboard = () => {
                                 <Clock className="w-12 h-12 text-slate-300" />
                             </div>
                             <h2 className="text-2xl font-black text-slate-900 mb-2 uppercase">Sin clase programada</h2>
-                            <p className="text-slate-400 font-bold mb-8">Disfruta tu tiempo o adelanta planeaciones.</p>
+                            <p className="text-slate-500 font-bold mb-8">Disfruta tu tiempo o adelanta planeaciones.</p>
 
                             {nextClass && (
                                 <div className="bg-slate-50 border border-slate-100 rounded-3xl p-6 text-left flex items-center justify-between w-full max-w-sm group hover:scale-105 transition-transform cursor-pointer btn-tactile">
                                     <div>
-                                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Próxima Clase</p>
+                                        <p className="text-[11px] font-black uppercase text-slate-500 tracking-widest mb-1">Próxima Clase</p>
                                         <p className="font-black text-slate-900 uppercase">
                                             {nextClass.subject?.name || nextClass.custom_subject}
                                         </p>
@@ -350,10 +350,10 @@ export const TeacherDashboard = () => {
                             </div>
                             <div>
                                 <h3 className="text-xl font-black text-slate-800 tracking-tight">Tutores</h3>
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Chat directo activo</p>
+                                <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Chat directo activo</p>
                             </div>
                         </div>
-                        <Link to="/messages" className="text-[10px] font-black text-purple-600 uppercase tracking-widest hover:underline p-3 h-12 hover:bg-purple-50 rounded-xl transition-all flex items-center">Mensajes</Link>
+                        <Link to="/messages" className="text-[11px] font-black text-purple-600 uppercase tracking-widest hover:underline p-3 h-12 hover:bg-purple-50 rounded-xl transition-all flex items-center">Mensajes</Link>
                     </div>
                     <div className="p-6 space-y-4">
                         {rooms.slice(0, 3).map(room => (
@@ -367,7 +367,7 @@ export const TeacherDashboard = () => {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <h4 className="font-black text-slate-800 text-sm truncate">{room.name}</h4>
-                                    <p className="text-[10px] text-slate-400 truncate mt-0.5 font-bold italic">"{room.last_message?.content || 'Inicia una conversación'}"</p>
+                                    <p className="text-[11px] text-slate-500 truncate mt-0.5 font-bold italic">"{room.last_message?.content || 'Inicia una conversación'}"</p>
                                 </div>
                                 <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-purple-600 transition-colors" />
                             </div>
@@ -375,7 +375,7 @@ export const TeacherDashboard = () => {
                         {rooms.length === 0 && (
                             <div className="text-center py-10 opacity-30">
                                 <MessageSquare className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-                                <p className="font-black text-[10px] uppercase tracking-widest text-slate-400">Sin chats recientes</p>
+                                <p className="font-black text-[11px] uppercase tracking-widest text-slate-500">Sin chats recientes</p>
                             </div>
                         )}
                     </div>
@@ -389,7 +389,7 @@ export const TeacherDashboard = () => {
                         </div>
                         <div>
                             <h3 className="text-xl font-black text-slate-800 tracking-tight">Comunicados</h3>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Boletín institucional</p>
+                            <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Boletín institucional</p>
                         </div>
                     </div>
                     <div className="p-6 space-y-4">
@@ -402,7 +402,7 @@ export const TeacherDashboard = () => {
                         {announcements.length === 0 && (
                             <div className="text-center py-10 opacity-30">
                                 <Bell className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-                                <p className="font-black text-[10px] uppercase tracking-widest text-slate-400">Sin comunicados hoy</p>
+                                <p className="font-black text-[11px] uppercase tracking-widest text-slate-500">Sin comunicados hoy</p>
                             </div>
                         )}
                     </div>

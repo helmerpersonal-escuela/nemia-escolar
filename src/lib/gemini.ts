@@ -1,114 +1,23 @@
 
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import { getMethodologyInstructions } from './nemMethodologies'
+import { aiGenerate } from './aiClient'
 
 export class GeminiService {
-    private genAI: GoogleGenerativeAI
-    private apiKey: string
-    private groqKey?: string
-    private openaiKey?: string
-    private groq: any = null
-    private groqModel: string = 'llama-3.3-70b-versatile'
-    private modelFlash: any
+    /**
+     * Las llamadas a IA se hacen en el servidor (función Edge `ai-proxy`).
+     * Los parámetros del constructor se conservan solo por compatibilidad
+     * y se ignoran: el navegador ya no maneja llaves.
+     */
+     
+    constructor(_apiKey?: string, _groqKey?: string, _openaiKey?: string) { }
 
+    /** Compatibilidad: la configuración ahora vive en el servidor. */
+     
+    public async refreshConfig(..._args: unknown[]) { }
 
-    private modelPro: any
-
-    private static COOLDOWN_KEY = 'gemini_cooldown_timestamp'
-    private static GEMINI_COOLDOWN = 1000 * 60 * 60 // 1 hour
-
-    constructor(apiKey?: string, groqKey?: string, openaiKey?: string) {
-        // BUG FIX: Sanitizar INMEDIATAMENTE al recibir del constructor
-        // para evitar que refreshConfig use llaves sucias si no hay env/local
-        this.apiKey = this.preSanitize(apiKey)
-        this.groqKey = this.preSanitize(groqKey)
-        this.openaiKey = this.preSanitize(openaiKey)
-        this.refreshConfig()
-
-        this.genAI = new GoogleGenerativeAI(this.apiKey)
-        this.modelFlash = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
-        this.modelPro = this.genAI.getGenerativeModel({ model: "gemini-1.5-pro" })
-
-        console.log(`[GeminiService v2.4] Inicializado. Fallback activo: ${this.isFallingBack}`)
-    }
-
-    private preSanitize(val: any): string {
-        if (!val || val === 'undefined' || val === 'null') return ''
-        let str = String(val).trim()
-        str = str.replace(/["']/g, '')
-        if (str.includes('=') && !str.includes('{')) {
-            const parts = str.split('=')
-            const possibleKey = parts[parts.length - 1].trim()
-            if (possibleKey.length > 10) str = possibleKey
-        }
-        return str
-    }
-
-    private refreshConfig(key?: string, gKey?: string, oKey?: string) {
-        const sanitize = (val: any) => this.preSanitize(val)
-
-        // 1. Try environment variable
-        let envKey = sanitize(import.meta.env.VITE_GEMINI_API_KEY)
-        let envGKey = sanitize(import.meta.env.VITE_GROQ_API_KEY)
-        let envOKey = sanitize(import.meta.env.VITE_OPENAI_API_KEY)
-
-        // 2. Try localStorage (God Mode settings)
-        let localKey = '', localGKey = '', localOKey = ''
-        try {
-            const saved = localStorage.getItem('godmode_ai_settings')
-            if (saved && saved !== 'undefined' && saved !== 'null') {
-                const settings = JSON.parse(saved)
-                localKey = sanitize(settings.gemini_key)
-                localGKey = sanitize(settings.groq_key)
-                localOKey = sanitize(settings.openai_key)
-            }
-        } catch (e) {
-            console.warn('[GeminiService] Error leyendo configuración local:', e)
-        }
-
-        // Final Priority: Argument > God Mode (LocalStorage) > Environment > Current
-        const previousKey = this.apiKey
-        const previousGKey = this.groqKey
-        const previousOKey = this.openaiKey
-
-        this.apiKey = sanitize(key) || localKey || envKey || previousKey
-        this.groqKey = sanitize(gKey) || localGKey || envGKey || previousGKey
-        this.openaiKey = sanitize(oKey) || localOKey || envOKey || previousOKey
-
-        // BUG FIX: Si la llave cambió o el SDK no está listo, re-inicializar
-        if (this.apiKey && (this.apiKey !== previousKey || !this.modelFlash)) {
-            console.log('[GeminiService] Re-inicializando SDK con llave válida...')
-            this.genAI = new GoogleGenerativeAI(this.apiKey)
-            this.modelFlash = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
-            this.modelPro = this.genAI.getGenerativeModel({ model: "gemini-1.5-pro" })
-        }
-
-        if (!this.apiKey && !this.groqKey && !this.openaiKey) {
-            // Only log if not already warned or if we are actually trying to call something
-            if (!(window as any).__GEMINI_KEYS_WARNED__) {
-                console.warn('[GeminiService] API Key (Gemini o Groq) no configurada aún. Se usará LocalStorage o Fallback si están disponibles.');
-                (window as any).__GEMINI_KEYS_WARNED__ = true;
-            }
-        } else {
-            if (this.apiKey) console.log('[GeminiService] Configuración de Gemini lista.')
-            if (this.groqKey) console.log('[GeminiService] Configuración de Groq lista.')
-            if (this.openaiKey) console.log('[GeminiService] Configuración de OpenAI lista.')
-        }
-    }
-
+    /** Compatibilidad: el servidor maneja los reintentos entre proveedores. */
     public get isFallingBack(): boolean {
-        try {
-            const lastFail = localStorage.getItem(GeminiService.COOLDOWN_KEY)
-            if (!lastFail) return false
-            const now = Date.now()
-            return (now - parseInt(lastFail)) < GeminiService.GEMINI_COOLDOWN
-        } catch { return false }
-    }
-
-    private markGeminiAsFailed() {
-        try {
-            localStorage.setItem(GeminiService.COOLDOWN_KEY, Date.now().toString())
-        } catch { }
+        return false
     }
 
     // ...
@@ -131,6 +40,7 @@ export class GeminiService {
         pagesFrom?: string
         pagesTo?: string
         extractedText?: string
+        level?: string // Nivel educativo (Primaria, Secundaria, etc.)
     }) {
         const isProject = context.temporality === 'PROJECT'
         const projectPurpose = context.purpose ? `Propósito del Proyecto: ${context.purpose}` : ''
@@ -157,6 +67,7 @@ export class GeminiService {
 
             Parámetros:
             - Tipo: ${isProject ? 'PROYECTO EDUCATIVO (Detallado)' : 'SECUENCIA DIDÁCTICA'}
+            - Nivel Educativo: ${context.level || 'No especificado'}
             - Grado: ${context.grade || 'No especificado'}
             - Materia: ${context.subject || 'General'}
             - Tema: ${context.topic || 'No especificado'}
@@ -166,6 +77,8 @@ export class GeminiService {
             - PDA: ${context.pdaDetail || 'No especificado'}
             ${context.textbook ? `- LIBRO DE TEXTO: "${context.textbook}" (Páginas: ${context.pagesFrom || ''} a ${context.pagesTo || ''})` : ''}
             ${context.extractedText ? `\n--- CONTENIDO TEXTUAL EXTRAÍDO DEL LIBRO (ÚSALO COMO BASE PARA LA PLANEACIÓN) ---\n${context.extractedText.substring(0, 8000)}\n---------------------------------------------------------` : ''}
+
+            ${context.level?.toLowerCase().includes('primaria') ? 'ENFOQUE PRIMARIA: Prioriza actividades lúdicas, material concreto, y evaluación formativa. Usa un lenguaje y dinámicas aptas para niños de primaria.' : ''}
 
             ${projectInstructions}
 
@@ -405,166 +318,12 @@ export class GeminiService {
         return this.callWithFallbacks(prompt)
     }
 
-    private async callWithFallbacks(prompt: string) {
-        this.refreshConfig()
-        const now = Date.now()
-        const skipGemini = this.isFallingBack
+    public async generateContent(prompt: string, isJson = false) {
+        return this.callWithFallbacks(prompt, isJson)
+    }
 
-        const modelsToTry = [
-            'gemini-1.5-flash-latest',
-            'gemini-1.5-flash',
-            'gemini-1.5-pro-latest',
-            'gemini-1.5-pro',
-            'gemini-pro'
-        ]
-        let errors: string[] = []
-
-        if (!skipGemini) {
-            for (const modelName of modelsToTry) {
-                try {
-                    console.log(`[SDK] Probando modelo: ${modelName}...`)
-                    const model = this.genAI.getGenerativeModel({ model: modelName })
-                    const result = await model.generateContent(prompt)
-                    const response = await result.response
-                    const text = response.text()
-                    if (text) return text.trim()
-                } catch (err: any) {
-                    const is404 = err.message.includes('404') || err.message.includes('not found')
-                    errors.push(`SDK (${modelName}): ${err.message}`)
-                    console.warn(`[GeminiService] SDK error for ${modelName}:`, err.message)
-
-                    if (is404) {
-                        // If it's a 404, this specific model is likely not available in this region/key
-                        // We continue to the next model instead of breaking immediately
-                        console.log(`[GeminiService] Model ${modelName} returned 404. Trying next...`)
-                        continue
-                    }
-                }
-            }
-
-            if (!this.isFallingBack) {
-                console.log('[Direct] Intentando vía Fetch directo (API v1beta)...')
-                for (const modelName of modelsToTry) {
-                    try {
-                        const cleanModelName = modelName.startsWith('models/') ? modelName.split('/')[1] : modelName
-                        const url = `https://generativelanguage.googleapis.com/v1/models/${cleanModelName}:generateContent?key=${this.apiKey}`
-                        const response = await fetch(url, {
-                            // Usar abort controller para no colgar
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                        })
-                        if (response.ok) {
-                            const data = await response.json()
-                            const text = data.candidates?.[0]?.content?.parts?.[0]?.text
-                            if (text) return text.trim()
-                        } else {
-                            const errData = await response.json().catch(() => ({}))
-                            const errorMsg = errData.error?.message || response.statusText
-                            const is404 = response.status === 404
-                            errors.push(`Direct (${modelName}): ${response.status} ${errorMsg}`)
-                            console.warn(`[GeminiService] Direct fetch error for ${modelName}:`, response.status, errorMsg)
-
-                            if (is404) {
-                                console.log(`[GeminiService] Direct fetch ${modelName} returned 404. Trying next...`)
-                                continue
-                            }
-                        }
-                    } catch (err: any) {
-                        errors.push(`Fetch (${modelName}): ${err.message}`)
-                    }
-                }
-            }
-        } else {
-            console.log('[Gemini] Saltando temporalmente debido a errores previos...')
-        }
-
-        console.log('[Groq] Intentando vía Groq (Llama 3)...')
-        try {
-            const groqKey = this.groqKey
-
-            // Usar AbortController para timeout
-            const controller = new AbortController()
-            const timeoutId = setTimeout(() => controller.abort(), 15000) // 15s timeout
-
-            const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${groqKey}`,
-                    'Content-Type': 'application/json'
-                },
-                signal: controller.signal,
-                body: JSON.stringify({
-                    model: 'llama-3.1-8b-instant',
-                    messages: [
-                        { role: 'system', content: 'Eres un experto pedagogo de la Nueva Escuela Mexicana (NEM). Responde ÚNICAMENTE con el JSON solicitado.' },
-                        { role: 'user', content: prompt }
-                    ],
-                    temperature: 0.7
-                })
-            })
-
-            clearTimeout(timeoutId)
-
-            if (response.ok) {
-                const data = await response.json()
-                const text = data.choices?.[0]?.message?.content
-                if (text) {
-                    console.log('[Groq] Respuesta recibida exitosamente.')
-                    return text.trim()
-                }
-            } else {
-                const errData = await response.json().catch(() => ({}))
-                errors.push(`Groq: ${response.status} ${errData.error?.message || response.statusText}`)
-            }
-        } catch (err: any) {
-            errors.push(`Groq Error: ${err.name === 'AbortError' ? 'Timeout (15s)' : err.message}`)
-        }
-
-        console.log('[OpenAI] Intentando vía OpenAI (GPT-4o mini)...')
-        try {
-            if (this.openaiKey) {
-                const controller = new AbortController()
-                const timeoutId = setTimeout(() => controller.abort(), 15000)
-
-                const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${this.openaiKey}`,
-                        'Content-Type': 'application/json'
-                    },
-                    signal: controller.signal,
-                    body: JSON.stringify({
-                        model: 'gpt-4o-mini',
-                        messages: [
-                            { role: 'system', content: 'Eres un experto pedagogo de la Nueva Escuela Mexicana (NEM). Responde ÚNICAMENTE con el JSON solicitado.' },
-                            { role: 'user', content: prompt }
-                        ],
-                        temperature: 0.7
-                    })
-                })
-
-                clearTimeout(timeoutId)
-
-                if (response.ok) {
-                    const data = await response.json()
-                    const text = data.choices?.[0]?.message?.content
-                    if (text) {
-                        console.log('[OpenAI] Respuesta recibida exitosamente.')
-                        return text.trim()
-                    }
-                } else {
-                    const errData = await response.json().catch(() => ({}))
-                    errors.push(`OpenAI: ${response.status} ${errData.error?.message || response.statusText}`)
-                }
-            } else {
-                errors.push('OpenAI: Llave no configurada.')
-            }
-        } catch (err: any) {
-            errors.push(`OpenAI Error: ${err.name === 'AbortError' ? 'Timeout (15s)' : err.message}`)
-        }
-
-        throw new Error(`Ningún modelo de IA pudo procesar la solicitud.\n\nResumen:\n- ${errors.join('\n- ')}`)
+    private async callWithFallbacks(prompt: string, isJson = false) {
+        return aiGenerate(prompt, isJson)
     }
 
     async suggestPdaForProblem(problem: string, campoFormativo: string) {
@@ -757,6 +516,115 @@ export class GeminiService {
         }
     }
 
+    async generateComprehensiveProgram(context: {
+        grade: string
+        problem: string
+        diagnosis: string
+        contexto: string
+    }, contents: any) {
+        const results = {
+            lenguajes: [] as any[],
+            saberes: [] as any[],
+            etica: [] as any[],
+            humano: [] as any[]
+        }
+
+        // Generación secuencial con delays para evitar 429
+        results.lenguajes = await this.generateFieldProposal(context, contents.lenguajes);
+        await new Promise(r => setTimeout(r, 1000));
+
+        results.saberes = await this.generateFieldProposal(context, contents.saberes);
+        await new Promise(r => setTimeout(r, 1000));
+
+        results.etica = await this.generateFieldProposal(context, contents.etica);
+        await new Promise(r => setTimeout(r, 1000));
+
+        results.humano = await this.generateFieldProposal(context, contents.humano);
+
+        return results;
+    }
+
+    async generateFieldProposal(context: {
+        grade: string
+        problem: string
+        diagnosis: string
+        phase?: number
+    }, contents: Record<string, string[]> | string[]) {
+
+        if (Array.isArray(contents)) {
+            const chunks = [];
+            for (let i = 0; i < contents.length; i += 10) {
+                chunks.push(contents.slice(i, i + 10));
+            }
+
+            const results = [];
+            for (const chunk of chunks) {
+                const res = await this._generateSubjectBatch(context, "General", chunk);
+                results.push(...res);
+                if (chunks.length > 1) await new Promise(r => setTimeout(r, 500));
+            }
+            return results;
+        }
+
+        const entries = Object.entries(contents);
+        const results = [];
+        for (const [subject, items] of entries) {
+            const res = await this._generateSubjectBatch(context, subject, items);
+            results.push(...res);
+            await new Promise(r => setTimeout(r, 500));
+        }
+        return results;
+    }
+
+    private async _generateSubjectBatch(context: any, subjectName: string, contentList: string[]) {
+        if (!contentList || contentList.length === 0) return [];
+
+        const phase = context.phase || 6;
+        const prompt = `
+            Actúa como un experto pedagogo de la Nueva Escuela Mexicana (NEM).
+            Para cada uno de estos contenidos de ${subjectName.toUpperCase()} (Fase ${phase}), genera:
+            ${JSON.stringify(contentList)}
+
+            Para cada contenido individual, debes proporcionar:
+            1. Un "pda" (Proceso de Desarrollo de Aprendizaje) adaptado a ${context.grade} (Fase ${phase}).
+            2. La "problem" (Relación con esta problemática: ${context.problem}).
+            3. "axes" (Array con 1 o 2 Ejes Articuladores).
+            4. "guidelines" (Orientación Didáctica de máx 20 palabras, SOLO TEXTO).
+            5. "duration" (Número de días sugerido).
+
+            Responde ÚNICAMENTE con un JSON Array siguiendo este formato exacto:
+            [
+                {
+                    "content": "COPIA EXACTA DEL CONTENIDO RECIBIDO",
+                    "pda": "Texto del PDA sugerido",
+                    "problem": "Descripción de la relación con el problema",
+                    "axes": ["Pensamiento Crítico", "Inclusión"],
+                    "guidelines": "Texto de la sugerencia didáctica",
+                    "duration": "10"
+                }
+            ]
+        `;
+
+        try {
+            const response = await this.callWithFallbacks(prompt);
+            const data = JSON.parse(this.cleanJson(response));
+            let result = Array.isArray(data) ? data : (data.program || data.contents || data.items || []);
+            if (!Array.isArray(result)) result = [];
+
+            return result.map((item: any) => ({
+                content: typeof item.content === 'object' ? JSON.stringify(item.content) : String(item.content || ''),
+                pda: typeof item.pda === 'object' ? JSON.stringify(item.pda) : String(item.pda || ''),
+                problem: typeof item.problem === 'object' ? JSON.stringify(item.problem) : String(item.problem || ''),
+                axes: Array.isArray(item.axes) ? item.axes.map((a: any) => String(a)) : [],
+                guidelines: typeof item.guidelines === 'object' ? JSON.stringify(item.guidelines) : String(item.guidelines || ''),
+                duration: String(item.duration || '10')
+            }));
+        } catch (error) {
+            console.error(`Error in batch for ${subjectName}`, error);
+            return [];
+        }
+    }
+
     private cleanJson(text: string): string {
         try {
             let jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim()
@@ -773,9 +641,10 @@ export class GeminiService {
             // Limpiar comas finales antes de cerrar llaves o corchetes
             jsonStr = jsonStr.replace(/,\s*([}\]])/g, '$1')
 
-            // SANEAMIENTO SELECTIVO: Solo escapamos caracteres de control (como saltos de línea reales)
-            // SI ocurren dentro de una cadena de texto de JSON ("...").
+            // SANEAMIENTO SELECTIVO
             jsonStr = jsonStr.replace(/"((?:[^"\\]|\\.)*)"/g, (match, p1) => {
+                 
+                // eslint-disable-next-line no-control-regex -- se buscan caracteres de control a propósito
                 const cleaned = p1.replace(/[\u0000-\u001F]/g, (c: string) => {
                     if (c === '\n') return '\\n'
                     if (c === '\r') return '\\r'
@@ -795,16 +664,66 @@ export class GeminiService {
         if (Array.isArray(data)) return data
         if (!data || typeof data !== 'object') return []
 
-        // Try to find the first array property
         const arrays = Object.values(data).filter(v => Array.isArray(v))
         if (arrays.length > 0) {
-            // If there's a key hint (like 'suggestions' or 'proposals'), try to match it first
             if (keyHint && Array.isArray(data[keyHint])) return data[keyHint]
             return arrays[0] as any[]
         }
 
-        // If it's a single object that matches the expected structure, wrap it in an array
         return [data]
+    }
+    async generateDailyClassPlan(context: {
+        lessonPlan: any,
+        classDate: string,
+        duration: string,
+        isSecondary: boolean
+    }) {
+        const lp = context.lessonPlan
+        const prompt = `
+            Actúa como un experto pedagogo de la Nueva Escuela Mexicana (NEM). 
+            Tu objetivo es generar un "Plan de Clase Diario" detallado para la sesión del día ${context.classDate}.
+            
+            CONTEXTO DE LA PLANEACIÓN GENERAL:
+            - Título: ${lp.title}
+            - Campo Formativo: ${lp.field}
+            - Metodología: ${lp.methodology}
+            - Contenido/PDA: ${lp.pda_detail || lp.contents?.join(', ')}
+            - Ejes Articuladores: ${lp.ejes_articuladores?.join(', ')}
+            
+            PARÁMETROS DE LA SESIÓN:
+            - Fecha: ${context.classDate}
+            - Duración/Tiempo: ${context.duration} ${context.isSecondary ? 'Módulos' : 'Minutos'}
+            ${context.isSecondary ? '- NIVEL: SECUNDARIA (Enfócate en profundidad temática y trabajo colegiado)' : '- NIVEL: PRIMARIA (Prioriza actividades lúdicas y material concreto)'}
+
+            REQUISITOS DEL CONTENIDO (DEBES INCLUIR TODOS ESTOS CAMPOS):
+            1. GUION MINUTO A MINUTO: Cronograma detallado de la sesión ajustado a la duración de ${context.duration}.
+            2. ACTIVIDADES PASO A PASO: Instrucciones claras y sencillas para los alumnos.
+            3. PREGUNTAS MOTIVADORAS: Preguntas para detonar el diálogo y pensamiento crítico.
+            4. EJES ARTICULADORES: Explicar cómo se integran en esta sesión específica.
+            5. INSTRUMENTO DE EVALUACIÓN: Sugerencia de Rúbrica o Lista de Cotejo (editable).
+            6. RECURSOS NECESARIOS: Libros NEM, materiales reciclados, digitales, etc.
+            7. TAREA SIGNIFICATIVA: Actividad opcional para realizar en casa que vincule con la realidad.
+
+            FORMATO DE RESPUESTA (JSON):
+            {
+                "script": "Guion minuto a minuto...",
+                "activities": "Instrucciones paso a paso...",
+                "questions": "Preguntas detonadoras...",
+                "axes_integration": "Cómo se aplican los ejes articuladores...",
+                "evaluation_instrument": "Rúbrica o lista de cotejo sugerida...",
+                "resources": "Materiales detallados...",
+                "significant_homework": "Descripción de la tarea (opcional)..."
+            }
+        `
+
+        try {
+            const text = await this.callWithFallbacks(prompt)
+            const clean = this.cleanJson(text)
+            return JSON.parse(clean)
+        } catch (error) {
+            console.error('Error generating daily class plan:', error)
+            throw new Error('No se pudo generar el plan de clase con IA')
+        }
     }
 }
 

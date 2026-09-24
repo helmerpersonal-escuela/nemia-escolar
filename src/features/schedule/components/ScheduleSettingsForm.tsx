@@ -54,12 +54,16 @@ export const ScheduleSettingsForm = ({ onSuccess }: { onSuccess: () => void }) =
 
         setLoading(true)
         try {
+            // For PRIMARY/TELESECUNDARIA level, we use a single large module (jornada completa)
+            const moduleDuration = (tenant?.educationalLevel === 'PRIMARY' || tenant?.educationalLevel === 'TELESECUNDARIA') ? 600 : settings.module_duration;
+
             // Upsert
             const { error } = await supabase
                 .from('schedule_settings')
                 .upsert({
                     tenant_id: tenant.id,
-                    ...settings
+                    ...settings,
+                    module_duration: moduleDuration
                 }, { onConflict: 'tenant_id' })
 
             if (error) throw error
@@ -99,7 +103,7 @@ export const ScheduleSettingsForm = ({ onSuccess }: { onSuccess: () => void }) =
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                     <label className="block text-sm font-medium text-gray-700">Inicio de Jornada</label>
-                    <input
+                    <input aria-label="Inicio de Jornada"
                         type="time"
                         required
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
@@ -109,7 +113,7 @@ export const ScheduleSettingsForm = ({ onSuccess }: { onSuccess: () => void }) =
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700">Fin de Jornada</label>
-                    <input
+                    <input aria-label="Fin de Jornada"
                         type="time"
                         required
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
@@ -117,18 +121,27 @@ export const ScheduleSettingsForm = ({ onSuccess }: { onSuccess: () => void }) =
                         onChange={e => setSettings({ ...settings, end_time: e.target.value })}
                     />
                 </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700">Duración Módulo (min)</label>
-                    <input
-                        type="number"
-                        required
-                        min="10"
-                        max="120"
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                        value={settings.module_duration}
-                        onChange={e => setSettings({ ...settings, module_duration: parseInt(e.target.value) })}
-                    />
-                </div>
+                {tenant?.educationalLevel !== 'PRIMARY' && tenant?.educationalLevel !== 'TELESECUNDARIA' ? (
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Duración Módulo (min)</label>
+                        <input aria-label="Duración Módulo (min)"
+                            type="number"
+                            required
+                            min="10"
+                            max="120"
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                            value={settings.module_duration}
+                            onChange={e => setSettings({ ...settings, module_duration: parseInt(e.target.value) })}
+                        />
+                    </div>
+                ) : (
+                    <div className="flex flex-col justify-end">
+                        <div className="p-3 bg-blue-50 rounded-lg border border-blue-100 text-center">
+                            <p className="text-[11px] font-black text-blue-600 uppercase">Jornada Completa</p>
+                            <p className="text-[11px] font-medium text-blue-500 uppercase mt-0.5">Adaptado para Primaria/Telesecundaria</p>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <div>
@@ -177,7 +190,7 @@ export const ScheduleSettingsForm = ({ onSuccess }: { onSuccess: () => void }) =
                                     onChange={e => updateBreak(index, 'end_time', e.target.value)}
                                 />
                             </div>
-                            <button
+                            <button aria-label="Eliminar"
                                 type="button"
                                 onClick={() => removeBreak(index)}
                                 className="text-red-500 hover:text-red-700"

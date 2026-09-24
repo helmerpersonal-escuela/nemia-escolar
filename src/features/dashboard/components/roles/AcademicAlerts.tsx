@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AlertTriangle, Clock, XCircle, FileWarning } from 'lucide-react'
 import { supabase } from '../../../../lib/supabase'
+import { todayISO, toLocalISODate } from '../../../../lib/dates'
 
 export const AcademicAlerts = ({ studentId }: { studentId: string }) => {
     const [alerts, setAlerts] = useState<any[]>([])
@@ -22,7 +23,7 @@ export const AcademicAlerts = ({ studentId }: { studentId: string }) => {
                 .select('*')
                 .eq('student_id', studentId)
                 .in('status', ['LATE', 'ABSENT'])
-                .gte('date', twoWeeksAgo.toISOString().split('T')[0])
+                .gte('date', toLocalISODate(twoWeeksAgo))
                 .order('date', { ascending: false })
 
             // 2. Failing Grades (Recent assignments)
@@ -49,7 +50,7 @@ export const AcademicAlerts = ({ studentId }: { studentId: string }) => {
                 id: `grade-${i}`,
                 type: 'GRADE',
                 title: 'Calificación Baja / Reprobatoria',
-                date: new Date().toISOString().split('T')[0], // Approximate
+                date: todayISO(), // Approximate
                 description: `${g.assignment?.title}: ${g.score}`
             }))
 
@@ -87,7 +88,7 @@ export const AcademicAlerts = ({ studentId }: { studentId: string }) => {
             <div className="divide-y divide-red-50">
                 {alerts.map(alert => (
                     <div key={alert.id} className="p-4 hover:bg-red-50/30 transition-colors flex items-start gap-3">
-                        {alert.type === 'LATE' && <Clock className="w-5 h-5 text-amber-500 mt-0.5" />}
+                        {alert.type === 'LATE' && <Clock className="w-5 h-5 text-amber-700 mt-0.5" />}
                         {alert.type === 'ABSENT' && <XCircle className="w-5 h-5 text-red-500 mt-0.5" />}
                         {alert.type === 'GRADE' && <FileWarning className="w-5 h-5 text-orange-500 mt-0.5" />}
 

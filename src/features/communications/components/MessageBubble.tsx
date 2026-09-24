@@ -33,18 +33,19 @@ export const MessageBubble = ({ message, isOwn }: Props) => {
                         </div>
                         <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold truncate">Reporte: {message.metadata?.reportName || 'Documento'}</p>
-                            <p className="text-[10px] opacity-70">Haz clic para descargar</p>
+                            <p className="text-[11px] opacity-70">Haz clic para descargar</p>
                         </div>
                         <Download className="h-4 w-4" />
                     </div>
                 )
-            default:
+            default: {
                 const onlyEmojis = isOnlyEmojis(message.content);
                 return (
                     <p className={`leading-relaxed whitespace-pre-wrap ${onlyEmojis ? 'text-4xl py-2' : 'text-sm font-medium'}`}>
                         {message.content}
                     </p>
                 )
+            }
         }
     }
 
@@ -54,7 +55,7 @@ export const MessageBubble = ({ message, isOwn }: Props) => {
         return (
             <div className="flex justify-center mb-6 animate-in fade-in zoom-in-95 duration-500">
                 <div className="bg-slate-50 border border-slate-200 px-4 py-2 rounded-full shadow-sm max-w-[85%] text-center">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Vunlek</p>
+                    <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1">Vunlek</p>
                     <p className="text-xs text-slate-600 font-medium">{message.content}</p>
                 </div>
             </div>
@@ -70,7 +71,7 @@ export const MessageBubble = ({ message, isOwn }: Props) => {
                     : 'bg-white text-slate-800 rounded-tl-none border border-slate-100'}
             `}>
                 {!isOwn && (
-                    <p className="text-[10px] font-black text-slate-400 mb-1 uppercase tracking-tight">
+                    <p className="text-[11px] font-black text-slate-500 mb-1 uppercase tracking-tight">
                         {message.profiles?.first_name} {message.profiles?.last_name_paternal}
                     </p>
                 )}
@@ -78,7 +79,7 @@ export const MessageBubble = ({ message, isOwn }: Props) => {
                 {renderContent()}
 
                 <div className={`flex items-center gap-1 mt-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                    <span className={`text-[9px] font-bold ${isOwn ? 'text-blue-100' : 'text-slate-400'}`}>
+                    <span className={`text-[11px] font-bold ${isOwn ? 'text-blue-100' : 'text-slate-500'}`}>
                         {time}
                     </span>
                 </div>

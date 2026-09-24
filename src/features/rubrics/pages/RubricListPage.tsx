@@ -73,7 +73,7 @@ export const RubricListPage = () => {
                 <div className="text-center py-12">Cargando rúbricas...</div>
             ) : rubrics.length === 0 ? (
                 <div className="text-center py-12 bg-white rounded-xl border-2 border-dashed border-gray-200">
-                    <FileText className="mx-auto h-12 w-12 text-gray-400" />
+                    <FileText className="mx-auto h-12 w-12 text-gray-500" />
                     <h3 className="mt-2 text-sm font-medium text-gray-900">No tienes instrumentos aún</h3>
                     <p className="mt-1 text-sm text-gray-500">
                         Crea tu primer instrumento de evaluación (rúbrica, lista de cotejo, etc).
@@ -97,12 +97,12 @@ export const RubricListPage = () => {
                                     {rubric.type}
                                 </div>
                                 <div className="flex space-x-2">
-                                    <Link to={`/rubrics/${rubric.id}`} className="text-gray-400 hover:text-blue-600 p-1">
+                                    <Link to={`/rubrics/${rubric.id}`} className="text-gray-500 hover:text-blue-600 p-1">
                                         <Edit className="w-4 h-4" />
                                     </Link>
-                                    <button
+                                    <button aria-label="Eliminar"
                                         onClick={() => handleDelete(rubric.id)}
-                                        className="text-gray-400 hover:text-red-600 p-1"
+                                        className="text-gray-500 hover:text-red-600 p-1"
                                     >
                                         <Trash2 className="w-4 h-4" />
                                     </button>
@@ -112,7 +112,7 @@ export const RubricListPage = () => {
                             <p className="text-sm text-gray-500 line-clamp-3 mb-4 flex-1">
                                 {rubric.description || 'Sin descripción'}
                             </p>
-                            <div className="text-xs text-gray-400 pt-4 border-t border-gray-100 mt-auto">
+                            <div className="text-xs text-gray-500 pt-4 border-t border-gray-100 mt-auto">
                                 Actualizado: {new Date(rubric.updated_at).toLocaleDateString()}
                             </div>
                         </div>

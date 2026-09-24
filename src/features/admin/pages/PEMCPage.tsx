@@ -8,8 +8,6 @@ import {
     Upload,
     ChevronRight,
     Target,
-    Users,
-    AlertCircle,
     Save,
     Trash2,
     Search
@@ -144,7 +142,7 @@ export const PEMCPage = () => {
                     <span className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-black uppercase tracking-widest border border-blue-100">
                         {cycle?.name || 'Nuevo Ciclo Plurianual'}
                     </span>
-                    <button className="p-3 bg-gray-900 text-white rounded-xl hover:bg-black transition-all shadow-xl shadow-gray-200">
+                    <button aria-label="Agregar" className="p-3 bg-gray-900 text-white rounded-xl hover:bg-black transition-all shadow-xl shadow-gray-200">
                         <Plus className="w-5 h-5" />
                     </button>
                 </div>
@@ -160,7 +158,7 @@ export const PEMCPage = () => {
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as any)}
-                        className={`flex items-center px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                        className={`flex items-center px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-600'}`}
                     >
                         <tab.icon className="w-4 h-4 mr-2" />
                         {tab.label}
@@ -191,7 +189,7 @@ export const PEMCPage = () => {
                                                 </div>
                                                 <h3 className="text-lg font-black text-gray-900 tracking-tight">{field}</h3>
                                             </div>
-                                            <button
+                                            <button aria-label="Guardar"
                                                 onClick={() => handleSaveDiagnosis(field, data?.content || '')}
                                                 className="p-3 text-gray-300 hover:text-blue-600 transition-colors"
                                             >
@@ -207,15 +205,15 @@ export const PEMCPage = () => {
                                         <div className="mt-6 flex items-center justify-between">
                                             <div className="flex -space-x-2">
                                                 {data?.file_urls?.map((url: string, i: number) => (
-                                                    <a key={i} href={url} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-[8px] font-black text-white hover:z-10 transition-transform hover:scale-110">
+                                                    <a key={i} href={url} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-[11px] font-black text-white hover:z-10 transition-transform hover:scale-110">
                                                         DOC
                                                     </a>
                                                 ))}
                                                 {(!data?.file_urls || data.file_urls.length === 0) && (
-                                                    <div className="w-8 h-8 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center text-[8px] font-black text-gray-400">0</div>
+                                                    <div className="w-8 h-8 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center text-[11px] font-black text-gray-500">0</div>
                                                 )}
                                             </div>
-                                            <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-800 transition-colors bg-blue-50 px-4 py-2 rounded-xl cursor-pointer">
+                                            <label className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-800 transition-colors bg-blue-50 px-4 py-2 rounded-xl cursor-pointer">
                                                 <Upload className="w-3 h-3" />
                                                 Subir Evidencia
                                                 <input
@@ -253,7 +251,7 @@ export const PEMCPage = () => {
                         {objectives.length === 0 ? (
                             <div className="p-20 border-4 border-dashed border-gray-50 rounded-[3rem] flex flex-col items-center text-center">
                                 <Target className="w-16 h-16 text-gray-200 mb-6" />
-                                <h3 className="text-xl font-bold text-gray-400 uppercase tracking-widest">No hay objetivos definidos</h3>
+                                <h3 className="text-xl font-bold text-gray-500 uppercase tracking-widest">No hay objetivos definidos</h3>
                                 <p className="text-sm text-gray-300 mt-2 max-w-xs font-medium">Comienza por definir los desafíos principales de la lectura de la realidad.</p>
                             </div>
                         ) : (
@@ -266,28 +264,28 @@ export const PEMCPage = () => {
                                             </div>
                                             <div className="flex-1">
                                                 <h3 className="text-xl font-black text-gray-900 mb-2">{obj.description}</h3>
-                                                <div className="inline-flex items-center px-4 py-1.5 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-100">
+                                                <div className="inline-flex items-center px-4 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-[11px] font-black uppercase tracking-widest border border-emerald-100">
                                                     Meta: {obj.goal}
                                                 </div>
                                             </div>
-                                            <button className="p-3 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
+                                            <button aria-label="Eliminar" className="p-3 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
                                         </div>
                                         <div className="bg-gray-50/50 p-8 space-y-4">
-                                            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Acciones Vinculadas</h4>
+                                            <h4 className="text-[11px] font-black text-gray-500 uppercase tracking-widest px-2">Acciones Vinculadas</h4>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 {obj.pemc_actions?.map((action: any) => (
                                                     <div key={action.id} className="bg-white p-5 rounded-3xl border border-gray-100 flex items-center justify-between group/action">
                                                         <div className="flex items-center gap-4">
-                                                            {action.status === 'COMPLETED' ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <Clock className="w-5 h-5 text-amber-500" />}
+                                                            {action.status === 'COMPLETED' ? <CheckCircle2 className="w-5 h-5 text-emerald-700" /> : <Clock className="w-5 h-5 text-amber-700" />}
                                                             <div>
                                                                 <p className="text-xs font-bold text-gray-900 line-clamp-1">{action.description}</p>
-                                                                <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tight">Fin: {new Date(action.deadline).toLocaleDateString()}</p>
+                                                                <p className="text-[11px] text-gray-500 font-bold uppercase tracking-tight">Fin: {new Date(action.deadline).toLocaleDateString()}</p>
                                                             </div>
                                                         </div>
                                                         <ChevronRight className="w-4 h-4 text-gray-300 group-hover/action:text-blue-600 group-hover/action:translate-x-1 transition-all" />
                                                     </div>
                                                 ))}
-                                                <button className="p-5 rounded-3xl border-2 border-dashed border-gray-200 text-gray-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2 text-xs font-bold">
+                                                <button className="p-5 rounded-3xl border-2 border-dashed border-gray-200 text-gray-500 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2 text-xs font-bold">
                                                     <Plus className="w-4 h-4" />
                                                     Añadir Acción
                                                 </button>

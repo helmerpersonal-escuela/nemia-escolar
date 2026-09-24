@@ -13,6 +13,7 @@ BEGIN
 END $$;
 
 -- 1. SELF-REGISTRATION POLICY (Owners)
+DROP POLICY IF EXISTS "attendance_self_v1" ON public.staff_attendance;
 CREATE POLICY "attendance_self_v1"
 ON public.staff_attendance
 FOR ALL
@@ -21,6 +22,7 @@ USING (profile_id = auth.uid())
 WITH CHECK (profile_id = auth.uid());
 
 -- 2. ADMINISTRATIVE POLICY (Admins/Prefects)
+DROP POLICY IF EXISTS "attendance_admin_v1" ON public.staff_attendance;
 CREATE POLICY "attendance_admin_v1"
 ON public.staff_attendance
 FOR ALL

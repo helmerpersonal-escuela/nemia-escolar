@@ -1,8 +1,10 @@
 import { useState, useMemo } from 'react'
-import { Plus, Search, Filter, AlertTriangle, FileText, CheckCircle, Download, Trash2, Printer, Pencil, ChevronDown, Calendar, ShieldCheck } from 'lucide-react'
+import { Plus, Search, Filter, AlertTriangle, FileText, Download, Trash2, Printer, Pencil, ChevronDown, Calendar, ShieldCheck } from 'lucide-react'
 import { CreateIncidentModal } from './CreateIncidentModal'
 import { supabase } from '../../../lib/supabase'
+import { isNetworkError } from '../../../lib/offline/network'
 import { useTenant } from '../../../hooks/useTenant'
+import { todayISO } from '../../../lib/dates'
 
 interface ConductReportsTabProps {
     groupId: string
@@ -47,7 +49,9 @@ export const ConductReportsTab = ({
             onRefresh()
         } catch (err) {
             console.error('Error deleting incident:', err)
-            alert('Error al eliminar')
+            alert(isNetworkError(err)
+                ? 'Sin conexión: los reportes solo se pueden eliminar con internet.'
+                : 'Error al eliminar')
         }
     }
 
@@ -81,7 +85,7 @@ export const ConductReportsTab = ({
         const encodedUri = encodeURI(csvContent)
         const link = document.createElement("a")
         link.setAttribute("href", encodedUri)
-        link.setAttribute("download", `Reportes_Conducta_${new Date().toISOString().split('T')[0]}.csv`)
+        link.setAttribute("download", `Reportes_Conducta_${todayISO()}.csv`)
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
@@ -184,7 +188,7 @@ export const ConductReportsTab = ({
     const getSeverityStyles = (severity: string) => {
         switch (severity) {
             case 'ALTA': return 'text-rose-600 bg-rose-50 border-rose-100'
-            case 'MEDIA': return 'text-amber-600 bg-amber-50 border-amber-100'
+            case 'MEDIA': return 'text-amber-700 bg-amber-50 border-amber-100'
             default: return 'text-indigo-600 bg-indigo-50 border-indigo-100'
         }
     }
@@ -195,35 +199,35 @@ export const ConductReportsTab = ({
             <div className="squishy-card p-4 flex flex-col md:flex-row gap-4 justify-between items-center bg-white/80 backdrop-blur-md border-none shadow-xl shadow-slate-200/50">
                 <div className="flex items-center gap-3 w-full md:w-auto">
                     <div className="relative flex-1 md:w-80 group/search">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within/search:text-indigo-500 transition-colors" />
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within/search:text-indigo-500 transition-colors" />
                         <input
                             type="text"
                             placeholder="Buscar por alumno o título..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all text-sm font-bold text-slate-700 placeholder:text-slate-400 placeholder:font-black placeholder:uppercase placeholder:tracking-widest placeholder:text-[10px]"
+                            className="w-full pl-12 pr-4 py-3 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all text-sm font-bold text-slate-700 placeholder:text-slate-400 placeholder:font-black placeholder:uppercase placeholder:tracking-widest placeholder:text-[11px]"
                         />
                     </div>
                     <div className="relative group/filter">
-                        <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within/filter:text-indigo-500 transition-colors pointer-events-none" />
+                        <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within/filter:text-indigo-500 transition-colors pointer-events-none" />
                         <select
                             value={filterType}
                             onChange={(e) => setFilterType(e.target.value)}
-                            className="pl-12 pr-10 py-3 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all text-sm font-black uppercase tracking-widest text-[10px] text-slate-600 appearance-none cursor-pointer"
+                            className="pl-12 pr-10 py-3 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all text-sm font-black uppercase tracking-widest text-[11px] text-slate-600 appearance-none cursor-pointer"
                         >
                             <option value="ALL">Todos</option>
                             <option value="CONDUCTA">Conducta</option>
                             <option value="ACADEMICO">Académico</option>
                             <option value="POSITIVO">Positivo</option>
                         </select>
-                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
                     </div>
                 </div>
 
                 <div className="flex w-full md:w-auto gap-3">
                     <button
                         onClick={handleExportCSV}
-                        className="btn-tactile w-full md:w-auto px-6 py-3 bg-white text-indigo-600 border border-slate-200 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 hover:bg-slate-50 shadow-sm"
+                        className="btn-tactile w-full md:w-auto px-6 py-3 bg-white text-indigo-600 border border-slate-200 rounded-2xl font-black uppercase tracking-widest text-[11px] flex items-center justify-center gap-2 hover:bg-slate-50 shadow-sm"
                         title="Exportar a CSV"
                     >
                         <Download className="w-4 h-4" />
@@ -235,7 +239,7 @@ export const ConductReportsTab = ({
                             setIncidentToEdit(null)
                             setIsCreateModalOpen(true)
                         }}
-                        className="btn-tactile w-full md:w-auto px-8 py-3 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2"
+                        className="btn-tactile w-full md:w-auto px-8 py-3 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[11px] flex items-center justify-center gap-2"
                     >
                         <Plus className="w-4 h-4" />
                         Nuevo Reporte
@@ -260,19 +264,19 @@ export const ConductReportsTab = ({
                                             <h4 className="font-black text-slate-800 line-clamp-1 leading-tight">{incident.title}</h4>
                                             <div className="flex items-center gap-2 mt-1">
                                                 <Calendar className="w-3 h-3 text-slate-300" />
-                                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">
+                                                <p className="text-[11px] text-slate-500 font-black uppercase tracking-widest">
                                                     {new Date(incident.created_at).toLocaleDateString()}
                                                 </p>
                                             </div>
                                         </div>
                                     </div>
-                                    <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-[0.2em] border-2 ${getSeverityStyles(incident.severity)}`}>
+                                    <span className={`px-2 py-1 rounded-lg text-[11px] font-black uppercase tracking-[0.2em] border-2 ${getSeverityStyles(incident.severity)}`}>
                                         {incident.severity}
                                     </span>
                                 </div>
 
                                 <div className="bg-slate-50 rounded-2xl p-4 mb-4 border border-slate-100 group-hover/card:bg-white group-hover/card:border-indigo-100 transition-colors">
-                                    <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1 opacity-60">Alumno</p>
+                                    <p className="text-[11px] font-black text-indigo-500 uppercase tracking-widest mb-1 opacity-60">Alumno</p>
                                     <p className="text-sm font-black text-slate-700">
                                         {student?.last_name_paternal} {student?.last_name_maternal}
                                     </p>
@@ -286,7 +290,7 @@ export const ConductReportsTab = ({
                                 </div>
 
                                 {incident.has_commitment && (
-                                    <div className="mt-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50/50 p-3 rounded-2xl border border-indigo-100/50">
+                                    <div className="mt-4 flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50/50 p-3 rounded-2xl border border-indigo-100/50">
                                         <ShieldCheck className="w-4 h-4" />
                                         Requiere Acta
                                     </div>
@@ -296,7 +300,7 @@ export const ConductReportsTab = ({
                                     {incident.has_commitment && (
                                         <button
                                             onClick={() => handlePrintCommitment(incident, student)}
-                                            className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all hover:scale-110 active:scale-90"
+                                            className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all hover:scale-110 active:scale-90"
                                             title="Imprimir Acta"
                                         >
                                             <Printer className="w-5 h-5" />
@@ -304,14 +308,14 @@ export const ConductReportsTab = ({
                                     )}
                                     <button
                                         onClick={() => handleEdit(incident)}
-                                        className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all hover:scale-110 active:scale-90"
+                                        className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all hover:scale-110 active:scale-90"
                                         title="Editar Reporte"
                                     >
                                         <Pencil className="w-5 h-5" />
                                     </button>
                                     <button
                                         onClick={() => handleDelete(incident.id)}
-                                        className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all hover:scale-110 active:scale-90"
+                                        className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all hover:scale-110 active:scale-90"
                                         title="Eliminar Reporte"
                                     >
                                         <Trash2 className="w-5 h-5" />
@@ -323,13 +327,13 @@ export const ConductReportsTab = ({
                 ) : (
                     <div className="col-span-full py-20 text-center bg-slate-50/50 rounded-[3rem] border-4 border-dashed border-slate-100 flex flex-col items-center justify-center">
                         <div className="w-20 h-20 bg-white rounded-[2rem] shadow-xl flex items-center justify-center mb-6 scale-110">
-                            <ShieldCheck className="w-10 h-10 text-emerald-500" />
+                            <ShieldCheck className="w-10 h-10 text-emerald-700" />
                         </div>
                         <p className="font-black text-2xl text-slate-800 uppercase tracking-widest mb-2">Paz y Litoral</p>
-                        <p className="text-slate-400 font-bold max-w-sm mx-auto">No hay incidencias registradas. ¡Tu grupo parece estar en excelente armonía!</p>
+                        <p className="text-slate-500 font-bold max-w-sm mx-auto">No hay incidencias registradas. ¡Tu grupo parece estar en excelente armonía!</p>
                         <button
                             onClick={() => setIsCreateModalOpen(true)}
-                            className="mt-8 px-8 py-3 bg-white border-2 border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all shadow-lg"
+                            className="mt-8 px-8 py-3 bg-white border-2 border-slate-100 rounded-2xl text-[11px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all shadow-lg"
                         >
                             Crear primer reporte
                         </button>

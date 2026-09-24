@@ -246,7 +246,7 @@ export const CriteriaManager = ({ periodId, groupId }: CriteriaManagerProps) => 
 
                     {showCopyMenu && (
                         <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 z-20 py-2 animate-in fade-in zoom-in-95 duration-100">
-                            <div className="px-4 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 mb-1">
+                            <div className="px-4 py-2 text-[11px] font-black text-gray-500 uppercase tracking-widest border-b border-gray-50 mb-1">
                                 Seleccionar Trimestre:
                             </div>
                             {allPeriods.filter(p => p.id !== periodId).map(p => (
@@ -259,7 +259,7 @@ export const CriteriaManager = ({ periodId, groupId }: CriteriaManagerProps) => 
                                 </button>
                             ))}
                             {allPeriods.filter(p => p.id !== periodId).length === 0 && (
-                                <div className="px-4 py-2 text-xs text-gray-400 italic">No hay otros periodos</div>
+                                <div className="px-4 py-2 text-xs text-gray-500 italic">No hay otros periodos</div>
                             )}
                         </div>
                     )}
@@ -287,7 +287,7 @@ export const CriteriaManager = ({ periodId, groupId }: CriteriaManagerProps) => 
                             </div>
                             <button
                                 onClick={() => setShowCatalog(false)}
-                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-all"
+                                className="p-2 text-gray-500 hover:text-gray-600 hover:bg-white rounded-lg transition-all"
                             >
                                 <AlertCircle className="w-5 h-5 rotate-45" />
                             </button>
@@ -319,7 +319,7 @@ export const CriteriaManager = ({ periodId, groupId }: CriteriaManagerProps) => 
                                             <div className="text-xs text-gray-500">{item.description}</div>
                                         </div>
                                         {isAdded ? (
-                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-100 px-2 py-1 rounded">Ya añadido</span>
+                                            <span className="text-[11px] font-black text-gray-500 uppercase tracking-widest bg-gray-100 px-2 py-1 rounded">Ya añadido</span>
                                         ) : (
                                             <Plus className="w-4 h-4 text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                                         )}
@@ -383,7 +383,7 @@ export const CriteriaManager = ({ periodId, groupId }: CriteriaManagerProps) => 
                                         }}
                                     />
                                 </div>
-                                <button
+                                <button aria-label="Eliminar"
                                     onClick={() => removeCriteria(criteria.id)}
                                     className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity self-start mt-1"
                                 >
@@ -412,7 +412,7 @@ export const CriteriaManager = ({ periodId, groupId }: CriteriaManagerProps) => 
                 {criteriaList.length > 0 && (
                     <button
                         onClick={() => setShowCatalog(true)}
-                        className="w-full py-4 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 font-bold hover:border-blue-300 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center"
+                        className="w-full py-4 border-2 border-dashed border-gray-200 rounded-xl text-gray-500 font-bold hover:border-blue-300 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center"
                     >
                         <Sparkles className="w-5 h-5 mr-2" />
                         Catálogo de Criterios
@@ -423,12 +423,12 @@ export const CriteriaManager = ({ periodId, groupId }: CriteriaManagerProps) => 
             {/* Footer Actions */}
             <div className="p-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex justify-between items-center">
                 {!isValid ? (
-                    <div className="flex items-center text-amber-600 text-sm">
+                    <div className="flex items-center text-amber-700 text-sm">
                         <AlertCircle className="w-4 h-4 mr-2" />
                         La suma debe ser exactamente 100%
                     </div>
                 ) : (
-                    <div className="text-xs text-gray-400">
+                    <div className="text-xs text-gray-500">
                         Listo para guardar
                     </div>
                 )}

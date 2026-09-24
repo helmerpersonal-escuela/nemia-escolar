@@ -38,16 +38,16 @@ export const ActivitiesManagerModal = ({
                 <div className="p-8 pb-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <div className="flex items-center gap-4">
                         <div className="p-4 bg-amber-100 rounded-3xl shadow-lg border-2 border-white rotate-[-3deg]">
-                            <LayoutList className="w-8 h-8 text-amber-600" />
+                            <LayoutList className="w-8 h-8 text-amber-700" />
                         </div>
                         <div>
                             <h2 className="text-3xl font-black text-slate-900 uppercase italic tracking-tighter leading-none">Gestión de Actividades</h2>
-                            <p className="text-sm text-slate-400 font-bold uppercase tracking-widest mt-1">
+                            <p className="text-sm text-slate-500 font-bold uppercase tracking-widest mt-1">
                                 {assignments.length} misiones encontradas
                             </p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-3 bg-white rounded-2xl shadow-md text-slate-400 hover:text-rose-500 hover:rotate-90 transition-all duration-300 btn-tactile">
+                    <button aria-label="Cerrar" onClick={onClose} className="p-3 bg-white rounded-2xl shadow-md text-slate-500 hover:text-rose-500 hover:rotate-90 transition-all duration-300 btn-tactile">
                         <X className="w-6 h-6" />
                     </button>
                 </div>
@@ -71,7 +71,7 @@ export const ActivitiesManagerModal = ({
                     {filteredAssignments.length === 0 ? (
                         <div className="text-center py-20 bg-white rounded-[2rem] border-4 border-dashed border-slate-100">
                             <AlertCircle className="w-16 h-16 text-slate-200 mx-auto mb-4" />
-                            <p className="text-slate-400 font-black uppercase tracking-widest">No se encontraron actividades</p>
+                            <p className="text-slate-500 font-black uppercase tracking-widest">No se encontraron actividades</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 gap-4">
@@ -80,10 +80,10 @@ export const ActivitiesManagerModal = ({
                                     <div className="flex justify-between items-start gap-4">
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-2">
-                                                <span className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-indigo-100">
+                                                <span className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[11px] font-black uppercase tracking-widest border border-indigo-100">
                                                     {assignment.type || 'ACTIVIDAD'}
                                                 </span>
-                                                <div className="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                                <div className="flex items-center gap-1 text-[11px] font-black text-slate-500 uppercase tracking-widest">
                                                     <Calendar className="w-3 h-3" />
                                                     {new Date(assignment.due_date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}
                                                 </div>
@@ -92,7 +92,7 @@ export const ActivitiesManagerModal = ({
                                                 {assignment.title}
                                             </h4>
                                             {assignment.description && (
-                                                <p className="text-xs text-slate-400 font-bold mt-2 line-clamp-2 uppercase">
+                                                <p className="text-xs text-slate-500 font-bold mt-2 line-clamp-2 uppercase">
                                                     {assignment.description}
                                                 </p>
                                             )}
@@ -117,7 +117,7 @@ export const ActivitiesManagerModal = ({
                                                             setEnrichingId(null)
                                                         }
                                                     }}
-                                                    className="p-3 bg-amber-50 text-amber-600 rounded-2xl hover:bg-amber-600 hover:text-white transition-all shadow-sm flex items-center justify-center group/btn disabled:opacity-50"
+                                                    className="p-3 bg-amber-50 text-amber-700 rounded-2xl hover:bg-amber-600 hover:text-white transition-all shadow-sm flex items-center justify-center group/btn disabled:opacity-50"
                                                     title="Refuerzo IA (Misión/Entregable/Eval)"
                                                 >
                                                     {enrichingId === assignment.id ? (
@@ -131,7 +131,7 @@ export const ActivitiesManagerModal = ({
                                             <div className="flex gap-2">
                                                 <button
                                                     onClick={() => onEdit(assignment)}
-                                                    className="p-3 bg-slate-50 text-slate-400 hover:bg-amber-50 hover:text-amber-600 rounded-2xl transition-all shadow-sm"
+                                                    className="p-3 bg-slate-50 text-slate-500 hover:bg-amber-50 hover:text-amber-600 rounded-2xl transition-all shadow-sm"
                                                     title="Editar"
                                                 >
                                                     <Pencil className="w-4 h-4" />
@@ -142,7 +142,7 @@ export const ActivitiesManagerModal = ({
                                                             onDelete(assignment.id)
                                                         }
                                                     }}
-                                                    className="p-3 bg-slate-50 text-slate-400 hover:bg-rose-50 hover:text-rose-600 rounded-2xl transition-all shadow-sm"
+                                                    className="p-3 bg-slate-50 text-slate-500 hover:bg-rose-50 hover:text-rose-600 rounded-2xl transition-all shadow-sm"
                                                     title="Eliminar"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
@@ -158,7 +158,7 @@ export const ActivitiesManagerModal = ({
 
                 {/* Footer */}
                 <div className="p-8 bg-slate-50 border-t border-slate-100 flex justify-center">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
                         Gestiona tus misiones. Los cambios se sincronizarán inmediatamente.
                     </p>
                 </div>

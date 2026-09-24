@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
     AlertTriangle,
-    ShieldAlert,
     Calendar as CalendarIcon,
     Loader2,
     ChevronDown,
@@ -111,7 +110,7 @@ export const TutorIncidentsPage = () => {
                                 </option>
                             ))}
                         </select>
-                        <ChevronDown className="absolute right-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
+                        <ChevronDown className="absolute right-3 top-3 h-4 w-4 text-gray-500 pointer-events-none" />
                     </div>
                 )}
             </div>
@@ -135,15 +134,15 @@ export const TutorIncidentsPage = () => {
                     <div key={incident.id} className="bg-white rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 p-6 space-y-4">
                         <div className="flex justify-between items-start">
                             <div className="flex items-center gap-3">
-                                <span className={`px-3 py-1 text-[10px] font-black uppercase rounded-lg border ${getSeverityStyles(incident.severity)}`}>
+                                <span className={`px-3 py-1 text-[11px] font-black uppercase rounded-lg border ${getSeverityStyles(incident.severity)}`}>
                                     {incident.severity}
                                 </span>
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
                                     <CalendarIcon className="w-3 h-3" />
                                     {new Date(incident.created_at).toLocaleDateString()}
                                 </span>
                             </div>
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{incident.type}</span>
+                            <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">{incident.type}</span>
                         </div>
 
                         <div>
@@ -161,7 +160,7 @@ export const TutorIncidentsPage = () => {
                                 )}
                                 {incident.has_commitment && (
                                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Compromiso</p>
+                                        <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">Compromiso</p>
                                         <p className="text-sm italic text-slate-700">{incident.commitment_description}</p>
                                     </div>
                                 )}
@@ -173,7 +172,7 @@ export const TutorIncidentsPage = () => {
                 {incidents.length === 0 && !loading && (
                     <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-200">
                         <Award className="w-12 h-12 text-slate-200 mx-auto mb-4" />
-                        <p className="text-slate-400 font-bold text-sm uppercase">No hay reportes ni incidencias registradas</p>
+                        <p className="text-slate-500 font-bold text-sm uppercase">No hay reportes ni incidencias registradas</p>
                         <p className="text-xs text-slate-300 mt-2 px-8">¡Felicidades! El alumno mantiene un historial limpio.</p>
                     </div>
                 )}

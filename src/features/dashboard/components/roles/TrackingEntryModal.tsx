@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../../../lib/supabase'
 import { useTenant } from '../../../../hooks/useTenant'
-import { X, Save, Search, User, FileText, CheckCircle2 } from 'lucide-react'
+import { X, Save, Search, User, CheckCircle2 } from 'lucide-react'
 
 interface TrackingEntryModalProps {
     onClose: () => void
@@ -96,7 +96,7 @@ export const TrackingEntryModal = ({ onClose, onSuccess }: TrackingEntryModalPro
                             {step === 1 ? 'Paso 1: Seleccionar Alumno' : `Paso 2: Detalles del Registro (${selectedStudent?.first_name})`}
                         </p>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+                    <button aria-label="Cerrar" onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
                         <X className="w-5 h-5 text-gray-500" />
                     </button>
                 </div>
@@ -106,7 +106,7 @@ export const TrackingEntryModal = ({ onClose, onSuccess }: TrackingEntryModalPro
                     {step === 1 ? (
                         <div className="space-y-6">
                             <div className="relative">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
                                 <input
                                     type="text"
                                     placeholder="Buscar alumno por nombre..."
@@ -119,7 +119,7 @@ export const TrackingEntryModal = ({ onClose, onSuccess }: TrackingEntryModalPro
 
                             <div className="space-y-2">
                                 {searching ? (
-                                    <p className="text-center text-gray-400 py-4">Buscando...</p>
+                                    <p className="text-center text-gray-500 py-4">Buscando...</p>
                                 ) : students.length > 0 ? (
                                     students.map(student => (
                                         <button
@@ -145,7 +145,7 @@ export const TrackingEntryModal = ({ onClose, onSuccess }: TrackingEntryModalPro
                                 ) : searchTerm.length > 2 && (
                                     <div className="text-center py-8">
                                         <User className="w-12 h-12 text-gray-200 mx-auto mb-2" />
-                                        <p className="text-gray-400">No se encontraron alumnos</p>
+                                        <p className="text-gray-500">No se encontraron alumnos</p>
                                     </div>
                                 )}
                             </div>
@@ -155,7 +155,7 @@ export const TrackingEntryModal = ({ onClose, onSuccess }: TrackingEntryModalPro
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 mb-2">Tipo de Registro</label>
-                                    <select
+                                    <select aria-label="Tipo de Registro"
                                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
                                         value={formData.type}
                                         onChange={e => setFormData({ ...formData, type: e.target.value })}
@@ -168,7 +168,7 @@ export const TrackingEntryModal = ({ onClose, onSuccess }: TrackingEntryModalPro
                                 </div>
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 mb-2">Nivel de Prioridad</label>
-                                    <select
+                                    <select aria-label="Nivel de Prioridad"
                                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
                                         value={formData.severity}
                                         onChange={e => setFormData({ ...formData, severity: e.target.value })}
@@ -183,7 +183,7 @@ export const TrackingEntryModal = ({ onClose, onSuccess }: TrackingEntryModalPro
 
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-2">Título / Asunto</label>
-                                <input
+                                <input aria-label="Título / Asunto"
                                     type="text"
                                     required
                                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
@@ -195,7 +195,7 @@ export const TrackingEntryModal = ({ onClose, onSuccess }: TrackingEntryModalPro
 
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-2">Descripción de la Situación</label>
-                                <textarea
+                                <textarea aria-label="Descripción de la Situación"
                                     required
                                     rows={4}
                                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 resize-none"
@@ -207,7 +207,7 @@ export const TrackingEntryModal = ({ onClose, onSuccess }: TrackingEntryModalPro
 
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-2">Acuerdos y Compromisos</label>
-                                <textarea
+                                <textarea aria-label="Acuerdos y Compromisos"
                                     rows={3}
                                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                                     placeholder="Acuerdos establecidos con el alumno o padre de familia..."

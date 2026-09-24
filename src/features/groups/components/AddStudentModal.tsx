@@ -442,7 +442,7 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                 {/* Header */}
                 <div className="flex justify-between items-center p-6 border-b">
                     <h2 className="text-xl font-bold text-gray-900">{studentId ? 'Editar Alumno' : 'Registrar Nuevo Alumno'}</h2>
-                    <button onClick={onClose}><X className="h-6 w-6 text-gray-400" /></button>
+                    <button aria-label="Cerrar" onClick={onClose}><X className="h-6 w-6 text-gray-500" /></button>
                 </div>
 
                 {/* Tabs / Steps */}
@@ -457,12 +457,12 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                         <button
                             key={s.id}
                             onClick={() => setStep(s.id)}
-                            className={`flex-1 py-3 px-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex flex-col items-center justify-center gap-1.5 ${step === s.id
+                            className={`flex-1 py-3 px-2 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex flex-col items-center justify-center gap-1.5 ${step === s.id
                                 ? 'bg-white text-indigo-600 shadow-[0_8px_20px_-4px_rgba(79,70,229,0.2)] scale-[1.02] border-b-4 border-indigo-200'
-                                : 'text-slate-400 hover:bg-white/50'
+                                : 'text-slate-500 hover:bg-white/50'
                                 }`}
                         >
-                            <div className={`p-2 rounded-xl ${step === s.id ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-400'}`}>
+                            <div className={`p-2 rounded-xl ${step === s.id ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
                                 {s.icon}
                             </div>
                             {s.label}
@@ -479,15 +479,15 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div className="input-group">
                                         <label className="label-std">Nombre(s) *</label>
-                                        <input name="firstName" value={student.firstName} onChange={handleStudentChange} className="input-std" placeholder="Ej. JUAN PABLO" />
+                                        <input aria-label="Nombre(s) *" name="firstName" value={student.firstName} onChange={handleStudentChange} className="input-std" placeholder="Ej. JUAN PABLO" />
                                     </div>
                                     <div className="input-group">
                                         <label className="label-std">Apellido Paterno *</label>
-                                        <input name="lastNamePaternal" value={student.lastNamePaternal} onChange={handleStudentChange} className="input-std" placeholder="Ej. PÉREZ" />
+                                        <input aria-label="Apellido Paterno *" name="lastNamePaternal" value={student.lastNamePaternal} onChange={handleStudentChange} className="input-std" placeholder="Ej. PÉREZ" />
                                     </div>
                                     <div className="input-group">
                                         <label className="label-std">Apellido Materno *</label>
-                                        <input name="lastNameMaternal" value={student.lastNameMaternal} onChange={handleStudentChange} className="input-std" placeholder="Ej. LÓPEZ" />
+                                        <input aria-label="Apellido Materno *" name="lastNameMaternal" value={student.lastNameMaternal} onChange={handleStudentChange} className="input-std" placeholder="Ej. LÓPEZ" />
                                     </div>
                                 </div>
                             </div>
@@ -495,7 +495,7 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label className="label-std">Sexo *</label>
-                                    <select name="gender" value={student.gender} onChange={handleStudentChange} className="input-std cursor-pointer">
+                                    <select aria-label="Sexo *" name="gender" value={student.gender} onChange={handleStudentChange} className="input-std cursor-pointer">
                                         <option value="HOMBRE">HOMBRE</option>
                                         <option value="MUJER">MUJER</option>
                                     </select>
@@ -503,19 +503,19 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                                 <div className="input-group">
                                     <label className="label-std">CURP</label>
                                     <FileText className="input-icon" />
-                                    <input name="curp" value={student.curp} onChange={handleStudentChange} className="input-std input-with-icon" placeholder="Clave Única de Registro" />
+                                    <input aria-label="CURP" name="curp" value={student.curp} onChange={handleStudentChange} className="input-std input-with-icon" placeholder="Clave Única de Registro" />
                                 </div>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="input-group">
                                     <label className="label-std">Teléfono (Opcional)</label>
                                     <Phone className="input-icon" />
-                                    <input name="phone" value={student.phone} onChange={handleStudentChange} className="input-std input-with-icon" placeholder="10 dígitos" />
+                                    <input aria-label="Teléfono (Opcional)" name="phone" value={student.phone} onChange={handleStudentChange} className="input-std input-with-icon" placeholder="10 dígitos" />
                                 </div>
                                 <div className="input-group">
                                     <label className="label-std">Correo Electrónico (Opcional)</label>
                                     <Mail className="input-icon" />
-                                    <input type="email" name="email" value={student.email} onChange={handleStudentChange} className="input-std input-with-icon" placeholder="correo@ejemplo.com" />
+                                    <input aria-label="Correo Electrónico (Opcional)" type="email" name="email" value={student.email} onChange={handleStudentChange} className="input-std input-with-icon" placeholder="correo@ejemplo.com" />
                                 </div>
                             </div>
 
@@ -527,7 +527,7 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                                     <div>
                                         <label className="label-std text-blue-900">Tipo de Sangre</label>
-                                        <select name="bloodType" value={student.bloodType} onChange={handleStudentChange} className="input-std">
+                                        <select aria-label="Tipo de Sangre" name="bloodType" value={student.bloodType} onChange={handleStudentChange} className="input-std">
                                             <option value="">Seleccionar...</option>
                                             <option value="A+">A+</option>
                                             <option value="A-">A-</option>
@@ -542,19 +542,19 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                                     <div className="input-group">
                                         <label className="label-std text-blue-900">Alergias</label>
                                         <AlertCircle className="input-icon text-blue-400" />
-                                        <input name="allergies" value={student.allergies} onChange={handleStudentChange} className="input-std input-with-icon border-blue-200 focus:ring-blue-500" placeholder="Ej. Penicilina (Opcional)" />
+                                        <input aria-label="Alergias" name="allergies" value={student.allergies} onChange={handleStudentChange} className="input-std input-with-icon border-blue-200 focus:ring-blue-500" placeholder="Ej. Penicilina (Opcional)" />
                                     </div>
                                 </div>
                                 <div>
                                     <label className="label-std text-blue-900">Condición / Discapacidad</label>
-                                    <select name="condition" value={student.condition} onChange={handleStudentChange} className="input-std">
+                                    <select aria-label="Condición / Discapacidad" name="condition" value={student.condition} onChange={handleStudentChange} className="input-std">
                                         {CONDITIONS_LIST.map(c => <option key={c} value={c}>{c}</option>)}
                                     </select>
                                 </div>
                                 {student.condition === 'OTRO' && (
                                     <div className="mt-4 animate-in fade-in slide-in-from-top-2">
                                         <label className="label-std text-blue-900">Especifique la condición</label>
-                                        <input name="conditionDetails" value={student.conditionDetails} onChange={handleStudentChange} className="input-std border-blue-300" placeholder="Describa la condición..." autoFocus />
+                                        <input aria-label="Especifique la condición" name="conditionDetails" value={student.conditionDetails} onChange={handleStudentChange} className="input-std border-blue-300" placeholder="Describa la condición..." autoFocus />
                                     </div>
                                 )}
                             </div>
@@ -564,7 +564,7 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                     {step === 2 && (
                         <div className="space-y-8">
                             <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 text-amber-900 flex items-start shadow-sm">
-                                <AlertCircle className="h-6 w-6 text-amber-600 mr-3 flex-shrink-0" />
+                                <AlertCircle className="h-6 w-6 text-amber-700 mr-3 flex-shrink-0" />
                                 <div>
                                     <p className="font-bold mb-1">Contacto de Emergencia</p>
                                     <p className="text-sm opacity-90">Estos datos son cruciales para contactar al tutor en caso de emergencia.</p>
@@ -576,15 +576,15 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div className="input-group">
                                         <label className="label-std">Nombre(s) *</label>
-                                        <input name="firstName" value={guardian.firstName} onChange={handleGuardianChange} className="input-std" placeholder="Nombres" />
+                                        <input aria-label="Nombre(s) *" name="firstName" value={guardian.firstName} onChange={handleGuardianChange} className="input-std" placeholder="Nombres" />
                                     </div>
                                     <div className="input-group">
                                         <label className="label-std">Apellido Paterno *</label>
-                                        <input name="lastNamePaternal" value={guardian.lastNamePaternal} onChange={handleGuardianChange} className="input-std" placeholder="Apellido P." />
+                                        <input aria-label="Apellido Paterno *" name="lastNamePaternal" value={guardian.lastNamePaternal} onChange={handleGuardianChange} className="input-std" placeholder="Apellido P." />
                                     </div>
                                     <div className="input-group">
                                         <label className="label-std">Apellido Materno *</label>
-                                        <input name="lastNameMaternal" value={guardian.lastNameMaternal} onChange={handleGuardianChange} className="input-std" placeholder="Apellido M." />
+                                        <input aria-label="Apellido Materno *" name="lastNameMaternal" value={guardian.lastNameMaternal} onChange={handleGuardianChange} className="input-std" placeholder="Apellido M." />
                                     </div>
                                 </div>
                             </div>
@@ -592,27 +592,27 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label className="label-std">Parentesco *</label>
-                                    <select name="relationship" value={guardian.relationship} onChange={handleGuardianChange} className="input-std">
+                                    <select aria-label="Parentesco *" name="relationship" value={guardian.relationship} onChange={handleGuardianChange} className="input-std">
                                         {RELATIONSHIPS.map(r => <option key={r} value={r}>{r}</option>)}
                                     </select>
                                 </div>
                                 <div className="input-group">
                                     <label className="label-std">Teléfono de Contacto</label>
                                     <Phone className="input-icon" />
-                                    <input name="phone" value={guardian.phone} onChange={handleGuardianChange} className="input-std input-with-icon" placeholder="10 dígitos" />
+                                    <input aria-label="Teléfono de Contacto" name="phone" value={guardian.phone} onChange={handleGuardianChange} className="input-std input-with-icon" placeholder="10 dígitos" />
                                 </div>
                             </div>
                             <div className="input-group">
                                 <label className="label-std">Ocupación</label>
                                 <Briefcase className="input-icon" />
-                                <input name="occupation" value={guardian.occupation} onChange={handleGuardianChange} className="input-std input-with-icon" placeholder="Ej. Empleado, Comerciante..." />
+                                <input aria-label="Ocupación" name="occupation" value={guardian.occupation} onChange={handleGuardianChange} className="input-std input-with-icon" placeholder="Ej. Empleado, Comerciante..." />
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="input-group">
                                     <label className="label-std text-indigo-700">Correo Electrónico (Acceso)</label>
                                     <Mail className="input-icon text-indigo-400" />
-                                    <input type="email" name="email" value={guardian.email} onChange={handleGuardianChange} className="input-std input-with-icon border-indigo-200 focus:ring-indigo-500" placeholder="tutor@ejemplo.com" />
+                                    <input aria-label="Correo Electrónico (Acceso)" type="email" name="email" value={guardian.email} onChange={handleGuardianChange} className="input-std input-with-icon border-indigo-200 focus:ring-indigo-500" placeholder="tutor@ejemplo.com" />
                                 </div>
                                 <div className="flex items-end">
                                     {existingProfile ? (
@@ -621,7 +621,7 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                                                 <User className="w-4 h-4 text-white" />
                                             </div>
                                             <div>
-                                                <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Tutor Reconocido</p>
+                                                <p className="text-[11px] font-black text-indigo-600 uppercase tracking-widest">Tutor Reconocido</p>
                                                 <p className="text-xs font-bold text-slate-700">Se vinculará a la cuenta existente.</p>
                                             </div>
                                         </div>
@@ -635,7 +635,7 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                                                 : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md hover:shadow-indigo-200 active:scale-95 disabled:opacity-50 disabled:pointer-events-none'
                                                 }`}
                                         >
-                                            <Zap className={`w-4 h-4 mr-2 ${invitationSent ? 'text-emerald-500' : 'text-indigo-200'}`} />
+                                            <Zap className={`w-4 h-4 mr-2 ${invitationSent ? 'text-emerald-700' : 'text-indigo-200'}`} />
                                             {invitingTutor ? 'Generando...' : searchingProfile ? 'Verificando...' : invitationSent ? 'Acceso Enviado' : 'Enviar Credenciales'}
                                         </button>
                                     )}
@@ -643,7 +643,7 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                                 <div className="md:col-span-2">
                                     <label className="label-std">Dirección Completa</label>
                                     <MapPin className="input-icon" />
-                                    <input name="address" value={guardian.address} onChange={handleGuardianChange} className="input-std input-with-icon" placeholder="Calle, Número, Colonia, CP..." />
+                                    <input aria-label="Dirección Completa" name="address" value={guardian.address} onChange={handleGuardianChange} className="input-std input-with-icon" placeholder="Calle, Número, Colonia, CP..." />
                                 </div>
                             </div>
                         </div>
@@ -745,7 +745,7 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                     box-shadow: inset 0 2px 4px rgba(79,70,229,0.05);
                 }
                 .label-std {
-                    @apply block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1;
+                    @apply block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1;
                 }
                 .section-title {
                     @apply text-lg font-black text-slate-800 border-b-2 border-slate-50 pb-3 mb-6 flex items-center gap-2 uppercase tracking-tight;
@@ -782,7 +782,7 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                     box-shadow: inset 0 2px 4px rgba(79,70,229,0.08);
                 }
                 .label-std {
-                    @apply block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1;
+                    @apply block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1;
                 }
                 .section-title {
                     @apply text-lg font-black text-slate-800 border-b-2 border-slate-50 pb-3 mb-6 flex items-center gap-2 uppercase tracking-tight;

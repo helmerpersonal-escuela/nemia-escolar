@@ -128,7 +128,7 @@ export const AcademicYearManager = ({ readOnly = false }: { readOnly?: boolean }
         return `${day}/${month}/${year}`
     }
 
-    if (loading) return <div className="text-center py-4 text-gray-400 text-xs">Cargando ciclos...</div>
+    if (loading) return <div className="text-center py-4 text-gray-500 text-xs">Cargando ciclos...</div>
 
     return (
         <div className="space-y-6">
@@ -151,8 +151,8 @@ export const AcademicYearManager = ({ readOnly = false }: { readOnly?: boolean }
             {(isCreating || years.length === 0) && (
                 <form onSubmit={handleCreate} className="p-6 bg-gray-50 rounded-3xl border border-gray-100 space-y-4 animate-in fade-in slide-in-from-top-2">
                     <div>
-                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Nombre Oficial</label>
-                        <input
+                        <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Nombre Oficial</label>
+                        <input aria-label="Nombre Oficial"
                             type="text"
                             placeholder="Ej. Ciclo Escolar 2024-2025"
                             className="w-full px-4 py-3 bg-white border border-transparent rounded-xl text-sm font-bold text-gray-900 focus:ring-4 focus:ring-blue-100 outline-none"
@@ -163,8 +163,8 @@ export const AcademicYearManager = ({ readOnly = false }: { readOnly?: boolean }
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Inicio</label>
-                            <input
+                            <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Inicio</label>
+                            <input aria-label="Inicio"
                                 type="date"
                                 className="w-full px-4 py-3 bg-white border border-transparent rounded-xl text-sm font-bold text-gray-900 focus:ring-4 focus:ring-blue-100 outline-none"
                                 value={newYear.start_date}
@@ -173,8 +173,8 @@ export const AcademicYearManager = ({ readOnly = false }: { readOnly?: boolean }
                             />
                         </div>
                         <div>
-                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Fin</label>
-                            <input
+                            <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Fin</label>
+                            <input aria-label="Fin"
                                 type="date"
                                 className="w-full px-4 py-3 bg-white border border-transparent rounded-xl text-sm font-bold text-gray-900 focus:ring-4 focus:ring-blue-100 outline-none"
                                 value={newYear.end_date}
@@ -210,7 +210,7 @@ export const AcademicYearManager = ({ readOnly = false }: { readOnly?: boolean }
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {years.length === 0 && !isCreating ? (
                     <div className="col-span-full py-12 text-center bg-gray-50 border-2 border-dashed border-gray-100 rounded-[2rem]">
-                        <p className="text-gray-400 font-bold text-sm">No has registrado ningún ciclo escolar.</p>
+                        <p className="text-gray-500 font-bold text-sm">No has registrado ningún ciclo escolar.</p>
                     </div>
                 ) : (
                     years.map(year => (
@@ -225,24 +225,24 @@ export const AcademicYearManager = ({ readOnly = false }: { readOnly?: boolean }
                             <div className="relative z-10 flex justify-between items-start">
                                 <div>
                                     <div className="flex items-center gap-2 mb-2">
-                                        <Calendar className={`w-4 h-4 ${year.is_active ? 'text-blue-200' : 'text-gray-400'}`} />
+                                        <Calendar className={`w-4 h-4 ${year.is_active ? 'text-blue-200' : 'text-gray-500'}`} />
                                         <h4 className={`text-lg font-black tracking-tight ${year.is_active ? 'text-white' : 'text-gray-900'}`}>
                                             {year.name}
                                         </h4>
                                     </div>
-                                    <p className={`text-xs font-bold uppercase tracking-wider ${year.is_active ? 'text-blue-100' : 'text-gray-400'}`}>
+                                    <p className={`text-xs font-bold uppercase tracking-wider ${year.is_active ? 'text-blue-100' : 'text-gray-500'}`}>
                                         {formatDate(year.start_date)} — {formatDate(year.end_date)}
                                     </p>
 
                                     {year.is_active ? (
                                         <div className="mt-6 inline-flex items-center px-3 py-1 bg-white/20 rounded-full backdrop-blur-sm border border-white/20">
                                             <CheckCircle2 className="w-3 h-3 text-white mr-2" />
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-white">Ciclo Activo</span>
+                                            <span className="text-[11px] font-black uppercase tracking-widest text-white">Ciclo Activo</span>
                                         </div>
                                     ) : (
                                         <button
                                             onClick={() => handleActivate(year.id)}
-                                            className="mt-6 inline-flex items-center px-4 py-2 bg-gray-50 text-gray-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                                            className="mt-6 inline-flex items-center px-4 py-2 bg-gray-50 text-gray-600 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-50 hover:text-blue-600 transition-colors"
                                         >
                                             Activar este ciclo
                                         </button>
@@ -250,7 +250,7 @@ export const AcademicYearManager = ({ readOnly = false }: { readOnly?: boolean }
                                 </div>
 
                                 {!readOnly && (
-                                    <button
+                                    <button aria-label="Eliminar"
                                         onClick={() => handleDelete(year.id, year.is_active)}
                                         className={`p-2 rounded-xl transition-all ${year.is_active ? 'text-blue-200 hover:bg-white/10 hover:text-white' : 'text-gray-300 hover:bg-red-50 hover:text-red-500'}`}
                                     >

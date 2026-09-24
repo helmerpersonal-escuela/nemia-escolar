@@ -257,7 +257,7 @@ export const EditScheduleModal = ({
                             {dayLabels[formData.day_of_week]} • {formatTime(formData.start_time)} - {formatTime(formData.end_time)}
                         </p>
                     </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                    <button aria-label="Cerrar" onClick={onClose} className="text-gray-500 hover:text-gray-600">
                         <X className="h-6 w-6" />
                     </button>
                 </div>
@@ -266,7 +266,7 @@ export const EditScheduleModal = ({
                     {/* Group Selection */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Seleccionar Grupo</label>
-                        <select
+                        <select aria-label="Seleccionar Grupo"
                             className="mt-1 block w-full rounded-md border border-gray-300 py-2.5 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 text-base"
                             value={formData.group_id}
                             onChange={e => setFormData({ ...formData, group_id: e.target.value })}

@@ -158,14 +158,14 @@ export const ClosePeriodModal = ({
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                     <div>
                         <h2 className="text-xl font-bold text-gray-900 flex items-center">
-                            <Lock className="w-5 h-5 mr-2 text-amber-600" />
+                            <Lock className="w-5 h-5 mr-2 text-amber-700" />
                             Cierre de {periodLabel}: {period.name}
                         </h2>
                         <p className="text-sm text-gray-500">
                             Grupo {group.grade}° "{group.section}" — Revisión de Calificaciones
                         </p>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+                    <button aria-label="Cerrar" onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
                         <X className="w-5 h-5 text-gray-500" />
                     </button>
                 </div>
@@ -187,7 +187,7 @@ export const ClosePeriodModal = ({
 
                             <div className="overflow-hidden rounded-xl border border-gray-200">
                                 <table className="w-full text-left text-sm">
-                                    <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] tracking-wider">
+                                    <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[11px] tracking-wider">
                                         <tr>
                                             <th className="px-4 py-3">Alumno</th>
                                             <th className="px-4 py-3 text-center">Asistencias</th>
@@ -209,7 +209,7 @@ export const ClosePeriodModal = ({
                                                     <td className="px-4 py-3 text-center text-gray-600">
                                                         {(item.stats.attendance / (item.stats.attendance + item.stats.absences + item.stats.lates || 1) * 100).toFixed(0)}%
                                                     </td>
-                                                    <td className="px-4 py-3 text-center font-mono text-gray-400">
+                                                    <td className="px-4 py-3 text-center font-mono text-gray-500">
                                                         {originalGrade}
                                                     </td>
                                                     <td className="px-4 py-3 text-right">
@@ -248,7 +248,7 @@ export const ClosePeriodModal = ({
                     {step === 'SUCCESS' && (
                         <div className="flex flex-col items-center justify-center text-center py-12 space-y-6">
                             <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center animate-bounce">
-                                <CheckCircle className="w-10 h-10 text-emerald-600" />
+                                <CheckCircle className="w-10 h-10 text-emerald-700" />
                             </div>
                             <div>
                                 <h3 className="text-2xl font-bold text-gray-900">¡Periodo Cerrado Exitosamente!</h3>

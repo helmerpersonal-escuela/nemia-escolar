@@ -33,6 +33,7 @@ CREATE POLICY "Users can view own roles" ON public.profile_roles
 -- 5. Apply to license_keys
 ALTER TABLE public.license_keys ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Everyone can see licenses in God Mode" ON public.license_keys;
+DROP POLICY IF EXISTS "Super Admins can see all licenses" ON public.license_keys;
 CREATE POLICY "Super Admins can see all licenses" ON public.license_keys
     FOR SELECT USING (public.is_super_admin());
 

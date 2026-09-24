@@ -86,7 +86,7 @@ export const StudentSelectorModal = ({ isOpen, onClose }: StudentSelectorModalPr
                             {step === 'GROUP' ? 'Selecciona un Grupo' : 'Selecciona un Alumno'}
                         </p>
                     </div>
-                    <button onClick={onClose} className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors">
+                    <button aria-label="Cerrar" onClick={onClose} className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -103,17 +103,17 @@ export const StudentSelectorModal = ({ isOpen, onClose }: StudentSelectorModalPr
                                     <span className="block text-2xl font-black text-gray-800 group-hover:text-indigo-700">
                                         {group.grade}° "{group.section}"
                                     </span>
-                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider group-hover:text-indigo-400">
+                                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider group-hover:text-indigo-400">
                                         Seleccionar
                                     </span>
                                 </button>
                             ))}
-                            {loading && <div className="col-span-2 text-center py-10 text-gray-400">Cargando grupos...</div>}
+                            {loading && <div className="col-span-2 text-center py-10 text-gray-500">Cargando grupos...</div>}
                         </div>
                     ) : (
                         <>
                             <div className="mb-4 relative shrink-0">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
                                 <input
                                     type="text"
                                     placeholder="Buscar alumno..."
@@ -150,7 +150,7 @@ export const StudentSelectorModal = ({ isOpen, onClose }: StudentSelectorModalPr
                                     </button>
                                 ))}
                                 {filteredStudents.length === 0 && !loading && (
-                                    <p className="text-center text-gray-400 text-sm py-10">No se encontraron alumnos</p>
+                                    <p className="text-center text-gray-500 text-sm py-10">No se encontraron alumnos</p>
                                 )}
                             </div>
                         </>

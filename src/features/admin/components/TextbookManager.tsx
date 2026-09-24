@@ -7,7 +7,6 @@ import {
     Plus,
     FileText,
     Search,
-    Filter,
     Loader2
 } from 'lucide-react'
 
@@ -144,14 +143,14 @@ export const TextbookManager = () => {
                     </div>
                     <div>
                         <h3 className="text-xl font-black text-indigo-950 uppercase italic tracking-tighter">Subir Nuevo Libro</h3>
-                        <p className="text-[10px] text-indigo-400 font-black uppercase tracking-widest">Repositorio Central de PDFs</p>
+                        <p className="text-[11px] text-indigo-400 font-black uppercase tracking-widest">Repositorio Central de PDFs</p>
                     </div>
                 </div>
 
                 <form onSubmit={handleUpload} className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <div className="md:col-span-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Título del Libro</label>
-                        <input
+                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 block ml-1">Título del Libro</label>
+                        <input aria-label="Título del Libro"
                             value={newBook.title}
                             onChange={e => setNewBook(prev => ({ ...prev, title: e.target.value }))}
                             className="input-squishy w-full"
@@ -159,8 +158,8 @@ export const TextbookManager = () => {
                         />
                     </div>
                     <div>
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Nivel</label>
-                        <select
+                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 block ml-1">Nivel</label>
+                        <select aria-label="Nivel"
                             value={newBook.level}
                             onChange={e => setNewBook(prev => ({ ...prev, level: e.target.value }))}
                             className="input-squishy w-full"
@@ -171,8 +170,8 @@ export const TextbookManager = () => {
                         </select>
                     </div>
                     <div>
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Grado</label>
-                        <select
+                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 block ml-1">Grado</label>
+                        <select aria-label="Grado"
                             value={newBook.grade}
                             onChange={e => setNewBook(prev => ({ ...prev, grade: parseInt(e.target.value) }))}
                             className="input-squishy w-full"
@@ -183,8 +182,8 @@ export const TextbookManager = () => {
                         </select>
                     </div>
                     <div className="md:col-span-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Campo Formativo</label>
-                        <input
+                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 block ml-1">Campo Formativo</label>
+                        <input aria-label="Campo Formativo"
                             value={newBook.field_of_study}
                             onChange={e => setNewBook(prev => ({ ...prev, field_of_study: e.target.value }))}
                             className="input-squishy w-full"
@@ -192,7 +191,7 @@ export const TextbookManager = () => {
                         />
                     </div>
                     <div className="md:col-span-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Archivo PDF</label>
+                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 block ml-1">Archivo PDF</label>
                         <div className="relative">
                             <input
                                 type="file"
@@ -230,7 +229,7 @@ export const TextbookManager = () => {
                     </div>
                     <div className="flex items-center space-x-4">
                         <div className="relative">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                             <input
                                 type="text"
                                 value={searchTerm}
@@ -254,19 +253,20 @@ export const TextbookManager = () => {
 
                 <div className="p-0">
                     {loading ? (
-                        <div className="p-20 flex flex-col items-center justify-center text-slate-400">
+                        <div className="p-20 flex flex-col items-center justify-center text-slate-500">
                             <Loader2 className="w-10 h-10 animate-spin mb-4" />
-                            <p className="font-black uppercase text-[10px] tracking-widest italic">Sincronizando Archivos...</p>
+                            <p className="font-black uppercase text-[11px] tracking-widest italic">Sincronizando Archivos...</p>
                         </div>
                     ) : filteredBooks.length === 0 ? (
-                        <div className="p-20 text-center text-slate-400">
+                        <div className="p-20 text-center text-slate-500">
                             <FileText className="w-12 h-12 mx-auto mb-4 opacity-20" />
                             <p className="font-bold">No se encontraron libros en el repositorio.</p>
                         </div>
                     ) : (
+                        <div className="table-scroll">
                         <table className="w-full text-left">
                             <thead>
-                                <tr className="bg-indigo-50/30 text-[10px] font-black text-indigo-400 uppercase tracking-widest border-b border-indigo-50">
+                                <tr className="bg-indigo-50/30 text-[11px] font-black text-indigo-400 uppercase tracking-widest border-b border-indigo-50">
                                     <th className="px-8 py-5">Título / Campo</th>
                                     <th className="px-8 py-5">Nivel & Grado</th>
                                     <th className="px-8 py-5">Fecha Subida</th>
@@ -283,12 +283,12 @@ export const TextbookManager = () => {
                                                 </div>
                                                 <div>
                                                     <p className="font-black text-indigo-950 truncate max-w-xs uppercase italic tracking-tighter">{book.title}</p>
-                                                    <p className="text-[10px] font-bold text-indigo-400 uppercase mt-0.5">{book.field_of_study || 'General'}</p>
+                                                    <p className="text-[11px] font-bold text-indigo-400 uppercase mt-0.5">{book.field_of_study || 'General'}</p>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-8 py-6">
-                                            <span className="px-3 py-1.5 bg-white border border-indigo-100 rounded-full text-[9px] font-black text-indigo-600 shadow-sm uppercase tracking-widest">
+                                            <span className="px-3 py-1.5 bg-white border border-indigo-100 rounded-full text-[11px] font-black text-indigo-600 shadow-sm uppercase tracking-widest">
                                                 {book.level} - {book.grade}° AÑO
                                             </span>
                                         </td>
@@ -305,7 +305,7 @@ export const TextbookManager = () => {
                                                 >
                                                     <FileText className="w-4 h-4" />
                                                 </a>
-                                                <button
+                                                <button aria-label="Eliminar"
                                                     onClick={() => handleDelete(book.id, book.file_url)}
                                                     className="p-3 bg-white border border-rose-100 rounded-xl text-rose-400 hover:bg-rose-500 hover:text-white transition-all shadow-sm"
                                                 >
@@ -317,6 +317,7 @@ export const TextbookManager = () => {
                                 ))}
                             </tbody>
                         </table>
+                        </div>
                     )}
                 </div>
             </div>

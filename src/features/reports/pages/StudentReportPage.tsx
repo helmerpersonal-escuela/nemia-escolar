@@ -114,7 +114,7 @@ export const StudentReportPage = () => {
         setLoading(false)
     }
 
-    if (loading) return <div className="p-10 text-center font-bold text-gray-400">Generando reporte...</div>
+    if (loading) return <div className="p-10 text-center font-bold text-gray-500">Generando reporte...</div>
 
     return (
         <div className="bg-gray-100 min-h-screen p-8 print:bg-white print:p-0">
@@ -169,19 +169,19 @@ export const StudentReportPage = () => {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-6 print:grid-cols-4 print:gap-4 print:break-inside-avoid">
                         <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 print:border-black text-center">
                             <span className="block text-3xl font-black text-gray-900">{stats.submitted}</span>
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Tareas Entregadas</span>
+                            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Tareas Entregadas</span>
                         </div>
                         <div className="p-4 bg-red-50 rounded-2xl border border-red-100 print:border-black text-center">
                             <span className="block text-3xl font-black text-red-600 print:text-black">{stats.missing}</span>
-                            <span className="text-[10px] font-bold text-red-400 print:text-black uppercase tracking-widest">Tareas Faltantes</span>
+                            <span className="text-[11px] font-bold text-red-400 print:text-black uppercase tracking-widest">Tareas Faltantes</span>
                         </div>
                         <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 print:border-black text-center">
                             <span className="block text-3xl font-black text-blue-600 print:text-black">{stats.attendance.present}</span>
-                            <span className="text-[10px] font-bold text-blue-400 print:text-black uppercase tracking-widest">Asistencias</span>
+                            <span className="text-[11px] font-bold text-blue-400 print:text-black uppercase tracking-widest">Asistencias</span>
                         </div>
                         <div className="p-4 bg-orange-50 rounded-2xl border border-orange-100 print:border-black text-center">
                             <span className="block text-3xl font-black text-orange-600 print:text-black">{stats.attendance.absent}</span>
-                            <span className="text-[10px] font-bold text-orange-400 print:text-black uppercase tracking-widest">Faltas</span>
+                            <span className="text-[11px] font-bold text-orange-400 print:text-black uppercase tracking-widest">Faltas</span>
                         </div>
                     </div>
 
@@ -194,7 +194,7 @@ export const StudentReportPage = () => {
                         {assignments.length > 0 ? (
                             <div className="overflow-hidden rounded-xl border border-gray-100 print:border-black print:break-inside-avoid">
                                 <table className="w-full text-sm text-left">
-                                    <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] tracking-wider border-b print:bg-white print:text-black">
+                                    <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[11px] tracking-wider border-b print:bg-white print:text-black">
                                         <tr>
                                             <th className="px-6 py-4">Actividad</th>
                                             <th className="px-6 py-4">Materia</th>
@@ -216,7 +216,7 @@ export const StudentReportPage = () => {
                                                     {new Date(assignment.due_date).toLocaleDateString()}
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
-                                                    <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-wide border
+                                                    <span className={`px-2 py-1 rounded text-[11px] font-black uppercase tracking-wide border
                                                         ${assignment.status === 'GRADED' ? 'bg-green-50 text-green-600 border-green-200 print:border-black print:text-black' :
                                                             assignment.status === 'MISSING' ? 'bg-red-50 text-red-600 border-red-200 print:border-black print:text-black' :
                                                                 'bg-gray-50 text-gray-500 border-gray-200 print:border-black print:text-black'}`}>
@@ -233,7 +233,7 @@ export const StudentReportPage = () => {
                                 </table>
                             </div>
                         ) : (
-                            <p className="text-gray-400 italic text-center py-6">No hay actividades registradas.</p>
+                            <p className="text-gray-500 italic text-center py-6">No hay actividades registradas.</p>
                         )}
                     </div>
 
@@ -249,7 +249,7 @@ export const StudentReportPage = () => {
                                     <div key={incident.id} className="p-4 rounded-xl border border-gray-100 bg-gray-50 print:bg-white print:border-black print:break-inside-avoid">
                                         <div className="flex justify-between items-start mb-2">
                                             <div className="flex items-center space-x-2">
-                                                <span className={`px-2 py-0.5 text-[9px] font-black uppercase rounded border
+                                                <span className={`px-2 py-0.5 text-[11px] font-black uppercase rounded border
                                                     ${incident.type === 'POSITIVO' ? 'bg-green-100 text-green-700 border-green-200' :
                                                         incident.type === 'CONDUCTA' ? 'bg-amber-100 text-amber-700 border-amber-200' :
                                                             'bg-blue-100 text-blue-700 border-blue-200'} print:border-black print:text-black print:bg-white`}>
@@ -259,7 +259,7 @@ export const StudentReportPage = () => {
                                                     {new Date(incident.created_at).toLocaleDateString()}
                                                 </span>
                                             </div>
-                                            <span className="text-[10px] font-black uppercase text-gray-400">
+                                            <span className="text-[11px] font-black uppercase text-gray-500">
                                                 Gravedad: {incident.severity}
                                             </span>
                                         </div>
@@ -285,7 +285,7 @@ export const StudentReportPage = () => {
                             <div className="p-6 rounded-xl border border-gray-100 bg-gray-50 text-center print:border-black print:bg-white print:break-inside-avoid">
                                 <CheckCircle className="w-8 h-8 mx-auto text-green-500 mb-2 print:hidden" />
                                 <p className="text-gray-500 font-bold">Sin incidencias negativas registradas.</p>
-                                <p className="text-xs text-gray-400">El alumno ha mantenido una buena conducta durante este periodo.</p>
+                                <p className="text-xs text-gray-500">El alumno ha mantenido una buena conducta durante este periodo.</p>
                             </div>
                         )}
                     </div>

@@ -143,7 +143,7 @@ export const UploadEvidenceModal = ({ isOpen, onClose, studentId, onSuccess }: U
                         <h2 className="text-2xl font-black uppercase tracking-tight">Subir Evidencia</h2>
                         <p className="text-indigo-100 text-xs font-bold uppercase tracking-widest mt-1">Nuevo Trabajo del Alumno</p>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                    <button aria-label="Cerrar" onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
                         <X className="w-6 h-6" />
                     </button>
                 </div>
@@ -169,7 +169,7 @@ export const UploadEvidenceModal = ({ isOpen, onClose, studentId, onSuccess }: U
                                             className="w-full h-full object-cover"
                                             videoConstraints={{ facingMode: "environment" }}
                                         />
-                                        <button
+                                        <button aria-label="Tomar foto"
                                             onClick={capture}
                                             className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white text-indigo-600 p-4 rounded-full shadow-xl hover:scale-110 transition-transform"
                                         >
@@ -179,7 +179,7 @@ export const UploadEvidenceModal = ({ isOpen, onClose, studentId, onSuccess }: U
                                 ) : preview ? (
                                     <div className="w-full h-full relative">
                                         <img src={preview} alt="Preview" className="w-full h-full object-cover" />
-                                        <button
+                                        <button aria-label="Deshacer"
                                             onClick={() => { setPreview(null); setFile(null) }}
                                             className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity"
                                         >
@@ -191,20 +191,20 @@ export const UploadEvidenceModal = ({ isOpen, onClose, studentId, onSuccess }: U
                                         <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mb-4 mx-auto">
                                             <Upload className="w-8 h-8 text-indigo-500" />
                                         </div>
-                                        <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Sube una foto o archivo</p>
-                                        <p className="text-[10px] text-gray-300 mt-1 uppercase">PNG, JPG o PDF</p>
+                                        <p className="text-xs font-black text-gray-500 uppercase tracking-widest">Sube una foto o archivo</p>
+                                        <p className="text-[11px] text-gray-300 mt-1 uppercase">PNG, JPG o PDF</p>
                                     </div>
                                 )}
                             </div>
 
                             <div className="flex gap-2">
-                                <label className="flex-1 bg-white border-2 border-indigo-100 text-indigo-600 px-4 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest text-center cursor-pointer hover:bg-indigo-50 transition-colors flex items-center justify-center">
+                                <label className="flex-1 bg-white border-2 border-indigo-100 text-indigo-600 px-4 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest text-center cursor-pointer hover:bg-indigo-50 transition-colors flex items-center justify-center">
                                     <ImageIcon className="w-4 h-4 mr-2" /> Archivo
                                     <input type="file" className="hidden" accept="image/*,application/pdf" onChange={handleFileChange} />
                                 </label>
                                 <button
                                     onClick={() => setIsCameraActive(!isCameraActive)}
-                                    className={`flex-1 px-4 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center
+                                    className={`flex-1 px-4 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all flex items-center justify-center
                                         ${isCameraActive ? 'bg-indigo-600 text-white' : 'bg-white border-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50'}`}
                                 >
                                     <Camera className="w-4 h-4 mr-2" /> Cámara
@@ -215,8 +215,8 @@ export const UploadEvidenceModal = ({ isOpen, onClose, studentId, onSuccess }: U
                         {/* Details Section */}
                         <div className="space-y-6">
                             <div>
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 ml-1">Título del Trabajo</label>
-                                <input
+                                <label className="block text-[11px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3 ml-1">Título del Trabajo</label>
+                                <input aria-label="Título del Trabajo"
                                     type="text"
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
@@ -226,7 +226,7 @@ export const UploadEvidenceModal = ({ isOpen, onClose, studentId, onSuccess }: U
                             </div>
 
                             <div>
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 ml-1">Categoría</label>
+                                <label className="block text-[11px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3 ml-1">Categoría</label>
                                 <div className="grid grid-cols-2 gap-2">
                                     {CATEGORIES.map(cat => (
                                         <button
@@ -236,18 +236,18 @@ export const UploadEvidenceModal = ({ isOpen, onClose, studentId, onSuccess }: U
                                             className={`p-3 rounded-xl border-2 text-left transition-all flex flex-col gap-1
                                                 ${category === cat.id
                                                     ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
-                                                    : 'border-gray-100 bg-white text-gray-400 hover:border-gray-200'}`}
+                                                    : 'border-gray-100 bg-white text-gray-500 hover:border-gray-200'}`}
                                         >
                                             <cat.icon className={`w-4 h-4 ${category === cat.id ? 'text-indigo-600' : 'text-gray-300'}`} />
-                                            <span className="text-[10px] font-black uppercase tracking-tight leading-none mt-1">{cat.label}</span>
+                                            <span className="text-[11px] font-black uppercase tracking-tight leading-none mt-1">{cat.label}</span>
                                         </button>
                                     ))}
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 ml-1">Observaciones</label>
-                                <textarea
+                                <label className="block text-[11px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3 ml-1">Observaciones</label>
+                                <textarea aria-label="Observaciones"
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
                                     rows={3}

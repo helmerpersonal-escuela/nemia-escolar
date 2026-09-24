@@ -43,7 +43,7 @@ export const QRScanner = ({ onScanSuccess, onScanError, onClose }: QRScannerProp
     return (
         <div className="flex flex-col items-center justify-center w-full max-w-md mx-auto space-y-4 animate-in fade-in zoom-in duration-300">
             <div className="w-full bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100 relative">
-                <button
+                <button aria-label="Cerrar"
                     onClick={onClose}
                     className="absolute top-4 right-4 z-[60] bg-white/80 backdrop-blur text-slate-500 hover:text-rose-500 p-2 rounded-full transition-colors shadow-sm"
                 >

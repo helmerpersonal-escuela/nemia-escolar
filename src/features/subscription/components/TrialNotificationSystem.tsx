@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTrialStatus } from '../../../hooks/useTrialStatus'
-import { Clock, AlertTriangle, X } from 'lucide-react'
+import { Clock, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAppMode } from '../../../hooks/useAppMode'
 import { useProfile } from '../../../hooks/useProfile'
@@ -55,7 +55,7 @@ export const TrialNotificationSystem = () => {
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
             <div className="bg-[#0A0A1F] border border-amber-500/30 rounded-2xl p-6 max-w-md w-full shadow-2xl animate-in zoom-in-95 relative">
-                <button
+                <button aria-label="Cerrar"
                     onClick={() => setIsVisible(false)}
                     className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
                 >

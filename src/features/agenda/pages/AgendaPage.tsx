@@ -362,7 +362,7 @@ export const AgendaPage = () => {
 
                     <div className="flex flex-col sm:flex-row lg:flex-row gap-4 items-center">
                         <div className="flex items-center bg-white rounded-xl p-1 border border-gray-200 shadow-sm w-full sm:w-auto justify-between">
-                            <button
+                            <button aria-label="Anterior"
                                 onClick={prevMonth}
                                 className="p-2 hover:bg-gray-50 rounded-lg text-gray-600 transition-colors"
                             >
@@ -371,7 +371,7 @@ export const AgendaPage = () => {
                             <span className="font-bold text-gray-900 min-w-0 px-2 sm:min-w-[160px] text-center capitalize text-sm md:text-lg truncate">
                                 {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
                             </span>
-                            <button
+                            <button aria-label="Siguiente"
                                 onClick={nextMonth}
                                 className="p-2 hover:bg-gray-50 rounded-lg text-gray-600 transition-colors"
                             >
@@ -418,7 +418,7 @@ export const AgendaPage = () => {
                 {/* Header Days (Desktop Only) */}
                 <div className="hidden md:grid grid-cols-7 border-b border-gray-200 bg-gray-50">
                     {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(day => (
-                        <div key={day} className="py-3 text-center text-xs font-bold text-gray-400 uppercase tracking-wider">
+                        <div key={day} className="py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">
                             {day}
                         </div>
                     ))}
@@ -441,7 +441,7 @@ export const AgendaPage = () => {
                                 className={`bg-white min-h-[100px] md:min-h-[140px] p-3 md:p-2 relative group hover:bg-gray-50 transition-colors cursor-pointer ${isToday ? 'bg-blue-50/50' : ''}`}
                             >
                                 <div className="flex md:block items-center justify-between mb-2 md:mb-0">
-                                    <div className="md:hidden text-xs font-bold text-gray-400 uppercase mr-2">{dayName}</div>
+                                    <div className="md:hidden text-xs font-bold text-gray-500 uppercase mr-2">{dayName}</div>
                                     <span className={`text-sm font-bold ${isToday ? 'text-white bg-blue-600 w-7 h-7 rounded-lg shadow-md flex items-center justify-center' : 'text-gray-700'}`}>
                                         {date.getDate()}
                                     </span>
@@ -461,13 +461,13 @@ export const AgendaPage = () => {
                                         >
                                             <div className="font-bold truncate text-gray-900 flex items-center">
                                                 {event.displayTime && (
-                                                    <span className="mr-1.5 opacity-70 font-mono text-[9px] bg-white/50 px-1 rounded">
+                                                    <span className="mr-1.5 opacity-70 font-mono text-[11px] bg-white/50 px-1 rounded">
                                                         {event.displayTime}
                                                     </span>
                                                 )}
                                                 <span className="truncate">{event.title}</span>
                                             </div>
-                                            {event.subtitle && <div className="text-[10px] opacity-75 truncate font-medium mt-0.5">{event.subtitle}</div>}
+                                            {event.subtitle && <div className="text-[11px] opacity-75 truncate font-medium mt-0.5">{event.subtitle}</div>}
                                         </div>
                                     ))}
                                 </div>
@@ -485,7 +485,7 @@ export const AgendaPage = () => {
                         <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-100 flex flex-col max-h-[85vh]">
                             <div className="p-6 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
                                 <div className="flex items-center gap-4">
-                                    <button
+                                    <button aria-label="Anterior"
                                         onClick={() => {
                                             const prev = new Date(focusedDate);
                                             prev.setDate(prev.getDate() - 1);
@@ -499,11 +499,11 @@ export const AgendaPage = () => {
                                         <h3 className="text-xl font-black text-gray-900 leading-none">
                                             {focusedDate.getDate()} de {monthNames[focusedDate.getMonth()]}
                                         </h3>
-                                        <p className="text-xs font-bold text-gray-400 capitalize mt-1">
+                                        <p className="text-xs font-bold text-gray-500 capitalize mt-1">
                                             {focusedDate.toLocaleDateString('es-MX', { weekday: 'long' })}
                                         </p>
                                     </div>
-                                    <button
+                                    <button aria-label="Siguiente"
                                         onClick={() => {
                                             const next = new Date(focusedDate);
                                             next.setDate(next.getDate() + 1);
@@ -514,7 +514,7 @@ export const AgendaPage = () => {
                                         <ChevronRight className="w-5 h-5 text-gray-600" />
                                     </button>
                                 </div>
-                                <button
+                                <button aria-label="Cerrar"
                                     onClick={() => setFocusedDate(null)}
                                     className="p-2 bg-white hover:bg-gray-200 rounded-full transition-colors shadow-sm"
                                 >
@@ -526,7 +526,7 @@ export const AgendaPage = () => {
                                 {getDailyEvents(focusedDate).length === 0 ? (
                                     <div className="text-center py-8 opacity-50">
                                         <Clock className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                                        <p className="text-sm font-medium text-gray-400">Sin eventos este día</p>
+                                        <p className="text-sm font-medium text-gray-500">Sin eventos este día</p>
                                     </div>
                                 ) : (
                                     getDailyEvents(focusedDate).map((event, idx) => (
@@ -540,11 +540,11 @@ export const AgendaPage = () => {
                                         >
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2">
-                                                    {event.displayTime && <span className="text-[10px] font-mono font-bold bg-white/50 px-1.5 py-0.5 rounded text-gray-700">{event.displayTime}</span>}
+                                                    {event.displayTime && <span className="text-[11px] font-mono font-bold bg-white/50 px-1.5 py-0.5 rounded text-gray-700">{event.displayTime}</span>}
                                                     <h4 className="font-bold text-sm truncate">{event.title}</h4>
                                                 </div>
                                                 {event.subtitle && <p className="text-xs opacity-80 mt-1 truncate">{event.subtitle}</p>}
-                                                <p className="text-[10px] uppercase font-black tracking-widest opacity-60 mt-2">
+                                                <p className="text-[11px] uppercase font-black tracking-widest opacity-60 mt-2">
                                                     {event.type === 'PLANNING' ? 'Planeación' : event.type === 'PERSONAL' ? 'Personal' : event.type === 'CLASS' ? 'Clase' : 'Institucional'}
                                                 </p>
                                             </div>
@@ -597,7 +597,7 @@ export const AgendaPage = () => {
                                         {selectedEvent.type === 'DIRECTION' && <Shield className="w-4 h-4" />}
                                         {selectedEvent.type === 'PERSONAL' && <Clock className="w-4 h-4" />}
                                         {selectedEvent.type === 'CLASS' && <Clock className="w-4 h-4" />}
-                                        <span className="text-[10px] uppercase font-black tracking-widest">
+                                        <span className="text-[11px] uppercase font-black tracking-widest">
                                             {selectedEvent.type === 'PLANNING' ? 'Planeación Didáctica' : selectedEvent.type === 'SEP' ? 'Evento Oficial' : selectedEvent.type === 'DIRECTION' ? 'Evento de Dirección' : selectedEvent.type === 'CLASS' ? 'Clase Recurrente' : 'Evento Personal'}
                                         </span>
                                     </div>
@@ -610,7 +610,7 @@ export const AgendaPage = () => {
                                         </p>
                                     )}
                                 </div>
-                                <button
+                                <button aria-label="Cerrar"
                                     onClick={() => setIsDetailModalOpen(false)}
                                     className="p-2 bg-white/20 hover:bg-white/40 rounded-full transition-colors backdrop-blur-sm"
                                 >
@@ -623,18 +623,18 @@ export const AgendaPage = () => {
                                     <div className="space-y-4">
                                         <div className="p-6 bg-amber-50 rounded-[2rem] border border-amber-100 flex items-center gap-4">
                                             <div className="p-3 bg-white rounded-2xl shadow-sm">
-                                                <Clock className="w-6 h-6 text-amber-600" />
+                                                <Clock className="w-6 h-6 text-amber-700" />
                                             </div>
                                             <div>
-                                                <p className="text-xs font-black uppercase tracking-widest text-amber-600">Horario de Clase</p>
+                                                <p className="text-xs font-black uppercase tracking-widest text-amber-700">Horario de Clase</p>
                                                 <p className="text-lg font-black text-amber-900">
                                                     {selectedEvent.details.start_time} - {selectedEvent.details.end_time}
                                                 </p>
                                             </div>
                                         </div>
                                         <div className="flex flex-wrap gap-2">
-                                            <span className="px-3 py-1 bg-gray-100 rounded-full text-[10px] font-black uppercase text-gray-500">Recurrente semanal</span>
-                                            <span className="px-3 py-1 bg-indigo-100 rounded-full text-[10px] font-black uppercase text-indigo-500">{selectedEvent.details.day_of_week}</span>
+                                            <span className="px-3 py-1 bg-gray-100 rounded-full text-[11px] font-black uppercase text-gray-500">Recurrente semanal</span>
+                                            <span className="px-3 py-1 bg-indigo-100 rounded-full text-[11px] font-black uppercase text-indigo-500">{selectedEvent.details.day_of_week}</span>
                                         </div>
                                         <p className="text-sm text-gray-500 italic text-center py-4">
                                             Esta es una clase de tu horario maestro vinculada automáticamente.
@@ -644,26 +644,26 @@ export const AgendaPage = () => {
                                     <>
                                         <div className="space-y-4">
                                             <div>
-                                                <h4 className="text-[10px] font-black uppercase text-indigo-500 mb-2 tracking-wider">Apertura</h4>
+                                                <h4 className="text-[11px] font-black uppercase text-indigo-500 mb-2 tracking-wider">Apertura</h4>
                                                 <p className="text-sm text-gray-600 leading-relaxed bg-gray-50 p-4 rounded-2xl border border-gray-100">
                                                     {selectedEvent.details.activities.apertura || 'Sin actividad registrada'}
                                                 </p>
                                             </div>
                                             <div>
-                                                <h4 className="text-[10px] font-black uppercase text-indigo-500 mb-2 tracking-wider">Desarrollo</h4>
+                                                <h4 className="text-[11px] font-black uppercase text-indigo-500 mb-2 tracking-wider">Desarrollo</h4>
                                                 <p className="text-sm text-gray-600 leading-relaxed bg-gray-50 p-4 rounded-2xl border border-gray-100">
                                                     {selectedEvent.details.activities.desarrollo || 'Sin actividad registrada'}
                                                 </p>
                                             </div>
                                             <div>
-                                                <h4 className="text-[10px] font-black uppercase text-indigo-500 mb-2 tracking-wider">Cierre</h4>
+                                                <h4 className="text-[11px] font-black uppercase text-indigo-500 mb-2 tracking-wider">Cierre</h4>
                                                 <p className="text-sm text-gray-600 leading-relaxed bg-gray-50 p-4 rounded-2xl border border-gray-100">
                                                     {selectedEvent.details.activities.cierre || 'Sin actividad registrada'}
                                                 </p>
                                             </div>
                                             {selectedEvent.details.resources && (
                                                 <div>
-                                                    <h4 className="text-[10px] font-black uppercase text-gray-400 mb-2">Recursos</h4>
+                                                    <h4 className="text-[11px] font-black uppercase text-gray-500 mb-2">Recursos</h4>
                                                     <div className="flex flex-wrap gap-2">
                                                         {(Array.isArray(selectedEvent.details.resources)
                                                             ? selectedEvent.details.resources

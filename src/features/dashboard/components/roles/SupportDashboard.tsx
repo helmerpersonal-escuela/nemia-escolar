@@ -7,13 +7,12 @@ import {
     AlertTriangle,
     FileText,
     Search,
-    Plus,
-    Clock,
-    CheckCircle2
+    Plus
 } from 'lucide-react'
 
 import { useNavigate } from 'react-router-dom'
 import { TrackingEntryModal } from './TrackingEntryModal'
+import { todayISO } from '../../../../lib/dates'
 
 export const SupportDashboard = () => {
     const { data: tenant } = useTenant()
@@ -52,7 +51,7 @@ export const SupportDashboard = () => {
                 .in('status', ['DETECTADO', 'INTERVENCION', 'MONITOREO'])
 
             // Interviews Today
-            const today = new Date().toISOString().split('T')[0]
+            const today = todayISO()
             const { count: interviewCount } = await supabase
                 .from('student_tracking')
                 .select('*', { count: 'exact', head: true })
@@ -87,7 +86,7 @@ export const SupportDashboard = () => {
         }
     }
 
-    if (loading) return <div className="p-8 text-center text-slate-400">Cargando panel de apoyo...</div>
+    if (loading) return <div className="p-8 text-center text-slate-500">Cargando panel de apoyo...</div>
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-12">
@@ -134,7 +133,7 @@ export const SupportDashboard = () => {
                             <FileText className="w-5 h-5" />
                         </div>
                         <h3 className="text-3xl font-black text-slate-800 mb-1">{stats.activeTracking}</h3>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Casos en Seguimiento</p>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Casos en Seguimiento</p>
                     </div>
                 </div>
 
@@ -143,24 +142,24 @@ export const SupportDashboard = () => {
                         <AlertTriangle className="w-24 h-24 text-red-600" />
                     </div>
                     <div className="relative z-10">
-                        <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center mb-3 text-amber-600">
+                        <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center mb-3 text-amber-700">
                             <AlertTriangle className="w-5 h-5" />
                         </div>
                         <h3 className="text-3xl font-black text-slate-800 mb-1">{stats.highRiskCases}</h3>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Riesgo de Deserción</p>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Riesgo de Deserción</p>
                     </div>
                 </div>
 
                 <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                        <Calendar className="w-24 h-24 text-emerald-600" />
+                        <Calendar className="w-24 h-24 text-emerald-700" />
                     </div>
                     <div className="relative z-10">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center mb-3 text-emerald-600">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center mb-3 text-emerald-700">
                             <Users className="w-5 h-5" />
                         </div>
                         <h3 className="text-3xl font-black text-slate-800 mb-1">{stats.interviewsToday}</h3>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Entrevistas Hoy</p>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Entrevistas Hoy</p>
                     </div>
                 </div>
             </div>
@@ -185,12 +184,12 @@ export const SupportDashboard = () => {
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase ${item.status === 'EN_PROCESO' ? 'bg-blue-50 text-blue-600' :
-                                        item.status === 'CERRADO' ? 'bg-slate-100 text-slate-500' : 'bg-emerald-50 text-emerald-600'
+                                    <span className={`px-2 py-0.5 rounded-md text-[11px] font-black uppercase ${item.status === 'EN_PROCESO' ? 'bg-blue-50 text-blue-600' :
+                                        item.status === 'CERRADO' ? 'bg-slate-100 text-slate-500' : 'bg-emerald-50 text-emerald-700'
                                         }`}>
                                         {item.status.replace('_', ' ')}
                                     </span>
-                                    <p className="text-[10px] text-slate-400 mt-1">
+                                    <p className="text-[11px] text-slate-500 mt-1">
                                         {new Date(item.updated_at).toLocaleDateString()}
                                     </p>
                                 </div>

@@ -2,12 +2,13 @@
 -- Run in Supabase SQL Editor
 
 -- STEP 1: Manually add teacher as participant to the existing room
-INSERT INTO public.chat_participants (room_id, profile_id)
-VALUES (
-    '1e16b20a-0284-423e-8f4a-658fd803cebe',  -- room with tutor messages
-    '85870a47-4730-401d-a96c-a3712e821b3d'   -- teacher
-)
-ON CONFLICT (room_id, profile_id) DO NOTHING;
+-- COMMENTED OUT FOR DB PUSH: hardcoded UUIDs fail on fresh DBs.
+-- INSERT INTO public.chat_participants (room_id, profile_id)
+-- VALUES (
+--     '1e16b20a-0284-423e-8f4a-658fd803cebe',  -- room with tutor messages
+--     '85870a47-4730-401d-a96c-a3712e821b3d'   -- teacher
+-- )
+-- ON CONFLICT (room_id, profile_id) DO NOTHING;
 
 -- STEP 2: Update chat_participants INSERT policy to use chat_rooms instead of profiles join
 -- This is safer: check if the room belongs to auth.uid()'s tenant

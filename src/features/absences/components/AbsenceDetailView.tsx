@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Printer, Edit3, Save, CheckCircle2, User, BookOpen, Clock, FileText, Sparkles } from 'lucide-react'
+import { X, Printer, Edit3, Save, User, BookOpen, Clock, Sparkles } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 
 interface AbsenceDetailViewProps {
@@ -210,7 +210,7 @@ export const AbsenceDetailView = ({ isOpen, absence, onClose, onUpdate }: Absenc
                         <button onClick={handlePrint} className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all" title="Imprimir todas">
                             <Printer className="w-5 h-5" /> Imprimir
                         </button>
-                        <button onClick={onClose} className="p-2 hover:bg-white rounded-xl text-slate-400">
+                        <button aria-label="Cerrar" onClick={onClose} className="p-2 hover:bg-white rounded-xl text-slate-500">
                             <X className="w-6 h-6" />
                         </button>
                     </div>
@@ -238,7 +238,7 @@ export const AbsenceDetailView = ({ isOpen, absence, onClose, onUpdate }: Absenc
                                 <div className="card-header print:border-none print:shadow-none">
                                     <div className="header-info-item">
                                         <div className="flex items-center gap-2 no-print mb-1">
-                                            <span className="text-[10px] font-black bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full">
+                                            <span className="text-[11px] font-black bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full">
                                                 {act.group?.grade}° {act.group?.section}
                                             </span>
                                         </div>
@@ -259,12 +259,12 @@ export const AbsenceDetailView = ({ isOpen, absence, onClose, onUpdate }: Absenc
                                 <div className="p-6 space-y-4 print:p-0 print:space-y-0">
                                     {/* Title Section */}
                                     <div className="section-box">
-                                        <div className="flex items-center gap-2 text-slate-400 mb-2 section-title">
+                                        <div className="flex items-center gap-2 text-slate-500 mb-2 section-title">
                                             <Sparkles className="w-4 h-4 no-print" />
-                                            <label className="text-[10px] font-black uppercase tracking-widest section-label">Actividad Principal</label>
+                                            <label className="text-[11px] font-black uppercase tracking-widest section-label">Actividad Principal</label>
                                         </div>
                                         {isEditing ? (
-                                            <input
+                                            <input aria-label="Actividad Principal"
                                                 value={act.activity_title}
                                                 onChange={(e) => {
                                                     const value = e.target.value
@@ -285,12 +285,12 @@ export const AbsenceDetailView = ({ isOpen, absence, onClose, onUpdate }: Absenc
 
                                     {/* Instructions Section */}
                                     <div className="section-box">
-                                        <div className="flex items-center gap-2 text-amber-500 mb-2 section-title">
+                                        <div className="flex items-center gap-2 text-amber-700 mb-2 section-title">
                                             <User className="w-4 h-4 no-print" />
-                                            <label className="text-[10px] font-black uppercase tracking-widest section-label">Instrucciones Suplente (IA)</label>
+                                            <label className="text-[11px] font-black uppercase tracking-widest section-label">Instrucciones Suplente (IA)</label>
                                         </div>
                                         {isEditing ? (
-                                            <textarea
+                                            <textarea aria-label="Instrucciones Suplente (IA)"
                                                 value={act.ai_generated_hints || ''}
                                                 onChange={(e) => {
                                                     const value = e.target.value
@@ -313,10 +313,10 @@ export const AbsenceDetailView = ({ isOpen, absence, onClose, onUpdate }: Absenc
                                     <div className="section-box">
                                         <div className="flex items-center gap-2 text-indigo-600 mb-2 section-title">
                                             <BookOpen className="w-4 h-4 no-print" />
-                                            <label className="text-[10px] font-black uppercase tracking-widest section-label">Detalle Actividad</label>
+                                            <label className="text-[11px] font-black uppercase tracking-widest section-label">Detalle Actividad</label>
                                         </div>
                                         {isEditing ? (
-                                            <textarea
+                                            <textarea aria-label="Detalle Actividad"
                                                 value={act.activity_description || ''}
                                                 onChange={(e) => {
                                                     const value = e.target.value
@@ -338,7 +338,7 @@ export const AbsenceDetailView = ({ isOpen, absence, onClose, onUpdate }: Absenc
                                     {/* Footer */}
                                     <div className="pt-4 mt-2 border-t border-slate-100 flex items-center justify-between print:border-t-2 print:border-black print:p-4">
                                         <div className="hidden print:block mt-8">
-                                            <p className="mt-8 text-[8px] italic opacity-50">Generado con IA • Vunlek • Docente: {profile?.full_name}</p>
+                                            <p className="mt-8 text-[11px] italic opacity-50">Generado con IA • Vunlek • Docente: {profile?.full_name}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -349,7 +349,7 @@ export const AbsenceDetailView = ({ isOpen, absence, onClose, onUpdate }: Absenc
 
                 {/* Modal Footer */}
                 <div className="p-6 border-t border-slate-100 bg-white no-print text-center">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
                         Vista de Detalle de Ausencia • Vunlek
                     </span>
                 </div>

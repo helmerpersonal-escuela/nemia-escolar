@@ -23,6 +23,7 @@ CREATE INDEX IF NOT EXISTS idx_license_keys_status ON public.license_keys(status
 ALTER TABLE public.license_keys ENABLE ROW LEVEL SECURITY;
 
 -- Super Admins can do everything
+DROP POLICY IF EXISTS "Super Admins can manage license keys" ON public.license_keys;
 CREATE POLICY "Super Admins can manage license keys" ON public.license_keys
     FOR ALL
     USING (

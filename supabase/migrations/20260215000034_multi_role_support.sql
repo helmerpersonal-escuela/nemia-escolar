@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS public.profile_roles (
 -- 2. Add constraint to ensure role is valid
 DO $$ 
 BEGIN 
+    ALTER TABLE public.profile_roles DROP CONSTRAINT IF EXISTS profile_roles_check;
     ALTER TABLE public.profile_roles ADD CONSTRAINT profile_roles_check 
     CHECK (role IN (
         'SUPER_ADMIN',
@@ -21,10 +22,12 @@ BEGIN
         'PREFECT',
         'SUPPORT',
         'TUTOR',
-        'STUDENT'
+        'STUDENT',
+        'INDEPENDENT_TEACHER',
+        'SOCIAL_WORKER',
+        'STAFF',
+        'GUEST'
     ));
-EXCEPTION
-    WHEN duplicate_object THEN NULL;
 END $$;
 
 -- 3. Enable RLS

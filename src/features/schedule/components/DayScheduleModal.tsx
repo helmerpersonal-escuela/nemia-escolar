@@ -27,7 +27,7 @@ export const DayScheduleModal = ({
                         <Clock className="w-5 h-5 mr-2 text-blue-600" />
                         Horario del Día
                     </h2>
-                    <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-200 transition-colors">
+                    <button aria-label="Cerrar" onClick={onClose} className="p-2 text-gray-500 hover:text-gray-600 rounded-full hover:bg-gray-200 transition-colors">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -67,7 +67,7 @@ export const DayScheduleModal = ({
                                             <span className={`block text-sm font-black ${isCurrent ? 'text-blue-700' : 'text-gray-900'}`}>
                                                 {item.start_time.slice(0, 5)}
                                             </span>
-                                            <span className="text-xs text-gray-400 font-medium">
+                                            <span className="text-xs text-gray-500 font-medium">
                                                 {item.end_time.slice(0, 5)}
                                             </span>
                                         </div>
@@ -85,7 +85,7 @@ export const DayScheduleModal = ({
                                         </div>
 
                                         {isCurrent && (
-                                            <div className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 text-[10px] font-black rounded uppercase tracking-wider">
+                                            <div className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 text-[11px] font-black rounded uppercase tracking-wider">
                                                 Ahora
                                             </div>
                                         )}
@@ -94,7 +94,7 @@ export const DayScheduleModal = ({
                             )
                         })
                     ) : (
-                        <div className="py-12 text-center text-gray-400">
+                        <div className="py-12 text-center text-gray-500">
                             <Clock className="w-12 h-12 mx-auto mb-3 text-gray-300" />
                             <p>No hay clases para hoy</p>
                         </div>

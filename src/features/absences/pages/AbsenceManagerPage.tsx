@@ -73,18 +73,18 @@ export const AbsenceManagerPage = () => {
                     </div>
                     <div>
                         <div className="text-2xl font-black text-slate-900">{absences?.length || 0}</div>
-                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Total Registros</div>
+                        <div className="text-[11px] font-black text-slate-500 uppercase tracking-widest mt-0.5">Total Registros</div>
                     </div>
                 </div>
                 <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-5">
-                    <div className="p-4 bg-amber-50 text-amber-600 rounded-2xl">
+                    <div className="p-4 bg-amber-50 text-amber-700 rounded-2xl">
                         <Clock className="w-6 h-6" />
                     </div>
                     <div>
                         <div className="text-2xl font-black text-slate-900">
                             {absences?.filter(a => new Date(a.end_date) >= new Date()).length || 0}
                         </div>
-                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Próximas o Activas</div>
+                        <div className="text-[11px] font-black text-slate-500 uppercase tracking-widest mt-0.5">Próximas o Activas</div>
                     </div>
                 </div>
                 <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-5">
@@ -95,7 +95,7 @@ export const AbsenceManagerPage = () => {
                         <div className="text-2xl font-black text-slate-900">
                             {absences?.reduce((acc: number, curr: any) => acc + (curr.activities?.length || 0), 0)}
                         </div>
-                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Actividades Generadas</div>
+                        <div className="text-[11px] font-black text-slate-500 uppercase tracking-widest mt-0.5">Actividades Generadas</div>
                     </div>
                 </div>
             </div>
@@ -104,7 +104,7 @@ export const AbsenceManagerPage = () => {
             {isLoading ? (
                 <div className="flex flex-col items-center justify-center py-20 space-y-4">
                     <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-slate-400 font-bold animate-pulse">Cargando ausencias...</p>
+                    <p className="text-slate-500 font-bold animate-pulse">Cargando ausencias...</p>
                 </div>
             ) : absences?.length === 0 ? (
                 <div className="bg-white rounded-[2.5rem] p-12 text-center border-2 border-dashed border-slate-200">
@@ -132,7 +132,7 @@ export const AbsenceManagerPage = () => {
                             <div className="flex flex-col md:flex-row items-stretch">
                                 {/* Date Side */}
                                 <div className="bg-slate-50 p-8 flex flex-col items-center justify-center text-center min-w-[200px] border-r border-slate-100">
-                                    <div className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Periodo</div>
+                                    <div className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Periodo</div>
                                     <div className="text-2xl font-black text-slate-900">
                                         {format(new Date(absence.start_date), 'dd MMM', { locale: es })}
                                     </div>
@@ -144,7 +144,7 @@ export const AbsenceManagerPage = () => {
                                             </div>
                                         </>
                                     )}
-                                    <div className="text-[10px] font-bold text-slate-400 mt-2 uppercase">
+                                    <div className="text-[11px] font-bold text-slate-500 mt-2 uppercase">
                                         {new Date(absence.start_date).getFullYear()}
                                     </div>
                                 </div>
@@ -157,11 +157,11 @@ export const AbsenceManagerPage = () => {
                                                 {absence.reason || 'Sin motivo especificado'}
                                             </h3>
                                             <div className="flex items-center gap-3">
-                                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${absence.status === 'FINAL' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
+                                                <span className={`px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider ${absence.status === 'FINAL' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
                                                     }`}>
                                                     {absence.status === 'FINAL' ? '✓ Finalizada' : '• Borrador'}
                                                 </span>
-                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
                                                     {absence.activities?.length || 0} CLASES AFECTADAS
                                                 </span>
                                             </div>
@@ -194,12 +194,12 @@ export const AbsenceManagerPage = () => {
                                     {/* Activities Preview */}
                                     <div className="flex flex-wrap gap-2 mt-auto">
                                         {absence.activities?.map((act: any, idx: number) => (
-                                            <div key={idx} className="bg-indigo-50/50 border border-indigo-100 px-3 py-1.5 rounded-xl text-[10px] font-bold text-indigo-700">
+                                            <div key={idx} className="bg-indigo-50/50 border border-indigo-100 px-3 py-1.5 rounded-xl text-[11px] font-bold text-indigo-700">
                                                 {act.group?.grade}° {act.group?.section} - {act.activity_title}
                                             </div>
                                         ))}
                                         {absence.activities?.length === 0 && (
-                                            <p className="text-xs italic text-slate-400">Sin actividades generadas aún.</p>
+                                            <p className="text-xs italic text-slate-500">Sin actividades generadas aún.</p>
                                         )}
                                     </div>
                                 </div>

@@ -172,7 +172,7 @@ export const EditGroupModal = ({ isOpen, onClose, onSuccess, group }: EditGroupM
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700">Grado</label>
-                            <select
+                            <select aria-label="Grado"
                                 className="input-squishy w-full"
                                 value={formData.grade}
                                 onChange={(e) => setFormData(prev => ({ ...prev, grade: e.target.value }))}
@@ -183,7 +183,7 @@ export const EditGroupModal = ({ isOpen, onClose, onSuccess, group }: EditGroupM
                         <div>
                             <label className="block text-sm font-medium text-gray-700">Sección / Grupo</label>
                             {!isCustomSection ? (
-                                <select
+                                <select aria-label="Sección / Grupo"
                                     className="input-squishy w-full"
                                     value={formData.section}
                                     onChange={(e) => {
@@ -222,7 +222,7 @@ export const EditGroupModal = ({ isOpen, onClose, onSuccess, group }: EditGroupM
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Turno</label>
-                        <select
+                        <select aria-label="Turno"
                             className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md border"
                             value={formData.shift}
                             onChange={(e) => setFormData(prev => ({ ...prev, shift: e.target.value }))}
@@ -277,19 +277,19 @@ export const EditGroupModal = ({ isOpen, onClose, onSuccess, group }: EditGroupM
                                                         <option key={s.id} value={s.id}>{s.full_name || 'Sin nombre'}</option>
                                                     ))}
                                                 </select>
-                                                {!selectedSub?.teacher_id && <p className="text-[10px] text-red-500 mt-1">Asignación pendiente</p>}
+                                                {!selectedSub?.teacher_id && <p className="text-[11px] text-red-500 mt-1">Asignación pendiente</p>}
                                             </div>
                                         )}
                                     </div>
                                 )
                             })}
                             {teacherSubjects.length === 0 && (
-                                <div className="text-xs text-amber-600 p-2 italic">
+                                <div className="text-xs text-amber-700 p-2 italic">
                                     No hay materias disponibles para este nivel educativo.
                                 </div>
                             )}
                         </div>
-                        <p className="mt-1 text-[10px] text-gray-400">Selecciona las materias y asigna al docente responsable.</p>
+                        <p className="mt-1 text-[11px] text-gray-500">Selecciona las materias y asigna al docente responsable.</p>
                     </div>
 
                     <div className="mt-6 flex justify-end space-x-3">

@@ -15,7 +15,11 @@ BEGIN
         'PREFECT',
         'SUPPORT',
         'TUTOR',
-        'STUDENT'
+        'STUDENT',
+        'INDEPENDENT_TEACHER',
+        'SOCIAL_WORKER',
+        'STAFF',
+        'GUEST'
     ));
 END $$;
 

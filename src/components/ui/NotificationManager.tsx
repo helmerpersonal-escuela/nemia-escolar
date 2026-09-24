@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Bell, BellOff, Volume2, VolumeX } from 'lucide-react'
+import { Bell, VolumeX, X } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { LocalNotifications } from '@capacitor/local-notifications'
 import { Capacitor } from '@capacitor/core'
@@ -15,7 +15,8 @@ export const NotificationManager = () => {
         }
         return false
     })
-    const [soundUrl, setSoundUrl] = useState<string>('/sounds/notification.mp3') // Default
+    // Sonido configurable desde God Mode (system_settings.chat_sound_url); sin él, no suena.
+    const [soundUrl, setSoundUrl] = useState<string>('')
     const audioRef = useRef<HTMLAudioElement | null>(null)
 
     useEffect(() => {
@@ -33,30 +34,35 @@ export const NotificationManager = () => {
         // Load custom sound from system settings
         loadSystemSound()
 
-        // Load mute preference
-        const savedMute = localStorage.getItem('edu_manager_mute')
-        if (savedMute) setIsMuted(savedMute === 'true')
+        // Preferencia de silencio (se cambia desde el menú de notificaciones)
+        const readMute = () => setIsMuted(localStorage.getItem('edu_manager_mute') === 'true')
+        readMute()
+        window.addEventListener('edu:mute-changed', readMute)
+        return () => window.removeEventListener('edu:mute-changed', readMute)
 
-        // Initialize Audio
-        audioRef.current = new Audio(soundUrl)
     }, [])
 
     useEffect(() => {
-        if (audioRef.current) {
-            audioRef.current.src = soundUrl
-            audioRef.current.load()
-        }
+        if (!soundUrl) return
+        if (!audioRef.current) audioRef.current = new Audio()
+        audioRef.current.src = soundUrl
+        audioRef.current.preload = 'none'
     }, [soundUrl])
 
     const loadSystemSound = async () => {
         try {
-            const { data } = await supabase
+            const { data, error } = await supabase
                 .from('system_settings')
                 .select('value')
                 .eq('key', 'chat_sound_url')
-                .single()
+                .maybeSingle()
 
-            if (data?.value) {
+            if (error) {
+                console.warn('Error fetching system sound, using default.', error.message)
+                return
+            }
+
+            if (data?.value && !data.value.includes('aveqziaewxcglhteufft') && data.value.startsWith('http')) {
                 setSoundUrl(data.value)
             }
         } catch (error) {
@@ -98,7 +104,7 @@ export const NotificationManager = () => {
                 } else {
                     new Notification('Notificaciones Activadas', {
                         body: 'Ahora recibirás alertas y sonidos del sistema.',
-                        icon: '/pwa-192x192.png'
+                        icon: '/pwa-192.png'
                     })
                 }
                 playSound()
@@ -119,6 +125,7 @@ export const NotificationManager = () => {
         const newMuteState = !isMuted
         setIsMuted(newMuteState)
         localStorage.setItem('edu_manager_mute', String(newMuteState))
+        window.dispatchEvent(new Event('edu:mute-changed'))
     }
 
     const playSound = useCallback(() => {
@@ -177,28 +184,51 @@ export const NotificationManager = () => {
     }, [])
 
 
-    if ((permission === 'granted' || isDismissed) && !isMuted) return null // Invisible if all good or dismissed
+    const dismiss = () => {
+        localStorage.setItem('edu_notifications_dismissed', 'true')
+        setIsDismissed(true)
+    }
 
+    const showPrompt = permission !== 'granted' && permission !== 'denied' && !isDismissed
+
+    if (!showPrompt && !isMuted) return null
+
+    // Aviso discreto: arriba de la barra inferior en celular, sin animación infinita
+    // y con opción de cerrarlo (antes rebotaba y tapaba contenido en todas las pantallas).
     return (
-        <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
-            {permission !== 'granted' && !isDismissed && (
-                <button
-                    onClick={requestPermission}
-                    className="bg-indigo-600 text-white px-4 py-3 rounded-full shadow-lg hover:bg-indigo-700 transition-all flex items-center gap-3 animate-bounce"
-                >
-                    <Bell className="w-5 h-5" />
-                    <span className="text-xs font-bold">Activar Notificaciones</span>
-                </button>
+        <div className="fixed z-40 right-3 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] lg:bottom-6 lg:right-6 flex flex-col items-end gap-2">
+            {showPrompt && (
+                <div role="dialog" aria-label="Activar avisos" className="flex items-center gap-1 bg-white border border-indigo-100 rounded-2xl shadow-lg p-1.5 pl-3 max-w-[calc(100vw-1.5rem)]">
+                    <Bell className="w-4 h-4 text-indigo-600 shrink-0" aria-hidden="true" />
+                    <button
+                        type="button"
+                        onClick={requestPermission}
+                        className="min-h-11 px-2 text-sm font-bold text-indigo-700 hover:underline"
+                    >
+                        Activar avisos
+                    </button>
+                    <button
+                        type="button"
+                        onClick={dismiss}
+                        aria-label="Ahora no"
+                        className="min-h-11 min-w-11 flex items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
             )}
 
-            {/* Volume Control / Mute Indicator */}
-            <button
-                onClick={toggleMute}
-                className={`p-3 rounded-full shadow-lg transition-all ${isMuted ? 'bg-red-500 text-white' : 'bg-white text-gray-700'}`}
-                title={isMuted ? "Activar Sonido" : "Silenciar"}
-            >
-                {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-            </button>
+            {isMuted && (
+                <button
+                    type="button"
+                    onClick={toggleMute}
+                    aria-label="Sonido silenciado: activar sonido"
+                    title="Activar sonido"
+                    className="min-h-11 min-w-11 flex items-center justify-center rounded-full shadow-lg bg-rose-600 text-white"
+                >
+                    <VolumeX className="w-5 h-5" />
+                </button>
+            )}
         </div>
     )
 }

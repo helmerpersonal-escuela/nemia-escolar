@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../../../lib/supabase'
-import { Save, Plus, Trash2, Clock, Coffee, AlertCircle, Info, Sun, Moon } from 'lucide-react'
+import { Save, Plus, Trash2, Clock, Coffee, Sun, Moon } from 'lucide-react'
 import { useTenant } from '../../../hooks/useTenant'
 
 export const ScheduleConfig = () => {
@@ -43,13 +43,16 @@ export const ScheduleConfig = () => {
         }
 
         setSaving(true)
+        // For PRIMARY/TELESECUNDARIA level, we use a single large module (jornada completa)
+        const moduleDuration = (tenant?.educationalLevel === 'PRIMARY' || tenant?.educationalLevel === 'TELESECUNDARIA') ? 600 : settings.module_duration;
+
         const { error } = await supabase
             .from('schedule_settings')
             .upsert({
                 tenant_id: tenant?.id,
                 start_time: settings.start_time,
                 end_time: settings.end_time,
-                module_duration: settings.module_duration,
+                module_duration: moduleDuration,
                 breaks: settings.breaks
             }, { onConflict: 'tenant_id' })
 
@@ -152,7 +155,7 @@ export const ScheduleConfig = () => {
             {/* Visualizer */}
             <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm relative overflow-hidden group">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-                <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6">Visualización de la Jornada</h4>
+                <h4 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-6">Visualización de la Jornada</h4>
 
                 <div className="relative h-16 bg-gray-50 rounded-xl w-full border border-gray-100 flex items-center overflow-hidden">
                     {/* Background Pattern */}
@@ -170,13 +173,13 @@ export const ScheduleConfig = () => {
                             title={`${item.data.name}: ${item.data.start_time} - ${item.data.end_time}`}
                         >
                             <Coffee className="w-3 h-3 text-orange-500 mb-1" />
-                            <span className="text-[9px] font-black text-orange-700 uppercase hidden sm:block truncate w-full text-center px-1">
+                            <span className="text-[11px] font-black text-orange-700 uppercase hidden sm:block truncate w-full text-center px-1">
                                 {item.data.name}
                             </span>
                         </div>
                     ))}
                 </div>
-                <div className="flex justify-between mt-2 text-[10px] font-bold text-gray-400 font-mono">
+                <div className="flex justify-between mt-2 text-[11px] font-bold text-gray-500 font-mono">
                     <span>{settings.start_time}</span>
                     <span className="text-center">Duración del día: {
                         (() => {
@@ -195,7 +198,7 @@ export const ScheduleConfig = () => {
             {/* Inputs Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm hover:border-indigo-100 transition-colors">
-                    <label className="flex items-center text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">
+                    <label className="flex items-center text-[11px] font-black text-gray-500 uppercase tracking-widest mb-3">
                         <Sun className="w-3 h-3 mr-2" />
                         Inicio de Labores
                     </label>
@@ -208,7 +211,7 @@ export const ScheduleConfig = () => {
                 </div>
 
                 <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm hover:border-indigo-100 transition-colors">
-                    <label className="flex items-center text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">
+                    <label className="flex items-center text-[11px] font-black text-gray-500 uppercase tracking-widest mb-3">
                         <Moon className="w-3 h-3 mr-2" />
                         Fin de Labores
                     </label>
@@ -220,21 +223,29 @@ export const ScheduleConfig = () => {
                     />
                 </div>
 
-                <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm hover:border-indigo-100 transition-colors">
-                    <label className="flex items-center text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">
-                        <Clock className="w-3 h-3 mr-2" />
-                        Duración Módulo
-                    </label>
-                    <div className="flex items-end">
-                        <input
-                            type="number"
-                            value={settings.module_duration}
-                            onChange={(e) => setSettings({ ...settings, module_duration: parseInt(e.target.value) || 0 })}
-                            className="w-20 text-2xl font-black text-gray-900 bg-transparent border-b-2 border-gray-100 focus:border-indigo-500 p-0 focus:ring-0 text-center"
-                        />
-                        <span className="ml-2 text-sm font-bold text-gray-400 mb-1">minutos</span>
+                {tenant?.educationalLevel !== 'PRIMARY' && tenant?.educationalLevel !== 'TELESECUNDARIA' ? (
+                    <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm hover:border-indigo-100 transition-colors">
+                        <label className="flex items-center text-[11px] font-black text-gray-500 uppercase tracking-widest mb-3">
+                            <Clock className="w-3 h-3 mr-2" />
+                            Duración Módulo
+                        </label>
+                        <div className="flex items-end">
+                            <input
+                                type="number"
+                                value={settings.module_duration}
+                                onChange={(e) => setSettings({ ...settings, module_duration: parseInt(e.target.value) || 0 })}
+                                className="w-20 text-2xl font-black text-gray-900 bg-transparent border-b-2 border-gray-100 focus:border-indigo-500 p-0 focus:ring-0 text-center"
+                            />
+                            <span className="ml-2 text-sm font-bold text-gray-500 mb-1">minutos</span>
+                        </div>
                     </div>
-                </div>
+                ) : (
+                    <div className="bg-indigo-50 p-5 rounded-3xl border border-indigo-100 shadow-sm flex flex-col justify-center items-center text-center">
+                        <Clock className="w-4 h-4 text-indigo-600 mb-2" />
+                        <p className="text-[11px] font-black text-indigo-600 uppercase tracking-widest">Jornada Completa</p>
+                        <p className="text-[11px] font-medium text-indigo-500 uppercase mt-1">Primaria/Telesecundaria utiliza bloques flexibles</p>
+                    </div>
+                )}
             </div>
 
             {/* Breaks Section */}
@@ -248,7 +259,7 @@ export const ScheduleConfig = () => {
                     </div>
                     <button
                         onClick={addBreak}
-                        className="group flex items-center px-4 py-2 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:px-5 transition-all"
+                        className="group flex items-center px-4 py-2 bg-gray-900 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:px-5 transition-all"
                     >
                         <Plus className="w-3 h-3 mr-2 group-hover:rotate-90 transition-transform" />
                         Agregar
@@ -271,7 +282,7 @@ export const ScheduleConfig = () => {
                                         className="bg-transparent border-none font-bold text-gray-700 text-sm focus:ring-0 p-0 placeholder-gray-300"
                                     />
                                     <div className="flex items-center space-x-2">
-                                        <span className="text-[10px] font-bold text-gray-400 uppercase">De</span>
+                                        <span className="text-[11px] font-bold text-gray-500 uppercase">De</span>
                                         <input
                                             type="time"
                                             value={b.start_time}
@@ -280,7 +291,7 @@ export const ScheduleConfig = () => {
                                         />
                                     </div>
                                     <div className="flex items-center space-x-2">
-                                        <span className="text-[10px] font-bold text-gray-400 uppercase">A</span>
+                                        <span className="text-[11px] font-bold text-gray-500 uppercase">A</span>
                                         <input
                                             type="time"
                                             value={b.end_time}
@@ -289,7 +300,7 @@ export const ScheduleConfig = () => {
                                         />
                                     </div>
                                 </div>
-                                <button
+                                <button aria-label="Eliminar"
                                     onClick={() => removeBreak(index)}
                                     className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
                                 >
@@ -300,7 +311,7 @@ export const ScheduleConfig = () => {
                     ) : (
                         <div className="text-center py-10 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
                             <Coffee className="w-8 h-8 text-gray-300 mx-auto mb-3" />
-                            <p className="text-sm font-medium text-gray-400">No hay recesos configurados.</p>
+                            <p className="text-sm font-medium text-gray-500">No hay recesos configurados.</p>
                         </div>
                     )}
                 </div>

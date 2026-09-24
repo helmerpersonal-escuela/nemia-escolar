@@ -23,12 +23,14 @@ export interface Profile {
     created_at: string
     work_start_time: string | null // e.g. "07:00:00"
     isSuperAdmin?: boolean
+    email_confirmed_at?: string | null
+    auth_created_at?: string
 }
 
 export const useProfile = () => {
     const queryClient = useQueryClient()
 
-    const { data: profile, isLoading, error } = useQuery<Profile & { isImpersonating?: boolean } | null>({
+    const { data: profile, isPending: isLoading, error } = useQuery<Profile & { isImpersonating?: boolean } | null>({
         queryKey: ['profile'],
         queryFn: async () => {
             const { data: { user } } = await supabase.auth.getUser()
@@ -85,7 +87,13 @@ export const useProfile = () => {
 
             if (error) throw error
 
-            return { ...data, isSuperAdmin, isImpersonating }
+            return {
+                ...data,
+                isSuperAdmin,
+                isImpersonating,
+                email_confirmed_at: user.email_confirmed_at,
+                auth_created_at: user.created_at
+            }
 
         },
         staleTime: 1000 * 30, // 30 seconds

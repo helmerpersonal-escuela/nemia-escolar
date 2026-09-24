@@ -28,3 +28,25 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# --- Seguridad (fase 1, 23/09/2026) ---
+.env.*
+!.env.example
+secrets.json
+demo_credentials.md
+logcat.txt
+*_dump*.json
+users_dump.json
+.vs/
+
+# --- Orden del repositorio (fase 2) ---
+# Scripts de depuración y salidas viejas: se conservan en disco, fuera de git
+_archivo/
+# Reportes de pruebas
+playwright-report/
+test-results/
+coverage/
+# Salidas sueltas que no deben volver a la raíz
+/*.log
+/*_output*.txt
+/push_error*.txt

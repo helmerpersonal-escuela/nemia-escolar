@@ -5,7 +5,6 @@ import { useProfile } from '../../hooks/useProfile'
 import {
     ChevronDown,
     Layout,
-    Plus,
     School,
     User,
     Loader2,
@@ -58,11 +57,11 @@ export const WorkspaceSwitcher = () => {
                         {currentTenant.type === 'SCHOOL' ? <School className="w-5 h-5" /> : <User className="w-5 h-5" />}
                     </div>
                     <div className="text-left overflow-hidden">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Espacio de Trabajo</p>
+                        <p className="text-[11px] font-black text-gray-500 uppercase tracking-widest leading-none mb-1">Espacio de Trabajo</p>
                         <p className="text-sm font-black text-gray-900 truncate max-w-[120px]">{currentTenant.name}</p>
                     </div>
                 </div>
-                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isOpen && (
@@ -72,7 +71,7 @@ export const WorkspaceSwitcher = () => {
                         onClick={() => setIsOpen(false)}
                     />
                     <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-2xl z-50 p-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                        <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest p-3 border-b border-gray-50 mb-2">
+                        <div className="text-[11px] font-black text-gray-500 uppercase tracking-widest p-3 border-b border-gray-50 mb-2">
                             Tus Espacios
                         </div>
 
@@ -116,32 +115,11 @@ export const WorkspaceSwitcher = () => {
                                             const { error: rpcError } = await supabase.rpc('back_to_god_mode')
 
                                             if (rpcError) {
-                                                console.warn('RPC back_to_god_mode failed, trying manual fix:', rpcError)
-
-                                                // 1. Try to auto-heal the RPC using exec_sql (if available)
-                                                const sqlFix = `
-                                                    CREATE OR REPLACE FUNCTION public.back_to_god_mode() RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-                                                    BEGIN
-                                                        IF EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND (email IN ('helmerpersonal@gmail.com') OR role = 'SUPER_ADMIN')) THEN
-                                                            UPDATE public.profiles SET tenant_id = NULL, role = 'SUPER_ADMIN' WHERE id = auth.uid();
-
-                                                        ELSE RAISE EXCEPTION 'Not authorized'; END IF;
-                                                    END; $$;
-                                                    GRANT EXECUTE ON FUNCTION public.back_to_god_mode() TO authenticated;
-                                                `;
-                                                try {
-                                                    await supabase.rpc('exec_sql', { sql_query: sqlFix })
-                                                } catch (e) {
-                                                    console.error('Exec_sql failed:', e)
-                                                }
-
-                                                // 2. Try direct table update as ultimate fallback
-                                                const { data: { user } } = await supabase.auth.getUser()
-                                                if (user) {
-                                                    await supabase.from('profiles').update({ tenant_id: null, role: 'SUPER_ADMIN' }).eq('id', user.id)
-                                                }
-
-                                                // Even if rpc fails, we reload because manual update might have worked
+                                                // Sin "auto-reparación": la autorización vive solo en el servidor.
+                                                console.error('back_to_god_mode failed:', rpcError)
+                                                alert('No se pudo volver al modo Super Admin: ' + rpcError.message)
+                                                setSwitching(null)
+                                                return
                                             }
                                             window.location.reload()
                                         } catch (error: any) {

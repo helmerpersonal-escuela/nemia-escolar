@@ -13,8 +13,7 @@ import {
     Camera,
     Check,
     ArrowRight,
-    Loader2,
-    X
+    Loader2
 } from 'lucide-react'
 import { useProfile } from '../../../hooks/useProfile'
 
@@ -90,7 +89,7 @@ export const ProfileSetupWizard = ({ onComplete }: { onComplete: () => void }) =
                             <div key={s} className={`h-1.5 rounded-full transition-all duration-500 ${s === step ? 'w-8 bg-blue-600' : s < step ? 'w-4 bg-blue-200' : 'w-4 bg-slate-200'}`} />
                         ))}
                     </div>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
                         Paso {step + 1} de 4
                     </span>
                 </div>
@@ -100,13 +99,13 @@ export const ProfileSetupWizard = ({ onComplete }: { onComplete: () => void }) =
                         <div className="space-y-8 animate-in slide-in-from-right duration-500">
                             <div>
                                 <h2 className="text-3xl font-black text-slate-800 tracking-tight">Datos Personales</h2>
-                                <p className="text-slate-400 font-medium">Comencemos con tu información básica.</p>
+                                <p className="text-slate-500 font-medium">Comencemos con tu información básica.</p>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Nombre(s)</label>
-                                    <input
+                                    <label className="text-[11px] font-black text-slate-500 uppercase ml-1">Nombre(s)</label>
+                                    <input aria-label="Nombre(s)"
                                         value={formData.first_name}
                                         onChange={e => setFormData({ ...formData, first_name: e.target.value.toUpperCase() })}
                                         className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl focus:ring-4 focus:ring-blue-100 transition-all font-bold text-slate-700"
@@ -114,8 +113,8 @@ export const ProfileSetupWizard = ({ onComplete }: { onComplete: () => void }) =
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Apellido Paterno</label>
-                                    <input
+                                    <label className="text-[11px] font-black text-slate-500 uppercase ml-1">Apellido Paterno</label>
+                                    <input aria-label="Apellido Paterno"
                                         value={formData.last_name_paternal}
                                         onChange={e => setFormData({ ...formData, last_name_paternal: e.target.value.toUpperCase() })}
                                         className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl focus:ring-4 focus:ring-blue-100 transition-all font-bold text-slate-700"
@@ -123,8 +122,8 @@ export const ProfileSetupWizard = ({ onComplete }: { onComplete: () => void }) =
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Apellido Materno</label>
-                                    <input
+                                    <label className="text-[11px] font-black text-slate-500 uppercase ml-1">Apellido Materno</label>
+                                    <input aria-label="Apellido Materno"
                                         value={formData.last_name_maternal}
                                         onChange={e => setFormData({ ...formData, last_name_maternal: e.target.value.toUpperCase() })}
                                         className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl focus:ring-4 focus:ring-blue-100 transition-all font-bold text-slate-700"
@@ -135,10 +134,10 @@ export const ProfileSetupWizard = ({ onComplete }: { onComplete: () => void }) =
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Nacionalidad</label>
+                                    <label className="text-[11px] font-black text-slate-500 uppercase ml-1">Nacionalidad</label>
                                     <div className="relative">
-                                        <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none" />
-                                        <input
+                                        <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5 pointer-events-none" />
+                                        <input aria-label="Nacionalidad"
                                             value={formData.nationality}
                                             onChange={e => setFormData({ ...formData, nationality: e.target.value.toUpperCase() })}
                                             className="w-full pl-12 pr-5 py-4 bg-slate-50 border-none rounded-2xl focus:ring-4 focus:ring-blue-100 transition-all font-bold text-slate-700"
@@ -146,10 +145,10 @@ export const ProfileSetupWizard = ({ onComplete }: { onComplete: () => void }) =
                                     </div>
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Fecha de Nacimiento</label>
+                                    <label className="text-[11px] font-black text-slate-500 uppercase ml-1">Fecha de Nacimiento</label>
                                     <div className="relative">
-                                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none" />
-                                        <input
+                                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5 pointer-events-none" />
+                                        <input aria-label="Fecha de Nacimiento"
                                             type="date"
                                             value={formData.birth_date}
                                             onChange={e => setFormData({ ...formData, birth_date: e.target.value })}
@@ -161,7 +160,7 @@ export const ProfileSetupWizard = ({ onComplete }: { onComplete: () => void }) =
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Sexo</label>
+                                    <label className="text-[11px] font-black text-slate-500 uppercase ml-1">Sexo</label>
                                     <div className="flex gap-2">
                                         {[
                                             { id: 'HOMBRE', icon: Mars, label: 'Hombre' },
@@ -171,17 +170,17 @@ export const ProfileSetupWizard = ({ onComplete }: { onComplete: () => void }) =
                                             <button
                                                 key={s.id}
                                                 onClick={() => setFormData({ ...formData, sex: s.id as any })}
-                                                className={`flex-1 py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-1 ${formData.sex === s.id ? 'border-blue-600 bg-blue-50 text-blue-700 shadow-lg shadow-blue-100' : 'border-slate-100 text-slate-400 hover:border-slate-200'}`}
+                                                className={`flex-1 py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-1 ${formData.sex === s.id ? 'border-blue-600 bg-blue-50 text-blue-700 shadow-lg shadow-blue-100' : 'border-slate-100 text-slate-500 hover:border-slate-200'}`}
                                             >
                                                 <s.icon className="w-5 h-5" />
-                                                <span className="text-[10px] font-black uppercase">{s.label}</span>
+                                                <span className="text-[11px] font-black uppercase">{s.label}</span>
                                             </button>
                                         ))}
                                     </div>
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Estado Civil</label>
-                                    <input
+                                    <label className="text-[11px] font-black text-slate-500 uppercase ml-1">Estado Civil</label>
+                                    <input aria-label="Estado Civil"
                                         value={formData.marital_status}
                                         onChange={e => setFormData({ ...formData, marital_status: e.target.value.toUpperCase() })}
                                         className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl focus:ring-4 focus:ring-blue-100 transition-all font-bold text-slate-700"
@@ -196,15 +195,15 @@ export const ProfileSetupWizard = ({ onComplete }: { onComplete: () => void }) =
                         <div className="space-y-8 animate-in slide-in-from-right duration-500">
                             <div>
                                 <h2 className="text-3xl font-black text-slate-800 tracking-tight">Identificación</h2>
-                                <p className="text-slate-400 font-medium">Documentos oficiales para tu registro.</p>
+                                <p className="text-slate-500 font-medium">Documentos oficiales para tu registro.</p>
                             </div>
 
                             <div className="space-y-6">
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase ml-1">CURP</label>
+                                    <label className="text-[11px] font-black text-slate-500 uppercase ml-1">CURP</label>
                                     <div className="relative">
-                                        <Fingerprint className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                                        <input
+                                        <Fingerprint className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
+                                        <input aria-label="CURP"
                                             value={formData.curp}
                                             onChange={e => setFormData({ ...formData, curp: e.target.value.toUpperCase() })}
                                             maxLength={18}
@@ -213,18 +212,18 @@ export const ProfileSetupWizard = ({ onComplete }: { onComplete: () => void }) =
                                         />
                                     </div>
                                     <div className="flex justify-between px-1">
-                                        <p className="text-[9px] font-bold text-slate-400">18 caracteres mínimos</p>
-                                        <p className={`${formData.curp.length === 18 ? 'text-emerald-500' : formData.curp.length > 0 ? 'text-red-500' : 'text-slate-300'} text-[9px] font-black uppercase`}>
+                                        <p className="text-[11px] font-bold text-slate-500">18 caracteres mínimos</p>
+                                        <p className={`${formData.curp.length === 18 ? 'text-emerald-700' : formData.curp.length > 0 ? 'text-red-500' : 'text-slate-300'} text-[11px] font-black uppercase`}>
                                             {formData.curp.length}/18
                                         </p>
                                     </div>
                                 </div>
 
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase ml-1">RFC</label>
+                                    <label className="text-[11px] font-black text-slate-500 uppercase ml-1">RFC</label>
                                     <div className="relative">
-                                        <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                                        <input
+                                        <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
+                                        <input aria-label="RFC"
                                             value={formData.rfc}
                                             onChange={e => setFormData({ ...formData, rfc: e.target.value.toUpperCase() })}
                                             className="w-full pl-12 pr-5 py-5 bg-slate-50 border-none rounded-[1.5rem] focus:ring-4 focus:ring-blue-100 transition-all font-black text-slate-700 tracking-widest"
@@ -240,15 +239,15 @@ export const ProfileSetupWizard = ({ onComplete }: { onComplete: () => void }) =
                         <div className="space-y-8 animate-in slide-in-from-right duration-500">
                             <div>
                                 <h2 className="text-3xl font-black text-slate-800 tracking-tight">Contacto</h2>
-                                <p className="text-slate-400 font-medium">¿Dónde podemos localizarte?</p>
+                                <p className="text-slate-500 font-medium">¿Dónde podemos localizarte?</p>
                             </div>
 
                             <div className="space-y-6">
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Domicilio Particular</label>
+                                    <label className="text-[11px] font-black text-slate-500 uppercase ml-1">Domicilio Particular</label>
                                     <div className="relative">
-                                        <Home className="absolute left-4 top-4 text-slate-400 w-5 h-5 pointer-events-none" />
-                                        <textarea
+                                        <Home className="absolute left-4 top-4 text-slate-500 w-5 h-5 pointer-events-none" />
+                                        <textarea aria-label="Domicilio Particular"
                                             value={formData.address_particular}
                                             onChange={e => setFormData({ ...formData, address_particular: e.target.value.toUpperCase() })}
                                             rows={3}
@@ -259,10 +258,10 @@ export const ProfileSetupWizard = ({ onComplete }: { onComplete: () => void }) =
                                 </div>
 
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Teléfono de Contacto</label>
+                                    <label className="text-[11px] font-black text-slate-500 uppercase ml-1">Teléfono de Contacto</label>
                                     <div className="relative">
-                                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none" />
-                                        <input
+                                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5 pointer-events-none" />
+                                        <input aria-label="Teléfono de Contacto"
                                             type="tel"
                                             value={formData.phone_contact}
                                             onChange={e => setFormData({ ...formData, phone_contact: e.target.value })}
@@ -279,7 +278,7 @@ export const ProfileSetupWizard = ({ onComplete }: { onComplete: () => void }) =
                         <div className="space-y-8 animate-in slide-in-from-right duration-500">
                             <div className="text-center">
                                 <h2 className="text-3xl font-black text-slate-800 tracking-tight">Identidad Visual</h2>
-                                <p className="text-slate-400 font-medium">Elige cómo te verán tus colegas.</p>
+                                <p className="text-slate-500 font-medium">Elige cómo te verán tus colegas.</p>
                             </div>
 
                             <div className="flex justify-center mb-8">

@@ -38,7 +38,7 @@ export const ErrorModal: React.FC<ErrorModalProps> = ({
                         </div>
                         <h2 className="text-xl font-bold text-red-900">{title}</h2>
                     </div>
-                    <button
+                    <button aria-label="Cerrar"
                         onClick={onClose}
                         className="p-2 hover:bg-red-100 rounded-full transition-colors text-red-400 hover:text-red-900"
                     >

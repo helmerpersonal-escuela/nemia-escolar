@@ -20,12 +20,14 @@ CREATE TABLE IF NOT EXISTS public.student_citations (
 ALTER TABLE public.student_citations ENABLE ROW LEVEL SECURITY;
 
 -- Policies
+DROP POLICY IF EXISTS "Users can view citations in their tenant" ON public.student_citations;
 CREATE POLICY "Users can view citations in their tenant"
 ON public.student_citations
 FOR SELECT
 TO authenticated
 USING (tenant_id = get_current_tenant_id());
 
+DROP POLICY IF EXISTS "Staff can manage citations" ON public.student_citations;
 CREATE POLICY "Staff can manage citations"
 ON public.student_citations
 FOR ALL

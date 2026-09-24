@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { X, Search, ChevronRight, AlertCircle, Calendar, Clock, Loader2 } from 'lucide-react'
 import { supabase } from '../../../../lib/supabase'
 import { useTenant } from '../../../../hooks/useTenant'
+import { todayISO } from '../../../../lib/dates'
 
 interface CitationModalProps {
     isOpen: boolean
@@ -22,7 +23,7 @@ export const CitationModal = ({ isOpen, onClose, onSuccess }: CitationModalProps
 
     const [formData, setFormData] = useState({
         reason: '',
-        meeting_date: new Date().toISOString().split('T')[0],
+        meeting_date: todayISO(),
         meeting_time: '08:00',
         notes: ''
     })
@@ -74,7 +75,7 @@ export const CitationModal = ({ isOpen, onClose, onSuccess }: CitationModalProps
             setSelectedStudent(null)
             setFormData({
                 reason: '',
-                meeting_date: new Date().toISOString().split('T')[0],
+                meeting_date: todayISO(),
                 meeting_time: '08:00',
                 notes: ''
             })
@@ -91,11 +92,11 @@ export const CitationModal = ({ isOpen, onClose, onSuccess }: CitationModalProps
                 <div className="p-8 bg-blue-600 text-white flex justify-between items-center shrink-0">
                     <div>
                         <h3 className="text-2xl font-black tracking-tight uppercase leading-none">Generar Citatorio</h3>
-                        <p className="text-blue-100 text-[10px] font-bold uppercase tracking-widest mt-1">
+                        <p className="text-blue-100 text-[11px] font-bold uppercase tracking-widest mt-1">
                             {step === 'STUDENT' ? 'Paso 1: Seleccionar Alumno' : `Paso 2: Detalles de la Cita (${selectedStudent?.first_name})`}
                         </p>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl transition-all">
+                    <button aria-label="Cerrar" onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl transition-all">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -129,7 +130,7 @@ export const CitationModal = ({ isOpen, onClose, onSuccess }: CitationModalProps
                                 {loading ? (
                                     <div className="col-span-full py-20 flex flex-col items-center justify-center text-slate-300">
                                         <Loader2 className="w-8 h-8 animate-spin mb-4" />
-                                        <p className="text-[10px] font-black uppercase tracking-widest">Buscando alumnos...</p>
+                                        <p className="text-[11px] font-black uppercase tracking-widest">Buscando alumnos...</p>
                                     </div>
                                 ) : students.filter(s => `${s.first_name} ${s.last_name_paternal}`.toLowerCase().includes(searchQuery.toLowerCase())).map(student => (
                                     <button
@@ -141,7 +142,7 @@ export const CitationModal = ({ isOpen, onClose, onSuccess }: CitationModalProps
                                         className="p-4 rounded-2xl border-2 border-slate-50 hover:border-blue-200 hover:bg-blue-50/30 transition-all text-left flex items-center justify-between group"
                                     >
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center font-black text-slate-400 group-hover:bg-blue-100 group-hover:text-blue-600 transition-all">
+                                            <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center font-black text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600 transition-all">
                                                 {student.first_name[0]}
                                             </div>
                                             <span className="font-bold text-slate-700 text-sm">{student.first_name} {student.last_name_paternal}</span>
@@ -155,10 +156,10 @@ export const CitationModal = ({ isOpen, onClose, onSuccess }: CitationModalProps
                         <div className="space-y-6">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Fecha de la Cita</label>
+                                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Fecha de la Cita</label>
                                     <div className="relative">
                                         <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                                        <input
+                                        <input aria-label="Fecha de la Cita"
                                             type="date"
                                             value={formData.meeting_date}
                                             onChange={(e) => setFormData({ ...formData, meeting_date: e.target.value })}
@@ -167,10 +168,10 @@ export const CitationModal = ({ isOpen, onClose, onSuccess }: CitationModalProps
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Hora</label>
+                                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Hora</label>
                                     <div className="relative">
                                         <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                                        <input
+                                        <input aria-label="Hora"
                                             type="time"
                                             value={formData.meeting_time}
                                             onChange={(e) => setFormData({ ...formData, meeting_time: e.target.value })}
@@ -181,8 +182,8 @@ export const CitationModal = ({ isOpen, onClose, onSuccess }: CitationModalProps
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Motivo del Citatorio</label>
-                                <textarea
+                                <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Motivo del Citatorio</label>
+                                <textarea aria-label="Motivo del Citatorio"
                                     rows={3}
                                     placeholder="Ej: Seguimiento académico y problemas de conducta..."
                                     value={formData.reason}
@@ -192,8 +193,8 @@ export const CitationModal = ({ isOpen, onClose, onSuccess }: CitationModalProps
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Observaciones Internas</label>
-                                <textarea
+                                <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Observaciones Internas</label>
+                                <textarea aria-label="Observaciones Internas"
                                     rows={2}
                                     placeholder="Notas adicionales solo para el personal..."
                                     value={formData.notes}
@@ -204,7 +205,7 @@ export const CitationModal = ({ isOpen, onClose, onSuccess }: CitationModalProps
 
                             <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-start gap-3">
                                 <AlertCircle className="w-5 h-5 text-blue-600 shrink-0" />
-                                <p className="text-[10px] font-bold text-blue-700 leading-relaxed uppercase">
+                                <p className="text-[11px] font-bold text-blue-700 leading-relaxed uppercase">
                                     Al guardar, se generará un registro oficial. Asegúrate de que la fecha y hora sean correctas antes de proceder.
                                 </p>
                             </div>
@@ -217,7 +218,7 @@ export const CitationModal = ({ isOpen, onClose, onSuccess }: CitationModalProps
                     {step === 'FORM' && (
                         <button
                             onClick={() => setStep('STUDENT')}
-                            className="px-6 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest text-slate-400 hover:bg-slate-50 transition-all"
+                            className="px-6 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all"
                         >
                             Atrás
                         </button>

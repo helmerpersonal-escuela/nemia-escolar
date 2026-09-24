@@ -1,4 +1,3 @@
-import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
 import { useNavigate, Navigate } from 'react-router-dom'
 
@@ -10,10 +9,8 @@ import { ControlEscolarDashboard } from '../components/roles/ControlEscolarDashb
 import { PrefecturaDashboard } from '../components/roles/PrefecturaDashboard'
 import { SupportDashboard } from '../components/roles/SupportDashboard'
 import { StudentDashboard } from '../components/roles/StudentDashboard'
-import { SuperAdminDashboard } from '../../admin/pages/SuperAdminDashboard'
 import { AdminDashboard } from '../../admin/pages/AdminDashboard'
 import { TechCoordinationDashboard } from '../components/roles/TechCoordinationDashboard'
-import { AttendanceWidget } from '../components/AttendanceWidget'
 import { TutorDashboard } from '../components/roles/TutorDashboard'
 import { IndependentDashboard } from '../components/roles/IndependentDashboard'
 
@@ -22,7 +19,14 @@ export const DashboardPage = () => {
     const navigate = useNavigate()
     // Role Dispatcher
     const workspaceType = (tenant as any)?.type || 'SCHOOL'
-    const currentRole = (tenant as any)?.role || 'TEACHER'
+    let currentRole = (tenant as any)?.role || 'TEACHER'
+
+    // Robust Role Enforcement for Independent Workspaces
+    const PROTECTED_ROLES = ['TUTOR', 'SCHOOL_CONTROL', 'PREFECT', 'SUPPORT', 'STUDENT', 'SUPER_ADMIN']
+    if (workspaceType === 'INDEPENDENT' && !PROTECTED_ROLES.includes(currentRole)) {
+        currentRole = 'INDEPENDENT_TEACHER'
+    }
+
     const isImpersonating = !!sessionStorage.getItem('vunlek_impersonate_id')
 
     if (currentRole === 'INDEPENDENT_TEACHER') return <IndependentDashboard />

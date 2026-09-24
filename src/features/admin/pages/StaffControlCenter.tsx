@@ -2,25 +2,21 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
 import {
     Users,
-    Shield,
     Calendar,
     Clock,
     ClipboardCheck,
     Stethoscope,
-    MoreVertical,
     Plus,
     ArrowUpRight,
     Search,
-    Filter,
     CheckCircle2,
     XCircle,
-    MapPin,
     BookOpen,
     GraduationCap,
     X,
-    Save,
     Trash2
 } from 'lucide-react'
+import { todayISO } from '../../../lib/dates'
 
 export const StaffControlCenter = () => {
     const [loading, setLoading] = useState(true)
@@ -60,7 +56,7 @@ export const StaffControlCenter = () => {
                 .from('staff_attendance')
                 .select('*')
                 .eq('tenant_id', profile.tenant_id)
-                .eq('date', new Date().toISOString().split('T')[0])
+                .eq('date', todayISO())
             setAttendance(attData || [])
 
             // Load groups and subjects for assignments
@@ -153,16 +149,16 @@ export const StaffControlCenter = () => {
             {/* Stats Summary */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Presentes Hoy</p>
+                    <p className="text-[11px] font-black text-gray-500 uppercase tracking-widest mb-4">Presentes Hoy</p>
                     <div className="flex items-end justify-between">
-                        <h3 className="text-3xl font-black text-emerald-600">{attendance.filter(a => a.status === 'PRESENT').length}</h3>
-                        <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
+                        <h3 className="text-3xl font-black text-emerald-700">{attendance.filter(a => a.status === 'PRESENT').length}</h3>
+                        <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-700">
                             <CheckCircle2 className="w-5 h-5" />
                         </div>
                     </div>
                 </div>
                 <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Inasistencias</p>
+                    <p className="text-[11px] font-black text-gray-500 uppercase tracking-widest mb-4">Inasistencias</p>
                     <div className="flex items-end justify-between">
                         <h3 className="text-3xl font-black text-rose-600">{attendance.filter(a => a.status === 'ABSENT').length}</h3>
                         <div className="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center text-rose-600">
@@ -171,7 +167,7 @@ export const StaffControlCenter = () => {
                     </div>
                 </div>
                 <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Permisos Activos</p>
+                    <p className="text-[11px] font-black text-gray-500 uppercase tracking-widest mb-4">Permisos Activos</p>
                     <div className="flex items-end justify-between">
                         <h3 className="text-3xl font-black text-blue-600">1</h3>
                         <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
@@ -180,10 +176,10 @@ export const StaffControlCenter = () => {
                     </div>
                 </div>
                 <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Sin Registro</p>
+                    <p className="text-[11px] font-black text-gray-500 uppercase tracking-widest mb-4">Sin Registro</p>
                     <div className="flex items-end justify-between">
-                        <h3 className="text-3xl font-black text-gray-400">{staff.length - attendance.length}</h3>
-                        <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400">
+                        <h3 className="text-3xl font-black text-gray-500">{staff.length - attendance.length}</h3>
+                        <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-500">
                             <Clock className="w-5 h-5" />
                         </div>
                     </div>
@@ -201,7 +197,7 @@ export const StaffControlCenter = () => {
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as any)}
-                            className={`flex items-center px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-white text-blue-600 shadow-sm border border-gray-100' : 'text-gray-400 hover:text-gray-600'}`}
+                            className={`flex items-center px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-white text-blue-600 shadow-sm border border-gray-100' : 'text-gray-500 hover:text-gray-600'}`}
                         >
                             <tab.icon className="w-4 h-4 mr-2" />
                             {tab.label}
@@ -210,7 +206,7 @@ export const StaffControlCenter = () => {
                 </div>
 
                 <div className="relative group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-600" />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-blue-600" />
                     <input
                         type="text"
                         placeholder="Buscar personal..."
@@ -228,11 +224,11 @@ export const StaffControlCenter = () => {
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-gray-50/50 border-b border-gray-100">
-                                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Personal</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Rol</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Estado</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Comisiones Activas</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Acciones</th>
+                                    <th className="px-8 py-5 text-[11px] font-black text-gray-500 uppercase tracking-widest">Personal</th>
+                                    <th className="px-8 py-5 text-[11px] font-black text-gray-500 uppercase tracking-widest">Rol</th>
+                                    <th className="px-8 py-5 text-[11px] font-black text-gray-500 uppercase tracking-widest text-center">Estado</th>
+                                    <th className="px-8 py-5 text-[11px] font-black text-gray-500 uppercase tracking-widest">Comisiones Activas</th>
+                                    <th className="px-8 py-5 text-[11px] font-black text-gray-500 uppercase tracking-widest text-right">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
@@ -251,12 +247,12 @@ export const StaffControlCenter = () => {
                                                         <p className="text-sm font-black text-gray-900 leading-tight uppercase">
                                                             {member.first_name} {member.last_name_paternal}
                                                         </p>
-                                                        <p className="text-[10px] text-gray-400 font-bold uppercase">{member.last_name_maternal || ''}</p>
+                                                        <p className="text-[11px] text-gray-500 font-bold uppercase">{member.last_name_maternal || ''}</p>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-4">
-                                                <div className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-[9px] font-black uppercase tracking-widest">
+                                                <div className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-[11px] font-black uppercase tracking-widest">
                                                     {member.role === 'TEACHER' ? 'Docente' : member.role === 'DIRECTOR' ? 'Dirección' : member.role}
                                                 </div>
                                             </td>
@@ -269,17 +265,17 @@ export const StaffControlCenter = () => {
                                                 <div className="flex flex-wrap gap-1.5 max-w-sm">
                                                     {member.staff_commissions?.length > 0 ? (
                                                         member.staff_commissions.slice(0, 2).map((c: any) => (
-                                                            <div key={c.id} className="px-2 py-0.5 bg-blue-50 text-blue-600 border border-blue-100 rounded-md text-[9px] font-bold flex items-center">
+                                                            <div key={c.id} className="px-2 py-0.5 bg-blue-50 text-blue-600 border border-blue-100 rounded-md text-[11px] font-bold flex items-center">
                                                                 {c.name}
                                                             </div>
                                                         ))
                                                     ) : (
-                                                        <span className="text-[10px] text-gray-300 italic">Sin comisiones</span>
+                                                        <span className="text-[11px] text-gray-300 italic">Sin comisiones</span>
                                                     )}
                                                     {member.staff_commissions?.length > 2 && (
-                                                        <span className="text-[9px] font-black text-blue-400">+{member.staff_commissions.length - 2}</span>
+                                                        <span className="text-[11px] font-black text-blue-400">+{member.staff_commissions.length - 2}</span>
                                                     )}
-                                                    <button
+                                                    <button aria-label="Agregar"
                                                         onClick={() => {
                                                             const name = window.prompt('Nombre de la nueva comisión:')
                                                             if (name) {
@@ -287,7 +283,7 @@ export const StaffControlCenter = () => {
                                                                 handleAddCommission(name)
                                                             }
                                                         }}
-                                                        className="w-5 h-5 flex items-center justify-center bg-gray-100 text-gray-400 rounded-md hover:bg-blue-600 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                                                        className="w-5 h-5 flex items-center justify-center bg-gray-100 text-gray-500 rounded-md hover:bg-blue-600 hover:text-white transition-all opacity-0 group-hover:opacity-100"
                                                     >
                                                         <Plus className="w-3 h-3" />
                                                     </button>
@@ -300,7 +296,7 @@ export const StaffControlCenter = () => {
                                                         loadStaffAssignments(member.id)
                                                         setIsAssignmentModalOpen(true)
                                                     }}
-                                                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-200 rounded-xl text-[10px] font-black uppercase text-blue-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all shadow-sm"
+                                                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-200 rounded-xl text-[11px] font-black uppercase text-blue-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all shadow-sm"
                                                 >
                                                     Gestionar <ArrowUpRight className="w-3.5 h-3.5" />
                                                 </button>
@@ -331,7 +327,7 @@ export const StaffControlCenter = () => {
                                     <p className="text-xs font-bold text-blue-100 uppercase tracking-widest">{selectedStaff.role} • Gestión de Asignaciones</p>
                                 </div>
                             </div>
-                            <button onClick={() => setIsAssignmentModalOpen(false)} className="p-2 hover:bg-white/10 rounded-xl transition-all">
+                            <button aria-label="Cerrar" onClick={() => setIsAssignmentModalOpen(false)} className="p-2 hover:bg-white/10 rounded-xl transition-all">
                                 <X className="w-6 h-6" />
                             </button>
                         </div>
@@ -340,7 +336,7 @@ export const StaffControlCenter = () => {
                         <div className="flex-1 overflow-y-auto p-8 space-y-10 custom-scrollbar">
                             {/* Advisor Section */}
                             <section>
-                                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <h4 className="text-[11px] font-black text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
                                     <GraduationCap className="w-3 h-3" /> Asesoría de Grupo (Tutoría)
                                 </h4>
                                 <div className="p-6 bg-blue-50/50 rounded-3xl border border-blue-100 flex items-center justify-between">
@@ -368,7 +364,7 @@ export const StaffControlCenter = () => {
 
                             {/* Subjects & Groups Assignment */}
                             <section>
-                                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <h4 className="text-[11px] font-black text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
                                     <BookOpen className="w-3 h-3" /> Grupos y Materias Asignadas
                                 </h4>
 
@@ -401,7 +397,7 @@ export const StaffControlCenter = () => {
                                                 setNewAssignmentData({ groupId: '', subjectId: '' })
                                             }
                                         }}
-                                        className="bg-blue-600 text-white rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all font-black"
+                                        className="bg-blue-600 text-white rounded-xl px-4 py-2 text-[11px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all font-black"
                                     >
                                         Asignar Materia
                                     </button>
@@ -417,10 +413,10 @@ export const StaffControlCenter = () => {
                                                     </div>
                                                     <div>
                                                         <p className="text-sm font-black text-gray-900 leading-tight">{a.subject_catalog?.name}</p>
-                                                        <p className="text-[10px] text-gray-400 font-bold uppercase">Sección {a.groups?.section}</p>
+                                                        <p className="text-[11px] text-gray-500 font-bold uppercase">Sección {a.groups?.section}</p>
                                                     </div>
                                                 </div>
-                                                <button
+                                                <button aria-label="Eliminar"
                                                     onClick={() => handleDeleteAssignment(a.id)}
                                                     className="p-2 opacity-0 group-hover:opacity-100 text-gray-300 hover:text-rose-500 transition-all"
                                                 >
@@ -440,20 +436,20 @@ export const StaffControlCenter = () => {
 
                             {/* Schedule Overview */}
                             <section>
-                                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <h4 className="text-[11px] font-black text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
                                     <Calendar className="w-3 h-3" /> Horario de Clases
                                 </h4>
                                 <div className="bg-gray-50 rounded-[2rem] p-6 border border-gray-100">
                                     <div className="grid grid-cols-5 gap-4">
                                         {['LUN', 'MAR', 'MIE', 'JUE', 'VIE'].map(day => (
                                             <div key={day} className="space-y-4">
-                                                <p className="text-center text-[9px] font-black text-gray-400 uppercase tracking-widest">{day}</p>
+                                                <p className="text-center text-[11px] font-black text-gray-500 uppercase tracking-widest">{day}</p>
                                                 <div className="space-y-2">
                                                     {schedules.filter(s => s.day_of_week === (day === 'LUN' ? 'MONDAY' : day === 'MAR' ? 'TUESDAY' : day === 'MIE' ? 'WEDNESDAY' : day === 'JUE' ? 'THURSDAY' : 'FRIDAY')).map(s => (
                                                         <div key={s.id} className="p-3 bg-white rounded-2xl border border-gray-100 shadow-sm">
-                                                            <p className="text-[8px] font-black text-gray-400">{s.start_time.slice(0, 5)} - {s.end_time.slice(0, 5)}</p>
-                                                            <p className="text-[9px] font-bold text-gray-900 truncate">{s.subject_catalog?.name}</p>
-                                                            <p className="text-[8px] text-blue-600 font-black">{s.groups?.grade}°{s.groups?.section}</p>
+                                                            <p className="text-[11px] font-black text-gray-500">{s.start_time.slice(0, 5)} - {s.end_time.slice(0, 5)}</p>
+                                                            <p className="text-[11px] font-bold text-gray-900 truncate">{s.subject_catalog?.name}</p>
+                                                            <p className="text-[11px] text-blue-600 font-black">{s.groups?.grade}°{s.groups?.section}</p>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -466,7 +462,7 @@ export const StaffControlCenter = () => {
 
                         {/* Modal Footer */}
                         <div className="p-8 bg-gray-50 border-t border-gray-100 flex justify-end shrink-0">
-                            <button onClick={() => setIsAssignmentModalOpen(false)} className="px-8 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-600">
+                            <button onClick={() => setIsAssignmentModalOpen(false)} className="px-8 py-3 text-[11px] font-black uppercase tracking-widest text-gray-500 hover:text-gray-600">
                                 Cerrar
                             </button>
                         </div>

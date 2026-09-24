@@ -19,6 +19,7 @@ ALTER TABLE public.teacher_module_attendance ENABLE ROW LEVEL SECURITY;
 
 -- Policies
 -- 1. Teachers can view and insert their own attendance
+DROP POLICY IF EXISTS "Teachers can manage own module attendance" ON public.teacher_module_attendance;
 CREATE POLICY "Teachers can manage own module attendance"
 ON public.teacher_module_attendance
 FOR ALL
@@ -33,6 +34,7 @@ WITH CHECK (
 );
 
 -- 2. Admins and Prefects can view all module attendance
+DROP POLICY IF EXISTS "Admins and Prefects view all module attendance" ON public.teacher_module_attendance;
 CREATE POLICY "Admins and Prefects view all module attendance"
 ON public.teacher_module_attendance
 FOR SELECT
@@ -43,6 +45,7 @@ USING (
 );
 
 -- 3. Prefects can update attendance (e.g., to correct a status)
+DROP POLICY IF EXISTS "Prefects can manage module attendance" ON public.teacher_module_attendance;
 CREATE POLICY "Prefects can manage module attendance"
 ON public.teacher_module_attendance
 FOR UPDATE

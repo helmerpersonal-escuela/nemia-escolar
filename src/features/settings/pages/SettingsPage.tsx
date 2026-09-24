@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
-import { exportUserData } from '../../../utils/backupUtils'
-import { User, School, Lock, Save, BookOpen, Sparkles, Database, Copy, Trash2, AlertCircle, Calendar, Users, Clock, Plus, DownloadCloud, Shield, CreditCard, ArrowLeft, ClipboardList } from 'lucide-react'
+import { User, School, Lock, Save, BookOpen, Sparkles, Database, Copy, Trash2, Calendar, Users, Clock, Plus, CreditCard, ArrowLeft, GraduationCap, Check, Layers } from 'lucide-react'
 import { StaffManager } from '../components/StaffManager'
 import { PeriodManager } from '../../evaluation/components/PeriodManager'
 import { ScheduleConfig } from '../components/ScheduleConfig'
@@ -22,7 +21,7 @@ import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
-// @ts-ignore
+// @ts-expect-error -- pendiente de tipar
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
     iconRetinaUrl: markerIcon2x,
@@ -77,11 +76,6 @@ export const SettingsPage = () => {
     }, [profile.role, activeTab])
     */
     const { profile: hookProfile, updateProfile, isUpdating: isProfileUpdating, isSuperAdmin: hookIsSuperAdmin } = useProfile()
-    const currentRole = (hookProfile?.role || profile?.role || '').toUpperCase()
-    const isDirectorOrAdmin = ['DIRECTOR', 'ADMIN', 'SUPER_ADMIN', 'INDEPENDENT_TEACHER', 'ACADEMIC_COORD', 'TECH_COORD'].includes(currentRole)
-    const isAcademicCoord = currentRole === 'ACADEMIC_COORD'
-    const isSuperAdmin = hookIsSuperAdmin || ['helmerferras@gmail.com', 'helmerpersonal@gmail.com'].includes(profile?.email || '') || currentRole === 'SUPER_ADMIN'
-    const isStaffReadOnly = !isDirectorOrAdmin
 
     const [tenant, setTenant] = useState({
         id: '',
@@ -93,6 +87,8 @@ export const SettingsPage = () => {
         type: 'SCHOOL',
         location_lat: 19.4326,
         location_lng: -99.1332,
+        grade: null as number | null,
+        phase: null as number | null,
         ai_config: { groq_key: '', gemini_key: '', openai_key: '', apiKey: '' },
         cte_config: { next_date: '', link: '' },
         logo_left_url: '',
@@ -113,6 +109,20 @@ export const SettingsPage = () => {
     const [showMigrationModal, setShowMigrationModal] = useState(false)
     const [migrationSql, setMigrationSql] = useState('')
     const [isEditingSubjects, setIsEditingSubjects] = useState(false)
+
+    // Robust Role Enforcement
+    const workspaceType = tenant?.type || 'SCHOOL'
+    let currentRole = (hookProfile?.role || profile?.role || '').toUpperCase()
+    const PROTECTED_ROLES = ['TUTOR', 'SCHOOL_CONTROL', 'PREFECT', 'SUPPORT', 'STUDENT', 'SUPER_ADMIN']
+
+    if (workspaceType === 'INDEPENDENT' && !PROTECTED_ROLES.includes(currentRole)) {
+        currentRole = 'INDEPENDENT_TEACHER'
+    }
+
+    const isDirectorOrAdmin = ['DIRECTOR', 'ADMIN', 'SUPER_ADMIN', 'INDEPENDENT_TEACHER', 'ACADEMIC_COORD', 'TECH_COORD'].includes(currentRole)
+    const isAcademicCoord = currentRole === 'ACADEMIC_COORD'
+    const isSuperAdmin = hookIsSuperAdmin || ['helmerferras@gmail.com', 'helmerpersonal@gmail.com'].includes(profile?.email || '') || currentRole === 'SUPER_ADMIN'
+    const isStaffReadOnly = !isDirectorOrAdmin
 
     useEffect(() => {
         loadData()
@@ -186,7 +196,7 @@ export const SettingsPage = () => {
                     })
                 }
 
-                const effectiveRole = (workspaceRole || profileData.role || '').toUpperCase()
+                let effectiveRole = (workspaceRole || profileData.role || '').toUpperCase()
 
                 if (profileData.tenant_id) {
                     const { data: tenantData } = await supabase
@@ -196,6 +206,12 @@ export const SettingsPage = () => {
                         .single()
 
                     if (tenantData) {
+                        // Robust Role Enforcement
+                        const PROTECTED_ROLES = ['TUTOR', 'SCHOOL_CONTROL', 'PREFECT', 'SUPPORT', 'STUDENT', 'SUPER_ADMIN']
+                        if (tenantData.type === 'INDEPENDENT' && !PROTECTED_ROLES.includes(effectiveRole)) {
+                            effectiveRole = 'INDEPENDENT_TEACHER'
+                        }
+
                         setTenant({
                             id: tenantData.id,
                             name: (tenantData.name || '').toUpperCase(),
@@ -206,6 +222,8 @@ export const SettingsPage = () => {
                             type: tenantData.type || 'SCHOOL',
                             location_lat: tenantData.location_lat || 19.4326,
                             location_lng: tenantData.location_lng || -99.1332,
+                            grade: tenantData.grade || null,
+                            phase: tenantData.phase || null,
                             ai_config: tenantData.ai_config || { apiKey: '' },
                             cte_config: { next_date: '', link: '' }, // Loaded shortly after
                             logo_left_url: tenantData.logo_left_url || '',
@@ -249,7 +267,7 @@ export const SettingsPage = () => {
                         // 3. Get Catalog Names (for display)
                         const { data: catalogData } = await supabase.from('subject_catalog').select('id, name, educational_level')
                         if (catalogData) {
-                            let mergedCatalog = [...(catalogData || [])]
+                            const mergedCatalog = [...(catalogData || [])]
 
                             // Inject technologies from school_details
                             if (schoolDetails?.workshops) {
@@ -272,10 +290,7 @@ export const SettingsPage = () => {
                         }
 
                         // 4. Get Subjects - ONLY for teaching roles
-                        // Also allow ADMIN if it's an INDEPENDENT tenant (since they are the teacher)
-                        const isIndependentTeacher = effectiveRole === 'INDEPENDENT_TEACHER' || (effectiveRole === 'ADMIN' && tenantData.type === 'INDEPENDENT');
-
-                        if (['TEACHER', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD'].includes(effectiveRole) || isIndependentTeacher) {
+                        if (['TEACHER', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD', 'INDEPENDENT_TEACHER'].includes(effectiveRole)) {
                             console.log('Fetching subjects for role:', effectiveRole);
                             const { data: subjectData, error: subjectError } = await supabase
                                 .from('profile_subjects')
@@ -383,6 +398,16 @@ export const SettingsPage = () => {
     const handleUpdateTenant = async () => {
         setUpdating(true)
         try {
+            // Calculate NEM Phase if Primary or Telesecundaria
+            let newPhase = tenant.phase;
+            if (tenant.educational_level === 'PRIMARY' && tenant.grade) {
+                if (tenant.grade === 1 || tenant.grade === 2) newPhase = 3;
+                else if (tenant.grade === 3 || tenant.grade === 4) newPhase = 4;
+                else if (tenant.grade === 5 || tenant.grade === 6) newPhase = 5;
+            } else if (tenant.educational_level === 'TELESECUNDARIA') {
+                newPhase = 6;
+            }
+
             // 1. Update Tenants table
             const { error: tenantError } = await supabase.from('tenants').update({
                 name: tenant.name.toUpperCase(),
@@ -392,6 +417,8 @@ export const SettingsPage = () => {
                 location_lat: tenant.location_lat,
                 location_lng: tenant.location_lng,
                 educational_level: tenant.educational_level,
+                grade: (tenant.educational_level === 'PRIMARY' || tenant.educational_level === 'TELESECUNDARIA') ? tenant.grade : null,
+                phase: (tenant.educational_level === 'PRIMARY' || tenant.educational_level === 'TELESECUNDARIA') ? newPhase : null,
                 logo_left_url: tenant.logo_left_url,
                 logo_right_url: tenant.logo_right_url
             }).eq('id', tenant.id)
@@ -428,6 +455,24 @@ export const SettingsPage = () => {
     const handleUpdateSubjects = async () => {
         setUpdating(true)
         try {
+            // 0. Update tenant educational level and grade
+            let newPhase = tenant.phase;
+            if (tenant.educational_level === 'PRIMARY' && tenant.grade) {
+                if (tenant.grade === 1 || tenant.grade === 2) newPhase = 3;
+                else if (tenant.grade === 3 || tenant.grade === 4) newPhase = 4;
+                else if (tenant.grade === 5 || tenant.grade === 6) newPhase = 5;
+            } else if (tenant.educational_level === 'TELESECUNDARIA') {
+                newPhase = 6;
+            }
+
+            const { error: tenantError } = await supabase.from('tenants').update({
+                educational_level: tenant.educational_level,
+                grade: (tenant.educational_level === 'PRIMARY' || tenant.educational_level === 'TELESECUNDARIA') ? tenant.grade : null,
+                phase: (tenant.educational_level === 'PRIMARY' || tenant.educational_level === 'TELESECUNDARIA') ? newPhase : null
+            }).eq('id', tenant.id)
+
+            if (tenantError) throw tenantError
+
             // 1. Delete existing subjects for this user
             const { error: deleteError } = await supabase.from('profile_subjects').delete().eq('profile_id', profile.id)
             if (deleteError) throw deleteError
@@ -511,7 +556,7 @@ export const SettingsPage = () => {
                     <div className="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl animate-in zoom-in duration-200">
                         <div className="bg-amber-50 p-6 border-b border-amber-100 flex items-start">
                             <div className="bg-amber-100 p-2 rounded-lg mr-4">
-                                <Database className="w-6 h-6 text-amber-600" />
+                                <Database className="w-6 h-6 text-amber-700" />
                             </div>
                             <div>
                                 <h3 className="text-lg font-bold text-gray-900">Actualización de Base de Datos Requerida</h3>
@@ -574,14 +619,14 @@ export const SettingsPage = () => {
                     <div className="bg-white p-3 rounded-[2.5rem] border border-gray-100 shadow-sm sticky top-24 space-y-8">
                         {/* PERSONAL SECTION */}
                         <div>
-                            <h4 className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Personal</h4>
+                            <h4 className="px-4 text-[11px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Personal</h4>
                             <nav className="space-y-1">
                                 {[
                                     { id: 'profile', label: 'Mi Perfil', icon: User, color: 'text-blue-600', bg: 'bg-blue-50' },
                                     // Hide subjects for roles that don't teach. 
                                     // INDEPENDENT_TEACHER sees this in Institutional section now.
                                     ...(['TEACHER', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD', 'ADMIN'].includes(profile.role?.toUpperCase()) ? [
-                                        { id: 'subjects', label: 'Mis Materias', icon: BookOpen, color: 'text-purple-600', bg: 'bg-purple-50' }
+                                        { id: 'subjects', label: 'Datos Escolares', icon: BookOpen, color: 'text-purple-600', bg: 'bg-purple-50' }
                                     ] : []),
                                     { id: 'security', label: 'Seguridad', icon: Lock, color: 'text-gray-600', bg: 'bg-gray-100' },
                                     ...((profile.role?.toUpperCase() !== 'TUTOR') ? [
@@ -610,16 +655,16 @@ export const SettingsPage = () => {
                         {/* INSTITUTIONAL SECTION (DIRECTOR/ADMIN/TEACHER/COORD) */}
                         {(isDirectorOrAdmin || ['TEACHER', 'ACADEMIC_COORD', 'TECH_COORD', 'PREFECT', 'SUPPORT'].includes(currentRole)) && (
                             <div>
-                                <h4 className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Institucional</h4>
+                                <h4 className="px-4 text-[11px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Institucional</h4>
                                 <nav className="space-y-1">
                                     {[
-                                        { id: 'school', label: 'Datos Escuela', icon: School, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                                        { id: 'school', label: 'Datos Escuela', icon: School, color: 'text-emerald-700', bg: 'bg-emerald-50' },
                                         // Independent Teachers manage subjects here as part of their "Institution"
                                         ...(profile.role?.toUpperCase() === 'INDEPENDENT_TEACHER' || tenant.type === 'INDEPENDENT' ? [
-                                            { id: 'subjects', label: 'Mis Materias', icon: BookOpen, color: 'text-purple-600', bg: 'bg-purple-50' }
+                                            { id: 'subjects', label: 'Datos Escolares', icon: BookOpen, color: 'text-purple-600', bg: 'bg-purple-50' }
                                         ] : []),
                                         { id: 'horarios', label: 'Jornada y Horarios', icon: Clock, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-                                        { id: 'cycle', label: 'Ciclo Escolar', icon: Calendar, color: 'text-amber-600', bg: 'bg-amber-50' },
+                                        { id: 'cycle', label: 'Ciclo Escolar', icon: Calendar, color: 'text-amber-700', bg: 'bg-amber-50' },
                                         { id: 'periods', label: 'Periodos de Evaluación', icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50' },
                                     ].map((item: any) => {
                                         const isActive = activeTab === item.id;
@@ -645,7 +690,7 @@ export const SettingsPage = () => {
                         {/* ADMINISTRATION SECTION */}
                         {(isDirectorOrAdmin || isSuperAdmin) && (profile.role?.toUpperCase() !== 'INDEPENDENT_TEACHER' && tenant.type !== 'INDEPENDENT') && (
                             <div>
-                                <h4 className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Gestión</h4>
+                                <h4 className="px-4 text-[11px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Gestión</h4>
                                 <nav className="space-y-1">
                                     {[
                                         { id: 'personal', label: 'Plantilla Docente', icon: Users, color: 'text-rose-600', bg: 'bg-rose-50', adminOnly: true, excludeIndependent: true },
@@ -721,7 +766,7 @@ export const SettingsPage = () => {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700">Nombre(s)</label>
-                                            <input
+                                            <input aria-label="Nombre(s)"
                                                 type="text"
                                                 value={profile.first_name || ''}
                                                 onChange={(e) => setProfile({ ...profile, first_name: e.target.value.toUpperCase() })}
@@ -730,7 +775,7 @@ export const SettingsPage = () => {
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700">Apellido Paterno</label>
-                                            <input
+                                            <input aria-label="Apellido Paterno"
                                                 type="text"
                                                 value={profile.last_name_paternal || ''}
                                                 onChange={(e) => setProfile({ ...profile, last_name_paternal: e.target.value.toUpperCase() })}
@@ -739,7 +784,7 @@ export const SettingsPage = () => {
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700">Apellido Materno</label>
-                                            <input
+                                            <input aria-label="Apellido Materno"
                                                 type="text"
                                                 value={profile.last_name_maternal || ''}
                                                 onChange={(e) => setProfile({ ...profile, last_name_maternal: e.target.value.toUpperCase() })}
@@ -747,8 +792,8 @@ export const SettingsPage = () => {
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Correo Electrónico</label>
-                                            <input
+                                            <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Correo Electrónico</label>
+                                            <input aria-label="Correo Electrónico"
                                                 type="email"
                                                 disabled
                                                 value={profile.email || ''}
@@ -777,21 +822,21 @@ export const SettingsPage = () => {
                                         <div>
                                             {isEditingSubjects ? (
                                                 <div className="flex items-center gap-2">
-                                                    <button
+                                                    <button aria-label="Regresar"
                                                         onClick={() => setIsEditingSubjects(false)}
-                                                        className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors"
+                                                        className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
                                                     >
                                                         <ArrowLeft className="w-5 h-5" />
                                                     </button>
                                                     <div>
-                                                        <h3 className="text-2xl font-black text-gray-900 tracking-tight">Editar Materias</h3>
-                                                        <p className="text-sm text-gray-500 font-medium">Selecciona/desmarca las materias de tu lista.</p>
+                                                        <h3 className="text-2xl font-black text-gray-900 tracking-tight">Editar Datos Escolares</h3>
+                                                        <p className="text-sm text-gray-500 font-medium">Selecciona/desmarca las materias de tu lista o modifica tu información.</p>
                                                     </div>
                                                 </div>
                                             ) : (
                                                 <div>
-                                                    <h3 className="text-2xl font-black text-gray-900 tracking-tight">Mis Materias</h3>
-                                                    <p className="text-sm text-gray-500 font-medium">Gestiona las asignaturas que impartes actualmente.</p>
+                                                    <h3 className="text-2xl font-black text-gray-900 tracking-tight">Datos Escolares</h3>
+                                                    <p className="text-sm text-gray-500 font-medium">Gestiona tu grado, fase y asignaturas actuales.</p>
                                                 </div>
                                             )}
                                         </div>
@@ -808,12 +853,97 @@ export const SettingsPage = () => {
                                         )}
                                     </div>
 
+                                    {/* Additional Info Section (Grade and Phase) */}
+                                    {!isEditingSubjects && (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="squishy-card p-6 bg-indigo-50 border-2 border-indigo-100 flex items-center gap-4">
+                                                <div className="p-4 bg-indigo-100 text-indigo-600 rounded-2xl">
+                                                    <GraduationCap className="h-8 w-8" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-black text-indigo-400 uppercase tracking-widest">Grado Asignado</p>
+                                                    <h4 className="text-2xl font-black text-indigo-900">
+                                                        {tenant?.grade ? `${tenant.grade}° Grado` : 'No asignado'}
+                                                    </h4>
+                                                </div>
+                                            </div>
+                                            <div className="squishy-card p-6 bg-purple-50 border-2 border-purple-100 flex items-center gap-4">
+                                                <div className="p-4 bg-purple-100 text-purple-600 rounded-2xl">
+                                                    <Layers className="h-8 w-8" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-black text-purple-400 uppercase tracking-widest">Fase NEM</p>
+                                                    <h4 className="text-2xl font-black text-purple-900">
+                                                        {tenant?.phase ? `Fase ${tenant.phase}` : 'No asignada'}
+                                                    </h4>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* Main Content Area */}
                                     <div className="bg-gray-50 rounded-3xl border border-gray-100 min-h-[500px] flex flex-col relative overflow-hidden">
                                         {isEditingSubjects ? (
                                             <div className="flex flex-col h-full animate-in fade-in slide-in-from-bottom-4 duration-300">
                                                 {/* Scrollable Content */}
                                                 <div className="flex-1 p-6 overflow-y-auto max-h-[60vh]">
+                                                    {/* Educational Level & Grade Options */}
+                                                    <div className="mb-8 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                                                        <h4 className="text-sm font-black text-gray-800 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                                            <School className="w-5 h-5 text-blue-500" />
+                                                            Nivel y Grado
+                                                        </h4>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                            <div>
+                                                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Nivel Educativo</label>
+                                                                <select aria-label="Nivel Educativo"
+                                                                    value={tenant.educational_level || ''}
+                                                                    onChange={(e) => {
+                                                                        const level = e.target.value;
+                                                                        setTenant({ ...tenant, educational_level: level, grade: level === 'PRIMARY' ? tenant.grade : null, phase: level === 'PRIMARY' ? tenant.phase : null })
+                                                                    }}
+                                                                    className="w-full bg-gray-50 border-gray-200 rounded-xl px-4 py-3 font-bold text-gray-700"
+                                                                >
+                                                                    <option value="PRIMARY">Primaria</option>
+                                                                    <option value="SECONDARY">Secundaria</option>
+                                                                    <option value="TELESECUNDARIA">Telesecundaria</option>
+                                                                    <option value="HIGH_SCHOOL">Preparatoria / Bachillerato</option>
+                                                                    <option value="HIGHER_EDUCATION">Educación Superior</option>
+                                                                    <option value="OTHER">Otro</option>
+                                                                </select>
+                                                            </div>
+
+                                                            {tenant.educational_level === 'PRIMARY' && (
+                                                                <div>
+                                                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Grado Escolar</label>
+                                                                    <select aria-label="Grado Escolar"
+                                                                        value={tenant.grade || ''}
+                                                                        onChange={(e) => {
+                                                                            const grade = e.target.value ? parseInt(e.target.value) : null;
+                                                                            let phase = null;
+                                                                            if (grade) {
+                                                                                if (grade <= 2) phase = 3;
+                                                                                else if (grade <= 4) phase = 4;
+                                                                                else phase = 5;
+                                                                            }
+                                                                            setTenant({ ...tenant, grade, phase });
+                                                                        }}
+                                                                        className="w-full bg-indigo-50 border-indigo-200 rounded-xl px-4 py-3 font-bold text-indigo-700"
+                                                                    >
+                                                                        <option value="">Selecciona el Grado</option>
+                                                                        {[1, 2, 3, 4, 5, 6].map(g => (
+                                                                            <option key={g} value={g}>{g}° Grado</option>
+                                                                        ))}
+                                                                    </select>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    <h4 className="text-sm font-black text-gray-800 uppercase tracking-widest mb-4 mt-6 flex items-center gap-2">
+                                                        <BookOpen className="w-5 h-5 text-purple-500" />
+                                                        Materias Asignadas
+                                                    </h4>
                                                     <SubjectSelector
                                                         educationalLevel={tenant.educational_level || 'SECONDARY'}
                                                         selectedSubjects={selectedUserSubjects.reduce((acc: any, curr) => {
@@ -887,7 +1017,7 @@ export const SettingsPage = () => {
                                                                     <div>
                                                                         <h4 className="font-bold text-gray-900 text-sm mb-1 line-clamp-2">{subjectName}</h4>
                                                                         {subject.customDetail && (
-                                                                            <p className="text-[10px] uppercase font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg inline-block border border-blue-100">
+                                                                            <p className="text-[11px] uppercase font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg inline-block border border-blue-100">
                                                                                 {subject.customDetail}
                                                                             </p>
                                                                         )}
@@ -962,10 +1092,10 @@ export const SettingsPage = () => {
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
-                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Nombre Oficial</label>
+                                            <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Nombre Oficial</label>
                                             <div className="relative group">
-                                                <School className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
-                                                <input
+                                                <School className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-blue-500 transition-colors" />
+                                                <input aria-label="Nombre Oficial"
                                                     type="text"
                                                     value={tenant.name}
                                                     onChange={(e) => setTenant({ ...tenant, name: e.target.value })}
@@ -976,10 +1106,10 @@ export const SettingsPage = () => {
                                             </div>
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Clave de Centro de Trabajo (CCT)</label>
+                                            <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Clave de Centro de Trabajo (CCT)</label>
                                             <div className="relative group">
-                                                <div className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-500 transition-colors font-black text-[10px]">CCT</div>
-                                                <input
+                                                <div className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-blue-500 transition-colors font-black text-[11px]">CCT</div>
+                                                <input aria-label="Clave de Centro de Trabajo (CCT)"
                                                     type="text"
                                                     value={tenant.cct || ''}
                                                     onChange={(e) => setTenant({ ...tenant, cct: e.target.value })}
@@ -999,8 +1129,8 @@ export const SettingsPage = () => {
                                         </h4>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div>
-                                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Próxima Fecha</label>
-                                                <input
+                                                <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Próxima Fecha</label>
+                                                <input aria-label="Próxima Fecha"
                                                     type="date"
                                                     value={tenant.cte_config?.next_date || ''}
                                                     onChange={(e) => setTenant({
@@ -1010,11 +1140,11 @@ export const SettingsPage = () => {
                                                     readOnly={!isDirectorOrAdmin}
                                                     className={`w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-blue-500 transition-all outline-none ${!isDirectorOrAdmin ? 'opacity-70 cursor-not-allowed bg-gray-100' : ''}`}
                                                 />
-                                                <p className="text-[10px] text-gray-400 mt-1 ml-1">Dejar vacío para cálculo automático (último viernes).</p>
+                                                <p className="text-[11px] text-gray-500 mt-1 ml-1">Dejar vacío para cálculo automático (último viernes).</p>
                                             </div>
                                             <div>
-                                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Enlace a Orden del Día</label>
-                                                <input
+                                                <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Enlace a Orden del Día</label>
+                                                <input aria-label="Enlace a Orden del Día"
                                                     type="url"
                                                     value={tenant.cte_config?.link || ''}
                                                     onChange={(e) => setTenant({
@@ -1031,8 +1161,8 @@ export const SettingsPage = () => {
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                                         <div>
-                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Teléfono Institucional</label>
-                                            <input
+                                            <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Teléfono Institucional</label>
+                                            <input aria-label="Teléfono Institucional"
                                                 type="text"
                                                 disabled={isStaffReadOnly}
                                                 value={tenant.phone || ''}
@@ -1041,20 +1171,88 @@ export const SettingsPage = () => {
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Nivel Educativo</label>
-                                            <select
-                                                disabled={isStaffReadOnly}
+                                            <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Nivel Educativo</label>
+                                            <select aria-label="Nivel Educativo"
+                                                name="educationalLevel"
                                                 value={tenant.educational_level || ''}
-                                                onChange={(e) => setTenant({ ...tenant, educational_level: e.target.value })}
+                                                onChange={(e) => {
+                                                    const level = e.target.value;
+                                                    setTenant({ ...tenant, educational_level: level, grade: level === 'PRIMARY' ? tenant.grade : null, phase: level === 'PRIMARY' ? tenant.phase : null })
+                                                }}
                                                 className={`w-full px-5 py-3.5 bg-gray-50 border border-transparent rounded-2xl text-gray-900 font-bold focus:bg-white focus:border-blue-500 transition-all outline-none ${isStaffReadOnly ? 'cursor-not-allowed text-gray-500 appearance-none' : ''}`}
+                                                disabled={isStaffReadOnly}
                                             >
+                                                <option value="PRIMARY">Primaria</option>
                                                 <option value="SECONDARY">Secundaria</option>
                                                 <option value="TELESECUNDARIA">Telesecundaria</option>
+                                                <option value="HIGH_SCHOOL">Preparatoria / Bachillerato</option>
+                                                <option value="HIGHER_EDUCATION">Educación Superior</option>
+                                                <option value="OTHER">Otro</option>
                                             </select>
                                         </div>
+
+                                        {tenant.educational_level === 'PRIMARY' && (
+                                            <>
+                                                <div>
+                                                    <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Grado Escolar</label>
+                                                    <select aria-label="Grado Escolar"
+                                                        value={tenant.grade || ''}
+                                                        onChange={(e) => {
+                                                            const grade = e.target.value ? parseInt(e.target.value) : null;
+                                                            let phase = null;
+                                                            if (grade) {
+                                                                if (grade <= 2) phase = 3;
+                                                                else if (grade <= 4) phase = 4;
+                                                                else phase = 5;
+                                                            }
+                                                            setTenant({ ...tenant, grade, phase });
+                                                        }}
+                                                        disabled={isStaffReadOnly}
+                                                        className={`w-full px-5 py-3.5 bg-gray-50 border border-transparent rounded-2xl text-gray-900 font-bold focus:bg-white focus:border-blue-500 transition-all outline-none ${isStaffReadOnly ? 'cursor-not-allowed text-gray-500 appearance-none' : ''}`}
+                                                    >
+                                                        <option value="">Selecciona el Grado</option>
+                                                        {[1, 2, 3, 4, 5, 6].map(g => (
+                                                            <option key={g} value={g}>{g}° Grado</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1 flex items-center gap-1">
+                                                        <span>Fase NEM Asignada</span>
+                                                        <Sparkles className="w-3 h-3 text-emerald-700" />
+                                                    </label>
+                                                    <div className="w-full px-5 py-3.5 bg-emerald-50/50 border border-emerald-100/50 rounded-2xl text-emerald-700 font-black relative overflow-hidden flex items-center shadow-inner">
+                                                        <div className="absolute top-0 right-0 p-4 opacity-5">
+                                                            <GraduationCap className="w-12 h-12 text-emerald-700" />
+                                                        </div>
+                                                        <div className="relative z-10 flex items-center gap-4 w-full">
+                                                            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-extrabold flex-shrink-0 border border-emerald-200 shadow-sm">
+                                                                {tenant.phase || '-'}
+                                                            </div>
+                                                            <div className="flex flex-col">
+                                                                <span className="text-sm tracking-tight text-emerald-800">
+                                                                    {tenant.phase ? `Fase ${tenant.phase}` : 'Pendiente'}
+                                                                </span>
+                                                                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600/70 mt-0.5">
+                                                                    Cálculo Automático
+                                                                </span>
+                                                            </div>
+                                                            {tenant.phase && (
+                                                                <div className="ml-auto">
+                                                                    <div className="bg-emerald-500 rounded-full p-1 animate-pulse shadow-sm shadow-emerald-200">
+                                                                        <Check className="w-3 h-3 text-white" />
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
+
                                         <div className="col-span-2">
-                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Dirección Completa</label>
-                                            <input
+                                            <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Dirección Completa</label>
+                                            <input aria-label="Dirección Completa"
                                                 type="text"
                                                 disabled={isStaffReadOnly}
                                                 value={tenant.address || ''}
@@ -1064,7 +1262,7 @@ export const SettingsPage = () => {
                                         </div>
 
                                         <div className="col-span-2 space-y-4">
-                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Geolocalización</label>
+                                            <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest ml-1">Geolocalización</label>
                                             <div className="h-[350px] rounded-[2rem] overflow-hidden border border-gray-100 shadow-inner group relative">
                                                 <MapContainer
                                                     center={[tenant.location_lat || 19.43, tenant.location_lng || -99.13]}
@@ -1080,7 +1278,7 @@ export const SettingsPage = () => {
                                                         setPosition={(pos) => setTenant(prev => ({ ...prev, location_lat: pos.lat, location_lng: pos.lng }))}
                                                     />
                                                 </MapContainer>
-                                                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-4 py-2 rounded-xl text-[10px] font-black uppercase text-gray-500 border border-white/50 shadow-lg pointer-events-none">
+                                                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-4 py-2 rounded-xl text-[11px] font-black uppercase text-gray-500 border border-white/50 shadow-lg pointer-events-none">
                                                     Haz clic para actualizar
                                                 </div>
                                             </div>
@@ -1099,7 +1297,7 @@ export const SettingsPage = () => {
                                                         onUpload={(url) => setTenant(prev => ({ ...prev, logo_left_url: url }))}
                                                         bucket="school-assets"
                                                     />
-                                                    <p className="text-[10px] font-medium text-gray-400 mt-4 leading-relaxed italic">
+                                                    <p className="text-[11px] font-medium text-gray-500 mt-4 leading-relaxed italic">
                                                         Se utilizará para encabezados oficiales (ej. SEP o Secretaría Estatal).
                                                     </p>
                                                 </div>
@@ -1110,7 +1308,7 @@ export const SettingsPage = () => {
                                                         onUpload={(url) => setTenant(prev => ({ ...prev, logo_right_url: url }))}
                                                         bucket="school-assets"
                                                     />
-                                                    <p className="text-[10px] font-medium text-gray-400 mt-4 leading-relaxed italic">
+                                                    <p className="text-[11px] font-medium text-gray-500 mt-4 leading-relaxed italic">
                                                         Logotipo propio de la escuela para boletas y reportes.
                                                     </p>
                                                 </div>
@@ -1170,7 +1368,7 @@ export const SettingsPage = () => {
                                                     </div>
                                                     <div>
                                                         <h4 className="text-lg font-black text-gray-900 uppercase tracking-tight">Sincronización de Tiempos</h4>
-                                                        <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-0.5">Gestión de Calendario</p>
+                                                        <p className="text-[11px] font-black text-indigo-500 uppercase tracking-widest mt-0.5">Gestión de Calendario</p>
                                                     </div>
                                                 </div>
                                                 <p className="text-sm text-gray-600 leading-relaxed max-w-2xl">
@@ -1223,7 +1421,7 @@ export const SettingsPage = () => {
                                                         <div className="p-3 bg-white/20 backdrop-blur rounded-2xl mr-4">
                                                             <Sparkles className="w-6 h-6" />
                                                         </div>
-                                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">AI Core Engine</span>
+                                                        <span className="text-[11px] font-black uppercase tracking-[0.2em] opacity-80">AI Core Engine</span>
                                                     </div>
                                                     <h4 className="text-xl font-black mb-4">Potencia tu labor docente</h4>
                                                     <p className="text-sm text-indigo-50 leading-relaxed opacity-90">
@@ -1237,10 +1435,10 @@ export const SettingsPage = () => {
                                                 {/* Groq Key */}
                                                 <div className="space-y-3">
                                                     <div className="flex justify-between items-center px-1">
-                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Groq API Key (Recomendado)</label>
+                                                        <label className="text-[11px] font-black text-gray-500 uppercase tracking-widest">Groq API Key (Recomendado)</label>
                                                         <button
                                                             onClick={() => window.open('https://console.groq.com/keys', '_blank')}
-                                                            className="text-[10px] font-black text-indigo-500 hover:text-indigo-700 uppercase"
+                                                            className="text-[11px] font-black text-indigo-500 hover:text-indigo-700 uppercase"
                                                         >
                                                             Obtener Key
                                                         </button>
@@ -1254,7 +1452,7 @@ export const SettingsPage = () => {
                                                             className="w-full px-5 py-4 bg-gray-50 border-transparent rounded-2xl text-sm font-mono focus:bg-white focus:ring-0 focus:border-indigo-500 transition-all shadow-inner"
                                                         />
                                                         <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                                                            <span className="text-[10px] font-black bg-orange-100 text-orange-600 px-3 py-1 rounded-full uppercase tracking-tighter">Llama 3</span>
+                                                            <span className="text-[11px] font-black bg-orange-100 text-orange-600 px-3 py-1 rounded-full uppercase tracking-tighter">Llama 3</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1262,10 +1460,10 @@ export const SettingsPage = () => {
                                                 {/* Gemini Key */}
                                                 <div className="space-y-3">
                                                     <div className="flex justify-between items-center px-1">
-                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Google Gemini API Key</label>
+                                                        <label className="text-[11px] font-black text-gray-500 uppercase tracking-widest">Google Gemini API Key</label>
                                                         <button
                                                             onClick={() => window.open('https://aistudio.google.com/app/apikey', '_blank')}
-                                                            className="text-[10px] font-black text-indigo-500 hover:text-indigo-700 uppercase"
+                                                            className="text-[11px] font-black text-indigo-500 hover:text-indigo-700 uppercase"
                                                         >
                                                             Obtener Key
                                                         </button>
@@ -1279,7 +1477,7 @@ export const SettingsPage = () => {
                                                             className="w-full px-5 py-4 bg-gray-50 border-transparent rounded-2xl text-sm font-mono focus:bg-white focus:ring-0 focus:border-indigo-500 transition-all shadow-inner"
                                                         />
                                                         <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                                                            <span className="text-[10px] font-black bg-blue-100 text-blue-600 px-3 py-1 rounded-full uppercase tracking-tighter">Gemini 1.5</span>
+                                                            <span className="text-[11px] font-black bg-blue-100 text-blue-600 px-3 py-1 rounded-full uppercase tracking-tighter">Gemini 1.5</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1287,10 +1485,10 @@ export const SettingsPage = () => {
                                                 {/* OpenAI Key */}
                                                 <div className="space-y-3">
                                                     <div className="flex justify-between items-center px-1">
-                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">OpenAI API Key (Opcional)</label>
+                                                        <label className="text-[11px] font-black text-gray-500 uppercase tracking-widest">OpenAI API Key (Opcional)</label>
                                                         <button
                                                             onClick={() => window.open('https://platform.openai.com/api-keys', '_blank')}
-                                                            className="text-[10px] font-black text-indigo-500 hover:text-indigo-700 uppercase"
+                                                            className="text-[11px] font-black text-indigo-500 hover:text-indigo-700 uppercase"
                                                         >
                                                             Obtener Key
                                                         </button>
@@ -1304,7 +1502,7 @@ export const SettingsPage = () => {
                                                             className="w-full px-5 py-4 bg-gray-50 border-transparent rounded-2xl text-sm font-mono focus:bg-white focus:ring-0 focus:border-indigo-500 transition-all shadow-inner"
                                                         />
                                                         <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                                                            <span className="text-[10px] font-black bg-gray-100 text-gray-600 px-3 py-1 rounded-full uppercase tracking-tighter">GPT-4o</span>
+                                                            <span className="text-[11px] font-black bg-gray-100 text-gray-600 px-3 py-1 rounded-full uppercase tracking-tighter">GPT-4o</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1312,7 +1510,7 @@ export const SettingsPage = () => {
                                                 {(aiSettings.groq_key || aiSettings.gemini_key) && (
                                                     <div className="flex items-center bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
                                                         <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse mr-3" />
-                                                        <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">
+                                                        <span className="text-[11px] font-black text-emerald-700 uppercase tracking-widest">
                                                             {aiSettings.groq_key && aiSettings.gemini_key ? 'Motores Configurados y Activos' : 'Motor IA Habilitado'}
                                                         </span>
                                                     </div>
@@ -1322,7 +1520,7 @@ export const SettingsPage = () => {
                                             <div className="pt-12 border-t border-gray-50">
                                                 <div className="flex items-center mb-6">
                                                     <div className="w-1 h-8 bg-amber-400 rounded-full mr-4" />
-                                                    <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest">Developer Toolkit</h3>
+                                                    <h3 className="text-sm font-black text-gray-500 uppercase tracking-widest">Developer Toolkit</h3>
                                                 </div>
                                                 <div className="bg-gray-50 p-8 rounded-[2.5rem] border border-gray-100 group transition-all hover:bg-white hover:shadow-xl hover:shadow-gray-100">
                                                     <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
@@ -1352,12 +1550,12 @@ export const SettingsPage = () => {
                                                                 }
                                                             }}
                                                             disabled={updating}
-                                                            className="px-6 py-3 bg-white border border-gray-200 text-gray-900 font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm"
+                                                            className="px-6 py-3 bg-white border border-gray-200 text-gray-900 font-black text-[11px] uppercase tracking-widest rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm"
                                                         >
                                                             Ejecutar Seed
                                                         </button>
                                                     </div>
-                                                    <div className="mt-6 flex items-center justify-center sm:justify-start text-[10px] font-black text-amber-600 bg-amber-50 py-2 px-4 rounded-full border border-amber-100 inline-flex">
+                                                    <div className="mt-6 flex items-center justify-center sm:justify-start text-[11px] font-black text-amber-700 bg-amber-50 py-2 px-4 rounded-full border border-amber-100 inline-flex">
                                                         <Lock className="w-3 h-3 mr-2" />
                                                         ENTORNO DE PRUEBAS SOLAMENTE
                                                     </div>

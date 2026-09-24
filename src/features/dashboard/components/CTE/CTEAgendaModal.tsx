@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react'
-import { X, Plus, Trash2, Save, Clock, User, FileText, CheckCircle2, AlertCircle } from 'lucide-react'
+import { X, Plus, Trash2, Save, Clock, User, FileText } from 'lucide-react'
 import { supabase } from '../../../../lib/supabase'
 import { useTenant } from '../../../../hooks/useTenant'
 
@@ -24,6 +24,8 @@ export const CTEAgendaModal = ({ isOpen, onClose, canEdit = false }: CTEAgendaMo
     const [saving, setSaving] = useState(false)
     const [agendaItems, setAgendaItems] = useState<AgendaItem[]>([])
     const [nextDate, setNextDate] = useState<string>('')
+    const [sessionId, setSessionId] = useState<string | null>(null)
+    const [myAgreements, setMyAgreements] = useState<{ id: string; description: string; due_date: string | null; status: string; follow_up: string | null }[]>([])
 
     useEffect(() => {
         if (isOpen && tenant?.id) {
@@ -51,6 +53,20 @@ export const CTEAgendaModal = ({ isOpen, onClose, canEdit = false }: CTEAgendaMo
             if (data?.cte_config?.next_date) {
                 setNextDate(data.cte_config.next_date)
             }
+            setSessionId(data?.cte_config?.session_id ?? null)
+
+            // Acuerdos del CTE asignados a mí (solo lectura + reporte de avance)
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                const { data: mine } = await supabase
+                    .from('cte_agreements')
+                    .select('id, description, due_date, status, follow_up')
+                    .eq('tenant_id', tenant?.id)
+                    .eq('responsible_profile_id', user.id)
+                    .in('status', ['PENDIENTE', 'EN_PROCESO'])
+                    .order('due_date', { ascending: true })
+                setMyAgreements(mine ?? [])
+            }
 
         } catch (error) {
             console.error('Error loading agenda:', error)
@@ -63,25 +79,12 @@ export const CTEAgendaModal = ({ isOpen, onClose, canEdit = false }: CTEAgendaMo
         if (!tenant?.id) return
         setSaving(true)
         try {
-            // Fetch current config first to preserve other fields like link/date
-            const { data: currentData } = await supabase
-                .from('school_details')
-                .select('cte_config')
-                .eq('tenant_id', tenant.id)
-                .single()
-
-            const currentConfig = currentData?.cte_config || {}
-
-            const { error } = await supabase
-                .from('school_details')
-                .update({
-                    cte_config: {
-                        ...currentConfig,
-                        agenda: agendaItems
-                    }
-                })
-                .eq('tenant_id', tenant.id)
-
+            // Solo dirección/coordinación pueden publicar (se valida en el servidor).
+            const { error } = await supabase.rpc('cte_publish_agenda', {
+                p_tenant: tenant.id,
+                p_agenda: agendaItems,
+                p_session: sessionId,
+            })
             if (error) throw error
             onClose()
         } catch (error) {
@@ -90,6 +93,12 @@ export const CTEAgendaModal = ({ isOpen, onClose, canEdit = false }: CTEAgendaMo
         } finally {
             setSaving(false)
         }
+    }
+
+    const reportAgreement = async (id: string, status: string, followUp: string) => {
+        const { error } = await supabase.rpc('cte_report_agreement', { p_id: id, p_status: status, p_follow_up: followUp })
+        if (error) { alert('No se pudo guardar el avance.'); return }
+        setMyAgreements(prev => prev.map(a => a.id === id ? { ...a, status, follow_up: followUp } : a))
     }
 
     const addItem = () => {
@@ -129,13 +138,13 @@ export const CTEAgendaModal = ({ isOpen, onClose, canEdit = false }: CTEAgendaMo
                             Orden del Día - Consejo Técnico
                         </h2>
                         {nextDate && (
-                            <p className="text-sm font-bold text-gray-400 mt-1 flex items-center gap-2">
+                            <p className="text-sm font-bold text-gray-500 mt-1 flex items-center gap-2">
                                 <Clock className="w-4 h-4" />
                                 Próxima Sesión: {new Date(nextDate + 'T00:00:00').toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}
                             </p>
                         )}
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+                    <button aria-label="Cerrar" onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
                         <X className="w-6 h-6 text-gray-500" />
                     </button>
                 </div>
@@ -151,9 +160,9 @@ export const CTEAgendaModal = ({ isOpen, onClose, canEdit = false }: CTEAgendaMo
                             {agendaItems.length === 0 ? (
                                 <div className="text-center py-20 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
                                     <div className="p-4 bg-white rounded-full inline-flex mb-4 shadow-sm">
-                                        <FileText className="w-8 h-8 text-gray-400" />
+                                        <FileText className="w-8 h-8 text-gray-500" />
                                     </div>
-                                    <p className="text-gray-400 font-bold">No hay puntos en la agenda aún.</p>
+                                    <p className="text-gray-500 font-bold">No hay puntos en la agenda aún.</p>
                                     {canEdit && (
                                         <button
                                             onClick={addItem}
@@ -193,9 +202,9 @@ export const CTEAgendaModal = ({ isOpen, onClose, canEdit = false }: CTEAgendaMo
                                             <div className="flex-1 bg-white border border-gray-100 rounded-2xl p-4 shadow-sm group-hover:shadow-md transition-all">
                                                 <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                                                     <div className="md:col-span-8">
-                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Actividad / Tema</label>
+                                                        <label className="text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1 block">Actividad / Tema</label>
                                                         {canEdit ? (
-                                                            <textarea
+                                                            <textarea aria-label="Actividad / Tema"
                                                                 value={item.topic}
                                                                 onChange={(e) => updateItem(item.id, 'topic', e.target.value)}
                                                                 className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm font-medium text-gray-900 resize-none h-20 focus:bg-white transition-all outline-none focus:border-blue-500"
@@ -207,9 +216,9 @@ export const CTEAgendaModal = ({ isOpen, onClose, canEdit = false }: CTEAgendaMo
                                                     </div>
                                                     <div className="md:col-span-4 flex flex-col justify-between">
                                                         <div>
-                                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Responsable</label>
+                                                            <label className="text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1 block">Responsable</label>
                                                             {canEdit ? (
-                                                                <input
+                                                                <input aria-label="Responsable"
                                                                     type="text"
                                                                     value={item.responsible}
                                                                     onChange={(e) => updateItem(item.id, 'responsible', e.target.value)}
@@ -241,10 +250,40 @@ export const CTEAgendaModal = ({ isOpen, onClose, canEdit = false }: CTEAgendaMo
                                 </div>
                             )}
 
+                            {myAgreements.length > 0 && (
+                                <div className="mt-6 p-5 bg-amber-50/60 border border-amber-100 rounded-2xl space-y-3">
+                                    <h3 className="text-xs font-black text-amber-700 uppercase tracking-widest">Mis compromisos del CTE</h3>
+                                    {myAgreements.map(a => (
+                                        <div key={a.id} className="bg-white rounded-xl p-3 space-y-2">
+                                            <p className="text-sm font-bold text-gray-800">{a.description}</p>
+                                            {a.due_date && <p className="text-[11px] text-gray-500">Fecha compromiso: {a.due_date}</p>}
+                                            <div className="flex flex-col sm:flex-row gap-2">
+                                                <select
+                                                    defaultValue={a.status}
+                                                    onChange={e => reportAgreement(a.id, e.target.value, a.follow_up ?? '')}
+                                                    className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs font-bold"
+                                                    aria-label="Estado del compromiso"
+                                                >
+                                                    <option value="PENDIENTE">Pendiente</option>
+                                                    <option value="EN_PROCESO">En proceso</option>
+                                                    <option value="CUMPLIDO">Cumplido</option>
+                                                </select>
+                                                <input
+                                                    defaultValue={a.follow_up ?? ''}
+                                                    onBlur={e => { if (e.target.value !== (a.follow_up ?? '')) reportAgreement(a.id, a.status, e.target.value) }}
+                                                    placeholder="Avance o evidencia"
+                                                    className="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-xs"
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
                             {canEdit && (
                                 <button
                                     onClick={addItem}
-                                    className="w-full py-4 mt-4 border-2 border-dashed border-gray-200 rounded-2xl text-gray-400 font-bold hover:border-blue-300 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center gap-2"
+                                    className="w-full py-4 mt-4 border-2 border-dashed border-gray-200 rounded-2xl text-gray-500 font-bold hover:border-blue-300 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center gap-2"
                                 >
                                     <Plus className="w-5 h-5" />
                                     Agregar Nuevo Punto

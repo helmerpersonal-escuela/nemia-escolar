@@ -1,9 +1,13 @@
 
 import { useState, useEffect } from 'react'
-import { X, Save, AlertCircle, CheckCircle2, Pencil, Trash2, ClipboardCheck, LayoutList, Calendar, ChevronDown, ChevronRight, Printer } from 'lucide-react'
+import { X, Save, AlertCircle, Pencil, Trash2, ClipboardCheck, LayoutList, Calendar, ChevronDown, ChevronRight, Printer } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
-import { useOfflineSync } from '../../../hooks/useOfflineSync'
+import { saveOrQueue } from '../../../lib/offline/outbox'
+import { readCache } from '../../../lib/offline/cache'
+import { bundleKey, type GradebookBundle } from '../../../lib/offline/gradebookData'
+import { isNetworkError } from '../../../lib/offline/network'
+import { useToast } from '../../../components/ui/Toast'
 import { DictationModeModal } from './DictationModeModal'
 import { Mic, Sparkles, Loader2 } from 'lucide-react'
 import { GeminiService } from '../../../lib/gemini'
@@ -35,7 +39,7 @@ export const GradingModal = ({
     onDelete
 }: GradingModalProps) => {
     const { data: tenant } = useTenant()
-    const { isOnline, addToQueue } = useOfflineSync()
+    const { showToast } = useToast()
 
     const aiService = useMemo(() => new GeminiService(
         tenant?.aiConfig?.geminiKey || '',
@@ -89,6 +93,14 @@ export const GradingModal = ({
             data.forEach(r => { map[r.id] = r })
             setInstruments(map)
         } catch (err) {
+            // Sin señal: usar las rúbricas guardadas con el grupo
+            if (isNetworkError(err) && tenant?.id) {
+                const cached = await readCache<GradebookBundle>(bundleKey(tenant.id, groupId))
+                const map: Record<string, any> = {}
+                cached?.data.rubrics.filter(r => ids.includes(r.id)).forEach(r => { map[r.id] = r })
+                setInstruments(map)
+                return
+            }
             console.error('Error fetching instruments:', err)
         } finally {
             setLoadingInstruments(false)
@@ -194,6 +206,7 @@ export const GradingModal = ({
                         <div class="info-item"><strong>Fecha:</strong> ${new Date().toLocaleDateString('es-MX')}</div>
                     </div>
                     
+                    <div className="table-scroll">
                     <table>
                         <thead>
                             <tr>
@@ -206,6 +219,7 @@ export const GradingModal = ({
                             ${tableRows}
                         </tbody>
                     </table>
+                    </div>
 
                     <div style="margin-top: 40px;">
                         <div style="font-weight: bold; margin-bottom: 15px;">Retroalimentación y Observaciones:</div>
@@ -267,27 +281,18 @@ export const GradingModal = ({
                 }
             })
 
-            if (!isOnline) {
-                // Queue each grade update individually or as one? 
-                // useOfflineSync expects individual data.
-                for (const update of updates) {
-                    addToQueue({
-                        table: 'grades',
-                        action: 'UPSERT',
-                        data: update
-                    })
-                }
-                alert('Modo Offline: Calificaciones guardadas localmente. Se sincronizarán al recuperar internet.')
-                onSuccess()
-                onClose()
-                return
+            // En línea se guarda al momento; sin señal queda en el dispositivo y se sube sola.
+            const { queued } = await saveOrQueue({
+                table: 'grades',
+                op: 'upsert',
+                rows: updates,
+                onConflict: 'assignment_id,student_id',
+                dedupeKey: `grades:${student.id}:${changedIds.slice().sort().join(',')}`,
+                label: `Calificaciones de ${student.first_name ?? 'alumno'} ${student.last_name_paternal ?? ''}`.trim(),
+            })
+            if (queued) {
+                showToast('Sin conexión: las calificaciones quedaron guardadas en este dispositivo y se enviarán al volver la señal.', 'info', 5000)
             }
-
-            const { error } = await supabase
-                .from('grades')
-                .upsert(updates, { onConflict: 'student_id,assignment_id' })
-
-            if (error) throw error
 
             onSuccess()
             onClose()
@@ -319,7 +324,7 @@ export const GradingModal = ({
                             </p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-3 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-2xl transition-all">
+                    <button aria-label="Cerrar" onClick={onClose} className="p-3 text-gray-500 hover:text-gray-600 hover:bg-gray-100 rounded-2xl transition-all">
                         <X className="h-6 w-6" />
                     </button>
                 </div>
@@ -329,7 +334,7 @@ export const GradingModal = ({
                     {assignments.length === 0 ? (
                         <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-100">
                             <AlertCircle className="w-16 h-16 text-gray-200 mx-auto mb-4" />
-                            <p className="text-gray-400 font-bold uppercase tracking-widest">No hay actividades asignadas</p>
+                            <p className="text-gray-500 font-bold uppercase tracking-widest">No hay actividades asignadas</p>
                         </div>
                     ) : (
                         <div className="space-y-6">
@@ -347,7 +352,7 @@ export const GradingModal = ({
                                             className="flex justify-between items-center cursor-pointer group/header"
                                         >
                                             <div className="flex items-center gap-4 flex-1">
-                                                <div className={`p-2 rounded-xl transition-colors ${isExpanded ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-50 text-gray-400 group-hover/header:bg-indigo-50 group-hover/header:text-indigo-400'}`}>
+                                                <div className={`p-2 rounded-xl transition-colors ${isExpanded ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-50 text-gray-500 group-hover/header:bg-indigo-50 group-hover/header:text-indigo-400'}`}>
                                                     {isExpanded ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
                                                 </div>
                                                 <div>
@@ -359,7 +364,7 @@ export const GradingModal = ({
                                                         <div className="flex gap-1">
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); handlePrintInstrument(assignment); }}
-                                                                className="p-1.5 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-all font-bold"
+                                                                className="p-1.5 text-gray-500 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-all font-bold"
                                                                 title="Imprimir instrumento"
                                                             >
                                                                 <Printer className="w-4 h-4" />
@@ -370,7 +375,7 @@ export const GradingModal = ({
                                                                     setAssignmentForDictation(assignment);
                                                                     setIsDictationModeOpen(true);
                                                                 }}
-                                                                className="p-1.5 text-gray-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition-all font-bold"
+                                                                className="p-1.5 text-gray-500 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition-all font-bold"
                                                                 title="Modo Dictado"
                                                             >
                                                                 <Mic className="w-4 h-4" />
@@ -398,7 +403,7 @@ export const GradingModal = ({
                                                                         setEnrichingId(null)
                                                                     }
                                                                 }}
-                                                                className="p-1.5 text-gray-400 hover:text-amber-600 rounded-lg hover:bg-amber-50 transition-all font-bold disabled:opacity-50"
+                                                                className="p-1.5 text-gray-500 hover:text-amber-600 rounded-lg hover:bg-amber-50 transition-all font-bold disabled:opacity-50"
                                                                 title="Refuerzo IA (Misión/Entregable/Eval)"
                                                             >
                                                                 {enrichingId === assignment.id ? (
@@ -410,7 +415,7 @@ export const GradingModal = ({
                                                             {onEdit && (
                                                                 <button
                                                                     onClick={(e) => { e.stopPropagation(); onEdit(assignment); }}
-                                                                    className="p-1.5 text-gray-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition-all font-bold"
+                                                                    className="p-1.5 text-gray-500 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition-all font-bold"
                                                                     title="Editar actividad"
                                                                 >
                                                                     <Pencil className="w-3.5 h-3.5" />
@@ -424,7 +429,7 @@ export const GradingModal = ({
                                                                             onDelete(assignment.id)
                                                                         }
                                                                     }}
-                                                                    className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-all"
+                                                                    className="p-1.5 text-gray-500 hover:text-red-600 rounded-lg hover:bg-red-50 transition-all"
                                                                     title="Eliminar actividad"
                                                                 >
                                                                     <Trash2 className="w-3.5 h-3.5" />
@@ -434,11 +439,11 @@ export const GradingModal = ({
                                                     </div>
                                                     <div className="flex items-center gap-4 mt-1">
                                                         {!isExpanded && (
-                                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                                            <p className="text-[11px] font-black text-gray-500 uppercase tracking-widest">
                                                                 Haga clic para expandir y calificar
                                                             </p>
                                                         )}
-                                                        <div className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
+                                                        <div className="flex items-center gap-1 text-[11px] font-black text-slate-500 uppercase tracking-widest bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
                                                             <Calendar className="w-3 h-3" />
                                                             <span>Vence: {new Date(assignment.due_date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}</span>
                                                         </div>
@@ -451,7 +456,7 @@ export const GradingModal = ({
                                                     <div className={`text-2xl font-black transition-colors ${isExpanded ? 'text-indigo-600' : (currentScore > 0 ? 'text-indigo-400' : 'text-gray-200')}`}>
                                                         {grades[assignment.id]?.score || '-'}
                                                     </div>
-                                                    <div className="text-[8px] font-black text-gray-400 uppercase tracking-tighter">CALIFICACIÓN</div>
+                                                    <div className="text-[11px] font-black text-gray-500 uppercase tracking-tighter">CALIFICACIÓN</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -461,7 +466,7 @@ export const GradingModal = ({
                                             <div className="mt-8 animate-in fade-in slide-in-from-top-4 duration-300">
                                                 <div className="flex justify-between items-start mb-6 pt-6 border-t border-gray-50">
                                                     <div>
-                                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                                        <p className="text-[11px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
                                                             <Calendar className="w-3 h-3" />
                                                             Vence: {new Date(assignment.due_date).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}
                                                         </p>
@@ -478,7 +483,7 @@ export const GradingModal = ({
                                                                 className="w-24 bg-indigo-50/50 border-none rounded-2xl py-3 px-4 text-center font-black text-2xl text-indigo-700 focus:ring-4 focus:ring-indigo-100 transition-all"
                                                                 placeholder="-"
                                                             />
-                                                            <span className="absolute -bottom-5 right-0 text-[10px] font-black text-indigo-300 uppercase tracking-widest text-right w-full">PROMEDIO FINAL</span>
+                                                            <span className="absolute -bottom-5 right-0 text-[11px] font-black text-indigo-300 uppercase tracking-widest text-right w-full">PROMEDIO FINAL</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -488,7 +493,7 @@ export const GradingModal = ({
                                                     <div className="mt-8 space-y-6 pt-6 border-t border-gray-50">
                                                         <div className="flex items-center gap-2 mb-4">
                                                             <LayoutList className="w-4 h-4 text-indigo-400" />
-                                                            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Instrumento: {instrument.title}</span>
+                                                            <span className="text-[11px] font-black text-indigo-400 uppercase tracking-widest">Instrumento: {instrument.title}</span>
                                                         </div>
 
                                                         <div className="space-y-4">
@@ -496,7 +501,7 @@ export const GradingModal = ({
                                                                 <div key={idx} className="bg-slate-50/50 rounded-2xl p-5 border border-slate-100/50">
                                                                     <div className="flex justify-between items-center mb-4">
                                                                         <span className="text-xs font-black text-gray-700 uppercase tracking-tight">{crit.name}</span>
-                                                                        <span className="text-[10px] bg-white px-2 py-1 rounded-md text-slate-400 font-bold border border-slate-100">{crit.percentage}%</span>
+                                                                        <span className="text-[11px] bg-white px-2 py-1 rounded-md text-slate-500 font-bold border border-slate-100">{crit.percentage}%</span>
                                                                     </div>
 
                                                                     {((instrument.type === 'ANALYTIC' || instrument.type === 'RUBRIC') && crit.levels) ? (
@@ -512,8 +517,8 @@ export const GradingModal = ({
                                                                                             : 'bg-white border-transparent hover:border-indigo-200'
                                                                                             }`}
                                                                                     >
-                                                                                        <div className={`text-[9px] font-black uppercase mb-1 ${isSelected ? 'text-white' : 'text-slate-400'}`}>{lvl.title}</div>
-                                                                                        <div className={`text-[10px] font-bold leading-tight line-clamp-2 ${isSelected ? 'text-indigo-50' : 'text-gray-600'}`}>
+                                                                                        <div className={`text-[11px] font-black uppercase mb-1 ${isSelected ? 'text-white' : 'text-slate-500'}`}>{lvl.title}</div>
+                                                                                        <div className={`text-[11px] font-bold leading-tight line-clamp-2 ${isSelected ? 'text-indigo-50' : 'text-gray-600'}`}>
                                                                                             {lvl.description || `${lvl.score} pts`}
                                                                                         </div>
                                                                                     </button>
@@ -524,11 +529,11 @@ export const GradingModal = ({
                                                                         <div className="flex gap-2">
                                                                             <button
                                                                                 onClick={() => handleLevelSelect(assignment.id, idx, 10, instrument)}
-                                                                                className={`flex-1 p-3 rounded-xl border-2 font-black text-xs transition-all ${selections[idx] === 10 ? 'bg-green-600 border-green-600 text-white shadow-lg' : 'bg-white border-slate-100 text-slate-400'}`}
+                                                                                className={`flex-1 p-3 rounded-xl border-2 font-black text-xs transition-all ${selections[idx] === 10 ? 'bg-green-600 border-green-600 text-white shadow-lg' : 'bg-white border-slate-100 text-slate-500'}`}
                                                                             >CUMPLE (10)</button>
                                                                             <button
                                                                                 onClick={() => handleLevelSelect(assignment.id, idx, 5, instrument)}
-                                                                                className={`flex-1 p-3 rounded-xl border-2 font-black text-xs transition-all ${selections[idx] === 5 ? 'bg-rose-600 border-rose-600 text-white shadow-lg' : 'bg-white border-slate-100 text-slate-400'}`}
+                                                                                className={`flex-1 p-3 rounded-xl border-2 font-black text-xs transition-all ${selections[idx] === 5 ? 'bg-rose-600 border-rose-600 text-white shadow-lg' : 'bg-white border-slate-100 text-slate-500'}`}
                                                                             >NO CUMPLE (5)</button>
                                                                         </div>
                                                                     )}
@@ -542,7 +547,7 @@ export const GradingModal = ({
                                                 <div className="mt-8 pt-8 border-t border-gray-50">
                                                     <div className="flex items-center gap-2 mb-4">
                                                         <ClipboardCheck className="w-4 h-4 text-indigo-400" />
-                                                        <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Retroalimentación</span>
+                                                        <span className="text-[11px] font-black text-indigo-400 uppercase tracking-widest">Retroalimentación</span>
                                                     </div>
                                                     <textarea
                                                         placeholder="Retroalimentación para el alumno..."

@@ -95,7 +95,7 @@
   }
 
   .squishy-card {
-    @apply bg-white rounded-[2rem] border-2 border-white/60 transition-all duration-300;
+    @apply rounded-[2rem] transition-all duration-300;
     box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.1);
   }
 
@@ -155,4 +155,57 @@
 
 .animate-blob {
   animation: blob 7s infinite;
+}
+/* ------------------------------------------------------------------
+   Accesibilidad global (auditoría UI/UX 24/09/2026)
+   ------------------------------------------------------------------ */
+
+/* Foco visible con teclado aunque el elemento tenga `outline-none`. */
+html body :focus-visible {
+  outline: 3px solid hsl(var(--ring));
+  outline-offset: 2px;
+  border-radius: 0.75rem;
+}
+
+/* En pantallas táctiles, los botones de solo ícono miden al menos 44×44 px (WCAG 2.5.5). */
+@media (pointer: coarse) {
+  button:has(> svg:only-child),
+  a:has(> svg:only-child),
+  [role='button']:has(> svg:only-child) {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  input[type='checkbox'],
+  input[type='radio'] {
+    min-width: 20px;
+    min-height: 20px;
+  }
+}
+
+/* Evitar que iOS haga zoom al enfocar campos (necesita 16 px). */
+@media (max-width: 640px) {
+  input:not([type='checkbox']):not([type='radio']),
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
+}
+
+/* Respeta "reducir movimiento" del sistema. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Ninguna tabla debe empujar la página hacia los lados en celular. */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
 }

@@ -113,6 +113,7 @@ VALUES ('chat_attachments', 'chat_attachments', false)
 ON CONFLICT (id) DO NOTHING;
 
 -- Políticas de Storage
+DROP POLICY IF EXISTS "Staff can manage their own documents" ON storage.objects;
 CREATE POLICY "Staff can manage their own documents"
 ON storage.objects FOR ALL
 USING (
@@ -120,6 +121,7 @@ USING (
   (storage.foldername(name))[1] = auth.uid()::text
 );
 
+DROP POLICY IF EXISTS "Users can access chat attachments if member" ON storage.objects;
 CREATE POLICY "Users can access chat attachments if member"
 ON storage.objects FOR ALL
 USING (

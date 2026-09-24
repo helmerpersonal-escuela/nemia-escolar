@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { ShieldAlert, Zap, ArrowRight, CreditCard, LogOut, Check } from 'lucide-react'
+import { ShieldAlert, Zap, ArrowRight, LogOut, Check } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useState } from 'react'
 import { useSubscriptionLimits } from '../../../hooks/useSubscriptionLimits'
@@ -63,7 +63,7 @@ export const PaywallPage = () => {
                                     <h3 className="text-2xl font-black text-white uppercase tracking-tighter italic">Plan Básico</h3>
                                     <div className="text-right">
                                         <div className="text-2xl font-black text-white">${limits.priceAnnual}</div>
-                                        <div className="text-[10px] font-black text-slate-500 uppercase">MXN / anual</div>
+                                        <div className="text-[11px] font-black text-slate-500 uppercase">MXN / anual</div>
                                     </div>
                                 </div>
                                 <div className="space-y-3 mb-8">
@@ -91,7 +91,7 @@ export const PaywallPage = () => {
 
                         {/* Pro Plan Info */}
                         <div className="bg-gradient-to-br from-indigo-600/20 to-purple-600/20 border-2 border-indigo-500/50 rounded-[2.5rem] p-8 flex flex-col justify-between relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 p-3 bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-bl-2xl">Recomendado</div>
+                            <div className="absolute top-0 right-0 p-3 bg-indigo-500 text-white text-[11px] font-black uppercase tracking-widest rounded-bl-2xl">Recomendado</div>
                             <div>
                                 <div className="flex justify-between items-start mb-6">
                                     <h3 className="text-2xl font-black text-white uppercase tracking-tighter italic flex items-center gap-2">
@@ -99,7 +99,7 @@ export const PaywallPage = () => {
                                     </h3>
                                     <div className="text-right">
                                         <div className="text-2xl font-black text-white">$599</div>
-                                        <div className="text-[10px] font-black text-slate-500 uppercase">MXN / anual</div>
+                                        <div className="text-[11px] font-black text-slate-500 uppercase">MXN / anual</div>
                                     </div>
                                 </div>
                                 <div className="space-y-3 mb-8">
@@ -134,7 +134,7 @@ export const PaywallPage = () => {
                         </div>
                         <div className="text-left">
                             <p className="text-white font-black text-sm">Vunlek</p>
-                            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Tecnología Educativa</p>
+                            <p className="text-slate-500 text-[11px] font-bold uppercase tracking-widest">Tecnología Educativa</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-4">

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
-import { ArrowLeft, Printer, Download } from 'lucide-react'
+import { ArrowLeft, Printer } from 'lucide-react'
 
 export const EvaluationReportPage = () => {
     const [searchParams] = useSearchParams()
@@ -123,7 +123,7 @@ export const EvaluationReportPage = () => {
                 <div className="border-b-4 border-slate-900 pb-8 mb-10 flex items-start justify-between relative overflow-hidden">
                     <div className="absolute -top-10 -left-10 w-40 h-40 bg-slate-50 rounded-full blur-3xl opacity-50 -z-10"></div>
                     <div>
-                        <div className="inline-flex items-center gap-2 mb-4 bg-slate-900 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em]">
+                        <div className="inline-flex items-center gap-2 mb-4 bg-slate-900 text-white px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-[0.2em]">
                             Reporte Oficial Vunlek
                         </div>
                         <h1 className="text-4xl font-black uppercase tracking-tighter text-slate-900 leading-none mb-2">
@@ -138,9 +138,9 @@ export const EvaluationReportPage = () => {
                         </h2>
                     </div>
                     <div className="text-right">
-                        <div className="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">Ciclo Escolar</div>
+                        <div className="text-sm font-black text-slate-500 uppercase tracking-widest mb-1">Ciclo Escolar</div>
                         <div className="text-2xl font-black text-slate-900">{group.academic_years?.name || 'N/A'}</div>
-                        <div className="text-sm font-black text-slate-400 uppercase tracking-widest mb-1 mt-6">Fecha de Emisión</div>
+                        <div className="text-sm font-black text-slate-500 uppercase tracking-widest mb-1 mt-6">Fecha de Emisión</div>
                         <div className="text-lg font-bold text-slate-700">{new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
                     </div>
                 </div>

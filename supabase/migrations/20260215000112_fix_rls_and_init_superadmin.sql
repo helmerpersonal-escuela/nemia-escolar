@@ -8,15 +8,18 @@ BEGIN;
 DROP POLICY IF EXISTS "Public profiles are viewable by everyone in tenant" ON public.profiles;
 DROP POLICY IF EXISTS "Users can view profiles in own tenant" ON public.profiles;
 
+DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
 CREATE POLICY "Users can view own profile" ON public.profiles
     FOR SELECT USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Users within same tenant can view each other" ON public.profiles;
 CREATE POLICY "Users within same tenant can view each other" ON public.profiles
     FOR SELECT USING (
         tenant_id IS NOT NULL AND 
         tenant_id = (SELECT tenant_id FROM public.profiles WHERE id = auth.uid())
     );
 
+DROP POLICY IF EXISTS "Super Admins can view all profiles" ON public.profiles;
 CREATE POLICY "Super Admins can view all profiles" ON public.profiles
     FOR SELECT USING (
         EXISTS (
@@ -55,6 +58,7 @@ DROP POLICY IF EXISTS "Users can read own subscription" ON public.subscriptions;
 CREATE POLICY "Users can read own subscription" ON public.subscriptions
     FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Super Admins can read all subscriptions" ON public.subscriptions;
 CREATE POLICY "Super Admins can read all subscriptions" ON public.subscriptions
     FOR SELECT USING (
         EXISTS (

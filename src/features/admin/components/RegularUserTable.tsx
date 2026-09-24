@@ -1,4 +1,4 @@
-import { Users, GraduationCap, School, Play, Search, Trash2, Filter, TestTube, Key } from 'lucide-react'
+import { Users, GraduationCap, School, Play, Search, Trash2, TestTube, Key, MailCheck } from 'lucide-react'
 
 interface RegularUserTableProps {
     users: any[]
@@ -8,17 +8,24 @@ interface RegularUserTableProps {
     onToggleDemo?: (id: string, currentDemoStatus: boolean) => void
     onResetPassword?: (email: string) => void
     onSetProvisionalPassword?: (id: string, email: string) => void
+    onVerifyEmail?: (id: string, email: string) => void
 }
 
-export const RegularUserTable = ({ users, searchTerm, onImpersonate, onDelete, onToggleDemo, onResetPassword, onSetProvisionalPassword }: RegularUserTableProps) => {
-    // Filter for regular users
-    const regularUsers = users.filter(user =>
-        ['TEACHER', 'STUDENT', 'FAMILY', 'INDEPENDENT_TEACHER', 'TUTOR'].includes(user.role) &&
-        (user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.last_name_paternal?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.last_name_maternal?.toLowerCase().includes(searchTerm.toLowerCase()))
-    )
+export const RegularUserTable = ({ users, searchTerm, onImpersonate, onDelete, onToggleDemo, onResetPassword, onSetProvisionalPassword, onVerifyEmail }: RegularUserTableProps) => {
+    const regularUsers = users.filter(user => {
+        const isNotAdmin = user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN'
+        if (!isNotAdmin) return false
+
+        const st = searchTerm.trim().toLowerCase()
+        if (!st) return true // Show all if search is empty
+
+        return (
+            (user.email || '').toLowerCase().includes(st) ||
+            (user.first_name || '').toLowerCase().includes(st) ||
+            (user.last_name_paternal || '').toLowerCase().includes(st) ||
+            (user.last_name_maternal || '').toLowerCase().includes(st)
+        )
+    })
 
     const getRoleBadgeCheck = (role: string) => {
         switch (role) {
@@ -27,7 +34,8 @@ export const RegularUserTable = ({ users, searchTerm, onImpersonate, onDelete, o
             case 'STUDENT': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
             case 'FAMILY': return 'bg-orange-500/10 text-orange-400 border-orange-500/20'
             case 'TUTOR': return 'bg-purple-500/10 text-purple-400 border-purple-500/20'
-            default: return 'bg-slate-500/10 text-slate-400'
+            case 'DIRECTOR': return 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+            default: return 'bg-slate-500/10 text-slate-500'
         }
     }
 
@@ -38,6 +46,7 @@ export const RegularUserTable = ({ users, searchTerm, onImpersonate, onDelete, o
             case 'STUDENT': return <GraduationCap className="w-3 h-3 mr-1" />
             case 'FAMILY': return <Users className="w-3 h-3 mr-1" />
             case 'TUTOR': return <Users className="w-3 h-3 mr-1" />
+            case 'DIRECTOR': return <School className="w-3 h-3 mr-1" />
             default: return null
         }
     }
@@ -51,12 +60,12 @@ export const RegularUserTable = ({ users, searchTerm, onImpersonate, onDelete, o
                     </div>
                     <div>
                         <h3 className="text-xl font-black text-white uppercase italic tracking-tight">Base de Usuarios</h3>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Maestros, Alumnos y Familias</p>
+                        <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest">Maestros, Alumnos y Familias</p>
                     </div>
                 </div>
                 <div className="flex items-center space-x-4">
                     {/* Filters could go here */}
-                    <span className="text-[10px] font-black px-4 py-2 bg-slate-700 text-slate-300 rounded-full border border-slate-600">
+                    <span className="text-[11px] font-black px-4 py-2 bg-slate-700 text-slate-300 rounded-full border border-slate-600">
                         {regularUsers.length} REGISTROS
                     </span>
                 </div>
@@ -64,7 +73,7 @@ export const RegularUserTable = ({ users, searchTerm, onImpersonate, onDelete, o
 
             <div className="overflow-x-auto">
                 <table className="w-full">
-                    <thead className="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-[10px] font-black uppercase tracking-widest">
+                    <thead className="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-[11px] font-black uppercase tracking-widest">
                         <tr>
                             <th className="px-8 py-5 text-left">Usuario</th>
                             <th className="px-8 py-5 text-left">Rol / Perfil</th>
@@ -90,12 +99,12 @@ export const RegularUserTable = ({ users, searchTerm, onImpersonate, onDelete, o
                                 </td>
                                 <td className="px-8 py-6">
                                     <div className="flex items-center gap-2">
-                                        <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border ${getRoleBadgeCheck(user.role)}`}>
+                                        <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider border ${getRoleBadgeCheck(user.role)}`}>
                                             {getRoleIcon(user.role)}
                                             {user.role}
                                         </span>
                                         {user.is_demo && (
-                                            <span className="inline-flex items-center px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                                            <span className="inline-flex items-center px-2 py-1 rounded-lg text-[11px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20">
                                                 <TestTube className="w-3 h-3 mr-1" />
                                                 DEMO
                                             </span>
@@ -104,12 +113,12 @@ export const RegularUserTable = ({ users, searchTerm, onImpersonate, onDelete, o
                                 </td>
                                 <td className="px-8 py-6">
                                     {user.tenants ? (
-                                        <div className="flex items-center text-slate-400">
+                                        <div className="flex items-center text-slate-500">
                                             <School className="w-3 h-3 mr-2 opacity-50" />
                                             <span className="text-xs font-semibold">{user.tenants.name}</span>
                                         </div>
                                     ) : (
-                                        <span className="text-[10px] text-slate-600 italic">Sin vinculación</span>
+                                        <span className="text-[11px] text-slate-600 italic">Sin vinculación</span>
                                     )}
                                 </td>
                                 <td className="px-8 py-6 text-right">
@@ -119,7 +128,7 @@ export const RegularUserTable = ({ users, searchTerm, onImpersonate, onDelete, o
                                                 onClick={() => onToggleDemo(user.id, user.is_demo || false)}
                                                 className={`p-2.5 rounded-xl transition-all ${user.is_demo
                                                     ? 'bg-amber-500/10 text-amber-400 hover:bg-amber-600 hover:text-white'
-                                                    : 'bg-slate-600/10 text-slate-400 hover:bg-slate-600 hover:text-white'
+                                                    : 'bg-slate-600/10 text-slate-500 hover:bg-slate-600 hover:text-white'
                                                     }`}
                                                 title={user.is_demo ? 'Desactivar Modo Demo' : 'Activar Modo Demo'}
                                             >
@@ -140,10 +149,19 @@ export const RegularUserTable = ({ users, searchTerm, onImpersonate, onDelete, o
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </button>
+                                        {onVerifyEmail && (
+                                            <button
+                                                onClick={() => onVerifyEmail(user.id, user.email)}
+                                                className="p-2.5 bg-blue-500/10 text-blue-500 hover:bg-blue-600 hover:text-white rounded-xl transition-all"
+                                                title="Marcar Correo como Verificado"
+                                            >
+                                                <MailCheck className="w-4 h-4" />
+                                            </button>
+                                        )}
                                         {onResetPassword && (
                                             <button
                                                 onClick={() => onResetPassword(user.email)}
-                                                className="p-2.5 bg-amber-500/10 text-amber-500 hover:bg-amber-600 hover:text-white rounded-xl transition-all"
+                                                className="p-2.5 bg-amber-500/10 text-amber-700 hover:bg-amber-600 hover:text-white rounded-xl transition-all"
                                                 title="Enviar Link de Recuperación"
                                             >
                                                 <Key className="w-4 h-4" />
@@ -152,7 +170,7 @@ export const RegularUserTable = ({ users, searchTerm, onImpersonate, onDelete, o
                                         {onSetProvisionalPassword && (
                                             <button
                                                 onClick={() => onSetProvisionalPassword(user.id, user.email)}
-                                                className="p-2.5 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-600 hover:text-white rounded-xl transition-all"
+                                                className="p-2.5 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-600 hover:text-white rounded-xl transition-all"
                                                 title="Resetear a Contraseña Provisional"
                                             >
                                                 <Key className="w-4 h-4 fill-emerald-500/20" />

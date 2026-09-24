@@ -65,11 +65,11 @@ export const StudentSelectionModal = ({ isOpen, onClose }: StudentSelectionModal
                 <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-indigo-50/50">
                     <div>
                         <h2 className="text-2xl font-black text-slate-800 tracking-tight">Reporte para Padres</h2>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Selecciona un alumno para generar reporte</p>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">Selecciona un alumno para generar reporte</p>
                     </div>
-                    <button
+                    <button aria-label="Cerrar"
                         onClick={onClose}
-                        className="p-2 hover:bg-white rounded-xl transition-colors text-slate-400 hover:text-slate-600 shadow-sm"
+                        className="p-2 hover:bg-white rounded-xl transition-colors text-slate-500 hover:text-slate-600 shadow-sm"
                     >
                         <X className="w-6 h-6" />
                     </button>
@@ -78,7 +78,7 @@ export const StudentSelectionModal = ({ isOpen, onClose }: StudentSelectionModal
                 {/* Search Bar */}
                 <div className="p-6 bg-white border-b border-slate-50">
                     <div className="relative group">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-indigo-500 transition-colors" />
                         <input
                             type="text"
                             placeholder="Buscar alumno por nombre..."
@@ -93,7 +93,7 @@ export const StudentSelectionModal = ({ isOpen, onClose }: StudentSelectionModal
                 {/* Students List */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
                     {loading ? (
-                        <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                        <div className="flex flex-col items-center justify-center py-12 text-slate-500">
                             <Loader2 className="w-10 h-10 animate-spin mb-4" />
                             <span className="font-black text-xs uppercase tracking-widest">Cargando Alumnos...</span>
                         </div>
@@ -115,7 +115,7 @@ export const StudentSelectionModal = ({ isOpen, onClose }: StudentSelectionModal
                                         {student.first_name} {student.last_name_paternal} {student.last_name_maternal}
                                     </h4>
                                     <div className="flex items-center gap-2 mt-1">
-                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                        <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
                                             {student.group?.grade}° "{student.group?.section}"
                                         </span>
                                     </div>
@@ -130,8 +130,8 @@ export const StudentSelectionModal = ({ isOpen, onClose }: StudentSelectionModal
                         ))
                     ) : (
                         <div className="text-center py-12">
-                            <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">No se encontraron alumnos</p>
-                            <p className="text-[10px] text-slate-400 mt-2">Intenta con otro nombre o verifica tu conexión</p>
+                            <p className="text-slate-500 font-bold text-sm uppercase tracking-widest">No se encontraron alumnos</p>
+                            <p className="text-[11px] text-slate-500 mt-2">Intenta con otro nombre o verifica tu conexión</p>
                         </div>
                     )}
                 </div>
@@ -140,7 +140,7 @@ export const StudentSelectionModal = ({ isOpen, onClose }: StudentSelectionModal
                 <div className="p-6 bg-slate-50 flex justify-end gap-3">
                     <button
                         onClick={onClose}
-                        className="px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest text-slate-500 hover:text-slate-700 transition-colors"
+                        className="px-6 py-3 rounded-xl font-black text-[11px] uppercase tracking-widest text-slate-500 hover:text-slate-700 transition-colors"
                     >
                         Cancelar
                     </button>

@@ -33,6 +33,7 @@ ALTER TABLE public.textbooks ENABLE ROW LEVEL SECURITY;
 
 -- POLÍTICAS RLS PARA TEXTBOOKS
 -- Lectura permitida para cualquier usuario autenticado
+DROP POLICY IF EXISTS "Allow authenticated users to read textbooks" ON public.textbooks;
 CREATE POLICY "Allow authenticated users to read textbooks" 
 ON public.textbooks FOR SELECT 
 TO authenticated 
@@ -42,6 +43,7 @@ USING (true);
 -- Dado que es "Modo Dios", usualmente el SuperAdmin tiene acceso a todo.
 -- Sin embargo, el SuperAdmin Dashboard usa rpc o direct updates.
 -- Por seguridad, permitiremos inserción si el usuario es el dueño del sistema (helmerpersonal@gmail.com)
+DROP POLICY IF EXISTS "Allow superadmins to manage textbooks" ON public.textbooks;
 CREATE POLICY "Allow superadmins to manage textbooks" 
 ON public.textbooks FOR ALL 
 TO authenticated 
@@ -55,8 +57,13 @@ VALUES ('textbooks', 'textbooks', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- POLÍTICAS DE STORAGE PARA TEXTBOOKS
+DROP POLICY IF EXISTS "Public Access" ON storage.objects;
 CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id = 'textbooks');
+
+DROP POLICY IF EXISTS "Admin Upload" ON storage.objects;
 CREATE POLICY "Admin Upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'textbooks' AND auth.jwt() ->> 'email' = 'helmerpersonal@gmail.com');
+
+DROP POLICY IF EXISTS "Admin Delete" ON storage.objects;
 CREATE POLICY "Admin Delete" ON storage.objects FOR DELETE USING (bucket_id = 'textbooks' AND auth.jwt() ->> 'email' = 'helmerpersonal@gmail.com');
 
 -- ÍNDICES

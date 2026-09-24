@@ -98,14 +98,14 @@ export const DictationModeModal = ({ isOpen, onClose, title, content }: Dictatio
                         </div>
                         <div>
                             <h2 className="text-3xl font-black tracking-tight uppercase leading-tight">Modo Dictado</h2>
-                            <p className="text-indigo-300 font-bold uppercase tracking-widest text-[10px]">Identificación: {title}</p>
+                            <p className="text-indigo-300 font-bold uppercase tracking-widest text-[11px]">Identificación: {title}</p>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-3 bg-white/5 p-2 rounded-[2rem] border border-white/10">
                         {/* Font Size Controls */}
                         <div className="flex items-center gap-1 bg-black/20 p-1 rounded-2xl mr-2">
-                            <button
+                            <button aria-label="Quitar"
                                 onClick={() => setFontSize(prev => Math.max(16, prev - 4))}
                                 className="p-3 hover:bg-white/10 rounded-xl transition-all"
                             >
@@ -113,9 +113,9 @@ export const DictationModeModal = ({ isOpen, onClose, title, content }: Dictatio
                             </button>
                             <div className="flex flex-col items-center px-2 min-w-[60px]">
                                 <Type className="w-4 h-4 text-indigo-400 mb-0.5" />
-                                <span className="text-[10px] font-black">{fontSize}px</span>
+                                <span className="text-[11px] font-black">{fontSize}px</span>
                             </div>
-                            <button
+                            <button aria-label="Agregar"
                                 onClick={() => setFontSize(prev => Math.min(64, prev + 4))}
                                 className="p-3 hover:bg-white/10 rounded-xl transition-all"
                             >
@@ -139,7 +139,7 @@ export const DictationModeModal = ({ isOpen, onClose, title, content }: Dictatio
                             Imprimir
                         </button>
 
-                        <button
+                        <button aria-label="Cerrar"
                             onClick={onClose}
                             className="p-3 bg-white/10 hover:bg-rose-500 rounded-2xl transition-all group"
                         >
@@ -152,7 +152,7 @@ export const DictationModeModal = ({ isOpen, onClose, title, content }: Dictatio
                 <div className="flex-1 overflow-y-auto custom-scrollbar-white bg-white/5 rounded-[3rem] p-10 md:p-20 border border-white/5 shadow-inner">
                     <div className="max-w-4xl mx-auto space-y-12">
                         <div className="space-y-4">
-                            <span className="inline-block px-4 py-1.5 bg-indigo-500/20 border border-indigo-400/30 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-indigo-300">
+                            <span className="inline-block px-4 py-1.5 bg-indigo-500/20 border border-indigo-400/30 rounded-full text-[11px] font-black uppercase tracking-[0.2em] text-indigo-300">
                                 Desafío / Actividad
                             </span>
                             <h1 className="text-4xl md:text-6xl font-black leading-tight tracking-tight uppercase">
@@ -183,17 +183,17 @@ export const DictationModeModal = ({ isOpen, onClose, title, content }: Dictatio
                                         type = 'MISSION'
                                         label = 'MISIÓN'
                                         colorClass = 'text-indigo-400'
-                                        cleanText = trimmed.replace(/^\**MISIÓ[Nn][:\s\*-]*/i, '').trim()
+                                        cleanText = trimmed.replace(/^\**MISIÓ[Nn][:\s*-]*/i, '').trim()
                                     } else if (/^\**ENTREGABLE/i.test(trimmed)) {
                                         type = 'DELIVERABLE'
                                         label = 'ENTREGABLE'
                                         colorClass = 'text-emerald-400'
-                                        cleanText = trimmed.replace(/^\**ENTREGABLE[:\s\*-]*/i, '').trim()
+                                        cleanText = trimmed.replace(/^\**ENTREGABLE[:\s*-]*/i, '').trim()
                                     } else if (/^\**EVALUACIÓN/i.test(trimmed)) {
                                         type = 'EVALUATION'
                                         label = 'EVALUACIÓN'
                                         colorClass = 'text-amber-400'
-                                        cleanText = trimmed.replace(/^\**EVALUACIÓ[Nn][:\s\*-]*/i, '').trim()
+                                        cleanText = trimmed.replace(/^\**EVALUACIÓ[Nn][:\s*-]*/i, '').trim()
                                     }
 
                                     if (type !== 'NORMAL') {
@@ -221,7 +221,7 @@ export const DictationModeModal = ({ isOpen, onClose, title, content }: Dictatio
 
                 {/* Footer Info */}
                 <div className="mt-8 flex justify-center">
-                    <div className="flex items-center gap-4 text-slate-500 font-bold uppercase tracking-widest text-[10px]">
+                    <div className="flex items-center gap-4 text-slate-500 font-bold uppercase tracking-widest text-[11px]">
                         <Volume2 className="w-4 h-4" />
                         <span>Dicta pausadamente y confirma que todos los alumnos sigan el ritmo</span>
                     </div>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
-    Users, GraduationCap, Calendar, Mail, FileText, Star, Clock,
-    Loader2, ChevronDown, AlertCircle, CheckCircle2, Info, Bell
+    Users, GraduationCap, Calendar, Mail, Star, Clock,
+    Loader2, AlertCircle, CheckCircle2, Info, Bell
 } from 'lucide-react'
 import { AcademicAlerts } from './AcademicAlerts'
 import { supabase } from '../../../../lib/supabase'
@@ -171,7 +171,7 @@ export const TutorDashboard = () => {
                 </div>
                 <h2 className="text-xl font-bold text-gray-900">No hay estudiantes vinculados</h2>
                 <p className="text-gray-500 mt-2">No hemos encontrado alumnos asociados a tu cuenta de tutor.</p>
-                <p className="text-xs text-gray-400 mt-4">Contacta a la escuela para vincular a tu hijo(a).</p>
+                <p className="text-xs text-gray-500 mt-4">Contacta a la escuela para vincular a tu hijo(a).</p>
             </div>
         )
     }
@@ -182,7 +182,7 @@ export const TutorDashboard = () => {
             <div className="flex flex-col md:flex-row justify-between items-center gap-6">
                 <div className="text-center md:text-left">
                     <h1 className="text-2xl md:text-4xl font-black text-gray-900 tracking-tight leading-none mb-2">Panel del Tutor</h1>
-                    <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px] md:text-xs">Acompañamiento Académico</p>
+                    <p className="text-gray-500 font-bold uppercase tracking-widest text-[11px] md:text-xs">Acompañamiento Académico</p>
                 </div>
             </div>
 
@@ -190,7 +190,7 @@ export const TutorDashboard = () => {
             {children.length > 1 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-in slide-in-from-top duration-700">
                     <div className="col-span-full">
-                        <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-4 px-2 flex items-center gap-2">
+                        <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-4 px-2 flex items-center gap-2">
                             <Users className="w-4 h-4" /> Mis Hijos Linkeados
                         </h3>
                     </div>
@@ -206,11 +206,11 @@ export const TutorDashboard = () => {
                             `}
                         >
                             <div className="flex items-center gap-4 relative z-10">
-                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner ${selectedChild?.id === child.id ? 'bg-blue-100 text-blue-600' : 'bg-slate-200 text-slate-400'}`}>
+                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner ${selectedChild?.id === child.id ? 'bg-blue-100 text-blue-600' : 'bg-slate-200 text-slate-500'}`}>
                                     <GraduationCap className="w-8 h-8 stroke-[2.5]" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-[10px] font-black uppercase text-blue-500 mb-1 tracking-widest">
+                                    <p className="text-[11px] font-black uppercase text-blue-500 mb-1 tracking-widest">
                                         {child.group?.grade}° {child.group?.section}
                                     </p>
                                     <h4 className="text-lg font-black text-slate-900 truncate tracking-tight">
@@ -255,11 +255,11 @@ export const TutorDashboard = () => {
                         </div>
                         <div className="flex gap-4 md:gap-6 w-full md:w-auto justify-center">
                             <div className="bg-white/10 backdrop-blur-xl p-4 md:p-8 rounded-[2rem] md:rounded-[3rem] text-center flex-1 md:min-w-[140px] border border-white/10 shadow-xl active:scale-95 transition-transform">
-                                <p className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] text-blue-200 mb-1">Promedio</p>
+                                <p className="text-[11px] md:text-[11px] font-black uppercase tracking-[0.2em] text-blue-200 mb-1">Promedio</p>
                                 <p className="text-2xl md:text-4xl font-black leading-none">{stats.average.toFixed(1)}</p>
                             </div>
                             <div className="bg-white/10 backdrop-blur-xl p-4 md:p-8 rounded-[2rem] md:rounded-[3rem] text-center flex-1 md:min-w-[140px] border border-white/10 shadow-xl active:scale-95 transition-transform">
-                                <p className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] text-blue-200 mb-1">Asistencia</p>
+                                <p className="text-[11px] md:text-[11px] font-black uppercase tracking-[0.2em] text-blue-200 mb-1">Asistencia</p>
                                 <p className="text-2xl md:text-4xl font-black leading-none">{stats.attendance}%</p>
                             </div>
                         </div>
@@ -270,12 +270,12 @@ export const TutorDashboard = () => {
             {/* SECTION 1: ACTVIDADES PENDIENTES (The #1 Priority) */}
             <div className="space-y-6">
                 <div className="flex items-center gap-4 px-2 md:px-4">
-                    <div className="p-2 md:p-3 bg-amber-100 text-amber-600 rounded-xl md:rounded-2xl">
+                    <div className="p-2 md:p-3 bg-amber-100 text-amber-700 rounded-xl md:rounded-2xl">
                         <AlertCircle className="w-6 h-6 md:w-8 md:h-8 stroke-[3]" />
                     </div>
                     <div>
                         <h3 className="text-xl md:text-3xl font-black text-slate-900 tracking-tight">Actividades Pendientes</h3>
-                        <p className="text-slate-500 font-bold text-[10px] md:text-sm uppercase tracking-widest">Lo que requiere atención inmediata</p>
+                        <p className="text-slate-500 font-bold text-[11px] md:text-sm uppercase tracking-widest">Lo que requiere atención inmediata</p>
                     </div>
                     {pendingActivities.length > 0 && (
                         <span className="ml-auto bg-amber-500 text-white px-6 py-2 rounded-full font-black text-xl shadow-lg shadow-amber-500/30">
@@ -288,10 +288,10 @@ export const TutorDashboard = () => {
                     {pendingActivities.length === 0 ? (
                         <div className="col-span-full bg-emerald-50 rounded-[3rem] p-16 text-center border-4 border-dashed border-emerald-100 outline-none">
                             <div className="bg-white w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-emerald-500/10 active:scale-95 transition-transform cursor-pointer">
-                                <CheckCircle2 className="w-12 h-12 text-emerald-500 stroke-[3]" />
+                                <CheckCircle2 className="w-12 h-12 text-emerald-700 stroke-[3]" />
                             </div>
                             <h4 className="text-2xl font-black text-emerald-900 mb-2">¡Todo al día!</h4>
-                            <p className="text-emerald-600 font-bold text-lg">No hay actividades atrasadas ni pendientes.</p>
+                            <p className="text-emerald-700 font-bold text-lg">No hay actividades atrasadas ni pendientes.</p>
                         </div>
                     ) : (
                         pendingActivities.map((item) => {
@@ -302,7 +302,7 @@ export const TutorDashboard = () => {
                                     className={`p-5 md:p-8 rounded-[2rem] md:rounded-[3rem] border-4 flex flex-col md:flex-row items-center gap-4 md:gap-6 transition-all active:scale-95 cursor-pointer shadow-[0_20px_50px_rgba(0,0,0,0.08)] ${isOverdue ? 'bg-rose-50 border-rose-100 text-rose-900' : 'bg-amber-50 border-amber-100 text-amber-900'
                                         }`}
                                 >
-                                    <div className={`p-4 md:p-6 rounded-[1.5rem] md:rounded-[2rem] shadow-inner ${isOverdue ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600'}`}>
+                                    <div className={`p-4 md:p-6 rounded-[1.5rem] md:rounded-[2rem] shadow-inner ${isOverdue ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-700'}`}>
                                         <Clock className="w-6 h-6 md:w-10 md:h-10 stroke-[3]" />
                                     </div>
                                     <div className="flex-1 text-center md:text-left">
@@ -311,7 +311,7 @@ export const TutorDashboard = () => {
                                             {item.subject?.name} • Límite: {new Date(item.due_date).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}
                                         </p>
                                         {isOverdue && (
-                                            <span className="inline-block px-4 py-1.5 bg-rose-600 text-white text-[10px] font-black rounded-full uppercase tracking-[0.2em] shadow-lg shadow-rose-600/30 animate-pulse">
+                                            <span className="inline-block px-4 py-1.5 bg-rose-600 text-white text-[11px] font-black rounded-full uppercase tracking-[0.2em] shadow-lg shadow-rose-600/30 animate-pulse">
                                                 Atrasado
                                             </span>
                                         )}
@@ -341,7 +341,7 @@ export const TutorDashboard = () => {
                             </div>
                             <div>
                                 <h3 className="text-4xl font-black text-gray-900 tracking-tight">Bitácora de Alertas</h3>
-                                <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">Seguimiento de comportamiento y logros</p>
+                                <p className="text-slate-500 font-bold text-xs uppercase tracking-widest">Seguimiento de comportamiento y logros</p>
                             </div>
                         </div>
                         {unreadCount > 0 && (
@@ -376,7 +376,7 @@ export const TutorDashboard = () => {
                     <div className="space-y-6">
                         {agenda.length === 0 ? (
                             <div className="bg-white/50 p-12 rounded-[2.5rem] text-center border-2 border-dashed border-slate-200">
-                                <p className="text-gray-400 font-black italic">Sin tareas próximas en agenda.</p>
+                                <p className="text-gray-500 font-black italic">Sin tareas próximas en agenda.</p>
                             </div>
                         ) : (
                             agenda.map((item, idx) => (
@@ -402,7 +402,7 @@ export const TutorDashboard = () => {
 
                     <div className="space-y-4">
                         {announcements.length === 0 ? (
-                            <p className="text-gray-400 italic text-sm">No hay avisos recientes.</p>
+                            <p className="text-gray-500 italic text-sm">No hay avisos recientes.</p>
                         ) : (
                             announcements.map((item, idx) => (
                                 <AnnouncementItem
@@ -435,14 +435,14 @@ const AlertItem = ({ alert, onRead }: { alert: any, onRead: () => void }) => {
             )}
 
             <div className="flex flex-col gap-6">
-                <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center shadow-inner ${isCompliance ? (isFulfilled ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600')
+                <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center shadow-inner ${isCompliance ? (isFulfilled ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-600')
                     : 'bg-blue-100 text-blue-600'
                     }`}>
                     {isCompliance ? (isFulfilled ? <CheckCircle2 className="w-8 h-8 stroke-[2.5]" /> : <AlertCircle className="w-8 h-8 stroke-[2.5]" />) : <Info className="w-8 h-8 stroke-[2.5]" />}
                 </div>
 
                 <div className="space-y-2">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">
                         {new Date(alert.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'long' })}
                     </p>
                     <h5 className={`text-xl font-black leading-tight tracking-tight ${isUnread ? 'text-slate-900' : 'text-slate-600'}`}>

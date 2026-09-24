@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
-import { ShieldCheck, Sparkles, Loader2, Lock, Mail, ArrowRight, AlertTriangle } from 'lucide-react'
+import { GoogleButton } from '../components/GoogleButton'
+import { Sparkles, Loader2, Lock, Mail, ArrowRight, AlertTriangle } from 'lucide-react'
 
 export const LoginPage = () => {
     const [email, setEmail] = useState('')
@@ -10,6 +11,15 @@ export const LoginPage = () => {
     const [error, setError] = useState<string | null>(null)
     const [forgotMode, setForgotMode] = useState(false)
     const [resetSent, setResetSent] = useState(false)
+
+    useEffect(() => {
+        // Safety net: Clear onboarding storage if they land on login
+        sessionStorage.removeItem('vunlek_onboarding_step')
+        sessionStorage.removeItem('vunlek_onboarding_school_data')
+        sessionStorage.removeItem('vunlek_onboarding_year_data')
+        sessionStorage.removeItem('vunlek_onboarding_schedule_data')
+        sessionStorage.removeItem('vunlek_payment_syncing')
+    }, [])
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -156,6 +166,15 @@ export const LoginPage = () => {
                                     </>
                                 )}
                             </button>
+
+                            {!forgotMode && (
+                                <>
+                                    <div className="flex items-center gap-3 text-[11px] font-bold text-slate-300 uppercase tracking-widest">
+                                        <span className="flex-1 border-t-2 border-slate-100" /> o <span className="flex-1 border-t-2 border-slate-100" />
+                                    </div>
+                                    <GoogleButton label="Entrar con Google" />
+                                </>
+                            )}
                         </form>
                     ) : (
                         <div className="space-y-8 animate-in zoom-in duration-300">
@@ -177,11 +196,16 @@ export const LoginPage = () => {
                                 <div className="w-full border-t-2 border-slate-100"></div>
                             </div>
                             <div className="relative flex justify-center text-sm">
-                                <span className="px-4 bg-white text-slate-400 font-bold uppercase tracking-wider">Soporte Técnico</span>
+                                <span className="px-4 bg-white text-slate-500 font-bold uppercase tracking-wider">Soporte Técnico</span>
                             </div>
                         </div>
 
-                        <p className="text-xs text-slate-400 font-medium px-4">
+                        <p className="text-xs font-bold">
+                            <a href="/privacidad" className="text-slate-600 hover:text-indigo-700 underline">Política de Privacidad</a>
+                            <span className="text-slate-300 mx-2">·</span>
+                            <a href="/terminos" className="text-slate-600 hover:text-indigo-700 underline">Términos y Condiciones</a>
+                        </p>
+                        <p className="text-xs text-slate-500 font-medium px-4">
                             Si no recuerdas tu correo o tienes problemas de acceso, contacta al administrador en <br />
                             <a href="mailto:soporte@vunlek.com" className="text-indigo-500 font-black hover:underline">soporte@vunlek.com</a>
                         </p>

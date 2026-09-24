@@ -1,20 +1,28 @@
-import { Shield, UserCog, MoreVertical, CheckCircle2, XCircle, Key, Play } from 'lucide-react'
+import { Shield, UserCog, MoreVertical, CheckCircle2, Key, Play, MailCheck } from 'lucide-react'
 
 interface AdminUserTableProps {
     users: any[]
     searchTerm: string
     onResetPassword?: (email: string) => void
     onImpersonate?: (id: string, role: string) => void
+    onVerifyEmail?: (id: string, email: string) => void
 }
 
-export const AdminUserTable = ({ users, searchTerm, onResetPassword, onImpersonate }: AdminUserTableProps) => {
-    // Filter for admins and super admins
-    const admins = users.filter(user =>
-        (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') &&
-        (user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.last_name?.toLowerCase().includes(searchTerm.toLowerCase()))
-    )
+export const AdminUserTable = ({ users, searchTerm, onResetPassword, onImpersonate, onVerifyEmail }: AdminUserTableProps) => {
+    const admins = users.filter(user => {
+        const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN'
+        if (!isAdmin) return false
+
+        const st = searchTerm.trim().toLowerCase()
+        if (!st) return true // Show all if search is empty
+
+        return (
+            (user.email || '').toLowerCase().includes(st) ||
+            (user.first_name || '').toLowerCase().includes(st) ||
+            (user.last_name_paternal || '').toLowerCase().includes(st) ||
+            (user.last_name_maternal || '').toLowerCase().includes(st)
+        )
+    })
 
     return (
         <div className="bg-slate-800 border border-slate-700 rounded-[2.5rem] overflow-hidden shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -25,17 +33,17 @@ export const AdminUserTable = ({ users, searchTerm, onResetPassword, onImpersona
                     </div>
                     <div>
                         <h3 className="text-xl font-black text-white uppercase italic tracking-tight">Núcleo de Mando</h3>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Administradores del Sistema</p>
+                        <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest">Administradores del Sistema</p>
                     </div>
                 </div>
-                <span className="text-[10px] font-black px-4 py-2 bg-purple-500/10 text-purple-400 rounded-full border border-purple-500/20">
+                <span className="text-[11px] font-black px-4 py-2 bg-purple-500/10 text-purple-400 rounded-full border border-purple-500/20">
                     {admins.length} OPERADORES
                 </span>
             </div>
 
             <div className="overflow-x-auto">
                 <table className="w-full">
-                    <thead className="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-[10px] font-black uppercase tracking-widest">
+                    <thead className="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-[11px] font-black uppercase tracking-widest">
                         <tr>
                             <th className="px-8 py-5 text-left">Operador</th>
                             <th className="px-8 py-5 text-left">Nivel de Acceso</th>
@@ -59,8 +67,8 @@ export const AdminUserTable = ({ users, searchTerm, onResetPassword, onImpersona
                                     </div>
                                 </td>
                                 <td className="px-8 py-6">
-                                    <span className={`inline-flex items-center px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider ${user.role === 'SUPER_ADMIN'
-                                        ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                                    <span className={`inline-flex items-center px-3 py-1 rounded-lg text-[11px] font-black uppercase tracking-wider ${user.role === 'SUPER_ADMIN'
+                                        ? 'bg-amber-500/10 text-amber-700 border border-amber-500/20'
                                         : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
                                         }`}>
                                         {user.role === 'SUPER_ADMIN' ? 'GOD MODE' : 'ADMINISTRADOR'}
@@ -68,7 +76,7 @@ export const AdminUserTable = ({ users, searchTerm, onResetPassword, onImpersona
                                 </td>
                                 <td className="px-8 py-6">
                                     <div className="flex items-center space-x-2">
-                                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                                        <CheckCircle2 className="w-4 h-4 text-emerald-700" />
                                         <span className="text-[11px] font-medium text-slate-300">Activo</span>
                                     </div>
                                 </td>
@@ -91,13 +99,22 @@ export const AdminUserTable = ({ users, searchTerm, onResetPassword, onImpersona
                                         {onResetPassword && (
                                             <button
                                                 onClick={() => onResetPassword(user.email)}
-                                                className="p-2.5 bg-amber-500/10 text-amber-500 hover:bg-amber-600 hover:text-white rounded-xl transition-all"
+                                                className="p-2.5 bg-amber-500/10 text-amber-700 hover:bg-amber-600 hover:text-white rounded-xl transition-all"
                                                 title="Enviar Link de Recuperación"
                                             >
                                                 <Key className="w-4 h-4" />
                                             </button>
                                         )}
-                                        <button className="p-2.5 hover:bg-slate-700 rounded-xl text-slate-400 hover:text-white transition-colors">
+                                        {onVerifyEmail && (
+                                            <button
+                                                onClick={() => onVerifyEmail(user.id, user.email)}
+                                                className="p-2.5 bg-blue-500/10 text-blue-500 hover:bg-blue-600 hover:text-white rounded-xl transition-all"
+                                                title="Marcar Correo como Verificado"
+                                            >
+                                                <MailCheck className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                        <button aria-label="Más opciones" className="p-2.5 hover:bg-slate-700 rounded-xl text-slate-500 hover:text-white transition-colors">
                                             <MoreVertical className="w-4 h-4" />
                                         </button>
                                     </div>

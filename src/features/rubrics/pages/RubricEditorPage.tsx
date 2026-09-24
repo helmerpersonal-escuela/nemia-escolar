@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { Plus, Save, ArrowLeft, Trash2, Wand2 } from 'lucide-react'
@@ -213,7 +213,7 @@ export const RubricEditorPage = () => {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
-                    <button onClick={() => navigate('/rubrics')} className="mr-4 text-gray-500 hover:text-gray-700">
+                    <button aria-label="Regresar" onClick={() => navigate('/rubrics')} className="mr-4 text-gray-500 hover:text-gray-700">
                         <ArrowLeft className="w-6 h-6" />
                     </button>
                     <div>
@@ -257,7 +257,7 @@ export const RubricEditorPage = () => {
                 <div className="min-w-[1000px] p-6">
                     {/* Header Row (Levels) */}
                     <div className="flex mb-4">
-                        <div className="w-64 flex-shrink-0 pt-8 font-bold text-gray-400 text-sm uppercase tracking-wider pl-2">
+                        <div className="w-64 flex-shrink-0 pt-8 font-bold text-gray-500 text-sm uppercase tracking-wider pl-2">
                             Criterios / Niveles
                         </div>
                         <div className="flex flex-1 space-x-2 overflow-x-auto pb-2">
@@ -291,17 +291,17 @@ export const RubricEditorPage = () => {
                                             className="w-12 ml-1 bg-white border border-gray-200 rounded px-1 py-0.5 text-xs text-center"
                                         />
                                     </div>
-                                    <button
+                                    <button aria-label="Eliminar"
                                         onClick={() => removeLevel(idx)}
-                                        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-opacity"
+                                        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 p-1 text-gray-500 hover:text-red-500 transition-opacity"
                                     >
                                         <Trash2 className="w-3 h-3" />
                                     </button>
                                 </div>
                             ))}
-                            <button
+                            <button aria-label="Agregar"
                                 onClick={addLevel}
-                                className="w-10 flex-shrink-0 flex items-center justify-center border-2 border-dashed border-gray-200 rounded-lg text-gray-400 hover:border-blue-300 hover:text-blue-500 hover:bg-blue-50 transition-colors"
+                                className="w-10 flex-shrink-0 flex items-center justify-center border-2 border-dashed border-gray-200 rounded-lg text-gray-500 hover:border-blue-300 hover:text-blue-500 hover:bg-blue-50 transition-colors"
                             >
                                 <Plus className="w-5 h-5" />
                             </button>
@@ -326,9 +326,9 @@ export const RubricEditorPage = () => {
                                         }}
                                         className="w-full font-bold text-gray-800 border-b border-transparent hover:border-gray-300 focus:border-blue-500 bg-transparent focus:ring-0 px-0 py-1 transition-colors"
                                     />
-                                    <button
+                                    <button aria-label="Eliminar"
                                         onClick={() => removeCriterion(cIdx)}
-                                        className="absolute left-[-24px] top-3 opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-opacity"
+                                        className="absolute left-[-24px] top-3 opacity-0 group-hover:opacity-100 p-1 text-gray-500 hover:text-red-500 transition-opacity"
                                     >
                                         <Trash2 className="w-3 h-3" />
                                     </button>

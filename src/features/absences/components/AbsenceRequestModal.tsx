@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { X, Calendar, Sparkles, Loader2, AlertCircle, CheckCircle2, FileText, Printer, User, BookOpen } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
@@ -9,7 +9,6 @@ import { GeminiService } from '../../../lib/gemini'
 
 
 import { eachDayOfInterval, format, parseISO, getDay } from 'date-fns'
-import { es } from 'date-fns/locale'
 import { createPortal } from 'react-dom'
 
 interface AbsenceRequestModalProps {
@@ -455,13 +454,13 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
                             <button
                                 onClick={handlePrintReview}
                                 title="Imprimir Sugerencias"
-                                className="p-3 bg-slate-100 text-slate-600 rounded-2xl hover:bg-slate-200 transition-all flex items-center gap-2 font-black text-[10px] uppercase tracking-widest"
+                                className="p-3 bg-slate-100 text-slate-600 rounded-2xl hover:bg-slate-200 transition-all flex items-center gap-2 font-black text-[11px] uppercase tracking-widest"
                             >
                                 <Printer className="w-5 h-5" />
                                 <span className="hidden sm:inline">Imprimir</span>
                             </button>
                         )}
-                        <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400">
+                        <button aria-label="Cerrar" onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-500">
                             <X className="w-6 h-6" />
                         </button>
                     </div>
@@ -473,10 +472,10 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
                         <div className="space-y-8">
                             <div className="grid grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Fecha de Inicio</label>
+                                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Fecha de Inicio</label>
                                     <div className="relative">
-                                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                                        <input
+                                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                                        <input aria-label="Fecha de Inicio"
                                             type="date"
                                             value={startDate}
                                             onChange={(e) => setStartDate(e.target.value)}
@@ -485,10 +484,10 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Fecha de Fin</label>
+                                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Fecha de Fin</label>
                                     <div className="relative">
-                                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                                        <input
+                                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                                        <input aria-label="Fecha de Fin"
                                             type="date"
                                             value={endDate}
                                             onChange={(e) => setEndDate(e.target.value)}
@@ -500,8 +499,8 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
 
                             <div className="space-y-4">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Motivo de la Ausencia</label>
-                                    <select
+                                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Motivo de la Ausencia</label>
+                                    <select aria-label="Motivo de la Ausencia"
                                         value={isCustomReason ? 'Otros' : (REASON_OPTIONS.includes(reason) ? reason : '')}
                                         onChange={(e) => {
                                             const val = e.target.value
@@ -524,8 +523,8 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
 
                                 {(isCustomReason || (!REASON_OPTIONS.includes(reason) && reason !== '')) && (
                                     <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Detalles del Motivo</label>
-                                        <textarea
+                                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Detalles del Motivo</label>
+                                        <textarea aria-label="Detalles del Motivo"
                                             value={reason}
                                             onChange={(e) => setReason(e.target.value)}
                                             placeholder="Describa el motivo o proporcione detalles adicionales..."
@@ -536,7 +535,7 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
                             </div>
 
                             <div className="bg-amber-50 rounded-2xl p-6 border border-amber-100 flex gap-4">
-                                <AlertCircle className="w-6 h-6 text-amber-600 shrink-0" />
+                                <AlertCircle className="w-6 h-6 text-amber-700 shrink-0" />
                                 <p className="text-sm font-medium text-amber-800 leading-relaxed">
                                     El sistema detectará automáticamente tus clases programadas en este rango y generará
                                     instrucciones fáciles de explicar basadas en tu última planeación.
@@ -552,7 +551,7 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
                             <div className="grid grid-cols-1 gap-3">
                                 {affectedClasses.length === 0 ? (
                                     <div className="p-10 text-center bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
-                                        <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No se encontraron clases en tu horario para estas fechas.</p>
+                                        <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">No se encontraron clases en tu horario para estas fechas.</p>
                                     </div>
                                 ) : (
                                     affectedClasses.map((cls, idx) => (
@@ -575,25 +574,25 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
                                             <div className="flex items-center justify-between">
                                                 <div className="flex-1">
                                                     <div className="flex items-center gap-2 mb-1">
-                                                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase ${cls.selected ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-200 text-slate-500'}`}>
+                                                        <span className={`text-[11px] font-black px-2 py-0.5 rounded-full uppercase ${cls.selected ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-200 text-slate-500'}`}>
                                                             {cls.date}
                                                         </span>
-                                                        <span className="text-[10px] font-black bg-slate-50 text-slate-500 px-2 py-0.5 rounded-full uppercase">{cls.time}</span>
-                                                        <span className="text-[10px] font-black bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full uppercase">{cls.duration} min</span>
+                                                        <span className="text-[11px] font-black bg-slate-50 text-slate-500 px-2 py-0.5 rounded-full uppercase">{cls.time}</span>
+                                                        <span className="text-[11px] font-black bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full uppercase">{cls.duration} min</span>
                                                     </div>
                                                     <h4 className="font-black text-slate-900">{cls.group} - {cls.subject}</h4>
 
                                                     {cls.planningDetail === '[]' ? (
                                                         <div className="flex items-center gap-2 mt-2 text-rose-600 bg-rose-50 px-3 py-1.5 rounded-xl w-fit">
                                                             <AlertCircle className="w-4 h-4" />
-                                                            <span className="text-[10px] font-bold">SIN PLANEACIÓN VINCULADA</span>
+                                                            <span className="text-[11px] font-bold">SIN PLANEACIÓN VINCULADA</span>
                                                         </div>
                                                     ) : (
                                                         <p className="text-xs font-medium text-slate-500 italic mt-1 flex items-center gap-1">
                                                             <Sparkles className="w-3 h-3 text-indigo-400" />
                                                             Ref: {cls.topicContext}
                                                             {cls.textbook && (
-                                                                <span className="ml-2 flex items-center gap-1 text-indigo-600 bg-indigo-50 px-1.5 rounded-md text-[9px] not-italic">
+                                                                <span className="ml-2 flex items-center gap-1 text-indigo-600 bg-indigo-50 px-1.5 rounded-md text-[11px] not-italic">
                                                                     <BookOpen className="w-3 h-3" />
                                                                     {cls.textbook} {cls.pages && `(pp. ${cls.pages})`}
                                                                 </span>
@@ -613,7 +612,7 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
                                             </div>
 
                                             {cls.selected && cls.planningDetail === '[]' && (
-                                                <p className="mt-3 text-[10px] font-medium text-rose-500 leading-tight">
+                                                <p className="mt-3 text-[11px] font-medium text-rose-500 leading-tight">
                                                     * La IA generará una actividad genérica al no encontrar una secuencia didáctica para este grupo.
                                                 </p>
                                             )}
@@ -644,7 +643,7 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
                                 <button
                                     onClick={handleGenerateActivities}
                                     disabled={loading}
-                                    className="text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:underline disabled:opacity-50"
+                                    className="text-[11px] font-black text-indigo-600 uppercase tracking-widest hover:underline disabled:opacity-50"
                                 >
                                     {loading ? 'Regenerando...' : 'Regenerar Todo'}
                                 </button>
@@ -669,7 +668,7 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
 
                                         <div className="flex items-center justify-between mb-4 card-header">
                                             <div className="flex flex-col header-info-item">
-                                                <span className="text-[10px] font-black bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full w-fit mb-1 no-print">{act.group} • {act.subject}</span>
+                                                <span className="text-[11px] font-black bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full w-fit mb-1 no-print">{act.group} • {act.subject}</span>
                                                 <div className="hidden print:block header-info-row">
                                                     <div>
                                                         <span className="header-label">Materia / Grupo:</span><br />
@@ -684,12 +683,12 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
                                                         <span className="header-value">{act.duration} min</span>
                                                     </div>
                                                 </div>
-                                                <span className="text-[10px] font-bold text-slate-400 ml-1 no-print">{act.date} • {act.time}</span>
+                                                <span className="text-[11px] font-bold text-slate-500 ml-1 no-print">{act.date} • {act.time}</span>
 
                                                 {act.textbook && (
                                                     <div className="mt-2 flex items-center gap-1.5 no-print">
                                                         <BookOpen className="w-3 h-3 text-indigo-400" />
-                                                        <span className="text-[10px] font-bold text-slate-500">
+                                                        <span className="text-[11px] font-bold text-slate-500">
                                                             Ref: {act.textbook} {act.pages && `(Págs. ${act.pages})`}
                                                         </span>
                                                     </div>
@@ -703,18 +702,18 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
                                                 </div>
                                             </div>
                                             <div className="text-right no-print pr-10">
-                                                <div className="text-[10px] font-black text-amber-600 uppercase tracking-tighter">Duración Sugerida</div>
+                                                <div className="text-[11px] font-black text-amber-700 uppercase tracking-tighter">Duración Sugerida</div>
                                                 <div className="text-sm font-black text-slate-700">{act.duration || '--'} min</div>
                                             </div>
                                         </div>
 
                                         <div className="mb-4 section-box print:mb-8">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 no-print">Proyecto / Actividad Central</label>
+                                            <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1 no-print">Proyecto / Actividad Central</label>
                                             <div className="hidden print:block">
                                                 <span className="section-label">Actividad Principal:</span>
                                                 <span className="text-lg font-bold">{act.title}</span>
                                             </div>
-                                            <input
+                                            <input aria-label="Proyecto / Actividad Central"
                                                 value={act.title}
                                                 onChange={(e) => {
                                                     const value = e.target.value
@@ -731,13 +730,13 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
 
                                         <div className="space-y-4 print:space-y-8">
                                             <div className="section-box">
-                                                <div className="flex items-center gap-2 text-amber-600 mb-2 no-print">
+                                                <div className="flex items-center gap-2 text-amber-700 mb-2 no-print">
                                                     <User className="w-4 h-4" />
-                                                    <label className="text-[10px] font-black uppercase tracking-widest">Instrucciones Suplente</label>
+                                                    <label className="text-[11px] font-black uppercase tracking-widest">Instrucciones Suplente</label>
                                                 </div>
                                                 <span className="hidden print:block section-label">Instrucciones para la Guardia:</span>
                                                 <p className="hidden print:block section-content">{safeRenderText(act.instructions_for_substitute)}</p>
-                                                <textarea
+                                                <textarea aria-label="Instrucciones Suplente"
                                                     value={safeRenderText(act.instructions_for_substitute)}
                                                     onChange={(e) => {
                                                         const value = e.target.value
@@ -754,11 +753,11 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
                                             <div className="section-box">
                                                 <div className="flex items-center gap-2 text-indigo-600 mb-2 no-print">
                                                     <BookOpen className="w-4 h-4" />
-                                                    <label className="text-[10px] font-black uppercase tracking-widest">Actividad Alumno</label>
+                                                    <label className="text-[11px] font-black uppercase tracking-widest">Actividad Alumno</label>
                                                 </div>
                                                 <span className="hidden print:block section-label">Trabajo del Estudiante:</span>
                                                 <p className="hidden print:block section-content">{safeRenderText(act.student_work)}</p>
-                                                <textarea
+                                                <textarea aria-label="Actividad Alumno"
                                                     value={safeRenderText(act.student_work)}
                                                     onChange={(e) => {
                                                         const value = e.target.value
@@ -777,7 +776,7 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
                                                     <div className="flex items-center justify-between no-print">
                                                         <div className="flex items-center gap-2 text-amber-700">
                                                             <FileText className="w-4 h-4" />
-                                                            <span className="text-[10px] font-black uppercase tracking-widest">Recurso Imprimible ({act.printable_resource.type})</span>
+                                                            <span className="text-[11px] font-black uppercase tracking-widest">Recurso Imprimible ({act.printable_resource.type})</span>
                                                         </div>
                                                     </div>
                                                     <h5 className="hidden print:block resource-header">{act.printable_resource.title}</h5>
@@ -811,9 +810,9 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
                                         </div>
 
                                         <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between no-print">
-                                            <div className="flex items-center gap-2 text-slate-400">
+                                            <div className="flex items-center gap-2 text-slate-500">
                                                 <CheckCircle2 className="w-4 h-4 text-green-500" />
-                                                <span className="text-[10px] font-black uppercase tracking-widest">Producto a Entregar</span>
+                                                <span className="text-[11px] font-black uppercase tracking-widest">Producto a Entregar</span>
                                             </div>
                                             <input
                                                 value={act.final_product}
@@ -828,7 +827,7 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
                                         <div className="hidden print:block mt-8">
                                             <span className="header-label">PRODUCTO ESPERADO:</span>
                                             <span className="block text-sm font-bold product-tag">{act.final_product}</span>
-                                            <p className="mt-8 text-[8px] italic opacity-50">Generado con IA • Vunlek • Docente: {profile?.full_name}</p>
+                                            <p className="mt-8 text-[11px] italic opacity-50">Generado con IA • Vunlek • Docente: {profile?.full_name}</p>
                                         </div>
                                     </div>
                                 ))}

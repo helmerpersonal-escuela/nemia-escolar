@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { X, Save, Calendar, Clock, Bell, Users } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
+import { todayISO } from '../../../lib/dates'
 
 type EventModalProps = {
     isOpen: boolean
@@ -26,7 +27,7 @@ export const EventModal = ({
     const [formData, setFormData] = useState({
         title: '',
         description: '',
-        date: initialDate ? initialDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        date: initialDate ? initialDate.toISOString().split('T')[0] : todayISO(),
         time: '09:00',
         notifyTutors: false,
         groupId: '',
@@ -44,7 +45,7 @@ export const EventModal = ({
 
     const fetchGroups = async () => {
         try {
-            let query = supabase.from('groups').select('id, grade, section').eq('tenant_id', tenantId)
+            const query = supabase.from('groups').select('id, grade, section').eq('tenant_id', tenantId)
 
             // If teacher, maybe filter by group_subjects?
             // For now, let's show all groups if they are Director/Admin, or we can just show all groups for the teacher to choose which one to notify.
@@ -159,7 +160,7 @@ export const EventModal = ({
                         <h2 className="text-2xl font-black tracking-tight">Nuevo Evento</h2>
                         <p className="text-indigo-100 text-xs font-bold uppercase tracking-widest mt-1">Agenda Escolar</p>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-full transition-colors">
+                    <button aria-label="Cerrar" onClick={onClose} className="p-2 hover:bg-white/20 rounded-full transition-colors">
                         <X className="w-6 h-6" />
                     </button>
                 </div>
@@ -167,8 +168,8 @@ export const EventModal = ({
                 <form onSubmit={handleSubmit} className="p-8 space-y-6 flex-1 overflow-y-auto custom-scrollbar">
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Título del Evento</label>
-                            <input
+                            <label className="block text-[11px] font-black uppercase tracking-widest text-gray-500 mb-2">Título del Evento</label>
+                            <input aria-label="Título del Evento"
                                 type="text"
                                 required
                                 value={formData.title}
@@ -180,10 +181,10 @@ export const EventModal = ({
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Fecha</label>
+                                <label className="block text-[11px] font-black uppercase tracking-widest text-gray-500 mb-2">Fecha</label>
                                 <div className="relative">
-                                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                    <input
+                                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                                    <input aria-label="Fecha"
                                         type="date"
                                         required
                                         value={formData.date}
@@ -193,10 +194,10 @@ export const EventModal = ({
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Hora</label>
+                                <label className="block text-[11px] font-black uppercase tracking-widest text-gray-500 mb-2">Hora</label>
                                 <div className="relative">
-                                    <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                    <input
+                                    <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                                    <input aria-label="Hora"
                                         type="time"
                                         required
                                         value={formData.time}
@@ -208,8 +209,8 @@ export const EventModal = ({
                         </div>
 
                         <div>
-                            <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Descripción (Opcional)</label>
-                            <textarea
+                            <label className="block text-[11px] font-black uppercase tracking-widest text-gray-500 mb-2">Descripción (Opcional)</label>
+                            <textarea aria-label="Descripción (Opcional)"
                                 value={formData.description}
                                 onChange={e => setFormData({ ...formData, description: e.target.value })}
                                 className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 outline-none min-h-[100px]"
@@ -250,7 +251,7 @@ export const EventModal = ({
                                     </div>
                                     <div>
                                         <span className="block text-sm font-black text-gray-900">Notificar a Padres</span>
-                                        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">Enviar aviso por sistema</span>
+                                        <span className="text-[11px] text-gray-500 font-bold uppercase tracking-wide">Enviar aviso por sistema</span>
                                     </div>
                                 </div>
                                 <input
@@ -263,10 +264,10 @@ export const EventModal = ({
 
                             {formData.notifyTutors && (
                                 <div className="mt-6 pt-6 border-t border-indigo-100 animate-in slide-in-from-top-4 duration-300">
-                                    <label className="block text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-2">¿A quién notificar?</label>
+                                    <label className="block text-[11px] font-black uppercase tracking-widest text-indigo-400 mb-2">¿A quién notificar?</label>
                                     <div className="relative">
                                         <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-400" />
-                                        <select
+                                        <select aria-label="¿A quién notificar?"
                                             value={formData.groupId}
                                             onChange={e => setFormData({ ...formData, groupId: e.target.value })}
                                             className="w-full bg-white border border-indigo-100 rounded-xl pl-12 pr-5 py-3 text-xs font-bold focus:ring-4 focus:ring-indigo-500/10 outline-none appearance-none"

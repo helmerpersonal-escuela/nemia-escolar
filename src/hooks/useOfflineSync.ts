@@ -1,122 +1,50 @@
-import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '../lib/supabase'
+import { useEffect, useState, useCallback } from 'react'
+import { enqueue, flush, getState, startOutbox, subscribe, type OutboxState } from '../lib/offline/outbox'
 
-interface OfflineMutation {
-    id: string
+type LegacyMutation = {
     table: string
     action: 'INSERT' | 'UPDATE' | 'DELETE' | 'UPSERT'
-    data: any
-    timestamp: number
-    filters?: Record<string, any>
+    data: Record<string, unknown>
+    filters?: Record<string, unknown>
 }
 
-const OFFLINE_QUEUE_KEY = 'vunlek_offline_outbox'
+const CONFLICT_KEYS: Record<string, string> = {
+    attendance: 'student_id,date,group_id,subject_id',
+    grades: 'assignment_id,student_id',
+}
 
+/**
+ * Estado de la sincronización sin conexión (una sola bandeja para toda la app).
+ * Mantiene la misma API que la versión anterior (isOnline, pendingCount, isSyncing,
+ * addToQueue, syncQueue) y agrega failedCount / lastSyncAt.
+ */
 export const useOfflineSync = () => {
-    const [isOnline, setIsOnline] = useState(navigator.onLine)
-    const [pendingCount, setPendingCount] = useState(0)
-    const [isSyncing, setIsSyncing] = useState(false)
+    const [state, setState] = useState<OutboxState>(getState())
 
-    // Update online status
     useEffect(() => {
-        const handleOnline = () => setIsOnline(true)
-        const handleOffline = () => setIsOnline(false)
-
-        window.addEventListener('online', handleOnline)
-        window.addEventListener('offline', handleOffline)
-
-        return () => {
-            window.removeEventListener('online', handleOnline)
-            window.removeEventListener('offline', handleOffline)
-        }
+        startOutbox()
+        return subscribe(setState)
     }, [])
 
-    // Load initial pending count
-    useEffect(() => {
-        const queue = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || '[]')
-        setPendingCount(queue.length)
-    }, [])
-
-    const addToQueue = useCallback(async (mutation: Omit<OfflineMutation, 'id' | 'timestamp'>) => {
-        const newMutation: OfflineMutation = {
-            ...mutation,
-            id: crypto.randomUUID(),
-            timestamp: Date.now()
-        }
-
-        const queue = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || '[]')
-        queue.push(newMutation)
-        localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue))
-        setPendingCount(queue.length)
-
-        // Try to sync immediately if online
-        if (navigator.onLine) {
-            syncQueue()
+    const addToQueue = useCallback(async (m: LegacyMutation) => {
+        if (m.action === 'UPSERT') {
+            await enqueue({ table: m.table, op: 'upsert', rows: [m.data], onConflict: CONFLICT_KEYS[m.table] ?? 'id' })
+        } else if (m.action === 'INSERT') {
+            await enqueue({ table: m.table, op: 'insert', rows: [m.data] })
+        } else if (m.action === 'UPDATE') {
+            await enqueue({ table: m.table, op: 'update', values: m.data, match: m.filters ?? {} })
+        } else {
+            await enqueue({ table: m.table, op: 'delete', match: m.filters ?? {} })
         }
     }, [])
-
-    const syncQueue = useCallback(async () => {
-        if (isSyncing || !navigator.onLine) return
-
-        const queue: OfflineMutation[] = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || '[]')
-        if (queue.length === 0) return
-
-        setIsSyncing(true)
-        const remainingQueue: OfflineMutation[] = []
-
-        for (const item of queue) {
-            try {
-                let query: any = supabase.from(item.table)
-
-                if (item.action === 'INSERT') {
-                    const { error } = await query.insert(item.data)
-                    if (error) throw error
-                } else if (item.action === 'UPDATE') {
-                    let updateQuery = query.update(item.data)
-                    if (item.filters) {
-                        Object.entries(item.filters).forEach(([key, value]) => {
-                            updateQuery = updateQuery.eq(key, value)
-                        })
-                    }
-                    const { error } = await updateQuery
-                    if (error) throw error
-                } else if (item.action === 'UPSERT') {
-                    const { error } = await query.upsert(item.data)
-                    if (error) throw error
-                } else if (item.action === 'DELETE') {
-                    let deleteQuery = query.delete()
-                    if (item.filters) {
-                        Object.entries(item.filters).forEach(([key, value]) => {
-                            deleteQuery = deleteQuery.eq(key, value)
-                        })
-                    }
-                    const { error } = await deleteQuery
-                    if (error) throw error
-                }
-                // Success: item is processed and not added to remainingQueue
-            } catch (error) {
-                console.error(`Offline Sync Error (${item.table}):`, error)
-                remainingQueue.push(item) // Keep in queue for next retry
-            }
-        }
-
-        localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(remainingQueue))
-        setPendingCount(remainingQueue.length)
-        setIsSyncing(false)
-    }, [isSyncing])
-
-    // Auto-sync when coming back online
-    useEffect(() => {
-        if (isOnline) {
-            syncQueue()
-        }
-    }, [isOnline, syncQueue])
 
     return {
-        isOnline,
-        pendingCount,
-        isSyncing,
+        isOnline: state.online,
+        pendingCount: state.pending,
+        failedCount: state.failed,
+        isSyncing: state.syncing,
+        lastSyncAt: state.lastSyncAt,
         addToQueue,
-        syncQueue
+        syncQueue: flush,
     }
 }

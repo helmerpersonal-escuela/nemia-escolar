@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
-import { Check, ChevronRight, School, MapPin, Users, User, Building2, BookOpen } from 'lucide-react'
+import { Check, ChevronRight, School, MapPin, User, Building2, BookOpen } from 'lucide-react'
 import { useTenant } from '../../../hooks/useTenant'
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
@@ -12,7 +12,7 @@ import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
-// @ts-ignore
+// @ts-expect-error -- pendiente de tipar
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
     iconRetinaUrl: markerIcon2x,
@@ -230,7 +230,7 @@ export const RegistrationWizard = () => {
             <div className="flex items-center space-x-4 mb-8 w-full max-w-3xl justify-center overflow-x-auto">
                 {STEPS.map((step, idx) => (
                     <div key={step.id} className="flex items-center min-w-fit">
-                        <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${currentStep >= step.id ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300 text-gray-400'
+                        <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${currentStep >= step.id ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300 text-gray-500'
                             }`}>
                             {step.icon && <step.icon className="w-5 h-5" />}
                         </div>
@@ -249,7 +249,7 @@ export const RegistrationWizard = () => {
                             <h2 className="text-xl font-semibold">Datos de la Escuela</h2>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Nombre de la Escuela</label>
-                                <input
+                                <input aria-label="Nombre de la Escuela"
                                     type="text"
                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
                                     value={formData.schoolName}
@@ -259,18 +259,19 @@ export const RegistrationWizard = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Nivel Educativo</label>
-                                <select
+                                <select aria-label="Nivel Educativo"
                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                                     value={formData.educationalLevel}
                                     onChange={(e) => setFormData({ ...formData, educationalLevel: e.target.value })}
                                 >
+                                    <option value="PRIMARY">Primaria</option>
                                     <option value="SECONDARY">Secundaria</option>
                                     <option value="TELESECUNDARIA">Telesecundaria</option>
                                 </select>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">CCT (Clave Centro de Trabajo)</label>
-                                <input
+                                <input aria-label="CCT (Clave Centro de Trabajo)"
                                     type="text"
                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
                                     value={formData.cct}
@@ -280,7 +281,7 @@ export const RegistrationWizard = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Teléfono de Contacto</label>
-                                <input
+                                <input aria-label="Teléfono de Contacto"
                                     type="tel"
                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
                                     value={formData.phone}
@@ -295,7 +296,7 @@ export const RegistrationWizard = () => {
                             <h2 className="text-xl font-semibold">Ubicación</h2>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Dirección Completa</label>
-                                <input
+                                <input aria-label="Dirección Completa"
                                     type="text"
                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
                                     value={formData.address}
@@ -391,7 +392,7 @@ export const RegistrationWizard = () => {
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Nombre(s)</label>
-                                    <input
+                                    <input aria-label="Nombre(s)"
                                         type="text"
                                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
                                         value={formData.firstName}
@@ -402,7 +403,7 @@ export const RegistrationWizard = () => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700">Apellido Paterno</label>
-                                        <input
+                                        <input aria-label="Apellido Paterno"
                                             type="text"
                                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
                                             value={formData.lastNamePaternal}
@@ -412,7 +413,7 @@ export const RegistrationWizard = () => {
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700">Apellido Materno</label>
-                                        <input
+                                        <input aria-label="Apellido Materno"
                                             type="text"
                                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
                                             value={formData.lastNameMaternal}

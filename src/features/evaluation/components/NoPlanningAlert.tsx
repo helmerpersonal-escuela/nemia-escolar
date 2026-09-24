@@ -16,7 +16,7 @@ export const NoPlanningAlert = ({ groupId, subjectId, periodId, subjectName }: N
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-4 duration-500 mb-6">
             <div className="flex items-start space-x-4 mb-4 md:mb-0">
                 <div className="bg-amber-100 p-3 rounded-full">
-                    <AlertCircle className="w-8 h-8 text-amber-600" />
+                    <AlertCircle className="w-8 h-8 text-amber-700" />
                 </div>
                 <div>
                     <h3 className="text-lg font-bold text-gray-900">

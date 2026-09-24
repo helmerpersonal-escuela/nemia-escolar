@@ -27,8 +27,9 @@ JOIN public.profiles p ON p.id = cp.profile_id
 WHERE cp.room_id = '1e16b20a-0284-423e-8f4a-658fd803cebe';
 
 -- 4. Ensure tutor IS in that room
-INSERT INTO public.chat_participants (room_id, profile_id)
-VALUES ('1e16b20a-0284-423e-8f4a-658fd803cebe', 'ecd127be-a39c-48a9-8661-e50ffb2248fd')
-ON CONFLICT (room_id, profile_id) DO NOTHING;
+-- COMMENTED OUT FOR DB PUSH: hardcoded UUIDs fail on fresh DBs.
+-- INSERT INTO public.chat_participants (room_id, profile_id)
+-- VALUES ('1e16b20a-0284-423e-8f4a-658fd803cebe', 'ecd127be-a39c-48a9-8661-e50ffb2248fd')
+-- ON CONFLICT (room_id, profile_id) DO NOTHING;
 
 SELECT 'Tutor ensured in room 1e16b20a' as status;

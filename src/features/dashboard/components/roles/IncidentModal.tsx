@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Search, ChevronRight, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { X, Search, CheckCircle2 } from 'lucide-react'
 import { supabase } from '../../../../lib/supabase'
 import { useTenant } from '../../../../hooks/useTenant'
 
@@ -135,7 +135,7 @@ export const IncidentModal = ({ isOpen, onClose, onSuccess }: IncidentModalProps
                             </p>
                         )}
                     </div>
-                    <button onClick={onClose} className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors">
+                    <button aria-label="Cerrar" onClick={onClose} className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -146,14 +146,14 @@ export const IncidentModal = ({ isOpen, onClose, onSuccess }: IncidentModalProps
                             {loading && !selectedGroup ? (
                                 <div className="flex flex-col items-center justify-center py-12 space-y-4">
                                     <div className="w-10 h-10 border-4 border-red-500 border-t-transparent rounded-full animate-spin" />
-                                    <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Cargando grupos...</p>
+                                    <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">Cargando grupos...</p>
                                 </div>
                             ) : !selectedGroup ? (
                                 <>
                                     <label className="block text-sm font-bold text-slate-500 mb-4">Seleccione el grupo del alumno:</label>
                                     {groups.length === 0 ? (
                                         <div className="text-center py-12 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
-                                            <p className="font-bold text-slate-400">No se encontraron grupos disponibles.</p>
+                                            <p className="font-bold text-slate-500">No se encontraron grupos disponibles.</p>
                                         </div>
                                     ) : (
                                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -167,7 +167,7 @@ export const IncidentModal = ({ isOpen, onClose, onSuccess }: IncidentModalProps
                                                         <span className="block text-2xl font-black text-slate-800 group-hover:text-red-700">
                                                             {group.grade}° "{group.section}"
                                                         </span>
-                                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider group-hover:text-red-400">
+                                                        <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider group-hover:text-red-400">
                                                             {group.shift === 'MORNING' ? 'Matutino' : 'Vespertino'}
                                                         </span>
                                                     </div>
@@ -183,12 +183,12 @@ export const IncidentModal = ({ isOpen, onClose, onSuccess }: IncidentModalProps
                                     {loading ? (
                                         <div className="flex flex-col items-center justify-center py-12 space-y-4">
                                             <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin" />
-                                            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Cargando alumnos...</p>
+                                            <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">Cargando alumnos...</p>
                                         </div>
                                     ) : (
                                         <>
                                             <div className="relative">
-                                                <Search className="absolute left-3 top-3 text-slate-400 w-4 h-4" />
+                                                <Search className="absolute left-3 top-3 text-slate-500 w-4 h-4" />
                                                 <input
                                                     placeholder="Filtrar por nombre..."
                                                     className="w-full pl-10 pr-4 py-3 bg-slate-50 rounded-xl outline-none focus:ring-2 ring-red-100 font-medium"
@@ -198,7 +198,7 @@ export const IncidentModal = ({ isOpen, onClose, onSuccess }: IncidentModalProps
                                             </div>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                                 {students.length === 0 ? (
-                                                    <div className="col-span-full text-center py-8 text-slate-400 font-medium italic">
+                                                    <div className="col-span-full text-center py-8 text-slate-500 font-medium italic">
                                                         No hay alumnos registrados en este grupo.
                                                     </div>
                                                 ) : students
@@ -225,8 +225,8 @@ export const IncidentModal = ({ isOpen, onClose, onSuccess }: IncidentModalProps
                     ) : (
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <div>
-                                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Título del Reporte</label>
-                                <input
+                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Título del Reporte</label>
+                                <input aria-label="Título del Reporte"
                                     required
                                     className="w-full px-4 py-3 bg-slate-50 rounded-2xl outline-none focus:ring-2 ring-red-100 font-bold"
                                     placeholder="Ej: Falta de uniforme, Fuera del aula..."
@@ -237,8 +237,8 @@ export const IncidentModal = ({ isOpen, onClose, onSuccess }: IncidentModalProps
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Tipo</label>
-                                    <select
+                                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Tipo</label>
+                                    <select aria-label="Tipo"
                                         className="w-full px-4 py-3 bg-slate-50 rounded-2xl outline-none focus:ring-2 ring-red-100 font-bold appearance-none"
                                         value={formData.type}
                                         onChange={e => setFormData({ ...formData, type: e.target.value })}
@@ -251,8 +251,8 @@ export const IncidentModal = ({ isOpen, onClose, onSuccess }: IncidentModalProps
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Gravedad</label>
-                                    <select
+                                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Gravedad</label>
+                                    <select aria-label="Gravedad"
                                         className="w-full px-4 py-3 bg-slate-50 rounded-2xl outline-none focus:ring-2 ring-red-100 font-bold appearance-none"
                                         value={formData.severity}
                                         onChange={e => setFormData({ ...formData, severity: e.target.value })}
@@ -265,8 +265,8 @@ export const IncidentModal = ({ isOpen, onClose, onSuccess }: IncidentModalProps
                             </div>
 
                             <div>
-                                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Descripción detallada</label>
-                                <textarea
+                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Descripción detallada</label>
+                                <textarea aria-label="Descripción detallada"
                                     required
                                     rows={4}
                                     className="w-full px-4 py-3 bg-slate-50 rounded-2xl outline-none focus:ring-2 ring-red-100 font-medium"
@@ -277,8 +277,8 @@ export const IncidentModal = ({ isOpen, onClose, onSuccess }: IncidentModalProps
                             </div>
 
                             <div>
-                                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Acción tomada</label>
-                                <input
+                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Acción tomada</label>
+                                <input aria-label="Acción tomada"
                                     className="w-full px-4 py-3 bg-slate-50 rounded-2xl outline-none focus:ring-2 ring-red-100 font-medium"
                                     placeholder="Ej: Notificación a padres, Reporte verbal..."
                                     value={formData.action_taken}

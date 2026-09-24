@@ -194,13 +194,13 @@ export const QuickCalendar = () => {
                     <div>
                         <h3 className="font-black text-gray-900 text-lg leading-tight">Agenda</h3>
                         <div className="flex items-center space-x-1 mt-0.5">
-                            <button onClick={handlePrevDay} className="p-1 hover:bg-white hover:shadow-sm rounded-full text-gray-500 transition-all">
+                            <button aria-label="Anterior" onClick={handlePrevDay} className="p-1 hover:bg-white hover:shadow-sm rounded-full text-gray-500 transition-all">
                                 <ChevronLeft className="w-4 h-4" />
                             </button>
                             <span className="text-xs font-bold text-indigo-600 uppercase tracking-wide min-w-[120px] text-center bg-white/50 py-0.5 px-2 rounded-lg backdrop-blur-sm">
                                 {selectedDate.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}
                             </span>
-                            <button onClick={handleNextDay} className="p-1 hover:bg-white hover:shadow-sm rounded-full text-gray-500 transition-all">
+                            <button aria-label="Siguiente" onClick={handleNextDay} className="p-1 hover:bg-white hover:shadow-sm rounded-full text-gray-500 transition-all">
                                 <ChevronRight className="w-4 h-4" />
                             </button>
                         </div>
@@ -209,7 +209,7 @@ export const QuickCalendar = () => {
                 <div className="flex items-center space-x-2">
                     <button
                         onClick={() => navigate('/agenda')}
-                        className="text-xs font-bold text-gray-400 hover:text-indigo-600 transition-colors hidden sm:block"
+                        className="text-xs font-bold text-gray-500 hover:text-indigo-600 transition-colors hidden sm:block"
                     >
                         Ver todo
                     </button>
@@ -235,7 +235,7 @@ export const QuickCalendar = () => {
                             className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                         />
                         <div className="flex justify-end mt-2">
-                            <span className="text-[10px] uppercase font-bold text-indigo-400">Enter para guardar</span>
+                            <span className="text-[11px] uppercase font-bold text-indigo-400">Enter para guardar</span>
                         </div>
                     </form>
                 )}
@@ -256,7 +256,7 @@ export const QuickCalendar = () => {
                             <div className="flex justify-between items-start">
                                 <div>
                                     <div className="flex items-center space-x-2 mb-1">
-                                        {event.type === 'ASSIGNMENT' && <FileText className="w-3.5 h-3.5 text-amber-600" />}
+                                        {event.type === 'ASSIGNMENT' && <FileText className="w-3.5 h-3.5 text-amber-700" />}
                                         {event.type === 'PLANNING' && <BookOpen className="w-3.5 h-3.5 text-violet-600" />}
                                         {event.type === 'CLASS' && <GraduationCap className="w-3.5 h-3.5 text-blue-600" />}
                                         <h4 className={`font-bold text-sm leading-tight ${event.type === 'ASSIGNMENT' ? 'text-amber-900' :

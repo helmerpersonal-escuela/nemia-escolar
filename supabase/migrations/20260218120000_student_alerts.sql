@@ -18,12 +18,13 @@ CREATE TABLE IF NOT EXISTS public.student_alerts (
 ALTER TABLE public.student_alerts ENABLE ROW LEVEL SECURITY;
 
 -- Policies
+DROP POLICY IF EXISTS "Tutors can view their own student alerts" ON public.student_alerts;
 CREATE POLICY "Tutors can view their own student alerts" ON public.student_alerts
 FOR SELECT USING (
     auth.uid() = tutor_id
 );
 
 -- Indexing for performance
-CREATE INDEX idx_student_alerts_tutor_id ON public.student_alerts(tutor_id);
-CREATE INDEX idx_student_alerts_student_id ON public.student_alerts(student_id);
-CREATE INDEX idx_student_alerts_read_at ON public.student_alerts(read_at);
+CREATE INDEX IF NOT EXISTS idx_student_alerts_tutor_id ON public.student_alerts(tutor_id);
+CREATE INDEX IF NOT EXISTS idx_student_alerts_student_id ON public.student_alerts(student_id);
+CREATE INDEX IF NOT EXISTS idx_student_alerts_read_at ON public.student_alerts(read_at);

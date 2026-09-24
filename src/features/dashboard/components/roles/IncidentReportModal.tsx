@@ -1,4 +1,4 @@
-import { X, Printer, Download, Calendar, User, FileText, AlertTriangle } from 'lucide-react'
+import { X, Printer, Calendar, User, FileText, AlertTriangle } from 'lucide-react'
 
 interface IncidentReportModalProps {
     isOpen: boolean
@@ -23,7 +23,7 @@ export const IncidentReportModal = ({ isOpen, onClose, incident }: IncidentRepor
                         <button onClick={handlePrint} className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors flex items-center gap-2 text-xs font-bold">
                             <Printer className="w-4 h-4" /> Imprimir
                         </button>
-                        <button onClick={onClose} className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors">
+                        <button aria-label="Cerrar" onClick={onClose} className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors">
                             <X className="w-5 h-5" />
                         </button>
                     </div>
@@ -33,13 +33,13 @@ export const IncidentReportModal = ({ isOpen, onClose, incident }: IncidentRepor
                     {/* Report Header for Print */}
                     <div className="text-center space-y-2 pb-8 border-b-2 border-slate-100">
                         <h1 className="text-2xl font-black uppercase tracking-tighter">Reporte de Incidencia Escolar</h1>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Vunlek - Departamento de Prefectura</p>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Vunlek - Departamento de Prefectura</p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-8">
                         <div className="space-y-4">
                             <div className="space-y-1">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                                <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1">
                                     <User className="w-3 h-3" /> Alumno(a)
                                 </label>
                                 <p className="font-bold text-slate-900">
@@ -47,7 +47,7 @@ export const IncidentReportModal = ({ isOpen, onClose, incident }: IncidentRepor
                                 </p>
                             </div>
                             <div className="space-y-1">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Grado y Grupo</label>
+                                <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Grado y Grupo</label>
                                 <p className="font-bold text-slate-900">
                                     {incident.students?.groups ? `${incident.students.groups.grade}° "${incident.students.groups.section}"` : '--'}
                                 </p>
@@ -55,14 +55,14 @@ export const IncidentReportModal = ({ isOpen, onClose, incident }: IncidentRepor
                         </div>
                         <div className="space-y-4">
                             <div className="space-y-1 text-right">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1 justify-end">
+                                <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1 justify-end">
                                     <Calendar className="w-3 h-3" /> Fecha y Hora
                                 </label>
                                 <p className="font-bold text-slate-900">{new Date(incident.created_at).toLocaleString()}</p>
                             </div>
                             <div className="space-y-1 text-right">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ID Reporte</label>
-                                <p className="font-mono text-[10px] text-slate-400">{incident.id.slice(0, 8)}</p>
+                                <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">ID Reporte</label>
+                                <p className="font-mono text-[11px] text-slate-500">{incident.id.slice(0, 8)}</p>
                             </div>
                         </div>
                     </div>
@@ -72,7 +72,7 @@ export const IncidentReportModal = ({ isOpen, onClose, incident }: IncidentRepor
                             <h4 className="font-black text-slate-900 uppercase text-sm flex items-center gap-2">
                                 <AlertTriangle className="w-4 h-4 text-red-500" /> Detalle de la Incidencia
                             </h4>
-                            <span className="px-3 py-1 bg-white border border-slate-200 rounded-full text-[10px] font-black uppercase tracking-widest">
+                            <span className="px-3 py-1 bg-white border border-slate-200 rounded-full text-[11px] font-black uppercase tracking-widest">
                                 {incident.type} / Gravedad {incident.severity}
                             </span>
                         </div>
@@ -88,12 +88,12 @@ export const IncidentReportModal = ({ isOpen, onClose, incident }: IncidentRepor
                         </h4>
                         <div className="grid grid-cols-1 gap-6">
                             <div className="space-y-1 border-l-4 border-blue-100 pl-4 py-1">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Acción Tomada</label>
+                                <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Acción Tomada</label>
                                 <p className="text-sm font-medium text-slate-700">{incident.action_taken || 'Pendiente de resolución'}</p>
                             </div>
                             {incident.has_commitment && (
                                 <div className="space-y-1 border-l-4 border-emerald-100 pl-4 py-1">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Compromiso del Alumno</label>
+                                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Compromiso del Alumno</label>
                                     <p className="text-sm font-medium text-slate-700">{incident.commitment_description}</p>
                                 </div>
                             )}
@@ -104,15 +104,15 @@ export const IncidentReportModal = ({ isOpen, onClose, incident }: IncidentRepor
                     <div className="pt-24 grid grid-cols-2 gap-20">
                         <div className="text-center space-y-2">
                             <div className="border-b-2 border-slate-900 w-full" />
-                            <p className="text-[10px] font-black uppercase tracking-widest">Firma del Prefecto</p>
+                            <p className="text-[11px] font-black uppercase tracking-widest">Firma del Prefecto</p>
                         </div>
                         <div className="text-center space-y-2">
                             <div className="border-b-2 border-slate-900 w-full" />
-                            <p className="text-[10px] font-black uppercase tracking-widest">Firma del Tutor / Alumno</p>
+                            <p className="text-[11px] font-black uppercase tracking-widest">Firma del Tutor / Alumno</p>
                         </div>
                     </div>
 
-                    <p className="text-[8px] text-center text-slate-300 font-bold uppercase tracking-[0.2em] pt-8">
+                    <p className="text-[11px] text-center text-slate-300 font-bold uppercase tracking-[0.2em] pt-8">
                         Documento generado por Vunlek
                     </p>
                 </div>

@@ -79,7 +79,7 @@ export const EvaluationSetupPage = () => {
                     </div>
                 </div>
                 <div className="hidden lg:block relative z-10">
-                    <span className="bg-indigo-500/30 px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] backdrop-blur-md border border-white/10 text-indigo-100">
+                    <span className="bg-indigo-500/30 px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] backdrop-blur-md border border-white/10 text-indigo-100">
                         Vunlek Intelligent Eval
                     </span>
                 </div>
@@ -97,7 +97,7 @@ export const EvaluationSetupPage = () => {
 
                                 {periods && periods.length > 1 && (
                                     <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-gray-100 shadow-sm">
-                                        <span className="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Cambiar Periodo:</span>
+                                        <span className="text-xs font-black text-gray-500 uppercase tracking-widest ml-2">Cambiar Periodo:</span>
                                         <select
                                             value={selectedPeriod.id}
                                             onChange={(e) => {
@@ -116,9 +116,9 @@ export const EvaluationSetupPage = () => {
                             <CriteriaManager periodId={selectedPeriod.id} groupId={urlGroupId || undefined} />
                         </div>
                     ) : (
-                        <div className="h-full min-h-[400px] bg-gray-50 rounded-[2.5rem] border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-400 p-8 text-center">
+                        <div className="h-full min-h-[400px] bg-gray-50 rounded-[2.5rem] border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-500 p-8 text-center">
                             <div className="bg-white p-6 rounded-full shadow-lg shadow-gray-200/50 mb-6 group-hover:scale-110 transition-transform duration-500">
-                                <Calendar className="w-12 h-12 text-amber-500" />
+                                <Calendar className="w-12 h-12 text-amber-700" />
                             </div>
                             <h3 className="text-2xl font-black text-gray-800 mb-3 uppercase tracking-tight">
                                 {periods === undefined ? 'Cargando periodos...' : periods?.length === 0 ? 'No hay periodos escolares definidos' : 'Selecciona un periodo'}

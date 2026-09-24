@@ -109,7 +109,7 @@ export const StudentAttendancePage = () => {
                                 </option>
                             ))}
                         </select>
-                        <ChevronDown className="absolute right-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
+                        <ChevronDown className="absolute right-3 top-3 h-4 w-4 text-gray-500 pointer-events-none" />
                     </div>
                 )}
             </div>
@@ -117,7 +117,7 @@ export const StudentAttendancePage = () => {
             {selectedChild && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <StatCard label="Asistencias" value={stats.present} color="text-green-600" bg="bg-green-50" icon={CheckCircle2} />
-                    <StatCard label="Retardos" value={stats.late} color="text-amber-600" bg="bg-amber-50" icon={Clock} />
+                    <StatCard label="Retardos" value={stats.late} color="text-amber-700" bg="bg-amber-50" icon={Clock} />
                     <StatCard label="Faltas" value={stats.absent} color="text-red-600" bg="bg-red-50" icon={XCircle} />
                     <StatCard label="Justificadas" value={stats.excused} color="text-blue-600" bg="bg-blue-50" icon={AlertCircle} />
                 </div>
@@ -149,7 +149,7 @@ export const StudentAttendancePage = () => {
                             ))}
                             {attendance.length === 0 && (
                                 <tr>
-                                    <td colSpan={3} className="px-6 py-8 text-center text-gray-400">
+                                    <td colSpan={3} className="px-6 py-8 text-center text-gray-500">
                                         No hay registros de asistencia.
                                     </td>
                                 </tr>

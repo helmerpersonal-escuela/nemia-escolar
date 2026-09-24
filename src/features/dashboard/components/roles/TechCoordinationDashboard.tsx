@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Settings, AlertTriangle, Hammer, ClipboardCheck, BarChart3, Clock } from 'lucide-react'
+import { Settings, AlertTriangle, Hammer, ClipboardCheck, BarChart3 } from 'lucide-react'
 
 export const TechCoordinationDashboard = () => {
     const [currentTime, setCurrentTime] = useState(new Date())
@@ -28,7 +28,7 @@ export const TechCoordinationDashboard = () => {
                 </div>
                 <div className="relative z-10">
                     <div className="text-right">
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Hora Actual</p>
+                        <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Hora Actual</p>
                         <p className="text-3xl font-black text-gray-900">{currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</p>
                     </div>
                 </div>
@@ -44,7 +44,7 @@ export const TechCoordinationDashboard = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="bg-white p-8 rounded-3xl shadow-xl shadow-slate-100 border border-slate-50">
                     <h3 className="text-xl font-bold mb-6 flex items-center">
-                        <AlertTriangle className="w-5 h-5 mr-3 text-amber-500" /> Alertas de Inventario
+                        <AlertTriangle className="w-5 h-5 mr-3 text-amber-700" /> Alertas de Inventario
                     </h3>
                     <div className="space-y-4">
                         <InventoryAlert item="Martillos 12oz" shop="Carpintería" stock="2" min="5" type="warning" />
@@ -70,7 +70,7 @@ export const TechCoordinationDashboard = () => {
 const StatCard = ({ title, value, icon: Icon, color }: any) => {
     const colors: any = {
         blue: 'text-blue-600 bg-blue-50',
-        emerald: 'text-emerald-600 bg-emerald-50',
+        emerald: 'text-emerald-700 bg-emerald-50',
         purple: 'text-purple-600 bg-purple-50',
         orange: 'text-orange-600 bg-orange-50'
     }
@@ -79,7 +79,7 @@ const StatCard = ({ title, value, icon: Icon, color }: any) => {
             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 ${colors[color]}`}>
                 <Icon className="w-6 h-6" />
             </div>
-            <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">{title}</p>
+            <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">{title}</p>
             <h4 className="text-2xl font-black text-slate-900">{value}</h4>
         </div>
     )
@@ -93,7 +93,7 @@ const InventoryAlert = ({ item, shop, stock, min, type }: any) => (
         </div>
         <div className="text-right">
             <p className="text-sm font-black text-slate-900">{stock} / {min}</p>
-            <p className="text-[10px] uppercase font-black text-slate-400 tracking-tighter">Stock Actual</p>
+            <p className="text-[11px] uppercase font-black text-slate-500 tracking-tighter">Stock Actual</p>
         </div>
     </div>
 )
@@ -102,14 +102,14 @@ const TechPlan = ({ teacher, shop, status }: any) => (
     <div className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl hover:bg-slate-50 transition-all">
         <div className="flex items-center gap-4">
             <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                <Hammer className="w-5 h-5 text-slate-400" />
+                <Hammer className="w-5 h-5 text-slate-500" />
             </div>
             <div>
                 <h5 className="font-bold text-slate-900">{teacher}</h5>
                 <p className="text-xs text-slate-500 font-medium">{shop}</p>
             </div>
         </div>
-        <span className={`text-[10px] font-black px-2 py-1 rounded-md ${status === 'PENDIENTE' ? 'bg-orange-50 text-orange-600' : 'bg-emerald-50 text-emerald-600'}`}>
+        <span className={`text-[11px] font-black px-2 py-1 rounded-md ${status === 'PENDIENTE' ? 'bg-orange-50 text-orange-600' : 'bg-emerald-50 text-emerald-700'}`}>
             {status}
         </span>
     </div>

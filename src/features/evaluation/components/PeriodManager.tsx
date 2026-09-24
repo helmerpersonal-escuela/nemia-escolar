@@ -161,7 +161,7 @@ export const PeriodManager = ({ onSelectPeriod, selectedPeriodId, readOnly = fal
                 <form onSubmit={editingPeriod ? handleUpdate : handleCreate} className="mb-6 p-4 bg-gray-50 rounded-lg space-y-4 border border-gray-200">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Nombre del Periodo</label>
-                        <input
+                        <input aria-label="Nombre del Periodo"
                             type="text"
                             placeholder="Ej. Primer Trimestre"
                             className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
@@ -173,21 +173,29 @@ export const PeriodManager = ({ onSelectPeriod, selectedPeriodId, readOnly = fal
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Inicio</label>
-                            <input
+                            <input aria-label="Inicio"
                                 type="date"
                                 className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 value={editingPeriod ? editingPeriod.start_date : newPeriod.start_date}
-                                onChange={e => editingPeriod ? setEditingPeriod(prev => prev ? ({ ...prev, start_date: e.target.value }) : null) : setNewPeriod(prev => ({ ...prev, start_date: e.target.value }))}
+                                onChange={e => {
+                                    const val = e.target.value;
+                                    if (val && val.split('-')[0].length > 4) return;
+                                    if (editingPeriod) setEditingPeriod(prev => prev ? ({ ...prev, start_date: val }) : null); else setNewPeriod(prev => ({ ...prev, start_date: val }));
+                                }}
                                 required
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Fin</label>
-                            <input
+                            <input aria-label="Fin"
                                 type="date"
                                 className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 value={editingPeriod ? editingPeriod.end_date : newPeriod.end_date}
-                                onChange={e => editingPeriod ? setEditingPeriod(prev => prev ? ({ ...prev, end_date: e.target.value }) : null) : setNewPeriod(prev => ({ ...prev, end_date: e.target.value }))}
+                                onChange={e => {
+                                    const val = e.target.value;
+                                    if (val && val.split('-')[0].length > 4) return;
+                                    if (editingPeriod) setEditingPeriod(prev => prev ? ({ ...prev, end_date: val }) : null); else setNewPeriod(prev => ({ ...prev, end_date: val }));
+                                }}
                                 required
                             />
                         </div>
@@ -231,14 +239,14 @@ export const PeriodManager = ({ onSelectPeriod, selectedPeriodId, readOnly = fal
                                 }`}
                         >
                             <div className="flex items-center space-x-4">
-                                <div className={`p-2 rounded-lg ${selectedPeriodId === period.id ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                                <div className={`p-2 rounded-lg ${selectedPeriodId === period.id ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
                                     <Calendar className="w-4 h-4" />
                                 </div>
                                 <div>
                                     <h4 className={`font-black text-xs uppercase tracking-tight ${selectedPeriodId === period.id ? 'text-indigo-900' : 'text-gray-900'}`}>
                                         {period.name}
                                     </h4>
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase mt-1">
+                                    <p className="text-[11px] font-bold text-gray-500 uppercase mt-1">
                                         {formatDate(period.start_date)} — {formatDate(period.end_date)}
                                     </p>
                                 </div>
@@ -251,7 +259,7 @@ export const PeriodManager = ({ onSelectPeriod, selectedPeriodId, readOnly = fal
                                             setEditingPeriod(period)
                                             setIsCreating(false)
                                         }}
-                                        className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                                        className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
                                         title="Editar periodo"
                                     >
                                         <Edit2 className="w-4 h-4" />
@@ -261,7 +269,7 @@ export const PeriodManager = ({ onSelectPeriod, selectedPeriodId, readOnly = fal
                                             e.stopPropagation()
                                             handleDelete(period.id)
                                         }}
-                                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                        className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
                                         title="Eliminar periodo"
                                     >
                                         <Trash2 className="w-4 h-4" />

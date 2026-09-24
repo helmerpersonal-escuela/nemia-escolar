@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS public.payment_transactions (
 
 -- 2.2 Datos de Sistema Iniciales
 INSERT INTO public.system_settings (key, value, description)
-VALUES ('chat_sound_url', 'https://aveqziaewxcglhteufft.supabase.co/storage/v1/object/public/system/notification.mp3', 'Sonido de notificación de chat')
+VALUES ('chat_sound_url', 'https://xgrwivblrrucucjhrmni.supabase.co/storage/v1/object/public/system/notification.mp3', 'Sonido de notificación de chat')
 ON CONFLICT (key) DO NOTHING;
 
 -- 3. Restaurar Super Admin (helmerferras@gmail.com)

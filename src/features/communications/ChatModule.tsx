@@ -11,8 +11,6 @@ import {
     Send,
     Paperclip,
     Smile,
-    Image as ImageIcon,
-    FileText,
     MoreVertical,
     ChevronLeft,
     Phone,
@@ -23,7 +21,6 @@ import {
     X,
     Megaphone,
     Bell,
-    CheckCircle,
     Trash2
 } from 'lucide-react'
 
@@ -62,11 +59,11 @@ const ProfileItem = ({ profile, isSelected, onChat, onToggle, isOnline, isStarti
                     {profile.first_name} {profile.last_name_paternal}
                 </h4>
                 <div className="flex flex-col gap-0.5">
-                    <p className="text-xs text-slate-400 font-medium uppercase tracking-tighter">
+                    <p className="text-xs text-slate-500 font-medium uppercase tracking-tighter">
                         {profile.role === 'TUTOR' ? 'Padre de Familia' : profile.role === 'TEACHER' ? 'Docente' : profile.role}
                     </p>
                     {profile.student_names && (
-                        <p className="text-[10px] text-blue-600 font-bold uppercase truncate max-w-[150px]">
+                        <p className="text-[11px] text-blue-600 font-bold uppercase truncate max-w-[150px]">
                             {profile.role === 'TEACHER' ? `Docente de: ${profile.student_names}` : `Tutor de: ${profile.student_names}`}
                         </p>
                     )}
@@ -76,7 +73,7 @@ const ProfileItem = ({ profile, isSelected, onChat, onToggle, isOnline, isStarti
         <button
             onClick={onToggle}
             title={isSelected ? 'Quitar del grupo' : 'Agregar al grupo'}
-            className={`ml-2 p-2 rounded-xl transition-all shrink-0 ${isSelected ? 'bg-blue-600 text-white shadow-md shadow-blue-100' : 'bg-slate-100 text-slate-400 hover:bg-blue-50 hover:text-blue-600'}`}
+            className={`ml-2 p-2 rounded-xl transition-all shrink-0 ${isSelected ? 'bg-blue-600 text-white shadow-md shadow-blue-100' : 'bg-slate-100 text-slate-500 hover:bg-blue-50 hover:text-blue-600'}`}
         >
             {isSelected ? <UsersIcon className="h-4 w-4 sm:h-5 sm:w-5" /> : <Plus className="h-4 w-4 sm:h-5 sm:w-5" />}
         </button>
@@ -238,8 +235,7 @@ export const ChatModule = () => {
                 // Students/Tutors can only see staff
                 query = query.in('role', ['DIRECTOR', 'PREFECT', 'SUPPORT', 'TEACHER', 'ADMIN', 'SOCIAL_WORKER'])
             } else if (currentRole === 'TEACHER') {
-                // Teachers can see all staff + their students
-                query = query
+                // Teachers can see all staff + their students (sin filtro adicional)
             } else if (currentRole === 'PREFECT' || currentRole === 'SUPPORT' || currentRole === 'SOCIAL_WORKER') {
                 // Administrative staff can see all staff (no students)
                 query = query.in('role', ['DIRECTOR', 'PREFECT', 'SUPPORT', 'TEACHER', 'ADMIN', 'SOCIAL_WORKER', 'STAFF'])
@@ -270,7 +266,7 @@ export const ChatModule = () => {
                 // Get teachers of those children
                 const { data: teacherGroups } = await supabase
                     .from('group_subjects')
-                    .select('teacher_id, group:groups(id, grade, section), students:students(id, first_name, last_name_paternal)')
+                    .select('teacher_id, group:groups(id, grade, section, students(id, first_name, last_name_paternal))')
                     .in('group_id', (await supabase.from('students').select('group_id').in('id', childIds)).data?.map(s => s.group_id) || [])
 
                 if (teacherGroups) {
@@ -278,7 +274,7 @@ export const ChatModule = () => {
                         if (p.role === 'TEACHER') {
                             const relatedChildren = teacherGroups
                                 .filter(tg => tg.teacher_id === p.id)
-                                .map(tg => tg.students.find((s: any) => childIds.includes(s.id)))
+                                .map((tg: any) => (tg.group?.students || []).find((s: any) => childIds.includes(s.id)))
                                 .filter(Boolean)
 
                             if (relatedChildren.length > 0) {
@@ -429,7 +425,7 @@ export const ChatModule = () => {
                     <h2 className="text-xl font-black text-slate-800 flex items-center gap-2">
                         Mensajes
                     </h2>
-                    <button
+                    <button aria-label="Agregar"
                         onClick={() => setShowNewChatModal(true)}
                         className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-all"
                     >
@@ -439,13 +435,13 @@ export const ChatModule = () => {
                 <div className="p-4 bg-white border-b border-slate-100 flex gap-2">
                     <button
                         onClick={() => setActiveTab('chats')}
-                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'chats' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600'}`}
+                        className={`flex-1 py-2 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'chats' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-500 hover:text-slate-600'}`}
                     >
                         Conversaciones
                     </button>
                     <button
                         onClick={() => setActiveTab('announcements')}
-                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'announcements' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600'}`}
+                        className={`flex-1 py-2 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'announcements' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-500 hover:text-slate-600'}`}
                     >
                         Comunicados
                     </button>
@@ -475,7 +471,7 @@ export const ChatModule = () => {
                                                 <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
                                             )}
                                         </div>
-                                        <p className="text-xs text-slate-400 truncate font-medium">{room.last_message?.content || 'Inicia una conversación'}</p>
+                                        <p className="text-xs text-slate-500 truncate font-medium">{room.last_message?.content || 'Inicia una conversación'}</p>
                                     </div>
                                     <button
                                         onClick={(e) => {
@@ -490,7 +486,7 @@ export const ChatModule = () => {
                                         className="opacity-0 group-hover:opacity-100 p-2 hover:bg-red-50 rounded-lg transition-all"
                                         title="Eliminar chat"
                                     >
-                                        <Trash2 className="h-4 w-4 text-slate-400 hover:text-red-600" />
+                                        <Trash2 className="h-4 w-4 text-slate-500 hover:text-red-600" />
                                     </button>
                                 </div>
                             </div>
@@ -500,10 +496,10 @@ export const ChatModule = () => {
                             {announcements.map(ann => (
                                 <div key={ann.id} className="p-4 bg-white border border-slate-100 rounded-2xl group hover:shadow-lg transition-all">
                                     <div className="flex items-center gap-3 mb-2">
-                                        <div className="p-2 bg-amber-50 text-amber-600 rounded-lg">
+                                        <div className="p-2 bg-amber-50 text-amber-700 rounded-lg">
                                             <Megaphone className="w-4 h-4" />
                                         </div>
-                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{new Date(ann.created_at).toLocaleDateString()}</span>
+                                        <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">{new Date(ann.created_at).toLocaleDateString()}</span>
                                     </div>
                                     <h4 className="text-sm font-black text-slate-800 mb-1">{ann.title}</h4>
                                     <p className="text-xs text-slate-500 line-clamp-2">{ann.content}</p>
@@ -512,7 +508,7 @@ export const ChatModule = () => {
                             {canCreateAnnouncements && (
                                 <button
                                     onClick={() => setShowNewAnnouncementModal(true)}
-                                    className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-black text-[10px] uppercase tracking-widest hover:border-blue-300 hover:text-blue-500 hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2"
+                                    className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-500 font-black text-[11px] uppercase tracking-widest hover:border-blue-300 hover:text-blue-500 hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2"
                                 >
                                     <Plus className="w-4 h-4" />
                                     Nuevo Comunicado
@@ -521,7 +517,7 @@ export const ChatModule = () => {
                         </div>
                     )}
                     {(activeTab === 'chats' && rooms.length === 0 && !loading) && (
-                        <div className="text-center py-8 text-slate-400 font-medium">No hay chats activos</div>
+                        <div className="text-center py-8 text-slate-500 font-medium">No hay chats activos</div>
                     )}
                 </div>
             </div>
@@ -536,7 +532,7 @@ export const ChatModule = () => {
                         {/* Chat Header */}
                         <div className="p-6 border-b border-slate-100 flex items-center justify-between shadow-sm relative z-10">
                             <div className="flex items-center gap-4">
-                                <button
+                                <button aria-label="Anterior"
                                     onClick={() => navigate('/messages')}
                                     className="md:hidden p-2 hover:bg-slate-100 rounded-xl transition-colors"
                                 >
@@ -549,35 +545,35 @@ export const ChatModule = () => {
                                     <h3 className="font-black text-slate-800">{rooms.find(r => r.id === roomId)?.name || 'Conversación'}</h3>
                                     <div className="flex items-center gap-1">
                                         <div className={`w-1.5 h-1.5 rounded-full ${isReadOnly ? 'bg-amber-500' : 'bg-green-500'}`}></div>
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase">{isReadOnly ? 'Solo Lectura' : 'En línea'}</span>
+                                        <span className="text-[11px] font-bold text-slate-500 uppercase">{isReadOnly ? 'Solo Lectura' : 'En línea'}</span>
                                     </div>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
                                 <button
                                     onClick={() => alert('Función de llamada de voz próximamente')}
-                                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                                    className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
                                     title="Llamada de voz"
                                 >
                                     <Phone className="h-5 w-5" />
                                 </button>
                                 <button
                                     onClick={() => alert('Función de videollamada próximamente')}
-                                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                                    className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
                                     title="Videollamada"
                                 >
                                     <Video className="h-5 w-5" />
                                 </button>
                                 <button
                                     onClick={() => alert('Más opciones próximamente')}
-                                    className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
+                                    className="p-2 text-slate-500 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
                                     title="Más opciones"
                                 >
                                     <MoreVertical className="h-5 w-5" />
                                 </button>
                                 <button
                                     onClick={() => navigate('/messages')}
-                                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                                    className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
                                     title="Cerrar chat"
                                 >
                                     <X className="h-5 w-5" />
@@ -630,11 +626,11 @@ export const ChatModule = () => {
                             <div className="flex items-end gap-3 bg-slate-50 p-2 rounded-[2rem] border border-slate-200 focus-within:border-blue-300 focus-within:ring-4 focus-within:ring-blue-100 transition-all">
                                 <button
                                     onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                                    className={`p-3 transition-colors ${showEmojiPicker ? 'text-blue-600' : 'text-slate-400 hover:text-blue-600'}`}
+                                    className={`p-3 transition-colors ${showEmojiPicker ? 'text-blue-600' : 'text-slate-500 hover:text-blue-600'}`}
                                 >
                                     <Smile className="h-6 w-6" />
                                 </button>
-                                <button className="p-3 text-slate-400 hover:text-blue-600 transition-colors"><Paperclip className="h-6 w-6" /></button>
+                                <button aria-label="Adjuntar" className="p-3 text-slate-500 hover:text-blue-600 transition-colors"><Paperclip className="h-6 w-6" /></button>
                                 <textarea
                                     value={inputText}
                                     onChange={(e) => setInputText(e.target.value)}
@@ -649,7 +645,7 @@ export const ChatModule = () => {
                                         }
                                     }}
                                 />
-                                <button
+                                <button aria-label="Enviar"
                                     onClick={handleSend}
                                     disabled={!inputText.trim() || isReadOnly}
                                     className="p-4 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 shadow-lg shadow-blue-100 transform active:scale-95 transition-all"
@@ -665,7 +661,7 @@ export const ChatModule = () => {
                             <Send className="w-12 h-12 rotate-[-15deg]" />
                         </div>
                         <h3 className="text-2xl font-black text-slate-800">Tus Conversaciones</h3>
-                        <p className="text-slate-400 mt-2 max-w-xs mx-auto font-medium">
+                        <p className="text-slate-500 mt-2 max-w-xs mx-auto font-medium">
                             Selecciona un chat para comenzar a comunicarte con los padres de familia y colegas.
                         </p>
                     </div>
@@ -678,11 +674,11 @@ export const ChatModule = () => {
                         <div className="p-6 sm:p-8 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
                             <div>
                                 <h3 className="text-xl sm:text-2xl font-black text-slate-800">Nueva Conversación</h3>
-                                <p className="text-slate-400 font-medium text-xs sm:text-sm">Selecciona con quién quieres hablar.</p>
+                                <p className="text-slate-500 font-medium text-xs sm:text-sm">Selecciona con quién quieres hablar.</p>
                             </div>
-                            <button
+                            <button aria-label="Cerrar"
                                 onClick={() => setShowNewChatModal(false)}
-                                className="p-2 sm:p-3 hover:bg-slate-50 rounded-2xl text-slate-400 transition-all"
+                                className="p-2 sm:p-3 hover:bg-slate-50 rounded-2xl text-slate-500 transition-all"
                             >
                                 <X className="h-5 w-5 sm:h-6 sm:w-6" />
                             </button>
@@ -691,7 +687,7 @@ export const ChatModule = () => {
                         <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto flex-1">
                             {/* Search bar */}
                             <div className="relative">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 h-5 w-5" />
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 h-5 w-5" />
                                 <input
                                     type="text"
                                     value={searchQuery}
@@ -704,8 +700,8 @@ export const ChatModule = () => {
                             {/* Group Name (only if multiple selected) */}
                             {selectedProfiles.length > 0 && (
                                 <div className="space-y-2 animate-in slide-in-from-top-4 duration-300">
-                                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-2">Nombre del Grupo</label>
-                                    <input
+                                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest px-2">Nombre del Grupo</label>
+                                    <input aria-label="Nombre del Grupo"
                                         type="text"
                                         value={groupName}
                                         onChange={(e) => setGroupName(e.target.value)}
@@ -720,7 +716,7 @@ export const ChatModule = () => {
                                 {/* Docentes Section */}
                                 {groupedProfiles.docentes.length > 0 && (
                                     <div className="space-y-2">
-                                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest px-2 flex items-center gap-2">
+                                        <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest px-2 flex items-center gap-2">
                                             <UsersIcon className="h-4 w-4" />
                                             Docentes ({groupedProfiles.docentes.length})
                                         </h4>
@@ -744,7 +740,7 @@ export const ChatModule = () => {
                                 {/* Administrativos Section */}
                                 {groupedProfiles.administrativos.length > 0 && (
                                     <div className="space-y-2">
-                                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest px-2 flex items-center gap-2">
+                                        <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest px-2 flex items-center gap-2">
                                             <UsersIcon className="h-4 w-4" />
                                             Administrativos ({groupedProfiles.administrativos.length})
                                         </h4>
@@ -768,7 +764,7 @@ export const ChatModule = () => {
                                 {/* Alumnos/Tutores Section */}
                                 {groupedProfiles.alumnos_tutores.length > 0 && (
                                     <div className="space-y-2">
-                                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest px-2 flex items-center gap-2">
+                                        <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest px-2 flex items-center gap-2">
                                             <UsersIcon className="h-4 w-4" />
                                             Alumnos/Tutores ({groupedProfiles.alumnos_tutores.length})
                                         </h4>
@@ -793,7 +789,7 @@ export const ChatModule = () => {
                                 {groupedProfiles.docentes.length === 0 &&
                                     groupedProfiles.administrativos.length === 0 &&
                                     groupedProfiles.alumnos_tutores.length === 0 && (
-                                        <div className="text-center py-8 text-slate-400">
+                                        <div className="text-center py-8 text-slate-500">
                                             <Search className="h-12 w-12 mx-auto mb-2 opacity-50" />
                                             <p className="font-medium">No se encontraron usuarios</p>
                                         </div>
@@ -826,22 +822,22 @@ export const ChatModule = () => {
                     <div className="bg-white rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
                         <div className="p-8 bg-amber-50 border-b border-amber-100 flex items-center justify-between">
                             <div className="flex items-center gap-4">
-                                <div className="p-3 bg-amber-100 text-amber-600 rounded-2xl">
+                                <div className="p-3 bg-amber-100 text-amber-700 rounded-2xl">
                                     <Megaphone className="w-6 h-6" />
                                 </div>
                                 <div>
                                     <h3 className="text-xl font-black text-slate-900">Nuevo Comunicado</h3>
-                                    <p className="text-xs text-amber-600 font-bold uppercase tracking-widest">Mensaje Masivo</p>
+                                    <p className="text-xs text-amber-700 font-bold uppercase tracking-widest">Mensaje Masivo</p>
                                 </div>
                             </div>
-                            <button onClick={() => setShowNewAnnouncementModal(false)} className="p-2 hover:bg-white rounded-xl transition-all">
-                                <X className="w-5 h-5 text-slate-400" />
+                            <button aria-label="Cerrar" onClick={() => setShowNewAnnouncementModal(false)} className="p-2 hover:bg-white rounded-xl transition-all">
+                                <X className="w-5 h-5 text-slate-500" />
                             </button>
                         </div>
                         <div className="p-8 space-y-6">
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Título del Aviso</label>
-                                <input
+                                <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest px-1">Título del Aviso</label>
+                                <input aria-label="Título del Aviso"
                                     type="text"
                                     placeholder="Ej: Suspensión de labores por consejo técnico"
                                     className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-4 focus:ring-amber-100 transition-all outline-none"
@@ -850,8 +846,8 @@ export const ChatModule = () => {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Contenido</label>
-                                <textarea
+                                <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest px-1">Contenido</label>
+                                <textarea aria-label="Contenido"
                                     placeholder="Escribe el mensaje detallado aquí..."
                                     className="w-full h-32 px-6 py-4 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-4 focus:ring-amber-100 transition-all outline-none resize-none"
                                     value={newAnnouncement.content}
@@ -860,10 +856,10 @@ export const ChatModule = () => {
                             </div>
                             <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
                                 <div className="flex items-center gap-3">
-                                    <Bell className="w-5 h-5 text-slate-400" />
+                                    <Bell className="w-5 h-5 text-slate-500" />
                                     <div>
                                         <p className="text-xs font-black text-slate-800">Notificar por Email</p>
-                                        <p className="text-[10px] text-slate-400 font-medium">Se enviará una copia a todos los correos registrados.</p>
+                                        <p className="text-[11px] text-slate-500 font-medium">Se enviará una copia a todos los correos registrados.</p>
                                     </div>
                                 </div>
                                 <input
@@ -877,13 +873,13 @@ export const ChatModule = () => {
                         <div className="p-8 bg-slate-50/50 border-t border-slate-100 flex gap-4">
                             <button
                                 onClick={() => setShowNewAnnouncementModal(false)}
-                                className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-all"
+                                className="flex-1 py-4 text-[11px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-600 transition-all"
                             >
                                 Cancelar
                             </button>
                             <button
                                 onClick={handleSendAnnouncement}
-                                className="flex-[2] py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-2"
+                                className="flex-[2] py-4 bg-gray-900 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-2"
                             >
                                 <Megaphone className="w-4 h-4" />
                                 Publicar y Enviar

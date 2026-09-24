@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Fingerprint, CheckCircle2, ShieldAlert } from 'lucide-react'
 
 interface BiometricScannerMockProps {
@@ -42,7 +42,7 @@ export const BiometricScannerMock = ({ onScanSuccess, students = [], onClose }: 
         <div className="flex flex-col items-center justify-center w-full max-w-sm mx-auto p-8 bg-white rounded-3xl shadow-xl border border-slate-100 animate-in fade-in zoom-in duration-300 relative">
             <button
                 onClick={onClose}
-                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-2 rounded-full transition-colors"
+                className="absolute top-4 right-4 text-slate-500 hover:text-slate-600 p-2 rounded-full transition-colors"
                 disabled={status === 'SCANNING'}
             >
                 ✕
@@ -91,11 +91,11 @@ export const BiometricScannerMock = ({ onScanSuccess, students = [], onClose }: 
             </button>
 
             <div className="mt-8 h-12 flex items-center justify-center text-center">
-                {status === 'IDLE' && <span className="text-sm font-bold text-slate-400">Esperando lectura...</span>}
+                {status === 'IDLE' && <span className="text-sm font-bold text-slate-500">Esperando lectura...</span>}
                 {status === 'SCANNING' && <span className="text-sm font-bold text-indigo-600 animate-pulse">Analizando minucias...</span>}
                 {status === 'SUCCESS' && scannedStudent && (
                     <div className="animate-in slide-in-from-bottom-2 fade-in flex flex-col items-center">
-                        <span className="text-xs font-black text-emerald-600 uppercase tracking-widest">Identidad Confirmada</span>
+                        <span className="text-xs font-black text-emerald-700 uppercase tracking-widest">Identidad Confirmada</span>
                         <span className="text-sm font-bold text-slate-800">{scannedStudent.first_name} {scannedStudent.last_name_paternal}</span>
                     </div>
                 )}

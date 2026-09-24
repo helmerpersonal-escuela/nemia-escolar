@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ClipboardCheck, BookOpen, BarChart3, Users, Clock, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react'
+import { ClipboardCheck, BookOpen, BarChart3, Clock, CheckCircle, ArrowRight } from 'lucide-react'
 import { supabase } from '../../../../lib/supabase'
 import { useTenant } from '../../../../hooks/useTenant'
 import { useNavigate } from 'react-router-dom'
@@ -184,7 +184,7 @@ export const CoordinationDashboard = () => {
                 </div>
                 <div className="relative z-10">
                     <div className="text-right">
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Hora Actual</p>
+                        <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Hora Actual</p>
                         <p className="text-3xl font-black text-gray-900">{currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</p>
                     </div>
                 </div>
@@ -242,7 +242,7 @@ export const CoordinationDashboard = () => {
                 <div className="space-y-6">
                     <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-lg shadow-slate-100/50">
                         <h4 className="font-bold flex items-center mb-4 text-slate-800">
-                            <BarChart3 className="w-5 h-5 mr-2 text-emerald-500" /> Estatus General
+                            <BarChart3 className="w-5 h-5 mr-2 text-emerald-700" /> Estatus General
                         </h4>
                         <div className="space-y-4">
                             <ProgressRow
@@ -259,7 +259,7 @@ export const CoordinationDashboard = () => {
                             />
                         </div>
                         <div className="mt-6 pt-4 border-t border-slate-50">
-                            <p className="text-xs text-center text-slate-400 font-medium">
+                            <p className="text-xs text-center text-slate-500 font-medium">
                                 Ciclo Escolar Actual
                             </p>
                         </div>
@@ -283,17 +283,11 @@ export const CoordinationDashboard = () => {
                             </div>
 
                             <button
-                                onClick={() => {
-                                    if (cteConfig?.link) {
-                                        window.open(cteConfig.link, '_blank')
-                                    } else {
-                                        navigate('/dashboard/settings?tab=school')
-                                    }
-                                }}
+                                onClick={() => navigate('/cte')}
                                 className="mt-6 w-full py-3 bg-white/10 hover:bg-white/20 hover:scale-[1.02] active:scale-95 rounded-xl font-bold text-sm transition-all border border-white/10 backdrop-blur-sm flex items-center justify-center"
                             >
                                 <BookOpen className="w-4 h-4 mr-2" />
-                                {cteConfig?.link ? 'Ver Orden del Día (Ext)' : 'Configurar Link Externo'}
+                                Preparar CTE (insumos, acuerdos e IA)
                             </button>
 
                             <button
@@ -338,8 +332,8 @@ const CoordItem = ({ teacher, subject, deadline, status, grade, section, onClick
             </div>
         </div>
         <div className="flex flex-col items-end gap-2">
-            <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border ${status === 'SUBMITTED' ? 'bg-orange-50 text-orange-600 border-orange-100' :
-                status === 'APPROVED' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+            <span className={`text-[11px] font-black px-2.5 py-1 rounded-full border ${status === 'SUBMITTED' ? 'bg-orange-50 text-orange-600 border-orange-100' :
+                status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
                     'bg-blue-50 text-blue-600 border-blue-100'
                 }`}>
                 {status === 'SUBMITTED' ? 'POR VALIDAR' : status}
@@ -355,7 +349,7 @@ const ProgressRow = ({ label, value, color, count }: any) => (
             <span className="text-xs font-bold text-slate-600">{label}</span>
             <div className="text-right">
                 <span className={`text-lg font-black text-${color}-600 block leading-none`}>{value}%</span>
-                <span className="text-[10px] text-slate-400 font-medium">{count} Planeaciones</span>
+                <span className="text-[11px] text-slate-500 font-medium">{count} Planeaciones</span>
             </div>
         </div>
         <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">

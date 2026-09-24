@@ -11,14 +11,14 @@ import {
     Edit3,
     Check
 } from 'lucide-react'
-import { GroqService } from '../../../lib/groq'
+import { GeminiService } from '../../../lib/gemini'
 
 interface AIProposalManagerProps {
     isOpen: boolean
     onClose: () => void
     formData: any
     setFormData: (data: any) => void
-    groqService: GroqService
+    aiService: GeminiService
     phase: number
 }
 
@@ -29,7 +29,7 @@ const FIELDS = [
     { id: 'humano', name: 'De lo Humano y lo Comunitario', color: 'rose' }
 ]
 
-export const AIProposalManager = ({ isOpen, onClose, formData, setFormData, groqService, phase }: AIProposalManagerProps) => {
+export const AIProposalManager = ({ isOpen, onClose, formData, setFormData, aiService, phase }: AIProposalManagerProps) => {
     const [activeField, setActiveField] = useState('lenguajes')
     const [isGenerating, setIsGenerating] = useState(false)
     const [localProgram, setLocalProgram] = useState(formData.program_by_fields || {
@@ -75,7 +75,7 @@ export const AIProposalManager = ({ isOpen, onClose, formData, setFormData, groq
                 return
             }
 
-            const result = await groqService.generateFieldProposal(context, fieldContents)
+            const result = await aiService.generateFieldProposal(context, fieldContents)
 
             if (result) {
                 setLocalProgram((prev: any) => ({
@@ -137,8 +137,8 @@ export const AIProposalManager = ({ isOpen, onClose, formData, setFormData, groq
                             <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Revisa, edita y complementa tu programa analítico</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-3 hover:bg-gray-100 rounded-2xl transition-all">
-                        <X className="w-6 h-6 text-gray-400" />
+                    <button aria-label="Cerrar" onClick={onClose} className="p-3 hover:bg-gray-100 rounded-2xl transition-all">
+                        <X className="w-6 h-6 text-gray-500" />
                     </button>
                 </div>
 
@@ -152,11 +152,11 @@ export const AIProposalManager = ({ isOpen, onClose, formData, setFormData, groq
                                     onClick={() => setActiveField(field.id)}
                                     className={`w-full p-5 rounded-3xl text-left transition-all flex items-center justify-between group ${activeField === field.id
                                         ? 'bg-white shadow-xl shadow-gray-200/50 scale-105 border-2 border-indigo-500'
-                                        : 'hover:bg-white/60 text-gray-400'
+                                        : 'hover:bg-white/60 text-gray-500'
                                         }`}
                                 >
                                     <div className="flex flex-col">
-                                        <span className={`text-[10px] font-black uppercase tracking-widest mb-1 ${activeField === field.id ? `text-${field.color}-500` : 'text-gray-400'
+                                        <span className={`text-[11px] font-black uppercase tracking-widest mb-1 ${activeField === field.id ? `text-${field.color}-500` : 'text-gray-500'
                                             }`}>
                                             Campo Formativo
                                         </span>
@@ -167,7 +167,7 @@ export const AIProposalManager = ({ isOpen, onClose, formData, setFormData, groq
                                     </div>
                                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${localProgram[field.id]?.length > 0
                                         ? 'bg-green-100 text-green-600'
-                                        : 'bg-gray-100 text-gray-400'
+                                        : 'bg-gray-100 text-gray-500'
                                         }`}>
                                         {localProgram[field.id]?.length > 0 ? <Check className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                                     </div>
@@ -188,7 +188,7 @@ export const AIProposalManager = ({ isOpen, onClose, formData, setFormData, groq
                         {/* Top Action Bar */}
                         <div className="p-6 bg-white border-b border-gray-100 flex justify-between items-center">
                             <div className="flex items-center gap-3">
-                                <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${currentItems.length > 0 ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                                <span className={`px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest ${currentItems.length > 0 ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
                                     }`}>
                                     {currentItems.length} Contenidos Generados
                                 </span>
@@ -221,7 +221,7 @@ export const AIProposalManager = ({ isOpen, onClose, formData, setFormData, groq
                                         <div className="p-6 border-b border-gray-50 flex justify-between items-start bg-gray-50/20">
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-2 mb-2">
-                                                    <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest bg-white px-3 py-1 rounded-full border border-indigo-50 shadow-sm">
+                                                    <span className="text-[11px] font-black text-indigo-500 uppercase tracking-widest bg-white px-3 py-1 rounded-full border border-indigo-50 shadow-sm">
                                                         Contenido {idx + 1}
                                                     </span>
                                                 </div>
@@ -229,7 +229,7 @@ export const AIProposalManager = ({ isOpen, onClose, formData, setFormData, groq
                                                     {typeof item.content === 'object' ? JSON.stringify(item.content) : (item.content || 'Sin contenido')}
                                                 </p>
                                             </div>
-                                            <button
+                                            <button aria-label="Eliminar"
                                                 onClick={() => handleRemoveItem(activeField, idx)}
                                                 className="p-2 text-gray-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
                                             >
@@ -239,7 +239,7 @@ export const AIProposalManager = ({ isOpen, onClose, formData, setFormData, groq
                                         <div className="p-8 grid grid-cols-2 gap-8">
                                             {/* PDA Edit */}
                                             <div className="space-y-3">
-                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                                <label className="text-[11px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
                                                     <Edit3 className="w-3 h-3" /> Proceso de Desarrollo (PDA)
                                                 </label>
                                                 <textarea
@@ -250,7 +250,7 @@ export const AIProposalManager = ({ isOpen, onClose, formData, setFormData, groq
                                             </div>
                                             {/* Problem/Interest Edit */}
                                             <div className="space-y-3">
-                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                                <label className="text-[11px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
                                                     <AlertCircle className="w-3 h-3" /> Problemática / Interés
                                                 </label>
                                                 <textarea
@@ -261,7 +261,7 @@ export const AIProposalManager = ({ isOpen, onClose, formData, setFormData, groq
                                             </div>
                                             {/* Guidelines Edit */}
                                             <div className="space-y-3">
-                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                                <label className="text-[11px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
                                                     <Edit3 className="w-3 h-3" /> Orientaciones Didácticas
                                                 </label>
                                                 <textarea
@@ -273,8 +273,8 @@ export const AIProposalManager = ({ isOpen, onClose, formData, setFormData, groq
                                             {/* Axes and Duration */}
                                             <div className="grid grid-cols-2 gap-4 items-end">
                                                 <div className="space-y-3">
-                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Temporalidad (Días)</label>
-                                                    <input
+                                                    <label className="text-[11px] font-black text-gray-500 uppercase tracking-widest">Temporalidad (Días)</label>
+                                                    <input aria-label="Temporalidad (Días)"
                                                         type="number"
                                                         value={item.duration || 10}
                                                         onChange={(e) => handleUpdateItem(activeField, idx, 'duration', e.target.value)}
@@ -282,14 +282,14 @@ export const AIProposalManager = ({ isOpen, onClose, formData, setFormData, groq
                                                     />
                                                 </div>
                                                 <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100">
-                                                    <span className="text-[8px] font-black text-indigo-400 uppercase tracking-widest block mb-1">Ejes sugeridos</span>
+                                                    <span className="text-[11px] font-black text-indigo-400 uppercase tracking-widest block mb-1">Ejes sugeridos</span>
                                                     <div className="flex flex-wrap gap-1">
                                                         {Array.isArray(item.axes) ? item.axes.map((axis: any, i: number) => (
-                                                            <span key={i} className="text-[9px] font-bold bg-white text-indigo-600 px-2 py-0.5 rounded-md shadow-sm border border-indigo-50">
+                                                            <span key={i} className="text-[11px] font-bold bg-white text-indigo-600 px-2 py-0.5 rounded-md shadow-sm border border-indigo-50">
                                                                 {typeof axis === 'object' ? JSON.stringify(axis) : axis}
                                                             </span>
                                                         )) : (
-                                                            <span className="text-[9px] font-bold text-gray-400 italic">No asignados</span>
+                                                            <span className="text-[11px] font-bold text-gray-500 italic">No asignados</span>
                                                         )}
                                                     </div>
                                                 </div>

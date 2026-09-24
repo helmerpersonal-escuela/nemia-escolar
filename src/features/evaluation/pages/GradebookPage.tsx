@@ -5,6 +5,10 @@ import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
 import { useProfile } from '../../../hooks/useProfile'
 import { useOfflineSync } from '../../../hooks/useOfflineSync'
+import { saveOrQueue } from '../../../lib/offline/outbox'
+import { attendanceKey, loadGradebookBundle, loadGroups, mergeRows } from '../../../lib/offline/gradebookData'
+import { OfflineDataBanner } from '../../../components/offline/OfflineDataBanner'
+import { useToast } from '../../../components/ui/Toast'
 import {
     ArrowLeft,
     Plus,
@@ -23,10 +27,7 @@ import {
     QrCode,
     Lock,
     Unlock,
-    Award,
-    ChevronDown,
     Save,
-    AlertTriangle,
     Clock,
     ShieldCheck,
     GraduationCap,
@@ -42,16 +43,25 @@ import { ActivitiesManagerModal } from '../components/ActivitiesManagerModal'
 import { DictationModeModal } from '../components/DictationModeModal'
 import { QRScanner } from '../components/QRScanner'
 import { BiometricScannerMock } from '../components/BiometricScannerMock'
-import { Mic } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 import { GeminiService } from '../../../lib/gemini'
 import { useMemo } from 'react'
+import { ClassPlanGeneratorModal } from '../components/ClassPlanGeneratorModal'
+import { ClassPlanList } from '../components/ClassPlanList'
+
+/** Fecha de hoy (AAAA-MM-DD) en la hora local del dispositivo, no en UTC. */
+const localDateISO = () => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
 export const GradebookPage = () => {
     const [searchParams] = useSearchParams()
     const navigate = useNavigate()
     const { data: tenant } = useTenant()
     const { profile } = useProfile()
-    const { isOnline, addToQueue, pendingCount } = useOfflineSync()
+    useOfflineSync()
+    const { showToast } = useToast()
 
     const groupId = searchParams.get('groupId')
     const subjectId = searchParams.get('subjectId')
@@ -64,6 +74,10 @@ export const GradebookPage = () => {
 
     const [loading, setLoading] = useState(true)
     const [group, setGroup] = useState<any>(null)
+    const isSecondary = useMemo(() => {
+        if (!group) return false
+        return group.phase === 6
+    }, [group])
     const [students, setStudents] = useState<any[]>([])
     const [criteria, setCriteria] = useState<any[]>([])
     const [assignments, setAssignments] = useState<any[]>([])
@@ -74,12 +88,15 @@ export const GradebookPage = () => {
     const [hasCheckedPlanning, setHasCheckedPlanning] = useState(false)
     const [hasLessonPlan, setHasLessonPlan] = useState(true) // Default to true to prevent flash
 
-    const [activeTab, setActiveTab] = useState<'EVALUATION' | 'ATTENDANCE' | 'REPORTS'>((searchParams.get('tab') as any) || 'ATTENDANCE')
+    const [activeTab, setActiveTab] = useState<'EVALUATION' | 'ATTENDANCE' | 'REPORTS' | 'DAILY_PLANS'>((searchParams.get('tab') as any) || 'ATTENDANCE')
+    const [isClassPlanModalOpen, setIsClassPlanModalOpen] = useState(false)
+    const [editingClassPlan, setEditingClassPlan] = useState<any>(null)
+    const [refreshClassPlans, setRefreshClassPlans] = useState(0)
     const [incidents, setIncidents] = useState<any[]>([])
     const [periods, setPeriods] = useState<any[]>([])
     const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(searchParams.get('periodId'))
     const [attendance, setAttendance] = useState<any[]>([])
-    const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0])
+    const [attendanceDate, setAttendanceDate] = useState(localDateISO())
     const [attendanceMethod, setAttendanceMethod] = useState<'MANUAL' | 'QR' | 'BIOMETRIC'>('MANUAL')
     const [pendingAttendance, setPendingAttendance] = useState<Record<string, string>>({})
     const [isSavingAttendance, setIsSavingAttendance] = useState(false)
@@ -99,191 +116,94 @@ export const GradebookPage = () => {
     // State for Group Selector fallback
     const [availableGroups, setAvailableGroups] = useState<any[]>([])
 
+    // Copia guardada para trabajar sin señal
+    const [offlineInfo, setOfflineInfo] = useState<{ fromCache: boolean, savedAt?: number }>({ fromCache: false })
+
     const loadData = async () => {
         if (!tenant?.id) return
 
-        // ... (lines omitted for brevity, keeping existing logic)
-        if (!tenant?.id) return
-
-        // If no groupId, fetch available groups to let user select
+        // Sin grupo seleccionado: lista de grupos (también disponible sin señal)
         if (!groupId) {
             setLoading(true)
-            const { data: groupsData } = await supabase
-                .from('groups')
-                .select('*, academic_years(name)')
-                .eq('tenant_id', tenant.id)
-                .order('grade')
-                .order('section')
-
-            setAvailableGroups(groupsData || [])
-            setLoading(false)
+            try {
+                const { data: groupsData, fromCache, savedAt } = await loadGroups(tenant.id)
+                setAvailableGroups(groupsData || [])
+                setOfflineInfo({ fromCache, savedAt })
+            } catch (err) {
+                console.error('Error loading groups:', err)
+            } finally {
+                setLoading(false)
+            }
             return
         }
 
         setLoading(true)
         try {
-            // Fetch Periods
-            const { data: periodsData } = await supabase
-                .from('evaluation_periods')
-                .select('*')
-                .eq('tenant_id', tenant.id)
-                .order('start_date')
+            // Un solo paquete con todo el grupo (todas las materias y periodos).
+            // En línea se descarga y se guarda; sin señal se usa la copia guardada.
+            const { bundle, fromCache, savedAt } = await loadGradebookBundle(tenant.id, groupId)
+            setOfflineInfo({ fromCache, savedAt })
+            if (!bundle) {
+                setGroup(null)
+                setStudents([])
+                return
+            }
 
-            setPeriods(periodsData || [])
+            const periodsData = bundle.periods
+            setPeriods(periodsData)
 
-            // Set default period based on DATE
+            // Periodo por defecto según la fecha de hoy
             let currentPeriodId = selectedPeriodId
-            if (!currentPeriodId && periodsData && periodsData.length > 0) {
-                const today = new Date().toISOString().split('T')[0]
+            if (!currentPeriodId && periodsData.length > 0) {
+                const today = localDateISO()
                 const active = periodsData.find(p => today >= p.start_date && today <= p.end_date) || periodsData[0]
                 currentPeriodId = active.id
                 setSelectedPeriodId(active.id)
             }
 
-            const { data: groupData } = await supabase.from('groups').select('*').eq('id', groupId).single()
-            const { data: studentsData } = await supabase.from('students').select('*').eq('group_id', groupId).order('last_name_paternal')
-
-            if (!studentsData) return
-
-            // Fetch Criteria for this group and period
-            let criteriaQuery = supabase
-                .from('evaluation_criteria')
-                .select('*')
-                .eq('group_id', groupId)
-
-            if (currentPeriodId) {
-                criteriaQuery = criteriaQuery.eq('period_id', currentPeriodId)
-            }
-
-            const { data: criteriaData } = await criteriaQuery
-
-            // Fetch Assignments for this group and period
-            const assignmentQuery = supabase
-                .from('assignments')
-                .select('*')
-                .eq('group_id', groupId)
-
-            // Period filtering is handled by filtering assignments by criterion_id (assignments -> criteria -> period)
-            // assignments table does not have period_id column directly.
-
-            if (subjectId) {
-                assignmentQuery.eq('subject_id', subjectId)
-            }
-            const { data: assignmentsData } = await assignmentQuery
-
-            const { data: gradesData } = await supabase
-                .from('grades')
-                .select('*')
-                .in('student_id', studentsData.map(s => s.id))
-
-            const { data: attendanceData } = await supabase
-                .from('attendance')
-                .select('id, student_id, date, status, subject_id')
-                .eq('group_id', groupId)
-
-            // Fetch Subjects for this group
-            const { data: subjectsData } = await supabase
-                .from('group_subjects')
-                .select(`
-                    id, 
-                    subject_catalog_id, 
-                    custom_name,
-                    subject_catalog(name)
-                `)
-                .eq('group_id', groupId)
-
-            const formattedSubjects = subjectsData?.map((gs: any) => ({
-                id: gs.subject_catalog_id || gs.id,
-                name: gs.subject_catalog?.name || gs.custom_name
-            })) || []
+            const criteriaData = currentPeriodId
+                ? bundle.criteria.filter(c => c.period_id === currentPeriodId)
+                : bundle.criteria
+            // El periodo de las actividades se filtra por su criterio (assignments no tiene period_id)
+            const assignmentsData = subjectId
+                ? bundle.assignments.filter(a => a.subject_id === subjectId)
+                : bundle.assignments
+            const formattedSubjects = bundle.subjects
 
             setGroupSubjects(formattedSubjects)
+            setIncidents(bundle.incidents)
 
-            // Fetch Incidents
-            const { data: incidentsData } = await supabase
-                .from('student_incidents')
-                .select('*')
-                .in('student_id', studentsData.map(s => s.id))
-                .order('created_at', { ascending: false })
-
-            setIncidents(incidentsData || [])
-
-            // Auto-select subject if only one exists and none selected
+            // Autoseleccionar la materia si solo hay una
             if (!subjectId && formattedSubjects.length === 1) {
                 navigate(`/gradebook?groupId=${groupId}&subjectId=${formattedSubjects[0].id}${currentPeriodId ? `&periodId=${currentPeriodId}` : ''}`, { replace: true })
-                return // Stop execution to let navigation happen
+                return
             }
 
-            // If subjectId is in URL but not in the formattedSubjects (maybe it was deleted), clear it
+            // Materia en la URL que ya no existe
             if (subjectId && !formattedSubjects.some(s => s.id === subjectId)) {
                 navigate(`/gradebook?groupId=${groupId}${currentPeriodId ? `&periodId=${currentPeriodId}` : ''}`, { replace: true })
             }
 
             if (subjectId) {
-                // 1. Try EXACT MATCH by subject_id + group_id + period_id
-                let planningQuery = supabase
-                    .from('lesson_plans')
-                    .select('id, title, campo_formativo, period_id, subject_id')
-                    .eq('group_id', groupId)
-                    .eq('subject_id', subjectId)
+                const plans = bundle.lessonPlans // ya vienen del más reciente al más antiguo
+                const inPeriod = (p: any) => !currentPeriodId || p.period_id === currentPeriodId
 
-                if (currentPeriodId) {
-                    planningQuery = planningQuery.eq('period_id', currentPeriodId)
-                }
+                // 1. Coincidencia exacta: materia + periodo
+                let finalPlanning = plans.find(p => p.subject_id === subjectId && inPeriod(p))
 
-                const { data: exactPlanning, error: planningError } = await planningQuery
-                    .order('created_at', { ascending: false })
-                    .limit(1)
-                    .maybeSingle()
-
-                if (planningError) console.error('Planning Query Error:', planningError)
-
-                let finalPlanning = exactPlanning
-
-                // 2. FALLBACK: Match by Campo Formativo if custom subject mismatch
+                // 2. Respaldo: por nombre de materia / campo formativo dentro del periodo
                 if (!finalPlanning) {
                     const currentSubject = formattedSubjects.find(s => s.id === subjectId)
-
-                    // We try to find ANY plan for this group and period that might be the one
-                    let fallbackQuery = supabase
-                        .from('lesson_plans')
-                        .select('id, title, campo_formativo, period_id, subject_id')
-                        .eq('group_id', groupId)
-
-                    if (currentPeriodId) {
-                        fallbackQuery = fallbackQuery.eq('period_id', currentPeriodId)
-                    }
-
-                    const { data: groupPlans } = await fallbackQuery.order('created_at', { ascending: false })
-
-                    if (groupPlans && groupPlans.length > 0) {
-                        // Priority 1: Semantic match with subject name
-                        const semanticMatch = groupPlans.find(p =>
+                    const groupPlans = plans.filter(inPeriod)
+                    if (groupPlans.length > 0) {
+                        finalPlanning = groupPlans.find(p =>
                             p.title?.toLowerCase().includes(currentSubject?.name?.toLowerCase() || '') ||
                             currentSubject?.name?.toLowerCase().includes(p.campo_formativo?.toLowerCase() || '')
-                        )
-
-                        if (semanticMatch) {
-                            finalPlanning = semanticMatch
-                        } else {
-                            // Priority 2: Just take the most recent one
-                            finalPlanning = groupPlans[0]
-                        }
+                        ) || groupPlans[0]
                     }
-
+                    // 3. Cualquier periodo, misma materia
                     if (!finalPlanning) {
-                        const { data: anyPeriodPlans } = await supabase
-                            .from('lesson_plans')
-                            .select('id, title, campo_formativo, period_id, subject_id')
-                            .eq('group_id', groupId)
-                            .eq('subject_id', subjectId)
-                            .order('created_at', { ascending: false })
-                            .limit(1)
-                            .maybeSingle()
-
-                        if (anyPeriodPlans) {
-                            finalPlanning = anyPeriodPlans
-                        }
+                        finalPlanning = plans.find(p => p.subject_id === subjectId)
                     }
                 }
 
@@ -294,12 +214,12 @@ export const GradebookPage = () => {
                 setHasCheckedPlanning(false)
             }
 
-            setGroup(groupData)
-            setStudents(studentsData || [])
-            setCriteria(criteriaData || [])
-            setAssignments(assignmentsData || [])
-            setGrades(gradesData || [])
-            setAttendance(attendanceData || [])
+            setGroup(bundle.group)
+            setStudents(bundle.students)
+            setCriteria(criteriaData)
+            setAssignments(assignmentsData)
+            setGrades(bundle.grades)
+            setAttendance(bundle.attendance)
         } catch (err) {
             console.error('Error loading gradebook:', err)
         } finally {
@@ -398,114 +318,50 @@ export const GradebookPage = () => {
         if (!tenant?.id || !groupId || Object.keys(pendingAttendance).length === 0) return
 
         setIsSavingAttendance(true)
-
-        if (!isOnline) {
-            // OFFLINE LOGIC: Queue each attendance change
-            try {
-                for (const [studentId, status] of Object.entries(pendingAttendance)) {
-                    addToQueue({
-                        table: 'attendance',
-                        action: 'UPSERT',
-                        data: {
-                            tenant_id: tenant.id,
-                            group_id: groupId,
-                            student_id: studentId,
-                            date: attendanceDate,
-                            status,
-                            subject_id: subjectId || null
-                        }
-                    })
-                }
-
-                // Update local student records immediately for UI feel
-                setAttendance(prev => {
-                    const newAttendance = [...prev]
-                    Object.entries(pendingAttendance).forEach(([studentId, status]) => {
-                        const idx = newAttendance.findIndex(a => a.student_id === studentId && a.date === attendanceDate && (subjectId ? a.subject_id === subjectId : !a.subject_id))
-                        if (idx >= 0) {
-                            newAttendance[idx] = { ...newAttendance[idx], status }
-                        } else {
-                            newAttendance.push({
-                                student_id: studentId,
-                                date: attendanceDate,
-                                status,
-                                subject_id: subjectId || null
-                            })
-                        }
-                    })
-                    return newAttendance
-                })
-
-                setPendingAttendance({})
-                alert('Modo Offline: Cambios guardados localmente. Se sincronizarán al recuperar internet.')
-            } catch (err) {
-                console.error('Offline queue error:', err)
-                alert('Error al guardar localmente')
-            } finally {
-                setIsSavingAttendance(false)
-            }
-            return
-        }
+        const rows = Object.entries(pendingAttendance).map(([studentId, status]) => ({
+            tenant_id: tenant.id,
+            group_id: groupId,
+            student_id: studentId,
+            date: attendanceDate,
+            status,
+            subject_id: subjectId || null,
+        }))
 
         try {
-            // Manual Upsert Logic to avoid constraint name issues
-            const updates = Object.entries(pendingAttendance).map(async ([studentId, status]) => {
-                // Check if exists
-                let query = supabase
-                    .from('attendance')
-                    .select('id')
-                    .eq('student_id', studentId)
-                    .eq('group_id', groupId)
-                    .eq('date', attendanceDate)
-
-                if (subjectId) {
-                    query = query.eq('subject_id', subjectId)
-                } else {
-                    query = query.is('subject_id', null)
-                }
-
-                const { data: existing } = await query.maybeSingle()
-
-                if (existing) {
-                    return supabase
-                        .from('attendance')
-                        .update({ status })
-                        .eq('id', existing.id)
-                } else {
-                    return supabase
-                        .from('attendance')
-                        .insert({
-                            tenant_id: tenant.id,
-                            group_id: groupId,
-                            student_id: studentId,
-                            date: attendanceDate,
-                            status,
-                            subject_id: subjectId || null
-                        })
-                }
+            // En línea se guarda al momento; sin señal queda en el dispositivo y se sube sola.
+            const { queued } = await saveOrQueue({
+                table: 'attendance',
+                op: 'upsert',
+                rows,
+                onConflict: 'student_id,date,group_id,subject_id',
+                dedupeKey: `attendance:${groupId}:${attendanceDate}:${subjectId || ''}`,
+                label: `Pase de lista del ${attendanceDate}`,
             })
 
-            await Promise.all(updates)
-
-            const { data } = await supabase
-                .from('attendance')
-                .select('*')
-                .eq('group_id', groupId)
-            setAttendance(data || [])
+            // Reflejar el cambio en pantalla sin esperar al servidor
+            setAttendance(prev => mergeRows(prev, rows, attendanceKey).map(r => (queued ? r : { ...r, __pending: false })))
             setPendingAttendance({})
-            alert('Pase de lista guardado correctamente')
-
+            toast(queued
+                ? 'Sin conexión: el pase de lista quedó guardado en este dispositivo y se enviará al volver la señal.'
+                : 'Pase de lista guardado correctamente', queued ? 'info' : 'success')
+            if (!queued) void refreshBundleSilently()
         } catch (err: any) {
             console.error('Error saving attendance:', err)
-            if (err.message?.includes('duplicate key') || err.code === '23505') {
-                alert('Ya existe un registro de asistencia para hoy. Por favor recarga la página para ver los datos actualizados e intenta de nuevo.')
-            } else {
-                alert('Error al guardar: ' + err.message)
-            }
+            alert('Error al guardar: ' + (err?.message || 'Error desconocido'))
         } finally {
             setIsSavingAttendance(false)
         }
     }
+
+    /** Actualiza la copia guardada del grupo en segundo plano (para tenerla lista sin señal). */
+    const refreshBundleSilently = async () => {
+        if (!tenant?.id || !groupId) return
+        try {
+            await loadGradebookBundle(tenant.id, groupId)
+        } catch { /* se reintentará en la próxima carga */ }
+    }
+
+    const toast = (message: string, type: 'success' | 'info' = 'success') => showToast(message, type, 5000)
 
     const handleMarkAllPresent = () => {
         const updates: Record<string, string> = {}
@@ -536,29 +392,13 @@ export const GradebookPage = () => {
     // Check for Missing Planning (Only if specific subject selected)
     // We need state for this, adding it below to avoid full file rewrite issues
     // For now assuming we check it in loadData and store in a state variable `hasLessonPlan`
-    if (groupId && subjectId && hasCheckedPlanning && !hasLessonPlan) {
-        return (
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="mb-6">
-                    <button onClick={() => navigate('/groups', { replace: true })} className="text-gray-500 hover:text-gray-700 flex items-center">
-                        <ArrowLeft className="h-4 w-4 mr-2" />
-                        Volver a Grupos
-                    </button>
-                </div>
-                <NoPlanningAlert
-                    groupId={groupId}
-                    subjectId={subjectId}
-                    periodId={selectedPeriodId || ''}
-                    subjectName={groupSubjects.find(s => s.id === subjectId)?.name}
-                />
-            </div>
-        )
-    }
+    // We no longer block the entire page here to allow Attendance and Reports
 
     // FALLBACK: Group Selection
     if (!groupId) {
         return (
             <div className="max-w-5xl mx-auto p-8 animate-in fade-in duration-500">
+                <OfflineDataBanner fromCache={offlineInfo.fromCache} savedAt={offlineInfo.savedAt} hasData={availableGroups.length > 0} />
                 <div className="text-center mb-12">
                     <span className="p-3 bg-blue-100 rounded-full inline-block mb-4 shadow-sm">
                         <BookOpen className="w-8 h-8 text-blue-600" />
@@ -607,7 +447,7 @@ export const GradebookPage = () => {
                                 </div>
 
                                 <div className="mt-4 pt-4 border-t border-gray-50 w-full text-center">
-                                    <span className="text-sm font-bold text-gray-400 group-hover:text-blue-500 flex items-center justify-center transition-colors">
+                                    <span className="text-sm font-bold text-gray-500 group-hover:text-blue-500 flex items-center justify-center transition-colors">
                                         Abrir Libreta <ArrowRight className="w-4 h-4 ml-1" />
                                     </span>
                                 </div>
@@ -619,8 +459,17 @@ export const GradebookPage = () => {
         )
     }
 
+    if (!group && offlineInfo.fromCache) {
+        return (
+            <div className="max-w-3xl mx-auto p-8">
+                <OfflineDataBanner fromCache savedAt={offlineInfo.savedAt} hasData={false} />
+            </div>
+        )
+    }
+
     return (
         <div className="space-y-8">
+            <OfflineDataBanner fromCache={offlineInfo.fromCache} savedAt={offlineInfo.savedAt} />
             {/* Main Header Card - Tactile Maximalism */}
             <div className="squishy-card p-6 md:p-8 border-none bg-gradient-to-br from-white to-slate-50/50 shadow-xl shadow-slate-200/50 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50/50 rounded-full -mr-32 -mt-32 blur-3xl opacity-50"></div>
@@ -628,7 +477,7 @@ export const GradebookPage = () => {
                 <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                     {/* Left: Context & Title */}
                     <div className="flex items-start space-x-5">
-                        <button
+                        <button aria-label="Regresar"
                             onClick={() => navigate('/groups', { replace: true })}
                             className="mt-1 p-3 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all shadow-sm hover:scale-110 active:scale-90 group/back"
                         >
@@ -640,9 +489,15 @@ export const GradebookPage = () => {
                                 <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
                                     Libreta: {group?.grade}° "{group?.section}"
                                 </h1>
-                                <div className="flex bg-indigo-100 text-indigo-700 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest animate-pulse">
-                                    En Línea
-                                </div>
+                                {offlineInfo.fromCache ? (
+                                    <div className="flex bg-amber-100 text-amber-700 text-[11px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">
+                                        Copia sin conexión
+                                    </div>
+                                ) : (
+                                    <div className="flex bg-indigo-100 text-indigo-700 text-[11px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">
+                                        En Línea
+                                    </div>
+                                )}
                             </div>
 
                             <div className="flex flex-wrap items-center gap-3">
@@ -656,7 +511,7 @@ export const GradebookPage = () => {
 
                                 {/* Period Pill */}
                                 <div className="flex items-center bg-white border border-slate-200 rounded-full px-4 py-1.5 shadow-sm">
-                                    <Calendar className="w-3.5 h-3.5 text-amber-500 mr-2" />
+                                    <Calendar className="w-3.5 h-3.5 text-amber-700 mr-2" />
                                     <span className="text-xs font-black text-slate-700 uppercase tracking-tight">
                                         {periods.find(p => p.id === selectedPeriodId)?.name || 'Periodo Actual'}
                                     </span>
@@ -667,10 +522,11 @@ export const GradebookPage = () => {
                                     <div className="flex items-center bg-indigo-50 border border-indigo-100 rounded-full px-4 py-1.5 shadow-sm group/date relative cursor-pointer overflow-hidden">
                                         <Clock className="w-3.5 h-3.5 text-indigo-600 mr-2" />
                                         <span className="text-xs font-black text-indigo-700 uppercase tracking-tight">
-                                            {new Date(attendanceDate).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}
+                                            {new Date(`${attendanceDate}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}
                                         </span>
                                         <input
                                             type="date"
+                                            aria-label="Fecha de la asistencia"
                                             value={attendanceDate}
                                             onChange={(e) => setAttendanceDate(e.target.value)}
                                             className="absolute inset-0 opacity-0 cursor-pointer"
@@ -687,13 +543,36 @@ export const GradebookPage = () => {
                         {activeTab === 'EVALUATION' && (
                             !periods.find(p => p.id === selectedPeriodId)?.is_closed && (
                                 <button
-                                    onClick={() => setIsAssignmentModalOpen(true)}
-                                    className="flex-1 md:flex-none flex items-center px-6 py-3 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all font-black uppercase text-xs tracking-widest btn-tactile group/add"
+                                    onClick={() => {
+                                        if (hasCheckedPlanning && !hasLessonPlan) {
+                                            alert('Se requiere una Planeación Didáctica previa para crear calificables.')
+                                            return
+                                        }
+                                        setIsAssignmentModalOpen(true)
+                                    }}
+                                    className={`flex-1 md:flex-none flex items-center px-6 py-3 rounded-2xl shadow-lg transition-all font-black uppercase text-xs tracking-widest btn-tactile group/add ${hasCheckedPlanning && !hasLessonPlan ? 'bg-slate-200 text-slate-500 cursor-not-allowed shadow-none' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100'}`}
                                 >
                                     <Plus className="w-5 h-5 mr-2 group-hover/add:rotate-90 transition-transform" />
                                     Añadir Calificable
                                 </button>
                             )
+                        )}
+
+                        {activeTab === 'DAILY_PLANS' && (
+                            <button
+                                onClick={() => {
+                                    if (hasCheckedPlanning && !hasLessonPlan) {
+                                        alert('Se requiere una Planeación Didáctica previa para generar planes de clase diarios.')
+                                        return
+                                    }
+                                    setEditingClassPlan(null)
+                                    setIsClassPlanModalOpen(true)
+                                }}
+                                className={`flex-1 md:flex-none flex items-center px-6 py-3 border-2 rounded-2xl shadow-lg transition-all font-black uppercase text-xs tracking-widest btn-tactile group/class ${hasCheckedPlanning && !hasLessonPlan ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed shadow-none' : 'bg-white text-indigo-600 border-indigo-100 hover:bg-indigo-50 shadow-indigo-50/50'}`}
+                            >
+                                <Sparkles className="w-5 h-5 mr-2 group-hover/class:animate-pulse" />
+                                Plan de Clase
+                            </button>
                         )}
 
                         <div className="flex items-center bg-slate-100/50 p-1.5 rounded-[2rem] border border-slate-200 gap-1 mt-2 md:mt-0">
@@ -725,7 +604,7 @@ export const GradebookPage = () => {
                                                 const { error } = await supabase.from('evaluation_periods').update({ is_closed: false }).eq('id', currentPeriod.id)
                                                 if (!error) loadData()
                                             }}
-                                            className="p-3 bg-amber-50 text-amber-600 rounded-2xl hover:bg-amber-100 transition-all shadow-sm border border-amber-200"
+                                            className="p-3 bg-amber-50 text-amber-700 rounded-2xl hover:bg-amber-100 transition-all shadow-sm border border-amber-200"
                                             title={`Reabrir ${currentPeriod.name}`}
                                         >
                                             <Unlock className="w-5 h-5" />
@@ -744,7 +623,7 @@ export const GradebookPage = () => {
                                 )
                             })()}
 
-                            <button className="p-3 bg-white text-slate-600 rounded-2xl hover:bg-white transition-all shadow-sm hover:scale-110 active:scale-95 border border-slate-200">
+                            <button aria-label="Descargar" className="p-3 bg-white text-slate-600 rounded-2xl hover:bg-white transition-all shadow-sm hover:scale-110 active:scale-95 border border-slate-200">
                                 <Download className="w-5 h-5" />
                             </button>
                         </div>
@@ -753,21 +632,24 @@ export const GradebookPage = () => {
             </div>
 
             {/* Navigation Tabs - Tactile Minimalist */}
-            <div className="flex bg-slate-100/50 p-2 rounded-[2rem] border border-slate-200 w-full sm:w-fit self-center">
+            <div role="tablist" aria-label="Secciones de la libreta" className="flex bg-slate-100/50 p-1.5 sm:p-2 rounded-[2rem] border border-slate-200 w-full sm:w-fit self-center overflow-x-auto scrollbar-hide">
                 {[
                     { id: 'ATTENDANCE', label: 'Asistencia', icon: ShieldCheck },
                     { id: 'EVALUATION', label: 'Evaluación', icon: GraduationCap },
+                    { id: 'DAILY_PLANS', label: 'Mis Clases', icon: Sparkles },
                     { id: 'REPORTS', label: 'Incidencias', icon: FileWarning }
                 ].map((tab) => (
                     <button
                         key={tab.id}
+                        role="tab"
+                        aria-selected={activeTab === tab.id}
                         onClick={() => setActiveTab(tab.id as any)}
-                        className={`flex items-center px-8 py-3 rounded-[1.5rem] text-xs font-black uppercase tracking-widest transition-all ${activeTab === tab.id
+                        className={`shrink-0 whitespace-nowrap flex items-center px-4 sm:px-8 py-3 min-h-11 rounded-[1.5rem] text-xs font-black uppercase tracking-wider sm:tracking-widest transition-all ${activeTab === tab.id
                             ? 'bg-white text-indigo-600 shadow-md scale-100'
                             : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
                             }`}
                     >
-                        <tab.icon className={`w-4 h-4 mr-2 ${activeTab === tab.id ? 'text-indigo-500' : 'text-slate-400'}`} />
+                        <tab.icon className={`w-4 h-4 mr-2 ${activeTab === tab.id ? 'text-indigo-500' : 'text-slate-500'}`} />
                         {tab.label}
                     </button>
                 ))}
@@ -789,7 +671,7 @@ export const GradebookPage = () => {
             {
                 activeTab === 'ATTENDANCE' && (
                     <div className="flex items-center space-x-4 bg-gray-50 p-3 rounded-2xl border border-gray-200 w-fit">
-                        <p className="text-xs font-black text-gray-400 uppercase tracking-widest px-2">Método:</p>
+                        <p className="text-xs font-black text-gray-500 uppercase tracking-widest px-2">Método:</p>
                         <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-100">
                             {[
                                 { id: 'MANUAL', label: 'Manual', icon: Users },
@@ -817,6 +699,38 @@ export const GradebookPage = () => {
             }
 
             {
+                activeTab === 'DAILY_PLANS' && tenant && groupId && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {hasCheckedPlanning && !hasLessonPlan && (
+                            <div className="mb-6">
+                                <NoPlanningAlert
+                                    groupId={groupId}
+                                    subjectId={subjectId || ''}
+                                    periodId={selectedPeriodId || ''}
+                                    subjectName={groupSubjects.find(s => s.id === subjectId)?.name}
+                                />
+                            </div>
+                        )}
+                        <ClassPlanList
+                            tenantId={tenant.id}
+                            groupId={groupId}
+                            subjectId={subjectId || ''}
+                            isSecondary={isSecondary}
+                            refreshTrigger={refreshClassPlans}
+                            onOpenGenerator={() => {
+                                setEditingClassPlan(null)
+                                setIsClassPlanModalOpen(true)
+                            }}
+                            onEdit={(plan) => {
+                                setEditingClassPlan(plan)
+                                setIsClassPlanModalOpen(true)
+                            }}
+                        />
+                    </div>
+                )
+            }
+
+            {
                 activeTab === 'EVALUATION' && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
                         <div className="squishy-card p-6 flex items-center bg-white border-none shadow-lg shadow-slate-100 group/metric">
@@ -824,7 +738,7 @@ export const GradebookPage = () => {
                                 <Users className="w-6 h-6 text-indigo-600" />
                             </div>
                             <div>
-                                <p className="text-xs text-slate-400 font-black uppercase tracking-widest">Alumnos</p>
+                                <p className="text-xs text-slate-500 font-black uppercase tracking-widest">Alumnos</p>
                                 <h3 className="text-3xl font-black text-slate-900">{students.length}</h3>
                             </div>
                         </div>
@@ -833,12 +747,12 @@ export const GradebookPage = () => {
                             className="squishy-card p-6 flex items-center bg-white border-none shadow-lg shadow-slate-100 group/metric hover:bg-amber-50/50 transition-all text-left"
                         >
                             <div className="bg-amber-100 p-4 rounded-3xl mr-4 shrink-0 group-hover/metric:scale-110 transition-transform">
-                                <CheckSquare className="w-6 h-6 text-amber-600" />
+                                <CheckSquare className="w-6 h-6 text-amber-700" />
                             </div>
                             <div>
-                                <p className="text-xs text-slate-400 font-black uppercase tracking-widest flex items-center gap-2">
+                                <p className="text-xs text-slate-500 font-black uppercase tracking-widest flex items-center gap-2">
                                     Actividades
-                                    <span className="p-1 bg-amber-500 rounded-lg text-[8px] text-white animate-pulse">GESTIONAR</span>
+                                    <span className="p-1 bg-amber-500 rounded-lg text-[11px] text-white animate-pulse">GESTIONAR</span>
                                 </p>
                                 <h3 className="text-3xl font-black text-slate-900">{assignments.length}</h3>
                             </div>
@@ -870,19 +784,19 @@ export const GradebookPage = () => {
                 activeTab === 'ATTENDANCE' && (
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                         <div className="squishy-card p-6 bg-white border-none shadow-lg shadow-emerald-50 group/metric">
-                            <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">Presentes Hoy</p>
+                            <p className="text-[11px] font-black text-emerald-700 uppercase tracking-widest mb-1">Presentes Hoy</p>
                             <h3 className="text-3xl font-black text-slate-900">{attendance.filter(a => a.date === attendanceDate && a.status === 'PRESENT').length}</h3>
                         </div>
                         <div className="squishy-card p-6 bg-white border-none shadow-lg shadow-amber-50 group/metric">
-                            <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1">Retardos Hoy</p>
+                            <p className="text-[11px] font-black text-amber-700 uppercase tracking-widest mb-1">Retardos Hoy</p>
                             <h3 className="text-3xl font-black text-slate-900">{attendance.filter(a => a.date === attendanceDate && a.status === 'LATE').length}</h3>
                         </div>
                         <div className="squishy-card p-6 bg-white border-none shadow-lg shadow-rose-50 group/metric">
-                            <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest mb-1">Faltas Hoy</p>
+                            <p className="text-[11px] font-black text-rose-600 uppercase tracking-widest mb-1">Faltas Hoy</p>
                             <h3 className="text-3xl font-black text-slate-900">{attendance.filter(a => a.date === attendanceDate && a.status === 'ABSENT').length}</h3>
                         </div>
                         <div className="squishy-card p-6 bg-white border-none shadow-lg shadow-indigo-50 group/metric">
-                            <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1">Permisos Hoy</p>
+                            <p className="text-[11px] font-black text-indigo-600 uppercase tracking-widest mb-1">Permisos Hoy</p>
                             <h3 className="text-3xl font-black text-slate-900">{attendance.filter(a => a.date === attendanceDate && a.status === 'EXCUSED').length}</h3>
                         </div>
                     </div>
@@ -958,9 +872,9 @@ export const GradebookPage = () => {
                                 <button
                                     onClick={profile?.is_demo ? undefined : saveAttendance}
                                     disabled={isSavingAttendance || Object.keys(pendingAttendance).length === 0 || profile?.is_demo}
-                                    className={`px-6 py-2.5 rounded-2xl transition-all font-black uppercase text-[10px] tracking-widest flex items-center shadow-lg btn-tactile ${isSavingAttendance || Object.keys(pendingAttendance).length === 0 || profile?.is_demo
-                                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-100'
-                                        : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:scale-105 active:scale-95 shadow-emerald-100'
+                                    className={`px-6 py-2.5 rounded-2xl transition-all font-black uppercase text-[11px] tracking-widest flex items-center shadow-lg btn-tactile ${isSavingAttendance || Object.keys(pendingAttendance).length === 0 || profile?.is_demo
+                                        ? 'bg-slate-100 text-slate-500 cursor-not-allowed border border-slate-100'
+                                        : 'bg-emerald-700 text-white hover:bg-emerald-800 hover:scale-105 active:scale-95 shadow-emerald-100'
                                         }`}
                                     title={profile?.is_demo ? "No disponible en modo demo" : ""}
                                 >
@@ -977,14 +891,25 @@ export const GradebookPage = () => {
                                 <input
                                     type="text"
                                     placeholder="BUSCAR ALUMNO..."
-                                    className="input-squishy pl-11 pr-6 py-2.5 text-[10px] font-black w-full md:w-64 placeholder:text-slate-300"
+                                    className="input-squishy pl-11 pr-6 py-2.5 text-[11px] font-black w-full md:w-64 placeholder:text-slate-300"
                                 />
                             </div>
-                            <button className="p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-slate-400 hover:bg-slate-100 transition-colors shadow-sm">
+                            <button aria-label="Filtrar" className="p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-slate-500 hover:bg-slate-100 transition-colors shadow-sm">
                                 <Filter className="w-4 h-4" />
                             </button>
                         </div>
                     </div>
+
+                    {activeTab === 'EVALUATION' && hasCheckedPlanning && !hasLessonPlan && (
+                        <div className="px-6 py-4">
+                            <NoPlanningAlert
+                                groupId={groupId!}
+                                subjectId={subjectId!}
+                                periodId={selectedPeriodId || ''}
+                                subjectName={groupSubjects.find(s => s.id === subjectId)?.name}
+                            />
+                        </div>
+                    )}
 
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
@@ -1015,14 +940,14 @@ export const GradebookPage = () => {
                                                     }
 
                                                     return (
-                                                        <th key={c.id} className={`px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 text-center relative group/th ${c.id === 'uncategorized' ? 'bg-amber-50/30' : ''}`}>
+                                                        <th key={c.id} className={`px-8 py-6 text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 text-center relative group/th ${c.id === 'uncategorized' ? 'bg-amber-50/30' : ''}`}>
                                                             <div className="flex flex-col items-center justify-center">
                                                                 <span className="flex items-center gap-1 group-hover/th:text-indigo-600 transition-colors">
                                                                     {c.name}
                                                                     {pendingCount > 0 && (
                                                                         <div className="group/tooltip relative">
                                                                             <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div>
-                                                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-900 text-white text-[10px] rounded-lg whitespace-nowrap opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-10 shadow-xl">
+                                                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-900 text-white text-[11px] rounded-lg whitespace-nowrap opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-10 shadow-xl">
                                                                                 {pendingCount} pendientes
                                                                             </div>
                                                                         </div>
@@ -1031,19 +956,19 @@ export const GradebookPage = () => {
                                                                 <div className="mt-1 h-1 w-8 bg-slate-100 rounded-full overflow-hidden">
                                                                     <div className={`h-full transition-all duration-1000 ${c.id === 'uncategorized' ? 'bg-amber-400 w-0' : 'bg-indigo-500'}`} style={{ width: c.id === 'uncategorized' ? '0%' : '100%' }}></div>
                                                                 </div>
-                                                                {c.id !== 'uncategorized' && <span className="mt-1 block text-[9px] font-black text-indigo-400 lowercase opacity-60">{c.weight || c.percentage}%</span>}
-                                                                {c.id === 'uncategorized' && <span className="mt-1 block text-[9px] font-black text-amber-500 lowercase opacity-60">Sin Peso</span>}
+                                                                {c.id !== 'uncategorized' && <span className="mt-1 block text-[11px] font-black text-indigo-400 lowercase opacity-60">{c.weight || c.percentage}%</span>}
+                                                                {c.id === 'uncategorized' && <span className="mt-1 block text-[11px] font-black text-amber-700 lowercase opacity-60">Sin Peso</span>}
                                                             </div>
                                                         </th>
                                                     )
                                                 })
                                             })()}
-                                            <th className="px-8 py-6 text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] text-right bg-indigo-50/30 border-l border-indigo-50">Total</th>
+                                            <th className="px-8 py-6 text-[11px] font-black text-indigo-600 uppercase tracking-[0.2em] text-right bg-indigo-50/30 border-l border-indigo-50">Total</th>
                                         </>
                                     ) : (
                                         <>
-                                            <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Asistencia ({attendanceDate})</th>
-                                            <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Acumulado</th>
+                                            <th className="px-8 py-6 text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] text-center">Asistencia ({attendanceDate})</th>
+                                            <th className="px-8 py-6 text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] text-right">Acumulado</th>
                                         </>
                                     )}
                                 </tr>
@@ -1059,7 +984,7 @@ export const GradebookPage = () => {
                                                 <div>
                                                     <p className="text-sm font-black text-slate-900 leading-none mb-1">{student.last_name_paternal} {student.last_name_maternal}</p>
                                                     <p className="text-sm font-bold text-slate-500 leading-none">{student.first_name}</p>
-                                                    <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mt-1">{student.curp || 'SIN CURP'}</p>
+                                                    <p className="text-[11px] text-slate-500 font-black uppercase tracking-widest mt-1">{student.curp || 'SIN CURP'}</p>
                                                 </div>
                                             </div>
                                         </td>
@@ -1096,13 +1021,13 @@ export const GradebookPage = () => {
                                                                         }`}
                                                                 >
                                                                     <div className="flex flex-col items-center group-hover/cell:scale-125 transition-transform duration-300">
-                                                                        <span className={`text-base font-black transition-colors ${c.id === 'uncategorized' ? 'text-amber-600' : 'text-slate-700 group-hover/cell:text-indigo-600'
+                                                                        <span className={`text-base font-black transition-colors ${c.id === 'uncategorized' ? 'text-amber-700' : 'text-slate-700 group-hover/cell:text-indigo-600'
                                                                             }`}>
                                                                             {gradedCount > 0 ? (studentGrades.reduce((acc, curr) => acc + (curr.score || 0), 0) / gradedCount).toFixed(1) : '-'}
                                                                         </span>
                                                                         <div className="flex items-center gap-1 mt-0.5">
                                                                             <div className="w-1 h-1 rounded-full bg-slate-300 group-hover/cell:bg-indigo-400"></div>
-                                                                            <span className={`text-[9px] font-black uppercase tracking-tight transition-colors ${c.id === 'uncategorized' ? 'text-amber-400' : 'text-slate-400 group-hover/cell:text-indigo-400'
+                                                                            <span className={`text-[11px] font-black uppercase tracking-tight transition-colors ${c.id === 'uncategorized' ? 'text-amber-400' : 'text-slate-500 group-hover/cell:text-indigo-400'
                                                                                 }`}>
                                                                                 {gradedCount}/{cAssignments.length}
                                                                             </span>
@@ -1120,7 +1045,7 @@ export const GradebookPage = () => {
                                                         </span>
                                                         <div className="flex items-center gap-1 mt-0.5 opacity-40">
                                                             <GraduationCap className="w-3 h-3 text-indigo-500" />
-                                                            <span className="text-[8px] font-black uppercase tracking-widest text-indigo-400">Final</span>
+                                                            <span className="text-[11px] font-black uppercase tracking-widest text-indigo-400">Final</span>
                                                         </div>
                                                     </div>
                                                 </td>
@@ -1130,8 +1055,8 @@ export const GradebookPage = () => {
                                                 <td className="px-8 py-6 text-center">
                                                     <div className="flex items-center justify-center gap-2">
                                                         {[
-                                                            { status: 'PRESENT', label: 'A', title: 'Asistencia', activeColor: 'bg-emerald-500', hoverColor: 'hover:bg-emerald-50', textColor: 'text-emerald-600' },
-                                                            { status: 'LATE', label: 'R', title: 'Retardo', activeColor: 'bg-amber-500', hoverColor: 'hover:bg-amber-50', textColor: 'text-amber-600' },
+                                                            { status: 'PRESENT', label: 'A', title: 'Asistencia', activeColor: 'bg-emerald-500', hoverColor: 'hover:bg-emerald-50', textColor: 'text-emerald-700' },
+                                                            { status: 'LATE', label: 'R', title: 'Retardo', activeColor: 'bg-amber-500', hoverColor: 'hover:bg-amber-50', textColor: 'text-amber-700' },
                                                             { status: 'ABSENT', label: 'F', title: 'Falta', activeColor: 'bg-rose-500', hoverColor: 'hover:bg-rose-50', textColor: 'text-rose-600' },
                                                             { status: 'EXCUSED', label: 'P', title: 'Permiso', activeColor: 'bg-indigo-500', hoverColor: 'hover:bg-indigo-50', textColor: 'text-indigo-600' }
                                                         ].map(item => {
@@ -1149,7 +1074,7 @@ export const GradebookPage = () => {
                                                                     key={item.status}
                                                                     onClick={() => handleAttendanceChange(student.id, item.status)}
                                                                     title={item.title}
-                                                                    className={`w-10 h-10 rounded-2xl text-[10px] font-black uppercase transition-all flex items-center justify-center border-2 ${isActive
+                                                                    className={`w-10 h-10 rounded-2xl text-[11px] font-black uppercase transition-all flex items-center justify-center border-2 ${isActive
                                                                         ? `${item.activeColor} text-white border-white shadow-lg scale-110 z-10`
                                                                         : `bg-slate-50 border-slate-50 ${item.textColor} ${item.hoverColor} hover:scale-110`
                                                                         } ${isPending ? 'ring-2 ring-indigo-400 ring-offset-2 animate-pulse' : ''} ${profile?.is_demo ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -1171,19 +1096,19 @@ export const GradebookPage = () => {
                                                             return (
                                                                 <>
                                                                     <div className="text-center group-hover/history:scale-110 transition-transform">
-                                                                        <p className="text-[9px] text-emerald-600 font-black uppercase tracking-widest leading-none mb-1">AS</p>
+                                                                        <p className="text-[11px] text-emerald-700 font-black uppercase tracking-widest leading-none mb-1">AS</p>
                                                                         <p className="text-base font-black text-slate-700">{summary.present}</p>
                                                                     </div>
                                                                     <div className="text-center group-hover/history:scale-110 transition-transform delay-75">
-                                                                        <p className="text-[9px] text-amber-600 font-black uppercase tracking-widest leading-none mb-1">RT</p>
+                                                                        <p className="text-[11px] text-amber-700 font-black uppercase tracking-widest leading-none mb-1">RT</p>
                                                                         <p className="text-base font-black text-slate-700">{summary.late}</p>
                                                                     </div>
                                                                     <div className="text-center group-hover/history:scale-110 transition-transform delay-100">
-                                                                        <p className="text-[9px] text-rose-600 font-black uppercase tracking-widest leading-none mb-1">FT</p>
+                                                                        <p className="text-[11px] text-rose-600 font-black uppercase tracking-widest leading-none mb-1">FT</p>
                                                                         <p className="text-base font-black text-slate-700">{summary.absent}</p>
                                                                     </div>
                                                                     <div className="text-center group-hover/history:scale-110 transition-transform delay-150">
-                                                                        <p className="text-[9px] text-indigo-600 font-black uppercase tracking-widest leading-none mb-1">PM</p>
+                                                                        <p className="text-[11px] text-indigo-600 font-black uppercase tracking-widest leading-none mb-1">PM</p>
                                                                         <p className="text-base font-black text-slate-700">{summary.excused}</p>
                                                                     </div>
                                                                     <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover/history:bg-indigo-600 group-hover/history:text-white transition-all shadow-inner">
@@ -1325,13 +1250,13 @@ export const GradebookPage = () => {
                                         <p className="text-sm text-gray-500">{selectedStudentForHistory.first_name} {selectedStudentForHistory.last_name_paternal}</p>
                                     </div>
                                 </div>
-                                <button onClick={() => setSelectedStudentForHistory(null)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                                <button aria-label="Cerrar" onClick={() => setSelectedStudentForHistory(null)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                                     <X className="w-5 h-5 text-gray-500" />
                                 </button>
                             </div>
                             <div className="max-h-[60vh] overflow-y-auto p-4">
                                 {attendance.filter(a => a.student_id === selectedStudentForHistory.id).length === 0 ? (
-                                    <div className="py-12 text-center text-gray-400">Sin registros de asistencia</div>
+                                    <div className="py-12 text-center text-gray-500">Sin registros de asistencia</div>
                                 ) : (
                                     <div className="space-y-2">
                                         {attendance
@@ -1340,12 +1265,12 @@ export const GradebookPage = () => {
                                             .map(record => (
                                                 <div key={record.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                                                     <div className="flex items-center">
-                                                        <Calendar className="w-4 h-4 text-gray-400 mr-2" />
+                                                        <Calendar className="w-4 h-4 text-gray-500 mr-2" />
                                                         <span className="text-sm font-medium text-gray-700">
                                                             {new Date(record.date).toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}
                                                         </span>
                                                     </div>
-                                                    <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${record.status === 'PRESENT' ? 'bg-emerald-100 text-emerald-700' :
+                                                    <span className={`px-2 py-1 rounded-md text-[11px] font-bold uppercase ${record.status === 'PRESENT' ? 'bg-emerald-100 text-emerald-700' :
                                                         record.status === 'LATE' ? 'bg-amber-100 text-amber-700' :
                                                             record.status === 'ABSENT' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
                                                         }`}>
@@ -1394,6 +1319,22 @@ export const GradebookPage = () => {
                     />
                 )
             }
+
+            {tenant && groupId && (
+                <ClassPlanGeneratorModal
+                    isOpen={isClassPlanModalOpen}
+                    onClose={() => {
+                        setIsClassPlanModalOpen(false)
+                        setEditingClassPlan(null)
+                    }}
+                    tenantId={tenant.id}
+                    groupId={groupId}
+                    subjectId={subjectId || ''}
+                    isSecondary={isSecondary}
+                    onPlanSaved={() => setRefreshClassPlans(prev => prev + 1)}
+                    editingPlan={editingClassPlan}
+                />
+            )}
         </div >
     )
 }

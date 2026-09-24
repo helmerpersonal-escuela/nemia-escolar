@@ -6,7 +6,7 @@ ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS ai_config JSONB DEFAULT '{}'
 
 -- 2. Aplicar la clave API a todos los registros existentes (en entorno de desarrollo/único tenant)
 UPDATE public.tenants 
-SET ai_config = jsonb_build_object('apiKey', 'AIzaSyDtfr1fhGJ8ktmjJQ0h0Rnx1f17SbSyBZ8')
+SET ai_config = jsonb_build_object('apiKey', 'LLAVE_REDACTADA_ROTAR')
 WHERE ai_config IS NULL OR ai_config->>'apiKey' IS NULL OR ai_config->>'apiKey' = '';
 
--- nota: 'AIzaSyDtfr1fhGJ8ktmjJQ0h0Rnx1f17SbSyBZ8'
+-- nota: 'LLAVE_REDACTADA_ROTAR'

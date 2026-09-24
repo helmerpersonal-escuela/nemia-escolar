@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTenant } from '../../hooks/useTenant'
 import { supabase } from '../../lib/supabase'
-import { AlertTriangle, ArrowRight, School, Clock, Calendar } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
 
 interface MandatorySettingsGuardProps {
     children: React.ReactNode

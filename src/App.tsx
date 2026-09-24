@@ -1,66 +1,76 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { SpeedInsights } from "@vercel/speed-insights/react"
 import { LoginPage } from './features/auth/pages/LoginPage'
-import { RegisterPage } from './features/auth/pages/RegisterPage'
-import { ResetPasswordPage } from './features/auth/pages/ResetPasswordPage'
+const RegisterPage = lazyNamed(() => import('./features/auth/pages/RegisterPage'), 'RegisterPage')
+const ResetPasswordPage = lazyNamed(() => import('./features/auth/pages/ResetPasswordPage'), 'ResetPasswordPage')
 import { DashboardLayout } from './components/layout/DashboardLayout'
-import { DashboardPage } from './features/dashboard/pages/DashboardPage'
-import { GroupsPage } from './features/groups/pages/GroupsPage'
-import { GroupDetailsPage } from './features/groups/pages/GroupDetailsPage'
-import { OnboardingWizard } from './features/onboarding/components/OnboardingWizard'
-import { SettingsPage } from './features/settings/pages/SettingsPage'
-import { SchedulePage } from './features/schedule/pages/SchedulePage'
-import { AgendaPage } from './features/agenda/pages/AgendaPage'
-import { useState, useEffect } from 'react'
+const DashboardPage = lazyNamed(() => import('./features/dashboard/pages/DashboardPage'), 'DashboardPage')
+const GroupsPage = lazyNamed(() => import('./features/groups/pages/GroupsPage'), 'GroupsPage')
+const GroupDetailsPage = lazyNamed(() => import('./features/groups/pages/GroupDetailsPage'), 'GroupDetailsPage')
+const OnboardingWizard = lazyNamed(() => import('./features/onboarding/components/OnboardingWizard'), 'OnboardingWizard')
+const SettingsPage = lazyNamed(() => import('./features/settings/pages/SettingsPage'), 'SettingsPage')
+const SchedulePage = lazyNamed(() => import('./features/schedule/pages/SchedulePage'), 'SchedulePage')
+const AgendaPage = lazyNamed(() => import('./features/agenda/pages/AgendaPage'), 'AgendaPage')
+import { useState, useEffect, Suspense } from 'react'
+import { lazyNamed } from './lib/lazyNamed'
+import { SignupGate } from './features/auth/components/SignupGate'
+import { NotFoundPage } from './components/common/NotFoundPage'
+import { handleAuthDeepLink } from './features/auth/lib/googleAuth'
+import { PageLoader } from './components/common/PageLoader'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import type { Session } from '@supabase/supabase-js'
-import { Loader2 } from 'lucide-react'
 import { SplashScreen } from '@capacitor/splash-screen'
 import { Capacitor } from '@capacitor/core'
 
-import { TeacherDashboard } from './features/evaluation/pages/TeacherDashboard'
-import { EvaluationSetupPage } from './features/evaluation/pages/EvaluationSetupPage'
-import { RubricListPage } from './features/rubrics/pages/RubricListPage'
-import { RubricEditorPage } from './features/rubrics/pages/RubricEditorPage'
-import { InstrumentBuilderPage } from './features/rubrics/pages/InstrumentBuilderPage'
-import { FormativeToolsPage } from './features/evaluation/pages/FormativeToolsPage'
-import { StudentPortfolioPage } from './features/evaluation/pages/StudentPortfolioPage'
-import { GradebookPage } from './features/evaluation/pages/GradebookPage'
-import { PlanningListPage } from './features/planning/pages/PlanningListPage'
-import { PlanningEditorPage } from './features/planning/pages/PlanningEditorPage'
-import { StudentTrackingPage } from './features/students/pages/StudentTrackingPage'
-import { StudentReportPage } from './features/reports/pages/StudentReportPage'
-import { AnalyticalProgramListPage } from './features/analytical-program/pages/AnalyticalProgramListPage'
-import { AnalyticalProgramEditorPage } from './features/analytical-program/pages/AnalyticalProgramEditorPage'
-import { EvaluationReportPage } from './features/evaluation/pages/EvaluationReportPage'
-import { ChatModule } from './features/communications/ChatModule'
-import { StaffAttendancePortal } from './features/attendance/pages/StaffAttendancePortal'
-import { SubstitutionDashboard } from './features/attendance/pages/SubstitutionDashboard'
-import { CitationsPage } from './features/attendance/pages/CitationsPage'
-import { IncidentsLogPage } from './features/dashboard/components/roles/IncidentsLogPage'
-import { JustificationManager } from './features/attendance/pages/JustificationManager'
-import { LatesPage } from './features/attendance/pages/LatesPage'
-import { AbsenceManagerPage } from './features/absences/pages/AbsenceManagerPage'
-import { PaywallPage } from './features/subscription/pages/PaywallPage'
-import { LandingPage } from './features/marketing/pages/LandingPage'
+const TeacherDashboard = lazyNamed(() => import('./features/evaluation/pages/TeacherDashboard'), 'TeacherDashboard')
+const EvaluationSetupPage = lazyNamed(() => import('./features/evaluation/pages/EvaluationSetupPage'), 'EvaluationSetupPage')
+const RubricListPage = lazyNamed(() => import('./features/rubrics/pages/RubricListPage'), 'RubricListPage')
+const RubricEditorPage = lazyNamed(() => import('./features/rubrics/pages/RubricEditorPage'), 'RubricEditorPage')
+const InstrumentBuilderPage = lazyNamed(() => import('./features/rubrics/pages/InstrumentBuilderPage'), 'InstrumentBuilderPage')
+const FormativeToolsPage = lazyNamed(() => import('./features/evaluation/pages/FormativeToolsPage'), 'FormativeToolsPage')
+const StudentPortfolioPage = lazyNamed(() => import('./features/evaluation/pages/StudentPortfolioPage'), 'StudentPortfolioPage')
+const GradebookPage = lazyNamed(() => import('./features/evaluation/pages/GradebookPage'), 'GradebookPage')
+const PlanningListPage = lazyNamed(() => import('./features/planning/pages/PlanningListPage'), 'PlanningListPage')
+const PlanningEditorPage = lazyNamed(() => import('./features/planning/pages/PlanningEditorPage'), 'PlanningEditorPage')
+const StudentTrackingPage = lazyNamed(() => import('./features/students/pages/StudentTrackingPage'), 'StudentTrackingPage')
+const StudentReportPage = lazyNamed(() => import('./features/reports/pages/StudentReportPage'), 'StudentReportPage')
+const AnalyticalProgramListPage = lazyNamed(() => import('./features/analytical-program/pages/AnalyticalProgramListPage'), 'AnalyticalProgramListPage')
+const AnalyticalProgramEditorPage = lazyNamed(() => import('./features/analytical-program/pages/AnalyticalProgramEditorPage'), 'AnalyticalProgramEditorPage')
+const EvaluationReportPage = lazyNamed(() => import('./features/evaluation/pages/EvaluationReportPage'), 'EvaluationReportPage')
+const ChatModule = lazyNamed(() => import('./features/communications/ChatModule'), 'ChatModule')
+const StaffAttendancePortal = lazyNamed(() => import('./features/attendance/pages/StaffAttendancePortal'), 'StaffAttendancePortal')
+const SubstitutionDashboard = lazyNamed(() => import('./features/attendance/pages/SubstitutionDashboard'), 'SubstitutionDashboard')
+const CitationsPage = lazyNamed(() => import('./features/attendance/pages/CitationsPage'), 'CitationsPage')
+const JustificationManager = lazyNamed(() => import('./features/attendance/pages/JustificationManager'), 'JustificationManager')
+const LatesPage = lazyNamed(() => import('./features/attendance/pages/LatesPage'), 'LatesPage')
+const AbsenceManagerPage = lazyNamed(() => import('./features/absences/pages/AbsenceManagerPage'), 'AbsenceManagerPage')
+const PaywallPage = lazyNamed(() => import('./features/subscription/pages/PaywallPage'), 'PaywallPage')
+const LandingPage = lazyNamed(() => import('./features/marketing/pages/LandingPage'), 'LandingPage')
 
-import { SuperAdminDashboard } from './features/admin/pages/SuperAdminDashboard'
-import { AdminDashboard } from './features/admin/pages/AdminDashboard'
-import { PEMCPage } from './features/admin/pages/PEMCPage'
-import { StaffControlCenter } from './features/admin/pages/StaffControlCenter'
-import { AdminRouteSelector } from './features/admin/components/AdminRouteSelector'
-import { SchoolStatsPage } from './features/dashboard/pages/SchoolStatsPage'
-import { RoleSelectionPage } from './features/auth/pages/RoleSelectionPage'
-import { TrackingPage } from './features/dashboard/components/roles/TrackingPage'
-import { AuditOverviewPage } from './features/admin/pages/AuditOverviewPage'
-import { ReportsRoute, AttendanceRoute, IncidentsRoute } from './components/routes/RoleRoutes'
+const SuperAdminDashboard = lazyNamed(() => import('./features/admin/pages/SuperAdminDashboard'), 'SuperAdminDashboard')
+const AdminDashboard = lazyNamed(() => import('./features/admin/pages/AdminDashboard'), 'AdminDashboard')
+const PEMCPage = lazyNamed(() => import('./features/admin/pages/PEMCPage'), 'PEMCPage')
+const StaffControlCenter = lazyNamed(() => import('./features/admin/pages/StaffControlCenter'), 'StaffControlCenter')
+const SchoolStatsPage = lazyNamed(() => import('./features/dashboard/pages/SchoolStatsPage'), 'SchoolStatsPage')
+const RoleSelectionPage = lazyNamed(() => import('./features/auth/pages/RoleSelectionPage'), 'RoleSelectionPage')
+const TrackingPage = lazyNamed(() => import('./features/dashboard/components/roles/TrackingPage'), 'TrackingPage')
+const AuditOverviewPage = lazyNamed(() => import('./features/admin/pages/AuditOverviewPage'), 'AuditOverviewPage')
+const ReportsRoute = lazyNamed(() => import('./components/routes/RoleRoutes'), 'ReportsRoute')
+const AttendanceRoute = lazyNamed(() => import('./components/routes/RoleRoutes'), 'AttendanceRoute')
+const IncidentsRoute = lazyNamed(() => import('./components/routes/RoleRoutes'), 'IncidentsRoute')
 import { ProtectedRoute } from './components/routes/ProtectedRoute'
 import { SubscriptionGuard } from './components/routes/SubscriptionGuard'
+const CTEPage = lazyNamed(() => import('./features/cte/pages/CTEPage'), 'CTEPage')
+const TextbooksPage = lazyNamed(() => import('./features/textbooks/pages/TextbooksPage'), 'TextbooksPage')
+const CompleteSignupPage = lazyNamed(() => import('./features/auth/pages/CompleteSignupPage'), 'CompleteSignupPage')
+const LegalPage = lazyNamed(() => import('./features/legal/LegalPage'), 'LegalPage')
+const NemAssistantPage = lazyNamed(() => import('./features/nem-assistant/pages/NemAssistantPage'), 'NemAssistantPage')
 
 // Force rebuild
 
 import { queryClient } from './lib/queryClient'
+import { clearCache } from './lib/offline/cache'
 
 function App() {
   const [session, setSession] = useState<Session | null>(null)
@@ -84,6 +94,10 @@ function App() {
       setSession(session)
       if (event === 'SIGNED_OUT') {
         queryClient.clear()
+        // No dejar en el dispositivo datos de alumnos del docente que cerró sesión.
+        // (Los cambios que aún no se envían se conservan y solo se suben con SU sesión.)
+        void clearCache('gradebook')
+        void clearCache('rq:')
         sessionStorage.removeItem('vunlek_impersonate_id')
       }
       if (event === 'SIGNED_IN') {
@@ -129,6 +143,12 @@ function App() {
         // Extract path and query params from vunlek://onboarding?status=approved
         // data.url format: vunlek://onboarding?status=approved&...
         try {
+          if (data.url.startsWith('vunlek://auth')) {
+            handleAuthDeepLink(data.url)
+              .then(() => navigate('/complete-signup', { replace: true }))
+              .catch((err) => { console.error('Error al volver de Google:', err); navigate('/login') })
+            return
+          }
           const urlObj = new URL(data.url)
           if (urlObj.host === 'onboarding') {
             const status = urlObj.searchParams.get('status')
@@ -153,6 +173,7 @@ function App() {
 
   return (
     <>
+      <Suspense fallback={<PageLoader />}>
       <Routes>
         <Route path="/admin" element={
           <ProtectedRoute allowedRoles={['SUPER_ADMIN']}>
@@ -162,14 +183,21 @@ function App() {
         <Route path="/login" element={session ? <Navigate to="/" replace /> : <LoginPage />} />
         <Route path="/register" element={session ? <Navigate to="/" replace /> : <RegisterPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/privacidad" element={<LegalPage kind="privacy" />} />
+        <Route path="/privacy" element={<LegalPage kind="privacy" />} />
+        <Route path="/terminos" element={<LegalPage kind="terms" />} />
+        <Route path="/terms" element={<LegalPage kind="terms" />} />
+        <Route path="/complete-signup" element={session ? <CompleteSignupPage /> : <Navigate to="/login" replace />} />
         <Route path="/select-role" element={session ? <RoleSelectionPage /> : <Navigate to={`/login${window.location.search}`} replace />} />
         <Route
           path="/"
           element={
             session ? (
-              <SubscriptionGuard>
-                <DashboardLayout />
-              </SubscriptionGuard>
+              <SignupGate userId={session.user.id}>
+                <SubscriptionGuard>
+                  <DashboardLayout />
+                </SubscriptionGuard>
+              </SignupGate>
             ) : (
               Capacitor.isNativePlatform() ? <Navigate to="/login" replace /> : <LandingPage />
             )
@@ -242,6 +270,18 @@ function App() {
               <AuditOverviewPage />
             </ProtectedRoute>
           } />
+          <Route path="nem-assistant" element={
+            <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD', 'TEACHER', 'INDEPENDENT_TEACHER']}>
+              <NemAssistantPage />
+            </ProtectedRoute>
+          } />
+
+          <Route path="cte" element={
+            <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD']}>
+              <CTEPage />
+            </ProtectedRoute>
+          } />
+          <Route path="libros" element={<TextbooksPage />} />
 
           {/* Admin Specific Routes */}
           <Route path="admin/dashboard" element={
@@ -260,7 +300,7 @@ function App() {
             </ProtectedRoute>
           } />
 
-          <Route path="progress" element={<div className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">Módulo de Avance Programático en Desarrollo</div>} />
+          <Route path="progress" element={<div className="p-8 text-center text-slate-500 font-bold uppercase tracking-widest">Módulo de Avance Programático en Desarrollo</div>} />
           <Route path="attendance" element={<AttendanceRoute />} />
           <Route path="attendance/staff" element={<StaffAttendancePortal />} />
           <Route path="attendance/justifications" element={<JustificationManager />} />
@@ -274,7 +314,9 @@ function App() {
             </ProtectedRoute>
           } />
         </Route>
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
+      </Suspense>
       <SpeedInsights />
     </>
   )

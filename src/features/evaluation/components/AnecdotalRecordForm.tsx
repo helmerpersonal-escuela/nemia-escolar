@@ -183,7 +183,7 @@ export const AnecdotalRecordForm = () => {
                         <div className="bg-white/10 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/20 flex items-center group cursor-default">
                             <Clock className="w-4 h-4 mr-2 text-indigo-200 group-hover:animate-spin" />
                             <div>
-                                <p className="text-[9px] font-black uppercase text-indigo-200 tracking-tighter">Clase en Curso</p>
+                                <p className="text-[11px] font-black uppercase text-indigo-200 tracking-tighter">Clase en Curso</p>
                                 <p className="text-xs font-black">{currentClassInfo.subject}</p>
                             </div>
                         </div>
@@ -199,7 +199,7 @@ export const AnecdotalRecordForm = () => {
                             <LayoutGrid className="w-4 h-4 mr-2 text-indigo-500" /> 1. Selecciona el Grupo
                         </h3>
                         {selectedGroup && (
-                            <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full uppercase">Seleccionado</span>
+                            <span className="text-[11px] font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full uppercase">Seleccionado</span>
                         )}
                     </div>
 
@@ -217,7 +217,7 @@ export const AnecdotalRecordForm = () => {
                                         : 'bg-white border-gray-100 text-gray-500 hover:border-indigo-200 hover:bg-gray-50'}`}
                             >
                                 <span className={`text-xl font-black ${selectedGroup === g.id ? 'text-white' : 'text-gray-900'}`}>{g.grade}°</span>
-                                <span className={`text-[10px] font-black uppercase tracking-widest ${selectedGroup === g.id ? 'text-indigo-100' : 'text-gray-400'}`}>Sección "{g.section}"</span>
+                                <span className={`text-[11px] font-black uppercase tracking-widest ${selectedGroup === g.id ? 'text-indigo-100' : 'text-gray-500'}`}>Sección "{g.section}"</span>
                                 {selectedGroup === g.id && <CheckCircle2 className="w-3 h-3 mt-1 text-white" />}
                             </button>
                         ))}
@@ -247,10 +247,10 @@ export const AnecdotalRecordForm = () => {
                             <button
                                 type="button"
                                 onClick={() => setSelectedStudent('')}
-                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all
+                                className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-tight transition-all
                                     ${selectedStudent === ''
                                         ? 'bg-indigo-100 text-indigo-700 font-black ring-2 ring-indigo-200'
-                                        : 'bg-gray-50 text-gray-400 hover:bg-gray-100'}`}
+                                        : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}
                             >
                                 Todo el grupo
                             </button>
@@ -259,7 +259,7 @@ export const AnecdotalRecordForm = () => {
                                     key={s.id}
                                     type="button"
                                     onClick={() => setSelectedStudent(s.id)}
-                                    className={`px-4 py-2 rounded-xl text-[10px] font-bold transition-all border
+                                    className={`px-4 py-2 rounded-xl text-[11px] font-bold transition-all border
                                         ${selectedStudent === s.id
                                             ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg'
                                             : 'bg-white border-gray-100 text-gray-600 hover:border-indigo-200'}`}
@@ -275,7 +275,7 @@ export const AnecdotalRecordForm = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                     <div className="space-y-8">
                         <div>
-                            <label className="block text-[10px] font-black text-gray-400 uppercase mb-3 ml-1 tracking-widest flex items-center">
+                            <label className="block text-[11px] font-black text-gray-500 uppercase mb-3 ml-1 tracking-widest flex items-center">
                                 <Sparkles className="w-3 h-3 mr-2" /> Contexto del suceso
                             </label>
                             <div className="flex flex-wrap gap-2 mb-3">
@@ -284,8 +284,8 @@ export const AnecdotalRecordForm = () => {
                                         key={p}
                                         type="button"
                                         onClick={() => setContext(p)}
-                                        className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase border transition-all
-                                            ${context === p ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-gray-50 border-gray-100 text-gray-400 hover:bg-gray-100'}`}
+                                        className={`px-3 py-1.5 rounded-lg text-[11px] font-black uppercase border transition-all
+                                            ${context === p ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-gray-50 border-gray-100 text-gray-500 hover:bg-gray-100'}`}
                                     >
                                         {p}
                                     </button>
@@ -301,7 +301,7 @@ export const AnecdotalRecordForm = () => {
                         </div>
 
                         <div>
-                            <label className="block text-[10px] font-black text-gray-400 uppercase mb-3 ml-1 tracking-widest flex items-center">
+                            <label className="block text-[11px] font-black text-gray-500 uppercase mb-3 ml-1 tracking-widest flex items-center">
                                 <MessageSquareQuote className="w-3 h-3 mr-2" /> Descripción del hecho
                             </label>
                             <div className="flex flex-wrap gap-2 mb-4">
@@ -310,7 +310,7 @@ export const AnecdotalRecordForm = () => {
                                         key={p}
                                         type="button"
                                         onClick={() => setDescription(prev => prev ? prev + ' ' + p : p)}
-                                        className="px-3 py-2 rounded-lg text-[9px] font-bold bg-white border border-gray-100 text-gray-500 hover:border-indigo-200 hover:text-indigo-600 transition-all text-left max-w-xs truncate"
+                                        className="px-3 py-2 rounded-lg text-[11px] font-bold bg-white border border-gray-100 text-gray-500 hover:border-indigo-200 hover:text-indigo-600 transition-all text-left max-w-xs truncate"
                                     >
                                         {p}
                                     </button>
@@ -329,8 +329,8 @@ export const AnecdotalRecordForm = () => {
 
                     <div className="space-y-8 p-8 bg-indigo-50/30 rounded-[2rem] border border-indigo-100/50">
                         <div>
-                            <label className="block text-[10px] font-black text-indigo-400 uppercase mb-3 ml-1 tracking-widest">Interpretación / Análisis</label>
-                            <textarea
+                            <label className="block text-[11px] font-black text-indigo-400 uppercase mb-3 ml-1 tracking-widest">Interpretación / Análisis</label>
+                            <textarea aria-label="Interpretación / Análisis"
                                 value={interpretation}
                                 onChange={(e) => setInterpretation(e.target.value)}
                                 rows={3}
@@ -339,8 +339,8 @@ export const AnecdotalRecordForm = () => {
                             />
                         </div>
                         <div>
-                            <label className="block text-[10px] font-black text-indigo-400 uppercase mb-3 ml-1 tracking-widest">Compromisos / Acuerdos</label>
-                            <textarea
+                            <label className="block text-[11px] font-black text-indigo-400 uppercase mb-3 ml-1 tracking-widest">Compromisos / Acuerdos</label>
+                            <textarea aria-label="Compromisos / Acuerdos"
                                 value={commitment}
                                 onChange={(e) => setCommitment(e.target.value)}
                                 rows={3}

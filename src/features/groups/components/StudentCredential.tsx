@@ -42,7 +42,7 @@ export const StudentCredential = ({ student, school }: StudentCredentialProps) =
                     )}
                     <div className="leading-tight">
                         <h1 className="text-xs font-bold uppercase tracking-wide">{school.name}</h1>
-                        <p className="text-[10px] opacity-90">CCT: {school.cct}</p>
+                        <p className="text-[11px] opacity-90">CCT: {school.cct}</p>
                     </div>
                 </div>
 
@@ -61,7 +61,7 @@ export const StudentCredential = ({ student, school }: StudentCredentialProps) =
                                 />
                             )}
                         </div>
-                        <div className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-[10px] font-bold">
+                        <div className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-[11px] font-bold">
                             {student.group.grade}° "{student.group.section}"
                         </div>
                     </div>
@@ -69,12 +69,12 @@ export const StudentCredential = ({ student, school }: StudentCredentialProps) =
                     {/* Details & QR */}
                     <div className="flex-1 flex flex-col justify-between">
                         <div>
-                            <p className="text-[10px] text-gray-500 uppercase">Alumno</p>
+                            <p className="text-[11px] text-gray-500 uppercase">Alumno</p>
                             <h2 className="text-sm font-bold text-gray-900 leading-tight mb-2">{fullName}</h2>
 
                             {student.curp && (
                                 <div>
-                                    <p className="text-[10px] text-gray-500 uppercase">CURP</p>
+                                    <p className="text-[11px] text-gray-500 uppercase">CURP</p>
                                     <p className="text-xs font-mono text-gray-800">{student.curp}</p>
                                 </div>
                             )}
@@ -84,7 +84,7 @@ export const StudentCredential = ({ student, school }: StudentCredentialProps) =
                             {student.curp ? (
                                 <QRCodeSVG value={student.curp} size={50} />
                             ) : (
-                                <div className="w-[50px] h-[50px] bg-gray-100 flex items-center justify-center text-[8px] text-gray-400 text-center">
+                                <div className="w-[50px] h-[50px] bg-gray-100 flex items-center justify-center text-[11px] text-gray-500 text-center">
                                     SIN CURP
                                 </div>
                             )}
@@ -94,8 +94,8 @@ export const StudentCredential = ({ student, school }: StudentCredentialProps) =
 
                 {/* Footer Stripe */}
                 <div className="mt-auto pt-1 border-t border-gray-100 flex justify-between items-center">
-                    <span className="text-[8px] text-gray-400">Vigencia 2024-2025</span>
-                    <span className="text-[8px] text-blue-900 font-bold">{school.educational_level}</span>
+                    <span className="text-[11px] text-gray-500">Vigencia 2024-2025</span>
+                    <span className="text-[11px] text-blue-900 font-bold">{school.educational_level}</span>
                 </div>
             </div>
         </div>

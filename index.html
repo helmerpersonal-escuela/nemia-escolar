@@ -1,40 +1,34 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
 
 <head>
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#4f46e5" />
-  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-  <link rel="shortcut icon" href="/vite.svg" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192.png" />
+  <link rel="apple-touch-icon" href="/pwa-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
     href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
     rel="stylesheet">
   <title>Vunlek - Gestión Educativa Inteligente</title>
+  <meta property="og:title" content="Vunlek - Gestión Educativa Inteligente" />
+  <meta property="og:description" content="Planeación, evaluación, asistencia y CTE con inteligencia artificial para docentes y escuelas." />
+  <meta property="og:image" content="/pwa-512.png" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
   <meta name="description"
     content="Descargar al docente del papel y dedicarse de lleno al maravilloso arte de enseñar.">
 </head>
 
 <body>
-  <div id="error-log" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,0,0,0.8);color:#fff;overflow:auto;z-index:999999;display:none;padding:20px;box-sizing:border-box;"></div>
-  <script>
-    window.onerror = function (message, source, lineno, colno, error) {
-      var log = document.getElementById('error-log');
-      log.style.display = 'block';
-      log.innerHTML += '<p><strong>Error:</strong> ' + message + '</p>' +
-                       '<p><strong>Source:</strong> ' + source + ':' + lineno + ':' + colno + '</p>' +
-                       '<p><strong>Detail:</strong> ' + (error ? error.stack : '') + '</p><hr>';
-      return false;
-    };
-    window.addEventListener('unhandledrejection', function(event) {
-      var log = document.getElementById('error-log');
-      log.style.display = 'block';
-      log.innerHTML += '<p><strong>Promise Rejection:</strong> ' + event.reason + '</p><hr>';
-    });
-  </script>
+  <noscript>
+    <p style="font-family:system-ui,sans-serif;padding:24px;text-align:center">Vunlek necesita JavaScript activado para funcionar.</p>
+  </noscript>
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>

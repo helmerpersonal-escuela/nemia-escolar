@@ -1,4 +1,4 @@
-name: NEMIA CI/CD Pipeline
+name: CI/CD
 
 on:
   push:
@@ -11,23 +11,35 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
-          
-      - name: Install Dependencies
-        run: npm install
-        
+
+      # --ignore-scripts: evita que el paquete `supabase` descargue su CLI en cada build
+      - name: Instalar dependencias
+        run: npm ci --ignore-scripts
+
+      - name: Revisar tipos (TypeScript)
+        run: npm run typecheck
+
+      # La deuda de advertencias solo puede bajar: si alguien agrega nuevas, el CI falla.
+      # Cuando se corrijan advertencias, baja el número en package.json (lint:ci).
       - name: Lint
-        run: npm run lint
-        
-      - name: Build Web Project
+        run: npm run lint:ci
+
+      - name: Pruebas unitarias
+        run: npm run test:run
+
+      - name: Compilar web
         run: npm run build
-        
-      - name: Upload Build Artifact
+        env:
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_ANON_KEY: ci-placeholder
+
+      - name: Guardar build
         uses: actions/upload-artifact@v4
         with:
           name: web-dist
@@ -35,47 +47,48 @@ jobs:
 
   build-android:
     needs: build-and-test
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
-          
-      - name: Install Dependencies
-        run: npm install
-        
-      - name: Download Build Artifact
+
+      - name: Instalar dependencias
+        run: npm ci --ignore-scripts
+
+      - name: Descargar build web
         uses: actions/download-artifact@v4
         with:
           name: web-dist
           path: dist/
-          
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17'
-          
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Capacitor Sync
         run: npx cap sync android
-        
-      - name: Build Android APK
+
+      - name: Compilar APK (debug)
         run: |
           cd android
+          chmod +x gradlew
           ./gradlew assembleDebug
-          
-      - name: Upload Android APK
+
+      - name: Guardar APK
         uses: actions/upload-artifact@v4
         with:
-          name: nemia-android-debug
+          name: vunlek-android-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
 
-  # Nota: El build de iOS requiere MacOS y certificados. 
-  # Se recomienda ejecutar localmente o usar un runner de MacOS si está disponible.
+  # iOS requiere macOS y certificados: se compila localmente con Xcode.

@@ -1,11 +1,12 @@
 import { supabase } from '../lib/supabase'
+import { toLocalISODate } from '../lib/dates'
 
 export const checkAssignmentCompliance = async (studentId: string, tenantId: string, tutorId: string) => {
     try {
         // 1. Get assignments that were due yesterday
         const yesterday = new Date()
         yesterday.setDate(yesterday.getDate() - 1)
-        const dateStr = yesterday.toISOString().split('T')[0]
+        const dateStr = toLocalISODate(yesterday)
 
         // Find assignments due yesterday for the tenant
         const { data: assignments, error: asmError } = await supabase

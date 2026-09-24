@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
-import { queryClient } from '../../../lib/queryClient'
 import {
     School,
     MapPin,
@@ -17,8 +16,7 @@ import {
     Globe,
     Instagram,
     Facebook,
-    Twitter,
-    Zap
+    Twitter
 } from 'lucide-react'
 
 export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void }) => {
@@ -236,7 +234,7 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                 <div className="hidden md:flex items-center space-x-2">
                     {steps.map((s, i) => (
                         <div key={i} className="flex items-center">
-                            <div className={`p-2 rounded-xl transition-all ${step === i ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : step > i ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
+                            <div className={`p-2 rounded-xl transition-all ${step === i ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : step > i ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
                                 <s.icon className="w-5 h-5" />
                             </div>
                             {i < steps.length - 1 && <div className={`w-4 h-0.5 ${step > i ? 'bg-emerald-200' : 'bg-slate-100'}`} />}
@@ -402,7 +400,7 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                                             placeholder="correo@escuela.gob.mx"
                                         />
                                         <div className="md:col-span-2">
-                                            <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center">
+                                            <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center">
                                                 <Globe className="w-4 h-4 mr-2" /> Redes Sociales y Sitios
                                             </h4>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -463,6 +461,7 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                                             value={formData.educational_level}
                                             onChange={v => setFormData({ ...formData, educational_level: v })}
                                             options={[
+                                                { label: 'Primaria', value: 'PRIMARY' },
                                                 { label: 'Secundaria', value: 'SECONDARY' },
                                                 { label: 'Telesecundaria', value: 'TELESECUNDARIA' }
                                             ]}
@@ -481,11 +480,11 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                                             <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Ciclo Escolar Actual</label>
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="space-y-1">
-                                                    <span className="text-[10px] font-bold text-slate-400 ml-1">INICIO</span>
-                                                    <input type="date" value={formData.current_cycle_start} onChange={e => setFormData({ ...formData, current_cycle_start: e.target.value })} className="w-full p-4 rounded-2xl border-2 border-slate-100 font-bold text-slate-700" />
+                                                    <span className="text-[11px] font-bold text-slate-500 ml-1">INICIO</span>
+                                                    <input aria-label="Ciclo Escolar Actual" type="date" value={formData.current_cycle_start} onChange={e => setFormData({ ...formData, current_cycle_start: e.target.value })} className="w-full p-4 rounded-2xl border-2 border-slate-100 font-bold text-slate-700" />
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <span className="text-[10px] font-bold text-slate-400 ml-1">FIN</span>
+                                                    <span className="text-[11px] font-bold text-slate-500 ml-1">FIN</span>
                                                     <input type="date" value={formData.current_cycle_end} onChange={e => setFormData({ ...formData, current_cycle_end: e.target.value })} className="w-full p-4 rounded-2xl border-2 border-slate-100 font-bold text-slate-700" />
                                                 </div>
                                             </div>
@@ -493,14 +492,14 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                                         <div className="space-y-4">
                                             <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Tecnologías / Talleres</label>
                                             <div className="flex gap-2">
-                                                <input
+                                                <input aria-label="Tecnologías / Talleres"
                                                     value={newWorkshop}
                                                     onChange={e => setNewWorkshop(e.target.value)}
                                                     onKeyPress={e => e.key === 'Enter' && handleAddWorkshop()}
                                                     placeholder="Añadir Taller (Ej: Carpintería)"
                                                     className="flex-grow p-4 rounded-2xl border-2 border-slate-100 font-bold outline-none focus:border-orange-400 text-sm"
                                                 />
-                                                <button onClick={handleAddWorkshop} className="p-4 bg-orange-600 text-white rounded-2xl shadow-lg shadow-orange-100 active:scale-95 transition-all">
+                                                <button aria-label="Confirmar" onClick={handleAddWorkshop} className="p-4 bg-orange-600 text-white rounded-2xl shadow-lg shadow-orange-100 active:scale-95 transition-all">
                                                     <Check className="w-6 h-6" />
                                                 </button>
                                             </div>
@@ -578,7 +577,7 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                                 ) : (
                                     <button
                                         onClick={() => setStep(step - 1)}
-                                        className="flex items-center font-black text-sm uppercase tracking-widest px-8 py-4 rounded-2xl text-slate-400 hover:text-slate-600 hover:bg-white transition-all"
+                                        className="flex items-center font-black text-sm uppercase tracking-widest px-8 py-4 rounded-2xl text-slate-500 hover:text-slate-600 hover:bg-white transition-all"
                                     >
                                         <ArrowLeft className="w-5 h-5 mr-3" /> Atrás
                                     </button>
@@ -611,7 +610,7 @@ interface SectionHeaderProps {
 const SectionHeader = ({ title, description, icon: Icon, color }: SectionHeaderProps) => {
     const colorClasses: Record<string, string> = {
         blue: 'bg-blue-50 text-blue-600 border-blue-100',
-        emerald: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+        emerald: 'bg-emerald-50 text-emerald-700 border-emerald-100',
         purple: 'bg-purple-50 text-purple-600 border-purple-100',
         orange: 'bg-orange-50 text-orange-600 border-orange-100',
         indigo: 'bg-indigo-50 text-indigo-600 border-indigo-100'
@@ -640,7 +639,7 @@ interface InputFieldProps {
 
 const InputField = ({ label, value, onChange, placeholder, type = "text" }: InputFieldProps) => (
     <div className="space-y-2 group">
-        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 group-focus-within:text-blue-500 transition-colors">{label}</label>
+        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1 group-focus-within:text-blue-500 transition-colors">{label}</label>
         <input
             type={type}
             value={value}
@@ -660,7 +659,7 @@ interface SelectFieldProps {
 
 const SelectField = ({ label, value, onChange, options }: SelectFieldProps) => (
     <div className="space-y-2 group">
-        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 group-focus-within:text-blue-500 transition-colors">{label}</label>
+        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1 group-focus-within:text-blue-500 transition-colors">{label}</label>
         <select
             value={value}
             onChange={e => onChange(e.target.value)}
@@ -697,7 +696,7 @@ const LogoUpload = ({ label, hint, url, onUpload }: LogoUploadProps) => {
             {url ? (
                 <div className="relative inline-block">
                     <img src={url} alt="Logo preview" className="h-24 mx-auto mb-4 rounded-xl shadow-md border-2 border-white" />
-                    <button
+                    <button aria-label="Confirmar"
                         onClick={() => onUpload('')}
                         className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full shadow-lg"
                     >
@@ -710,7 +709,7 @@ const LogoUpload = ({ label, hint, url, onUpload }: LogoUploadProps) => {
                 </div>
             )}
             <h5 className="text-xs font-black text-slate-800 uppercase tracking-tight">{label}</h5>
-            <p className="text-[10px] text-slate-400 font-bold mb-4">{hint}</p>
+            <p className="text-[11px] text-slate-500 font-bold mb-4">{hint}</p>
             <input
                 type="file"
                 id={`upload-${label}`}
@@ -720,7 +719,7 @@ const LogoUpload = ({ label, hint, url, onUpload }: LogoUploadProps) => {
             />
             <label
                 htmlFor={`upload-${label}`}
-                className="inline-block px-4 py-2 bg-white border border-slate-200 rounded-full text-[10px] font-black uppercase text-slate-500 hover:border-blue-400 hover:text-blue-600 cursor-pointer shadow-sm transition-all active:scale-95"
+                className="inline-block px-4 py-2 bg-white border border-slate-200 rounded-full text-[11px] font-black uppercase text-slate-500 hover:border-blue-400 hover:text-blue-600 cursor-pointer shadow-sm transition-all active:scale-95"
             >
                 Seleccionar Imagen
             </label>

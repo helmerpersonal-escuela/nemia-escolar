@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { CreditCard, Zap, Check, TrendingUp, Calendar, Users, GraduationCap, AlertCircle } from 'lucide-react'
 import { useSubscriptionLimits } from '../../../hooks/useSubscriptionLimits'
 import { UpgradeModal } from '../../../components/UpgradeModal'
-import { supabase } from '../../../lib/supabase'
 import { Capacitor } from '@capacitor/core'
 
 export const BillingSection = () => {
@@ -63,7 +62,7 @@ export const BillingSection = () => {
                         <button
                             onClick={handleRefresh}
                             disabled={loading}
-                            className="text-[10px] font-bold text-indigo-500 hover:text-indigo-700 flex items-center gap-1 uppercase tracking-tighter"
+                            className="text-[11px] font-bold text-indigo-500 hover:text-indigo-700 flex items-center gap-1 uppercase tracking-tighter"
                         >
                             <TrendingUp className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
                             Sincronizar Estado
@@ -82,7 +81,7 @@ export const BillingSection = () => {
                             <div className="flex items-baseline gap-2">
                                 <span className="text-3xl font-black text-gray-900">{limits.currentGroups}</span>
                                 <span className="text-gray-500 font-bold">/ {limits.maxGroups}</span>
-                                <span className="text-sm text-gray-400 font-medium">grupos</span>
+                                <span className="text-sm text-gray-500 font-medium">grupos</span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                                 <div
@@ -101,13 +100,13 @@ export const BillingSection = () => {
 
                     <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-gray-200">
                         <div className="flex items-center gap-2 mb-3">
-                            <GraduationCap className="w-5 h-5 text-emerald-600" />
+                            <GraduationCap className="w-5 h-5 text-emerald-700" />
                             <h3 className="font-bold text-gray-900">Estudiantes por Grupo</h3>
                         </div>
                         <div className="space-y-3">
                             <div className="flex items-baseline gap-2">
                                 <span className="text-3xl font-black text-gray-900">{limits.maxStudentsPerGroup}</span>
-                                <span className="text-sm text-gray-400 font-medium">máximo</span>
+                                <span className="text-sm text-gray-500 font-medium">máximo</span>
                             </div>
                             <p className="text-xs text-gray-500 font-medium">
                                 Límite pedagógico recomendado para mantener calidad educativa
@@ -159,7 +158,7 @@ export const BillingSection = () => {
                     <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-gray-200 mb-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-gray-400 font-bold mb-1 uppercase tracking-wider">Inversión Anual</p>
+                                <p className="text-sm text-gray-500 font-bold mb-1 uppercase tracking-wider">Inversión Anual</p>
                                 <div className="flex items-baseline gap-2">
                                     <span className={`text-5xl font-black tracking-tighter ${isBasic ? 'text-slate-800' : 'text-indigo-600'}`}>
                                         ${limits.priceAnnual}

@@ -99,7 +99,7 @@ export const StudentPortfolioPage = () => {
                 <div className="max-w-7xl mx-auto px-6 pt-12">
                     <button
                         onClick={() => setSelectedStudent(null)}
-                        className="flex items-center text-indigo-600 font-black uppercase text-[10px] tracking-[0.3em] mb-8 hover:translate-x-1 transition-transform"
+                        className="flex items-center text-indigo-600 font-black uppercase text-[11px] tracking-[0.3em] mb-8 hover:translate-x-1 transition-transform"
                     >
                         <ArrowLeft className="w-4 h-4 mr-2" /> Volver a Alumnos
                     </button>
@@ -112,8 +112,8 @@ export const StudentPortfolioPage = () => {
                             <div>
                                 <h1 className="text-4xl font-black text-gray-900 tracking-tight leading-none mb-2">{selectedStudent.full_name}</h1>
                                 <div className="flex items-center space-x-4">
-                                    <span className="text-[10px] font-black bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full uppercase tracking-widest">{selectedStudent.group_name}</span>
-                                    <span className="text-[10px] font-black bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full uppercase tracking-widest flex items-center">
+                                    <span className="text-[11px] font-black bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full uppercase tracking-widest">{selectedStudent.group_name}</span>
+                                    <span className="text-[11px] font-black bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full uppercase tracking-widest flex items-center">
                                         <Sparkles className="w-3 h-3 mr-1.5" /> Portafolio Activo
                                     </span>
                                 </div>
@@ -137,10 +137,10 @@ export const StudentPortfolioPage = () => {
                                 <ImageIcon className="w-10 h-10 text-gray-200" />
                             </div>
                             <h3 className="text-xl font-black text-gray-900 uppercase tracking-tighter">Sin evidencias</h3>
-                            <p className="text-gray-400 text-sm font-medium mt-1">Este alumno no tiene trabajos registrados.</p>
+                            <p className="text-gray-500 text-sm font-medium mt-1">Este alumno no tiene trabajos registrados.</p>
                             <button
                                 onClick={() => setIsUploadModalOpen(true)}
-                                className="mt-8 text-indigo-600 font-black text-[10px] uppercase tracking-widest hover:text-indigo-700 underline underline-offset-4"
+                                className="mt-8 text-indigo-600 font-black text-[11px] uppercase tracking-widest hover:text-indigo-700 underline underline-offset-4"
                             >
                                 Subir primer trabajo ahora
                             </button>
@@ -155,7 +155,7 @@ export const StudentPortfolioPage = () => {
                                         ) : (
                                             <div className="w-full h-full flex flex-col items-center justify-center text-gray-300">
                                                 <FileText className="w-16 h-16 mb-4" />
-                                                <span className="text-[10px] font-black uppercase tracking-widest">Documento PDF</span>
+                                                <span className="text-[11px] font-black uppercase tracking-widest">Documento PDF</span>
                                             </div>
                                         )}
                                         <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-6">
@@ -169,13 +169,13 @@ export const StudentPortfolioPage = () => {
                                             </a>
                                         </div>
                                         <div className="absolute top-4 left-4">
-                                            <span className="bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[8px] font-black text-gray-900 uppercase tracking-widest shadow-lg">
+                                            <span className="bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[11px] font-black text-gray-900 uppercase tracking-widest shadow-lg">
                                                 {item.category === 'CLASSWORK' ? 'Trabajo' : item.category === 'PROJECT' ? 'Proyecto' : 'Examen'}
                                             </span>
                                         </div>
                                     </div>
                                     <div className="p-6">
-                                        <div className="flex items-center text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-2">
+                                        <div className="flex items-center text-[11px] font-black text-indigo-400 uppercase tracking-widest mb-2">
                                             <Calendar className="w-3 h-3 mr-1.5" />
                                             {new Date(item.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })}
                                         </div>
@@ -206,7 +206,7 @@ export const StudentPortfolioPage = () => {
             <div className="max-w-7xl mx-auto px-6 pt-12">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-16">
                     <div>
-                        <div className="flex items-center space-x-2 text-indigo-600 font-black uppercase text-[10px] tracking-[0.3em] mb-3">
+                        <div className="flex items-center space-x-2 text-indigo-600 font-black uppercase text-[11px] tracking-[0.3em] mb-3">
                             <LayoutGrid className="w-4 h-4" />
                             <span>Galería de Avances</span>
                         </div>
@@ -245,13 +245,13 @@ export const StudentPortfolioPage = () => {
                                 <h3 className="font-black text-gray-900 text-lg group-hover:text-indigo-600 transition-colors uppercase tracking-tighter leading-tight mb-2">
                                     {student.full_name}
                                 </h3>
-                                <div className="flex items-center text-[10px] font-black text-gray-400 uppercase tracking-widest mb-6">
+                                <div className="flex items-center text-[11px] font-black text-gray-500 uppercase tracking-widest mb-6">
                                     <LayoutGrid className="w-3 h-3 mr-1.5" />
                                     {student.group_name}
                                 </div>
 
                                 <div className="w-full pt-6 border-t border-gray-50 flex items-center justify-between text-indigo-600 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0">
-                                    <span className="font-black uppercase text-[9px] tracking-widest">Ver Portafolio</span>
+                                    <span className="font-black uppercase text-[11px] tracking-widest">Ver Portafolio</span>
                                     <ChevronRight className="w-4 h-4" />
                                 </div>
                             </div>

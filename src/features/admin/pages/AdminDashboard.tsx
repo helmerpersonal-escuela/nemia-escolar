@@ -7,7 +7,6 @@ import {
     Calendar,
     AlertCircle,
     ArrowRight,
-    TrendingUp,
     ShieldCheck,
     Building2,
     Search,
@@ -116,7 +115,7 @@ export const AdminDashboard = () => {
 
                 <div className="relative w-full md:w-96 group">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <Search className="h-5 w-5 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
+                        <Search className="h-5 w-5 text-gray-500 group-focus-within:text-blue-600 transition-colors" />
                     </div>
                     <input
                         type="text"
@@ -139,7 +138,7 @@ export const AdminDashboard = () => {
                                     </div>
                                     <div>
                                         <p className="text-sm font-bold text-gray-900 uppercase">{s.first_name} {s.last_name_paternal}</p>
-                                        <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">{s.groups?.name || 'Sin Grupo'}</p>
+                                        <p className="text-[11px] text-gray-500 font-black uppercase tracking-widest">{s.groups?.name || 'Sin Grupo'}</p>
                                     </div>
                                     <ArrowUpRight className="w-4 h-4 ml-auto text-gray-300" />
                                 </Link>
@@ -156,10 +155,10 @@ export const AdminDashboard = () => {
                         <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
                             <Users className="w-6 h-6" />
                         </div>
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Alumnos</span>
+                        <span className="text-[11px] font-black text-gray-500 uppercase tracking-widest">Alumnos</span>
                     </div>
                     <h3 className="text-3xl font-black text-gray-900">{stats.totalStudents}</h3>
-                    <p className="text-xs text-gray-400 font-medium mt-1">Matrícula Total</p>
+                    <p className="text-xs text-gray-500 font-medium mt-1">Matrícula Total</p>
                 </div>
 
                 <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
@@ -167,32 +166,32 @@ export const AdminDashboard = () => {
                         <div className="p-3 bg-purple-50 text-purple-600 rounded-2xl">
                             <UserCheck className="w-6 h-6" />
                         </div>
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Personal</span>
+                        <span className="text-[11px] font-black text-gray-500 uppercase tracking-widest">Personal</span>
                     </div>
                     <h3 className="text-3xl font-black text-gray-900">{stats.totalStaff}</h3>
-                    <p className="text-xs text-gray-400 font-medium mt-1">Docentes y Administrativos</p>
+                    <p className="text-xs text-gray-500 font-medium mt-1">Docentes y Administrativos</p>
                 </div>
 
                 <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex justify-between items-start mb-4">
-                        <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">
+                        <div className="p-3 bg-emerald-50 text-emerald-700 rounded-2xl">
                             <Library className="w-6 h-6" />
                         </div>
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Grupos</span>
+                        <span className="text-[11px] font-black text-gray-500 uppercase tracking-widest">Grupos</span>
                     </div>
                     <h3 className="text-3xl font-black text-gray-900">{stats.totalGroups}</h3>
-                    <p className="text-xs text-gray-400 font-medium mt-1">Ciclo Vigente</p>
+                    <p className="text-xs text-gray-500 font-medium mt-1">Ciclo Vigente</p>
                 </div>
 
                 <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex justify-between items-start mb-4">
-                        <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl">
+                        <div className="p-3 bg-amber-50 text-amber-700 rounded-2xl">
                             <Calendar className="w-6 h-6" />
                         </div>
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Ciclo</span>
+                        <span className="text-[11px] font-black text-gray-500 uppercase tracking-widest">Ciclo</span>
                     </div>
                     <h3 className="text-xl font-black text-gray-900 truncate">{stats.activeCycle}</h3>
-                    <p className="text-xs text-gray-400 font-medium mt-1">Estado del Ciclo</p>
+                    <p className="text-xs text-gray-500 font-medium mt-1">Estado del Ciclo</p>
                 </div>
             </div>
 
@@ -208,7 +207,7 @@ export const AdminDashboard = () => {
                             <div className="flex-1">
                                 <div className="flex items-center gap-3 mb-6">
                                     <div className="w-1.5 h-6 bg-emerald-400 rounded-full" />
-                                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-200/80">Gestión NEM 2026</span>
+                                    <span className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-200/80">Gestión NEM 2026</span>
                                 </div>
                                 <h2 className="text-3xl font-black mb-6 leading-tight">Programa Escolar de Mejora Continua</h2>
                                 <p className="text-blue-100/60 text-sm mb-10 leading-relaxed max-w-sm">
@@ -233,17 +232,17 @@ export const AdminDashboard = () => {
                                     </svg>
                                     <div className="text-center">
                                         <span className="text-4xl font-black block">{stats.pemcProgress}%</span>
-                                        <span className="text-[8px] font-black uppercase tracking-widest opacity-50">Global</span>
+                                        <span className="text-[11px] font-black uppercase tracking-widest opacity-50">Global</span>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 w-full gap-2">
                                     <div className="bg-white/5 p-3 rounded-2xl border border-white/10 text-center">
                                         <span className="text-lg font-black block text-emerald-400">12</span>
-                                        <span className="text-[8px] font-black uppercase opacity-60">Acciones</span>
+                                        <span className="text-[11px] font-black uppercase opacity-60">Acciones</span>
                                     </div>
                                     <div className="bg-white/5 p-3 rounded-2xl border border-white/10 text-center">
                                         <span className="text-lg font-black block text-blue-400">4</span>
-                                        <span className="text-[8px] font-black uppercase opacity-60">Metas</span>
+                                        <span className="text-[11px] font-black uppercase opacity-60">Metas</span>
                                     </div>
                                 </div>
                             </div>
@@ -255,7 +254,7 @@ export const AdminDashboard = () => {
                             <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform">
                                 <PieChart className="w-24 h-24 text-blue-600" />
                             </div>
-                            <h4 className="text-sm font-black text-gray-400 uppercase tracking-[0.2em] mb-8">Rezago Educativo</h4>
+                            <h4 className="text-sm font-black text-gray-500 uppercase tracking-[0.2em] mb-8">Rezago Educativo</h4>
                             <div className="flex items-end gap-4 mb-4">
                                 <h3 className="text-4xl font-black text-gray-900">{stats.academicLagRef}%</h3>
                                 <span className="text-rose-500 text-xs font-bold mb-2 flex items-center">
@@ -266,16 +265,16 @@ export const AdminDashboard = () => {
                             <p className="text-xs text-gray-500 font-medium leading-relaxed mb-8">
                                 Estudiantes identificados con barreras para el aprendizaje. Requieren atención prioritaria.
                             </p>
-                            <Link to="/reports" className="px-6 py-3 bg-blue-50 text-blue-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all inline-flex items-center">
+                            <Link to="/reports" className="px-6 py-3 bg-blue-50 text-blue-600 rounded-xl font-black text-[11px] uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all inline-flex items-center">
                                 Ver Alumnos en Riesgo
                             </Link>
                         </div>
 
                         <div className="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all group overflow-hidden relative">
                             <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform">
-                                <ClipboardCheck className="w-24 h-24 text-emerald-600" />
+                                <ClipboardCheck className="w-24 h-24 text-emerald-700" />
                             </div>
-                            <h4 className="text-sm font-black text-gray-400 uppercase tracking-[0.2em] mb-8">Asistencia Personal</h4>
+                            <h4 className="text-sm font-black text-gray-500 uppercase tracking-[0.2em] mb-8">Asistencia Personal</h4>
                             <div className="flex items-end gap-4 mb-4">
                                 <h3 className="text-4xl font-black text-gray-900">98%</h3>
                                 <div className="flex gap-1 mb-2">
@@ -287,7 +286,7 @@ export const AdminDashboard = () => {
                             <p className="text-xs text-gray-500 font-medium leading-relaxed mb-8">
                                 Hoy: 12 presentes, 0 faltas, 1 permiso.
                             </p>
-                            <Link to="/admin/staff" className="px-6 py-3 bg-emerald-50 text-emerald-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all inline-flex items-center">
+                            <Link to="/admin/staff" className="px-6 py-3 bg-emerald-50 text-emerald-700 rounded-xl font-black text-[11px] uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all inline-flex items-center">
                                 Registro de Firmas
                             </Link>
                         </div>
@@ -325,31 +324,31 @@ export const AdminDashboard = () => {
                 <div className="space-y-6">
                     <div className="bg-amber-50 border border-amber-100 p-6 rounded-[2rem] relative overflow-hidden">
                         <div className="flex items-center gap-3 mb-4">
-                            <AlertCircle className="w-5 h-5 text-amber-600" />
+                            <AlertCircle className="w-5 h-5 text-amber-700" />
                             <h4 className="text-sm font-black text-amber-900 uppercase tracking-tight">Acciones Pendientes</h4>
                         </div>
                         <div className="space-y-4">
                             <div className="p-3 bg-white/50 rounded-xl border border-amber-200/50">
                                 <p className="text-xs font-bold text-amber-800">Cierre de Trimester</p>
-                                <p className="text-[10px] text-amber-600 mt-0.5">Faltan 4 grupos por capturar calificaciones finales.</p>
+                                <p className="text-[11px] text-amber-700 mt-0.5">Faltan 4 grupos por capturar calificaciones finales.</p>
                             </div>
                             <div className="p-3 bg-white/50 rounded-xl border border-amber-200/50">
                                 <p className="text-xs font-bold text-amber-800">Programa Analítico</p>
-                                <p className="text-[10px] text-amber-600 mt-0.5">Revisar el colectivo escolar del Fase 6.</p>
+                                <p className="text-[11px] text-amber-700 mt-0.5">Revisar el colectivo escolar del Fase 6.</p>
                             </div>
                         </div>
                     </div>
 
                     <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
-                        <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6">Acceso Rápido Directivo</h4>
+                        <h4 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-6">Acceso Rápido Directivo</h4>
                         <div className="grid grid-cols-2 gap-3">
                             {[
                                 { label: 'Inscripciones', path: '/groups', icon: UserCheck, color: 'bg-blue-50 text-blue-600' },
                                 { label: 'Horarios', path: '/schedule', icon: Calendar, color: 'bg-purple-50 text-purple-600' },
                                 { label: 'Comunicados', path: '/messages', icon: MessageSquare, color: 'bg-indigo-50 text-indigo-600' },
-                                { label: 'Analítico', path: '/analytical-program', icon: BookOpen, color: 'bg-emerald-50 text-emerald-600' },
+                                { label: 'Analítico', path: '/analytical-program', icon: BookOpen, color: 'bg-emerald-50 text-emerald-700' },
                                 { label: 'Permisos', path: '/admin/staff', icon: Stethoscope, color: 'text-rose-600 bg-rose-50' },
-                                { label: 'Expedientes', path: '/students', icon: FileText, color: 'text-amber-600 bg-amber-50' },
+                                { label: 'Expedientes', path: '/students', icon: FileText, color: 'text-amber-700 bg-amber-50' },
                             ].map(item => (
                                 <Link
                                     key={item.label}
@@ -359,7 +358,7 @@ export const AdminDashboard = () => {
                                     <div className={`p-3 rounded-xl mb-3 ${item.color} group-hover:scale-110 transition-transform`}>
                                         <item.icon className="w-5 h-5" />
                                     </div>
-                                    <span className="text-[10px] font-black uppercase text-gray-500 group-hover:text-gray-900">{item.label}</span>
+                                    <span className="text-[11px] font-black uppercase text-gray-500 group-hover:text-gray-900">{item.label}</span>
                                 </Link>
                             ))}
                         </div>

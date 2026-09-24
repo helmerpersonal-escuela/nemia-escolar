@@ -1,8 +1,8 @@
 
 import { useState, useEffect, useMemo } from 'react'
-import { X, Wand2, Loader2, Save, Sparkles, Printer } from 'lucide-react'
+import { X, Wand2, Loader2, Sparkles, Printer } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
-import { GeminiService, geminiService } from '../../../lib/gemini'
+import { GeminiService } from '../../../lib/gemini'
 
 import { useTenant } from '../../../hooks/useTenant'
 
@@ -243,6 +243,7 @@ export const AIInstrumentGenerator = ({
                         <strong>Actividad:</strong> ${selectedProposal?.title}
                     </div>
                     
+                    <div className="table-scroll">
                     <table>
                         <thead>
                             <tr>
@@ -255,6 +256,7 @@ export const AIInstrumentGenerator = ({
                             ${tableRows}
                         </tbody>
                     </table>
+                    </div>
 
                     <div class="footer">Generado por Asistente IA Vunlek - ${new Date().toLocaleDateString()}</div>
                     <script>setTimeout(() => { window.print(); window.close(); }, 500);</script>
@@ -327,16 +329,16 @@ export const AIInstrumentGenerator = ({
                                 <span className={`h-1.5 w-6 rounded-full ${step >= 1 ? 'bg-indigo-600' : 'bg-gray-200'}`}></span>
                                 <span className={`h-1.5 w-6 rounded-full ${step >= 2 ? 'bg-indigo-600' : 'bg-gray-200'}`}></span>
                                 <span className={`h-1.5 w-6 rounded-full ${step >= 3 ? 'bg-indigo-600' : 'bg-gray-200'}`}></span>
-                                <span className="text-[10px] text-gray-400 font-bold uppercase ml-2">Paso {step} de 3</span>
+                                <span className="text-[11px] text-gray-500 font-bold uppercase ml-2">Paso {step} de 3</span>
                                 {aiService.isFallingBack && (
-                                    <span className="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full ml-2 animate-pulse">
+                                    <span className="text-[11px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full ml-2 animate-pulse">
                                         Modo Alta Disponibilidad (Groq)
                                     </span>
                                 )}
                             </div>
                         </div>
                     </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 p-2">
+                    <button aria-label="Cerrar" onClick={onClose} className="text-gray-500 hover:text-gray-600 rounded-full hover:bg-gray-100 p-2">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -372,7 +374,7 @@ export const AIInstrumentGenerator = ({
                                             {topic}
                                         </button>
                                     )) : (
-                                        <p className="text-sm text-gray-400 italic">No se detectaron temas explícitos.</p>
+                                        <p className="text-sm text-gray-500 italic">No se detectaron temas explícitos.</p>
                                     )}
                                 </div>
                             </div>
@@ -413,7 +415,7 @@ export const AIInstrumentGenerator = ({
                                             `}
                                         >
                                             <div className="font-medium text-gray-800 mb-1 line-clamp-2">{act.description}</div>
-                                            <div className="flex justify-between text-xs text-gray-400">
+                                            <div className="flex justify-between text-xs text-gray-500">
                                                 <span>Sesión {act.session}</span>
                                                 <span>{act.date ? formatDate(act.date) : ''}</span>
                                             </div>
@@ -435,7 +437,7 @@ export const AIInstrumentGenerator = ({
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 {proposals.length === 0 && !loading && (
                                     <div className="col-span-full py-12 text-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
-                                        <div className="text-gray-400 font-medium mb-2">No se pudieron generar propuestas.</div>
+                                        <div className="text-gray-500 font-medium mb-2">No se pudieron generar propuestas.</div>
                                         <button
                                             onClick={handleGenerateProposals}
                                             className="text-indigo-600 font-bold hover:underline"
@@ -449,12 +451,12 @@ export const AIInstrumentGenerator = ({
                                         <div className={`h-2 w-full ${prop.type === 'HOMEWORK' ? 'bg-blue-500' : prop.type === 'PROJECT' ? 'bg-purple-500' : 'bg-green-500'}`}></div>
                                         <div className="p-6 flex-1 flex flex-col">
                                             <div className="flex justify-between items-start mb-3">
-                                                <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wide
+                                                <span className={`text-[11px] font-bold px-2 py-1 rounded uppercase tracking-wide
                                                     ${prop.type === 'HOMEWORK' ? 'bg-blue-50 text-blue-600' : prop.type === 'PROJECT' ? 'bg-purple-50 text-purple-600' : 'bg-green-50 text-green-600'}
                                                  `}>
                                                     {prop.type === 'HOMEWORK' ? 'Tarea' : prop.type === 'PROJECT' ? 'Proyecto' : 'Clase'}
                                                 </span>
-                                                <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded flex items-center">
+                                                <span className="text-[11px] font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded flex items-center">
                                                     {prop.location === 'HOME' ? '🏠 Casa' : '🏫 Aula'}
                                                 </span>
                                             </div>
@@ -491,7 +493,7 @@ export const AIInstrumentGenerator = ({
                                 <div className="mb-4 flex justify-between items-end">
                                     <div className="flex-1 mr-4">
                                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Título de la Actividad</label>
-                                        <input
+                                        <input aria-label="Título de la Actividad"
                                             type="text"
                                             value={instrumentTitle}
                                             onChange={e => setInstrumentTitle(e.target.value)}
@@ -510,9 +512,9 @@ export const AIInstrumentGenerator = ({
                                     <table className="w-full border-collapse">
                                         <thead>
                                             <tr className="bg-gray-50 text-left border-y border-gray-200">
-                                                <th className="p-3 text-[10px] font-bold text-gray-500 uppercase">Criterio</th>
-                                                <th className="p-3 text-[10px] font-bold text-gray-500 uppercase w-20 text-center">Valor %</th>
-                                                <th className="p-3 text-[10px] font-bold text-gray-500 uppercase">Descripción Niveles</th>
+                                                <th className="p-3 text-[11px] font-bold text-gray-500 uppercase">Criterio</th>
+                                                <th className="p-3 text-[11px] font-bold text-gray-500 uppercase w-20 text-center">Valor %</th>
+                                                <th className="p-3 text-[11px] font-bold text-gray-500 uppercase">Descripción Niveles</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100">
@@ -553,16 +555,16 @@ export const AIInstrumentGenerator = ({
                                                     <td className="p-3 align-top">
                                                         <div className="grid grid-cols-2 gap-2">
                                                             {(criterion.levels || []).map((lvl: any, lIdx: number) => (
-                                                                <div key={lIdx} className="bg-white border border-gray-100 p-2 rounded text-[10px]">
+                                                                <div key={lIdx} className="bg-white border border-gray-100 p-2 rounded text-[11px]">
                                                                     <div className="font-bold flex justify-between mb-1">
                                                                         <span>{lvl.title}</span>
-                                                                        <span className="text-gray-400">Pts: {lvl.score}</span>
+                                                                        <span className="text-gray-500">Pts: {lvl.score}</span>
                                                                     </div>
                                                                     <p className="text-gray-500 line-clamp-3">{lvl.description}</p>
                                                                 </div>
                                                             ))}
                                                             {!criterion.levels && (
-                                                                <div className="col-span-2 text-[10px] text-gray-400 italic">
+                                                                <div className="col-span-2 text-[11px] text-gray-500 italic">
                                                                     Lista de cotejo (Si/No)
                                                                 </div>
                                                             )}
@@ -574,8 +576,8 @@ export const AIInstrumentGenerator = ({
                                     </table>
                                 </div>
                                 <div className="p-3 bg-indigo-50/50 rounded-b-xl border-t border-gray-100 flex justify-between items-center">
-                                    <span className="text-[10px] font-bold text-indigo-700">Total: {editedInstrument.reduce((acc: number, cur: any) => acc + (cur.percentage || 0), 0)}%</span>
-                                    <span className="text-[10px] text-gray-400 italic">Puedes editar los nombres y porcentajes directamente</span>
+                                    <span className="text-[11px] font-bold text-indigo-700">Total: {editedInstrument.reduce((acc: number, cur: any) => acc + (cur.percentage || 0), 0)}%</span>
+                                    <span className="text-[11px] text-gray-500 italic">Puedes editar los nombres y porcentajes directamente</span>
                                 </div>
                             </div>
                         </div>

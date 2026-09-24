@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { UserPlus, FileText, BadgeCheck, FileSearch, Download, Users, Clock } from 'lucide-react'
+import { UserPlus, FileText, BadgeCheck, FileSearch, Download } from 'lucide-react'
 
 export const ControlEscolarDashboard = () => {
     const [currentTime, setCurrentTime] = useState(new Date())
@@ -30,7 +30,7 @@ export const ControlEscolarDashboard = () => {
                 </div>
                 <div className="relative z-10 flex gap-4">
                     <div className="text-right hidden md:block mr-4">
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Hora Actual</p>
+                        <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Hora Actual</p>
                         <p className="text-3xl font-black text-gray-900">{currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</p>
                     </div>
                     <button className="px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-200 flex items-center hover:bg-indigo-700 transition-all">
@@ -51,7 +51,7 @@ export const ControlEscolarDashboard = () => {
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
-                            <tr className="text-xs font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                            <tr className="text-xs font-black text-slate-500 uppercase tracking-widest border-b border-slate-100">
                                 <th className="pb-4">Folio</th>
                                 <th className="pb-4">Alumno</th>
                                 <th className="pb-4">Trámite</th>
@@ -81,7 +81,7 @@ const ActionCard = ({ title, description, icon: Icon, color }: any) => {
     const iconColors: any = {
         blue: 'text-blue-600 bg-blue-50',
         indigo: 'text-indigo-600 bg-indigo-50',
-        emerald: 'text-emerald-600 bg-emerald-50',
+        emerald: 'text-emerald-700 bg-emerald-50',
         purple: 'text-purple-600 bg-purple-50'
     }
     return (
@@ -90,21 +90,21 @@ const ActionCard = ({ title, description, icon: Icon, color }: any) => {
                 <Icon className="w-6 h-6" />
             </div>
             <h4 className="font-bold text-slate-900">{title}</h4>
-            <p className="text-xs text-slate-400 font-medium leading-relaxed">{description}</p>
+            <p className="text-xs text-slate-500 font-medium leading-relaxed">{description}</p>
         </button>
     )
 }
 
 const TramiteRow = ({ folio, name, type, status }: any) => (
     <tr className="hover:bg-slate-50 transition-colors group">
-        <td className="py-4 text-xs font-black text-slate-400">{folio}</td>
+        <td className="py-4 text-xs font-black text-slate-500">{folio}</td>
         <td className="py-4 font-bold text-slate-900">{name}</td>
         <td className="py-4 text-sm font-medium text-slate-500">{type}</td>
         <td className="py-4">
-            <span className={`text-[10px] font-black px-2 py-1 rounded-md ${status === 'LISTO' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>{status}</span>
+            <span className={`text-[11px] font-black px-2 py-1 rounded-md ${status === 'LISTO' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>{status}</span>
         </td>
         <td className="py-4">
-            <button className="p-2 text-slate-300 hover:text-indigo-600">
+            <button aria-label="Descargar" className="p-2 text-slate-300 hover:text-indigo-600">
                 <Download className="w-4 h-4" />
             </button>
         </td>

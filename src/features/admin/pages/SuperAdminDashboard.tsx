@@ -5,53 +5,35 @@ import {
     Activity,
     Shield,
     Database,
-    Users,
     Book,
-    DollarSign,
-    Server,
+    BookOpen,
     Search,
-    Lock,
-    Play,
-    AlertTriangle,
+    Users,
     Zap,
-    XCircle,
     Settings,
     Building2,
-    Clock,
     CheckCircle2,
     Brain,
     CreditCard,
     History,
-    Undo,
     DownloadCloud,
-    HardDrive,
-    Terminal,
     Save,
-    Trash,
-    UserMinus,
     UserCheck,
     LifeBuoy,
     RefreshCw,
     Mail,
     Key,
-    ActivitySquare,
-    UserCog,
     Volume2,
-    MessageSquare,
     Info,
     LogOut,
     ArrowLeftCircle,
-    ShieldCheck,
-    ArrowDownCircle,
     Trash2,
-    TrendingUp,
     LayoutGrid
 } from 'lucide-react'
 import { AdminUserTable } from '../components/AdminUserTable'
 import { RegularUserTable } from '../components/RegularUserTable'
 import { TextbookManager } from '../components/TextbookManager'
-import { PlanLimitManager } from '../components/PlanLimitManager'
-import { useProfile } from '../../../hooks/useProfile'
+import { SyntheticProgramsManager } from '../components/SyntheticProgramsManager'
 
 export const SuperAdminDashboard = () => {
     const [stats, setStats] = useState({
@@ -62,13 +44,13 @@ export const SuperAdminDashboard = () => {
         serverHealth: '100% stable',
         dbSize: 0
     })
-    const [activeTab, setActiveTabState] = useState<'tenants' | 'admins' | 'users' | 'rescue' | 'ai' | 'backups' | 'billing' | 'settings' | 'sounds' | 'licenses' | 'subscriptions' | 'textbooks' | 'landing'>(() => {
+    const [activeTab, setActiveTabState] = useState<'tenants' | 'admins' | 'users' | 'rescue' | 'ai' | 'backups' | 'billing' | 'settings' | 'sounds' | 'licenses' | 'subscriptions' | 'textbooks' | 'synthetic' | 'landing'>(() => {
         const saved = localStorage.getItem('godmode_active_tab')
         return (saved as any) || 'tenants'
     })
     const navigate = useNavigate()
 
-    const setActiveTab = (tab: 'tenants' | 'admins' | 'users' | 'rescue' | 'ai' | 'backups' | 'billing' | 'settings' | 'sounds' | 'licenses' | 'subscriptions' | 'textbooks' | 'landing') => {
+    const setActiveTab = (tab: 'tenants' | 'admins' | 'users' | 'rescue' | 'ai' | 'backups' | 'billing' | 'settings' | 'sounds' | 'licenses' | 'subscriptions' | 'textbooks' | 'synthetic' | 'landing') => {
         localStorage.setItem('godmode_active_tab', tab)
         setActiveTabState(tab)
     }
@@ -81,39 +63,29 @@ export const SuperAdminDashboard = () => {
     const [subscriptionsData, setSubscriptionsData] = useState<any[]>([])
     const [selectedUser, setSelectedUser] = useState<any>(null)
 
+    // Las llaves de IA se guardan solo en system_settings (lectura exclusiva del servidor);
+    // ya no se copian al navegador.
     const [aiSettings, setAiSettingsState] = useState<any>(() => {
-        const saved = localStorage.getItem('godmode_ai_settings')
-        if (saved && saved !== 'undefined') {
-            try { return JSON.parse(saved) } catch (e) { console.warn('Failed to parse ai_settings') }
-        }
-        return { openai_key: '', gemini_key: '', groq_key: '', anthropic_key: '' }
+        try { localStorage.removeItem('godmode_ai_settings') } catch { /* sin acceso */ }
+        return { openai_key: '', gemini_key: '', groq_key: '', anthropic_key: '', preferred_provider: 'gemini' }
     })
     const setAiSettings = (settings: any) => {
-        localStorage.setItem('godmode_ai_settings', JSON.stringify(settings))
         setAiSettingsState(settings)
     }
 
     const [billingSettings, setBillingSettingsState] = useState<any>(() => {
-        const saved = localStorage.getItem('godmode_billing_settings')
-        if (saved && saved !== 'undefined') {
-            try { return JSON.parse(saved) } catch (e) { console.warn('Failed to parse billing_settings') }
-        }
-        return { mercadopago_public_key: '', mercadopago_access_token: '', auto_license_activation: 'true' }
+        try { localStorage.removeItem('godmode_billing_settings') } catch { /* sin acceso */ }
+        return { mercadopago_public_key: '', mercadopago_access_token: '', mercadopago_webhook_secret: '', auto_license_activation: 'true' }
     })
     const setBillingSettings = (settings: any) => {
-        localStorage.setItem('godmode_billing_settings', JSON.stringify(settings))
         setBillingSettingsState(settings)
     }
 
     const [smtpSettings, setSmtpSettingsState] = useState<any>(() => {
-        const saved = localStorage.getItem('godmode_smtp_settings')
-        if (saved && saved !== 'undefined') {
-            try { return JSON.parse(saved) } catch (e) { console.warn('Failed to parse smtp_settings') }
-        }
+        try { localStorage.removeItem('godmode_smtp_settings') } catch { /* sin acceso */ }
         return { smtp_host: '', smtp_port: '587', smtp_user: '', smtp_pass: '', smtp_crypto: 'STARTTLS', smtp_from_email: '', smtp_from_name: 'Vunlek Notificaciones' }
     })
     const setSmtpSettings = (settings: any) => {
-        localStorage.setItem('godmode_smtp_settings', JSON.stringify(settings))
         setSmtpSettingsState(settings)
     }
 
@@ -228,16 +200,6 @@ export const SuperAdminDashboard = () => {
             if (error) throw error
 
             // Update local storage and other services
-            if (group === 'ai') {
-                localStorage.setItem('godmode_ai_settings', JSON.stringify(aiSettings))
-                console.log('[GodMode] AI Settings persisted and synced to LocalStorage')
-            }
-            if (group === 'billing') {
-                localStorage.setItem('godmode_billing_settings', JSON.stringify(billingSettings))
-            }
-            if (group === 'smtp') {
-                localStorage.setItem('godmode_smtp_settings', JSON.stringify(smtpSettings))
-            }
             if (group === 'sounds') {
                 localStorage.setItem('godmode_sound_settings', JSON.stringify(soundSettings))
             }
@@ -325,6 +287,20 @@ export const SuperAdminDashboard = () => {
             alert('Error: ' + err.message)
         }
     }
+    const handleVerifyEmail = async (userId: string, email: string) => {
+        if (confirm(`¿Marcar el correo ${email} como verificado manualmente?`)) {
+            try {
+                const { data, error } = await supabase.rpc('admin_verify_email', {
+                    target_user_id: userId
+                })
+                if (error) throw error
+                alert('Correo verificado exitosamente.')
+                window.location.reload()
+            } catch (err: any) {
+                alert('Error: ' + err.message)
+            }
+        }
+    }
     const handleRunBackup = async () => {
         setBackupStatus('running')
         setTimeout(() => {
@@ -334,6 +310,8 @@ export const SuperAdminDashboard = () => {
     }
 
     if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><RefreshCw className="animate-spin text-indigo-500 w-12 h-12" /></div>
+
+    console.log('DEBUG allUsers in Dashboard:', allUsers)
 
     return (
         <div className="min-h-screen bg-[#F0F2F5] text-slate-900 flex font-sans selection:bg-indigo-100 selection:text-indigo-700">
@@ -350,7 +328,7 @@ export const SuperAdminDashboard = () => {
                     </div>
                 </div>
                 <nav className="flex-grow p-4 space-y-2 mt-2 overflow-y-auto custom-scrollbar">
-                    {['tenants', 'admins', 'users', 'rescue', 'ai', 'backups', 'billing', 'subscriptions', 'licenses', 'sounds', 'settings', 'landing', 'textbooks'].map((tab: any) => (
+                    {['tenants', 'admins', 'users', 'rescue', 'ai', 'backups', 'billing', 'subscriptions', 'licenses', 'sounds', 'settings', 'landing', 'textbooks', 'synthetic'].map((tab: any) => (
                         <button key={tab} onClick={() => setActiveTab(tab)} className={`w-full flex items-center space-x-3 px-4 py-4 rounded-2xl font-bold capitalize transition-all ${activeTab === tab ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-500 hover:bg-white'}`}>
                             {tab === 'tenants' && <Building2 className="w-5 h-5" />}
                             {tab === 'admins' && <Shield className="w-5 h-5" />}
@@ -365,7 +343,8 @@ export const SuperAdminDashboard = () => {
                             {tab === 'settings' && <Settings className="w-5 h-5" />}
                             {tab === 'landing' && <LayoutGrid className="w-5 h-5" />}
                             {tab === 'textbooks' && <Book className="w-5 h-5" />}
-                            <span>{tab}</span>
+                            {tab === 'synthetic' && <BookOpen className="w-5 h-5" />}
+                            <span>{tab === 'synthetic' ? 'Prog. Sintéticos' : tab}</span>
                         </button>
                     ))}
                 </nav>
@@ -457,6 +436,7 @@ export const SuperAdminDashboard = () => {
                             searchTerm={searchTerm}
                             onResetPassword={handleResetPassword}
                             onImpersonate={handleImpersonate}
+                            onVerifyEmail={handleVerifyEmail}
                         />
                     )}
 
@@ -469,6 +449,7 @@ export const SuperAdminDashboard = () => {
                             onToggleDemo={handleToggleDemo}
                             onResetPassword={handleResetPassword}
                             onSetProvisionalPassword={handleSetProvisionalPassword}
+                            onVerifyEmail={handleVerifyEmail}
                         />
                     )}
 
@@ -511,16 +492,28 @@ export const SuperAdminDashboard = () => {
                                 <h4 className="font-black text-indigo-950 uppercase mb-6 flex items-center gap-2"><Brain className="w-5 h-5 text-indigo-500" /> Configuración de IA</h4>
                                 <div className="space-y-4">
                                     <div className="group/field">
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Proveedor Primario</label>
+                                        <select aria-label="Proveedor Primario"
+                                            value={aiSettings.preferred_provider || 'gemini'}
+                                            onChange={e => setAiSettings({ ...aiSettings, preferred_provider: e.target.value })}
+                                            className="input-squishy w-full px-4 py-3 text-sm border-2 border-slate-50 bg-white"
+                                        >
+                                            <option value="gemini">Google Gemini (Recomendado)</option>
+                                            <option value="groq">Groq (Llama 3.1 / Grok)</option>
+                                            <option value="openai">OpenAI (GPT-4o mini)</option>
+                                        </select>
+                                    </div>
+                                    <div className="group/field">
                                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Google Gemini API Key</label>
-                                        <input type="password" placeholder="AIzaSy..." value={aiSettings.gemini_key} onChange={e => setAiSettings({ ...aiSettings, gemini_key: e.target.value })} className="input-squishy w-full px-4 py-3 text-sm border-2 border-slate-50" />
+                                        <input aria-label="Google Gemini API Key" type="password" placeholder="AIzaSy..." value={aiSettings.gemini_key} onChange={e => setAiSettings({ ...aiSettings, gemini_key: e.target.value })} className="input-squishy w-full px-4 py-3 text-sm border-2 border-slate-50" />
                                     </div>
                                     <div className="group/field">
                                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Groq API Key</label>
-                                        <input type="password" placeholder="gsk_..." value={aiSettings.groq_key} onChange={e => setAiSettings({ ...aiSettings, groq_key: e.target.value })} className="input-squishy w-full px-4 py-3 text-sm border-2 border-slate-50" />
+                                        <input aria-label="Groq API Key" type="password" placeholder="gsk_..." value={aiSettings.groq_key} onChange={e => setAiSettings({ ...aiSettings, groq_key: e.target.value })} className="input-squishy w-full px-4 py-3 text-sm border-2 border-slate-50" />
                                     </div>
                                     <div className="group/field">
                                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">OpenAI API Key (Opcional)</label>
-                                        <input type="password" placeholder="sk-..." value={aiSettings.openai_key} onChange={e => setAiSettings({ ...aiSettings, openai_key: e.target.value })} className="input-squishy w-full px-4 py-3 text-sm border-2 border-slate-50" />
+                                        <input aria-label="OpenAI API Key (Opcional)" type="password" placeholder="sk-..." value={aiSettings.openai_key} onChange={e => setAiSettings({ ...aiSettings, openai_key: e.target.value })} className="input-squishy w-full px-4 py-3 text-sm border-2 border-slate-50" />
                                     </div>
                                     <button onClick={() => handleSaveGroup('ai')} disabled={isSaving} className="w-full py-3 bg-indigo-600 text-white rounded-xl font-black uppercase text-xs tracking-widest hover:bg-indigo-700 transition-all shadow-lg active:scale-95">Guardar Llaves de IA</button>
                                 </div>
@@ -560,6 +553,7 @@ export const SuperAdminDashboard = () => {
                                 <div className="space-y-4">
                                     <input type="text" placeholder="Public Key" value={billingSettings.mercadopago_public_key} onChange={e => setBillingSettings({ ...billingSettings, mercadopago_public_key: e.target.value })} className="input-squishy w-full px-4 py-3 text-sm border-2 border-slate-50" />
                                     <input type="password" placeholder="Access Token" value={billingSettings.mercadopago_access_token} onChange={e => setBillingSettings({ ...billingSettings, mercadopago_access_token: e.target.value })} className="input-squishy w-full px-4 py-3 text-sm border-2 border-slate-50" />
+                                    <input type="password" placeholder="Clave secreta del webhook (Tus integraciones → Webhooks)" value={billingSettings.mercadopago_webhook_secret || ''} onChange={e => setBillingSettings({ ...billingSettings, mercadopago_webhook_secret: e.target.value })} className="input-squishy w-full px-4 py-3 text-sm border-2 border-slate-50" />
                                     <button onClick={() => handleSaveGroup('billing')} disabled={isSaving} className="w-full py-3 bg-indigo-600 text-white rounded-xl font-black uppercase text-xs tracking-widest hover:bg-indigo-700 transition-all shadow-lg active:scale-95">Guardar Billing</button>
                                 </div>
                             </div>
@@ -587,7 +581,7 @@ export const SuperAdminDashboard = () => {
                                         <p className="font-black text-indigo-950 uppercase text-sm">{sub.email || sub.user_id}</p>
                                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{sub.plan_type} - Vence: {new Date(sub.current_period_end).toLocaleDateString()}</p>
                                     </div>
-                                    <button onClick={() => handleDeleteSubscription(sub.user_id)} className="text-rose-500 hover:text-rose-700"><Trash2 className="w-5 h-5" /></button>
+                                    <button aria-label="Eliminar" onClick={() => handleDeleteSubscription(sub.user_id)} className="text-rose-500 hover:text-rose-700"><Trash2 className="w-5 h-5" /></button>
                                 </div>
                             ))}
                         </div>
@@ -614,7 +608,6 @@ export const SuperAdminDashboard = () => {
                                     >
                                         <option value="basic">Basic</option>
                                         <option value="pro">Pro</option>
-                                        <option value="enterprise">Enterprise</option>
                                     </select>
                                     <input
                                         type="number"
@@ -651,11 +644,11 @@ export const SuperAdminDashboard = () => {
                                 <div className="space-y-4">
                                     <div>
                                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Sonido de Chat</label>
-                                        <input type="text" placeholder="/sounds/notification.mp3" value={soundSettings.chat_sound_url} onChange={e => setSoundSettings({ ...soundSettings, chat_sound_url: e.target.value })} className="input-squishy w-full px-4 py-3 text-sm border-2 border-slate-50" />
+                                        <input aria-label="Sonido de Chat" type="text" placeholder="/sounds/notification.mp3" value={soundSettings.chat_sound_url} onChange={e => setSoundSettings({ ...soundSettings, chat_sound_url: e.target.value })} className="input-squishy w-full px-4 py-3 text-sm border-2 border-slate-50" />
                                     </div>
                                     <div>
                                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Sonido de Notificación</label>
-                                        <input type="text" placeholder="/sounds/notification.mp3" value={soundSettings.notification_sound_url} onChange={e => setSoundSettings({ ...soundSettings, notification_sound_url: e.target.value })} className="input-squishy w-full px-4 py-3 text-sm border-2 border-slate-50" />
+                                        <input aria-label="Sonido de Notificación" type="text" placeholder="/sounds/notification.mp3" value={soundSettings.notification_sound_url} onChange={e => setSoundSettings({ ...soundSettings, notification_sound_url: e.target.value })} className="input-squishy w-full px-4 py-3 text-sm border-2 border-slate-50" />
                                     </div>
                                     <button onClick={() => handleSaveGroup('sounds')} disabled={isSaving} className="w-full py-3 bg-indigo-600 text-white rounded-xl font-black uppercase text-xs tracking-widest hover:bg-indigo-700 transition-all shadow-lg active:scale-95">Guardar Sonidos</button>
                                 </div>
@@ -689,19 +682,19 @@ export const SuperAdminDashboard = () => {
                                     <div className="space-y-6">
                                         <div className="group/field">
                                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Título Principal</label>
-                                            <input type="text" value={landingSettings.landing_heroTitle} onChange={e => setLandingSettings({ ...landingSettings, landing_heroTitle: e.target.value })} className="input-squishy w-full px-5 py-4 text-sm font-bold border-2 border-slate-50 focus:border-indigo-400 transition-all" />
+                                            <input aria-label="Título Principal" type="text" value={landingSettings.landing_heroTitle} onChange={e => setLandingSettings({ ...landingSettings, landing_heroTitle: e.target.value })} className="input-squishy w-full px-5 py-4 text-sm font-bold border-2 border-slate-50 focus:border-indigo-400 transition-all" />
                                         </div>
                                         <div className="group/field">
                                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Subtítulo</label>
-                                            <input type="text" value={landingSettings.landing_heroSubtitle} onChange={e => setLandingSettings({ ...landingSettings, landing_heroSubtitle: e.target.value })} className="input-squishy w-full px-5 py-4 text-sm font-bold border-2 border-slate-50 focus:border-indigo-400 transition-all" />
+                                            <input aria-label="Subtítulo" type="text" value={landingSettings.landing_heroSubtitle} onChange={e => setLandingSettings({ ...landingSettings, landing_heroSubtitle: e.target.value })} className="input-squishy w-full px-5 py-4 text-sm font-bold border-2 border-slate-50 focus:border-indigo-400 transition-all" />
                                         </div>
                                         <div className="group/field">
                                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Descripción</label>
-                                            <textarea rows={4} value={landingSettings.landing_heroDescription} onChange={e => setLandingSettings({ ...landingSettings, landing_heroDescription: e.target.value })} className="input-squishy w-full px-5 py-4 text-sm font-bold border-2 border-slate-50 focus:border-indigo-400 transition-all resize-none" />
+                                            <textarea aria-label="Descripción" rows={4} value={landingSettings.landing_heroDescription} onChange={e => setLandingSettings({ ...landingSettings, landing_heroDescription: e.target.value })} className="input-squishy w-full px-5 py-4 text-sm font-bold border-2 border-slate-50 focus:border-indigo-400 transition-all resize-none" />
                                         </div>
                                         <div className="group/field">
                                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Texto del Botón (CTA)</label>
-                                            <input type="text" value={landingSettings.landing_ctaText} onChange={e => setLandingSettings({ ...landingSettings, landing_ctaText: e.target.value })} className="input-squishy w-full px-5 py-4 text-sm font-bold border-2 border-slate-50 focus:border-indigo-400 transition-all" />
+                                            <input aria-label="Texto del Botón (CTA)" type="text" value={landingSettings.landing_ctaText} onChange={e => setLandingSettings({ ...landingSettings, landing_ctaText: e.target.value })} className="input-squishy w-full px-5 py-4 text-sm font-bold border-2 border-slate-50 focus:border-indigo-400 transition-all" />
                                         </div>
                                         <button onClick={() => handleSaveGroup('landing')} disabled={isSaving} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-black transition-all shadow-xl active:scale-95 flex items-center justify-center gap-3">
                                             <Save className="w-5 h-5" />
@@ -721,7 +714,7 @@ export const SuperAdminDashboard = () => {
                                     <div className="space-y-6">
                                         <div className="group/field">
                                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Lista de Funcionalidades</label>
-                                            <textarea
+                                            <textarea aria-label="Lista de Funcionalidades"
                                                 rows={15}
                                                 value={landingSettings.landing_features}
                                                 onChange={e => setLandingSettings({ ...landingSettings, landing_features: e.target.value })}
@@ -740,6 +733,10 @@ export const SuperAdminDashboard = () => {
 
                     {activeTab === 'textbooks' && (
                         <TextbookManager />
+                    )}
+
+                    {activeTab === 'synthetic' && (
+                        <SyntheticProgramsManager />
                     )}
                 </div>
             </main>

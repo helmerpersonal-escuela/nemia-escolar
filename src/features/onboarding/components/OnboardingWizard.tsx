@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
-import { queryClient } from '../../../lib/queryClient'
-import { Check, Calendar, BookOpen, AlertCircle, Trash2, Plus, ArrowRight, School, Clock, Loader2, Coffee, ArrowLeft, CreditCard, Zap, Gift, ShieldCheck } from 'lucide-react'
+import { Calendar, BookOpen, Trash2, Plus, ArrowRight, School, Clock, Loader2, CreditCard, Zap, Gift } from 'lucide-react'
 import { SubjectSelector } from '../../../components/academic/SubjectSelector'
 import { Browser } from '@capacitor/browser'
 import { Capacitor } from '@capacitor/core'
@@ -24,9 +23,11 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
         const saved = sessionStorage.getItem('vunlek_onboarding_school_data')
         return saved ? JSON.parse(saved) : {
             name: '',
-            educationalLevel: 'SECONDARY' as 'SECONDARY' | 'TELESECUNDARIA',
+            educationalLevel: 'SECONDARY' as 'PRIMARY' | 'SECONDARY' | 'TELESECUNDARIA',
             cct: '',
-            shift: 'MORNING'
+            shift: 'MORNING',
+            grade: 1,
+            phase: 3
         }
     })
 
@@ -178,14 +179,27 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
     const handleSaveSchedule = async () => {
         setLoading(true)
         try {
+            // For PRIMARY/TELESECUNDARIA level, we use a single large module (jornada completa)
+            const moduleDuration = (schoolData.educationalLevel === 'PRIMARY' || schoolData.educationalLevel === 'TELESECUNDARIA') ? 600 : scheduleSettings.moduleDuration;
+
             const { error } = await supabase.from('schedule_settings').upsert({
                 tenant_id: tenant?.id,
                 start_time: scheduleSettings.startTime,
                 end_time: scheduleSettings.endTime,
-                module_duration: scheduleSettings.moduleDuration,
+                module_duration: moduleDuration,
                 breaks: scheduleSettings.breaks
             })
             if (error) throw error
+
+            // Save Grade and Phase to TENANT if Primary or Telesecundaria
+            if (schoolData.educationalLevel === 'PRIMARY' || schoolData.educationalLevel === 'TELESECUNDARIA') {
+                const { error: tError } = await supabase.from('tenants').update({
+                    grade: schoolData.grade,
+                    phase: schoolData.phase
+                }).eq('id', tenant?.id)
+                if (tError) throw tError
+            }
+
             setStep(3)
         } catch (err: any) {
             setError(err.message)
@@ -355,15 +369,15 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                 ))}
             </div>
 
-            <div className="clay-card min-h-[500px] relative overflow-hidden">
-                <div className="absolute top-0 left-0 right-0 h-1.5 bg-slate-50">
+            <div className="squishy-card min-h-[500px] relative overflow-hidden bg-white mt-4 border-2 border-indigo-50/50">
+                <div className="absolute top-0 left-0 right-0 h-2 bg-indigo-50">
                     <div
-                        className="h-full bg-blue-600 transition-all duration-500 ease-out"
+                        className="h-full bg-indigo-500 transition-all duration-500 ease-out rounded-r-full"
                         style={{ width: `${((step + 1) / 5) * 100}%` }}
                     />
                 </div>
 
-                <div className="p-8 md:p-12">
+                <div className="p-8 md:p-16">
 
                     {loading && (
                         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
@@ -373,105 +387,187 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                     )}
 
                     {step === 0 && (
-                        // ... step 0 content ...
                         <div className="animate-in fade-in slide-in-from-right duration-500 max-w-lg mx-auto">
                             <div className="text-center mb-10">
-                                <div className="inline-flex items-center justify-center p-6 bg-blue-100 rounded-3xl text-blue-600 mb-6 shadow-inner">
+                                <div className="inline-flex items-center justify-center p-6 bg-indigo-100 rounded-[2rem] text-indigo-600 mb-6 shadow-inner ring-4 ring-white">
                                     <School className="w-12 h-12" />
                                 </div>
-                                <h2 className="text-3xl font-black text-gray-900">{tenant?.type === 'INDEPENDENT' ? 'Personaliza tu Espacio' : 'Datos de la Escuela'}</h2>
+                                <h2 className="text-3xl md:text-4xl font-black text-indigo-950 italic tracking-tight uppercase">
+                                    {tenant?.type === 'INDEPENDENT' ? 'Personaliza tu Espacio' : 'Datos de la Escuela'}
+                                </h2>
                             </div>
-                            <div className="space-y-6">
-                                <div>
-                                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Nombre</label>
-                                    <input value={schoolData.name} onChange={e => setSchoolData({ ...schoolData, name: e.target.value.toUpperCase() })} className="clay-input w-full p-4 font-bold" />
+                            <div className="space-y-8">
+                                <div className="group/field">
+                                    <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-2 transition-colors group-focus-within:text-indigo-500">Nombre</label>
+                                    <input aria-label="Nombre" value={schoolData.name} onChange={e => setSchoolData({ ...schoolData, name: e.target.value.toUpperCase() })} className="input-squishy w-full px-6 py-5 text-sm font-bold border-2 border-slate-50 focus:border-indigo-400 transition-all" placeholder="Ej. Esc. Primaria Benito Juárez" />
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="col-span-2">
-                                        <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Nivel</label>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {['SECONDARY', 'TELESECUNDARIA'].map(l => (
-                                                <button key={l} onClick={() => setSchoolData({ ...schoolData, educationalLevel: l as any })} className={`py-4 rounded-2xl border-b-4 font-black transition-all ${schoolData.educationalLevel === l ? 'bg-indigo-100 text-indigo-700 border-indigo-300' : 'bg-slate-50 text-slate-400'}`}>
-                                                    {l === 'SECONDARY' ? 'Secundaria' : 'Telesecundaria'}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="md:col-span-2">
+                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 ml-2">Nivel</label>
+                                        <div className="flex flex-col sm:flex-row gap-4">
+                                            {['PRIMARY', 'SECONDARY', 'TELESECUNDARIA'].map(l => (
+                                                <button
+                                                    key={l}
+                                                    onClick={() => setSchoolData({ ...schoolData, educationalLevel: l as any })}
+                                                    className={`flex-1 py-5 px-6 rounded-[2rem] border-2 transition-all flex items-center justify-center gap-3 active:scale-95 ${schoolData.educationalLevel === l
+                                                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-[inset_0_4px_12px_rgba(79,70,229,0.15)] ring-4 ring-indigo-100/50'
+                                                        : 'border-slate-100 hover:border-indigo-300 hover:bg-slate-50 text-slate-500 shadow-sm'
+                                                        }`}
+                                                >
+                                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${schoolData.educationalLevel === l ? 'border-indigo-600' : 'border-slate-300'}`}>
+                                                        {schoolData.educationalLevel === l && <div className="w-2.5 h-2.5 rounded-full bg-indigo-600" />}
+                                                    </div>
+                                                    <span className="font-extrabold tracking-tight text-xs uppercase">
+                                                        {l === 'PRIMARY' ? 'Primaria' : l === 'SECONDARY' ? 'Secundaria' : 'Telesecundaria'}
+                                                    </span>
                                                 </button>
                                             ))}
                                         </div>
                                     </div>
-                                    <div className="col-span-2">
-                                        <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">CCT</label>
-                                        <input value={schoolData.cct} onChange={e => setSchoolData({ ...schoolData, cct: e.target.value.toUpperCase() })} className="clay-input w-full p-4 font-bold" />
+                                    <div className="md:col-span-2 group/field">
+                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-2 transition-colors group-focus-within:text-indigo-500">CCT</label>
+                                        <input aria-label="CCT" value={schoolData.cct} onChange={e => setSchoolData({ ...schoolData, cct: e.target.value.toUpperCase() })} className="input-squishy w-full px-6 py-5 text-sm font-bold border-2 border-slate-50 focus:border-indigo-400 transition-all font-mono" placeholder="Ej. 07DPR0000X" />
                                     </div>
                                 </div>
-                                <button onClick={handleUpdateSchool} className="clay-button w-full py-5 bg-indigo-500 text-white rounded-2xl font-black text-lg hover:bg-indigo-600 flex items-center justify-center gap-3 uppercase tracking-widest">
-                                    Continuar <ArrowRight className="w-5 h-5" />
-                                </button>
-                                <button onClick={handleCancelRegistration} className="w-full mt-4 py-4 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 rounded-2xl transition-all flex items-center justify-center gap-2">
-                                    <Trash2 className="w-4 h-4" /> Cancelar y Eliminar Cuenta
-                                </button>
+                                <div className="pt-4 space-y-4">
+                                    <button onClick={handleUpdateSchool} className="w-full py-5 bg-indigo-600 text-white rounded-[2rem] font-black text-sm hover:bg-indigo-700 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest border-b-4 border-indigo-800 hover:border-indigo-900 hover:translate-y-0.5">
+                                        Continuar <ArrowRight className="w-5 h-5" />
+                                    </button>
+                                    <button onClick={handleCancelRegistration} className="w-full py-4 text-slate-500 font-bold text-[11px] uppercase tracking-widest hover:bg-rose-50 hover:text-rose-600 rounded-2xl transition-all flex items-center justify-center gap-2">
+                                        <Trash2 className="w-4 h-4" /> Cancelar y Eliminar Cuenta
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}
 
                     {step === 1 && (
-                        // ... step 1 content ...
                         <div className="animate-in fade-in slide-in-from-right duration-500 max-w-lg mx-auto">
-                            <div className="text-center mb-8">
-                                <Calendar className="w-16 h-16 text-blue-600 mx-auto mb-6" />
-                                <h2 className="text-3xl font-black text-slate-900">Ciclo Escolar</h2>
-                            </div>
-                            <div className="space-y-6">
-                                <input value={yearData.name} onChange={e => setYearData({ ...yearData, name: e.target.value.toUpperCase() })} className="clay-input w-full p-4 font-bold" />
-                                <div className="grid grid-cols-2 gap-4">
-                                    <input type="date" value={yearData.startDate} onChange={e => setYearData({ ...yearData, startDate: e.target.value })} className="clay-input w-full p-4 font-bold" />
-                                    <input type="date" value={yearData.endDate} onChange={e => setYearData({ ...yearData, endDate: e.target.value })} className="clay-input w-full p-4 font-bold" />
+                            <div className="text-center mb-10">
+                                <div className="inline-flex items-center justify-center p-6 bg-blue-100 rounded-[2rem] text-blue-600 mb-6 shadow-inner ring-4 ring-white">
+                                    <Calendar className="w-12 h-12" />
                                 </div>
-                                <button onClick={handleCreateYear} className="clay-button w-full py-5 bg-blue-500 text-white rounded-2xl font-black text-lg uppercase tracking-widest flex items-center justify-center gap-3">
-                                    Continuar <ArrowRight className="w-5 h-5" />
-                                </button>
+                                <h2 className="text-3xl md:text-4xl font-black text-slate-900 italic tracking-tight uppercase">Ciclo Escolar</h2>
+                            </div>
+                            <div className="space-y-8">
+                                <div className="group/field">
+                                    <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-2 transition-colors group-focus-within:text-blue-500">Nombre del Ciclo</label>
+                                    <input aria-label="Nombre del Ciclo" value={yearData.name} onChange={e => setYearData({ ...yearData, name: e.target.value.toUpperCase() })} className="input-squishy w-full px-6 py-5 text-sm font-bold border-2 border-slate-50 focus:border-blue-400 transition-all font-mono" placeholder="Ej. 2024-2025" />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="group/field">
+                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-2 transition-colors group-focus-within:text-blue-500">Inicio de Clases</label>
+                                        <input aria-label="Inicio de Clases" type="date" value={yearData.startDate} onChange={e => {
+                                            const val = e.target.value;
+                                            if (val && val.split('-')[0].length > 4) return;
+                                            setYearData({ ...yearData, startDate: val });
+                                        }} className="input-squishy w-full px-6 py-5 text-sm font-bold border-2 border-slate-50 focus:border-blue-400 transition-all text-slate-600" />
+                                    </div>
+                                    <div className="group/field">
+                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-2 transition-colors group-focus-within:text-blue-500">Fin de Clases</label>
+                                        <input aria-label="Fin de Clases" type="date" value={yearData.endDate} onChange={e => {
+                                            const val = e.target.value;
+                                            if (val && val.split('-')[0].length > 4) return;
+                                            setYearData({ ...yearData, endDate: val });
+                                        }} className="input-squishy w-full px-6 py-5 text-sm font-bold border-2 border-slate-50 focus:border-blue-400 transition-all text-slate-600" />
+                                    </div>
+                                </div>
+                                <div className="pt-4">
+                                    <button onClick={handleCreateYear} className="w-full py-5 bg-blue-600 text-white rounded-[2rem] font-black text-sm hover:bg-blue-700 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest border-b-4 border-blue-800 hover:border-blue-900 hover:translate-y-0.5">
+                                        Generar Calendario <ArrowRight className="w-5 h-5" />
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}
 
                     {step === 2 && (
-                        // ... step 2 content ...
                         <div className="animate-in fade-in slide-in-from-right duration-500">
                             <div className="text-center mb-10">
-                                <Clock className="w-16 h-16 text-orange-600 mx-auto mb-6" />
-                                <h2 className="text-3xl font-black text-slate-900">Horarios</h2>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-2xl mx-auto">
-                                <div className="p-8 bg-slate-50 rounded-3xl border-2 border-slate-100 space-y-4">
-                                    <input type="time" value={scheduleSettings.startTime} onChange={e => setScheduleSettings({ ...scheduleSettings, startTime: e.target.value })} className="clay-input w-full p-3 text-center" />
-                                    <input type="time" value={scheduleSettings.endTime} onChange={e => setScheduleSettings({ ...scheduleSettings, endTime: e.target.value })} className="clay-input w-full p-3 text-center" />
-                                    <input type="number" value={scheduleSettings.moduleDuration} onChange={e => setScheduleSettings({ ...scheduleSettings, moduleDuration: Number(e.target.value) })} className="clay-input w-full p-3 text-center" />
+                                <div className="inline-flex items-center justify-center p-6 bg-orange-100 rounded-[2rem] text-orange-600 mb-6 shadow-inner ring-4 ring-white">
+                                    <Clock className="w-12 h-12" />
                                 </div>
-                                <div className="space-y-4">
-                                    {/* ... breaks ... */}
+                                <h2 className="text-3xl md:text-4xl font-black text-slate-900 italic tracking-tight uppercase">Jornada y Grado</h2>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                                <div className="squishy-card p-8 bg-slate-50 border-2 border-slate-100 space-y-6 md:p-10 h-fit">
+                                    <div className="group/field">
+                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-2 transition-colors group-focus-within:text-orange-500">Hora de Entrada</label>
+                                        <input aria-label="Hora de Entrada" type="time" value={scheduleSettings.startTime} onChange={e => setScheduleSettings({ ...scheduleSettings, startTime: e.target.value })} className="input-squishy w-full px-6 py-5 text-sm font-bold text-center border-2 border-white focus:border-orange-400 transition-all" />
+                                    </div>
+                                    <div className="group/field">
+                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-2 transition-colors group-focus-within:text-orange-500">Hora de Salida</label>
+                                        <input aria-label="Hora de Salida" type="time" value={scheduleSettings.endTime} onChange={e => setScheduleSettings({ ...scheduleSettings, endTime: e.target.value })} className="input-squishy w-full px-6 py-5 text-sm font-bold text-center border-2 border-white focus:border-orange-400 transition-all" />
+                                    </div>
+                                    {schoolData.educationalLevel !== 'PRIMARY' && (
+                                        <div className="group/field">
+                                            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-2 transition-colors group-focus-within:text-orange-500">Duración Módulo (min)</label>
+                                            <input aria-label="Duración Módulo (min)" type="number" value={scheduleSettings.moduleDuration} onChange={e => setScheduleSettings({ ...scheduleSettings, moduleDuration: Number(e.target.value) })} className="input-squishy w-full px-6 py-5 text-sm font-bold text-center border-2 border-white focus:border-orange-400 transition-all" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="space-y-6">
+                                    {(schoolData.educationalLevel === 'PRIMARY' || schoolData.educationalLevel === 'TELESECUNDARIA') && (
+                                        <div className="squishy-card p-8 bg-indigo-50/30 border-2 border-indigo-100/50 space-y-6 md:p-10">
+                                            <div className="p-5 bg-white/60 rounded-[2rem] border-2 border-indigo-100/50 text-center shadow-sm">
+                                                <p className="text-[12px] font-black text-indigo-700 uppercase tracking-widest mb-1 italic">Jornada Completa</p>
+                                                <p className="text-[11px] font-bold text-indigo-500/80 uppercase">En Primaria y Telesecundaria el horario es por jornada.</p>
+                                            </div>
+
+                                            <div className="space-y-4 pt-2">
+                                                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest text-center">Grado/Grupo que Impartes</label>
+                                                <div className="grid grid-cols-3 gap-3">
+                                                    {(schoolData.educationalLevel === 'TELESECUNDARIA' ? [1, 2, 3] : [1, 2, 3, 4, 5, 6]).map(g => (
+                                                        <button
+                                                            key={g}
+                                                            onClick={() => {
+                                                                const p = schoolData.educationalLevel === 'TELESECUNDARIA' ? 6 : g <= 2 ? 3 : g <= 4 ? 4 : 5;
+                                                                setSchoolData({ ...schoolData, grade: g, phase: p });
+                                                            }}
+                                                            className={`p-4 sm:p-5 rounded-[1.5rem] border-2 font-black text-sm sm:text-base transition-all active:scale-95 ${schoolData.grade === g ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-[inset_0_4px_12px_rgba(79,70,229,0.15)] ring-4 ring-indigo-100/50' : 'border-slate-200 bg-white text-slate-500 hover:border-indigo-300 hover:bg-slate-50 shadow-sm'}`}
+                                                        >
+                                                            {g}°
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                <div className="mt-4 text-center">
+                                                    <span className="inline-block bg-indigo-600 text-white text-[11px] font-black px-4 py-2 rounded-full uppercase tracking-widest shadow-lg shadow-indigo-600/20">
+                                                        Fase {schoolData.phase} NEM
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                     {tenant?.type !== 'INDEPENDENT' && (tenant?.type as string)?.toLowerCase() !== 'independent' && (
                                         <div className="animate-in fade-in slide-in-from-right-8 duration-500">
-                                            <div className="p-4 bg-orange-50/50 rounded-2xl border border-orange-100 mb-4">
-                                                <div className="grid grid-cols-2 gap-2 mb-2">
+                                            <div className="squishy-card p-6 bg-orange-50 rounded-[2rem] border-2 border-orange-100 mb-6">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                                                     <div>
-                                                        <label className="text-[10px] font-black text-orange-400 uppercase">Inicio</label>
-                                                        <input type="time" value={newBreak.start} onChange={e => setNewBreak({ ...newBreak, start: e.target.value })} className="w-full p-2 rounded-xl border border-orange-200 text-xs font-bold text-orange-800" />
+                                                        <label className="block text-[11px] font-black text-orange-400 uppercase mb-2 ml-1">Inicio</label>
+                                                        <input aria-label="Inicio" type="time" value={newBreak.start} onChange={e => setNewBreak({ ...newBreak, start: e.target.value })} className="input-squishy w-full px-4 py-3 border-2 border-white focus:border-orange-300 text-sm font-bold text-orange-800" />
                                                     </div>
                                                     <div>
-                                                        <label className="text-[10px] font-black text-orange-400 uppercase">Fin</label>
-                                                        <input type="time" value={newBreak.end} onChange={e => setNewBreak({ ...newBreak, end: e.target.value })} className="w-full p-2 rounded-xl border border-orange-200 text-xs font-bold text-orange-800" />
+                                                        <label className="block text-[11px] font-black text-orange-400 uppercase mb-2 ml-1">Fin</label>
+                                                        <input aria-label="Fin" type="time" value={newBreak.end} onChange={e => setNewBreak({ ...newBreak, end: e.target.value })} className="input-squishy w-full px-4 py-3 border-2 border-white focus:border-orange-300 text-sm font-bold text-orange-800" />
                                                     </div>
                                                 </div>
-                                                <button onClick={handleAddBreak} className="w-full py-2 bg-orange-500 text-white rounded-xl font-black uppercase text-[10px] shadow-lg shadow-orange-200 hover:bg-orange-600 transition-all">
+                                                <button onClick={handleAddBreak} className="w-full py-4 bg-orange-500 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-orange-500/20 hover:bg-orange-600 transition-all hover:-translate-y-0.5 active:scale-95 border-b-4 border-orange-700">
                                                     <div className="flex items-center justify-center gap-2">
-                                                        <Plus className="w-3 h-3" /> Agregar Receso / Actividad
+                                                        <Plus className="w-4 h-4" /> Agregar Receso
                                                     </div>
                                                 </button>
                                             </div>
                                             {scheduleSettings.breaks.length > 0 && (
-                                                <div className="space-y-2">
+                                                <div className="space-y-3">
                                                     {scheduleSettings.breaks.map((b: any, i: number) => (
-                                                        <div key={i} className="p-4 bg-white border-2 border-orange-50 rounded-2xl flex justify-between items-center capitalize font-bold text-slate-600">
-                                                            <span>{b.name} ({b.start_time} - {b.end_time})</span>
-                                                            <button onClick={() => setScheduleSettings((prev: any) => ({ ...prev, breaks: prev.breaks.filter((_: any, idx: number) => idx !== i) }))} className="text-red-400 bg-red-50 p-2 rounded-xl hover:bg-red-100 transition-colors">×</button>
+                                                        <div key={i} className="squishy-card p-5 bg-white border-2 border-slate-100 rounded-2xl flex justify-between items-center capitalize font-bold text-slate-600 shadow-sm">
+                                                            <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
+                                                                <span className="text-sm">{b.name}</span>
+                                                                <span className="text-xs text-slate-500 font-mono">({b.start_time} - {b.end_time})</span>
+                                                            </div>
+                                                            <button aria-label="Eliminar" onClick={() => setScheduleSettings((prev: any) => ({ ...prev, breaks: prev.breaks.filter((_: any, idx: number) => idx !== i) }))} className="text-rose-400 bg-rose-50 p-2.5 rounded-xl hover:bg-rose-100 transition-colors shadow-inner">
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -480,79 +576,105 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                                     )}
                                 </div>
                             </div>
-                            <button onClick={handleSaveSchedule} className="clay-button w-full py-6 bg-indigo-500 text-white rounded-3xl font-black text-xl mt-12 uppercase tracking-widest flex items-center justify-center gap-3">
-                                Continuar <ArrowRight className="w-6 h-6" />
-                            </button>
+                            <div className="max-w-4xl mx-auto mt-12">
+                                <button onClick={handleSaveSchedule} className="w-full py-5 bg-orange-600 text-white rounded-[2rem] font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-orange-700 transition-all shadow-xl shadow-orange-600/20 active:scale-95 border-b-4 border-orange-800 hover:-translate-y-0.5">
+                                    Confirmar Estructura <ArrowRight className="w-5 h-5" />
+                                </button>
+                            </div>
                         </div>
                     )}
 
                     {step === 3 && (
                         <div className="animate-in fade-in slide-in-from-right duration-500 max-w-4xl mx-auto flex flex-col h-full">
-                            <div className="text-center mb-6">
-                                <BookOpen className="w-16 h-16 text-emerald-600 mx-auto mb-4" />
-                                <h2 className="text-3xl font-black text-slate-900">Tus Materias</h2>
-                                <p className="text-slate-500 mt-2">Selecciona las asignaturas que impartirás este ciclo escolar.</p>
+                            <div className="text-center mb-10">
+                                <div className="inline-flex items-center justify-center p-6 bg-emerald-100 rounded-[2rem] text-emerald-700 mb-6 shadow-inner ring-4 ring-white">
+                                    <BookOpen className="w-12 h-12" />
+                                </div>
+                                <h2 className="text-3xl md:text-4xl font-black text-slate-900 italic tracking-tight uppercase">Tus Materias</h2>
+                                <p className="text-slate-500 mt-3 font-medium">Selecciona las asignaturas que impartirás este ciclo escolar.</p>
                             </div>
 
-                            <div className="bg-white rounded-3xl border-2 border-slate-100 flex flex-col shadow-sm overflow-hidden mb-6">
-                                <div className="bg-emerald-50 py-4 px-6 border-b border-emerald-100 flex justify-between items-center">
-                                    <span className="text-xs font-black text-emerald-800 uppercase tracking-widest flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            <div className="squishy-card bg-emerald-50/30 rounded-[2.5rem] border-4 border-emerald-50 flex flex-col shadow-inner overflow-hidden mb-8 ring-4 ring-white">
+                                <div className="bg-white/80 backdrop-blur-md py-5 px-8 border-b-2 border-emerald-100 flex flex-col sm:flex-row gap-4 justify-between items-center relative z-10 shadow-sm">
+                                    <span className="text-xs font-black text-emerald-800 uppercase tracking-widest flex items-center gap-3">
+                                        <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse shadow-lg shadow-emerald-500/50" />
                                         Catálogo Disponible
                                     </span>
-                                    <span className="bg-white px-4 py-1.5 rounded-full text-[10px] font-black text-emerald-600 shadow-sm border border-emerald-100">
-                                        {Object.values(selectedSubjects).filter(s => s.selected).length} MATERIAS SELECCIONADAS
+                                    <span className="bg-emerald-100 px-5 py-2 rounded-full text-[11px] font-black text-emerald-700 shadow-inner border border-emerald-200">
+                                        {Object.values(selectedSubjects).filter(s => s.selected).length} SELECCIONADAS
                                     </span>
                                 </div>
-                                <div className="p-2 overflow-y-auto custom-scrollbar max-h-[450px] bg-slate-50/50">
+                                <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar max-h-[500px]">
                                     <SubjectSelector
                                         educationalLevel={schoolData.educationalLevel}
                                         selectedSubjects={selectedSubjects}
                                         onChange={setSelectedSubjects}
                                     />
                                 </div>
-                                <div className="bg-gray-50 p-3 text-center border-t border-gray-100">
-                                    <p className="text-[10px] text-gray-400 font-medium">Desplázate para ver más materias</p>
+                                <div className="bg-emerald-800/5 backdrop-blur-sm p-4 text-center border-t-2 border-emerald-100/50">
+                                    <p className="text-[11px] text-emerald-700/60 font-black uppercase tracking-widest italic">Desplázate para ver más materias ↑↓</p>
                                 </div>
                             </div>
 
-                            <button
-                                onClick={handleSaveSubjects}
-                                className="clay-button w-full py-5 bg-emerald-500 text-white rounded-2xl font-black text-lg uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-emerald-600 transition-all shadow-xl shadow-emerald-200"
-                            >
-                                Continuar <ArrowRight className="w-6 h-6" />
-                            </button>
+                            <div className="max-w-2xl mx-auto w-full">
+                                <button
+                                    onClick={handleSaveSubjects}
+                                    className="w-full py-5 bg-emerald-500 text-white rounded-[2rem] font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-emerald-600 transition-all shadow-xl shadow-emerald-500/30 active:scale-95 border-b-4 border-emerald-700 hover:-translate-y-0.5"
+                                >
+                                    Guardar Materias <ArrowRight className="w-5 h-5" />
+                                </button>
+                            </div>
                         </div>
                     )}
 
                     {step === 4 && (
-                        <div className="animate-in fade-in slide-in-from-right duration-500 max-w-2xl mx-auto">
-                            <div className="text-center mb-10">
-                                <CreditCard className="w-16 h-16 text-indigo-600 mx-auto mb-6" />
-                                <h2 className="text-3xl font-black text-slate-900">¡Ya casi terminamos!</h2>
+                        <div className="w-full animate-in fade-in duration-500">
+                            <div className="animate-in fade-in slide-in-from-right duration-500 max-w-4xl mx-auto">
+                                <div className="text-center mb-12">
+                                    <div className="inline-flex items-center justify-center p-6 bg-indigo-100 rounded-[2rem] text-indigo-600 mb-6 shadow-inner ring-4 ring-white">
+                                        <CreditCard className="w-12 h-12" />
+                                    </div>
+                                    <h2 className="text-3xl md:text-5xl font-black text-indigo-950 italic tracking-tight uppercase">¡Ya casi terminamos!</h2>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="squishy-card bg-white p-10 lg:p-12 rounded-[3rem] border-4 border-blue-50 flex flex-col items-center text-center shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">
+                                        <div className="p-5 bg-blue-100 rounded-full mb-6">
+                                            <Gift className="w-12 h-12 text-blue-600" />
+                                        </div>
+                                        <h3 className="text-2xl font-black mb-3 text-slate-800 uppercase tracking-tight">Prueba Gratis</h3>
+                                        <p className="text-sm text-slate-500 mb-8 font-medium leading-relaxed">Disfruta 30 días sin costo para probar todas las herramientas PRO. Luego, $399/año.</p>
+                                        <button onClick={handleStartFreeTrial} className="w-full py-5 bg-slate-100 text-slate-700 rounded-[2rem] font-black uppercase tracking-widest border-2 border-slate-200 hover:bg-slate-200 hover:text-slate-900 transition-all active:scale-95">Iniciar Prueba</button>
+                                    </div>
+
+                                    <div className="squishy-card bg-indigo-600 p-10 lg:p-12 rounded-[3rem] border-4 border-indigo-400 flex flex-col items-center text-center shadow-2xl shadow-indigo-600/30 ring-8 ring-indigo-50 hover:-translate-y-1 transition-all relative overflow-hidden">
+                                        <div className="absolute -top-12 -right-12 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
+                                        <div className="absolute -bottom-12 -left-12 w-40 h-40 bg-black/10 rounded-full blur-2xl" />
+
+                                        <div className="p-5 bg-white/20 rounded-full mb-6 backdrop-blur-sm relative z-10">
+                                            <Zap className="w-12 h-12 text-white" />
+                                        </div>
+                                        <h3 className="text-2xl font-black mb-3 text-white uppercase tracking-tight relative z-10">Suscripción PRO</h3>
+                                        <div className="mb-8 relative z-10">
+                                            <span className="text-5xl font-black text-white">$599</span>
+                                            <span className="text-indigo-200 font-bold ml-1 text-lg">/año</span>
+                                        </div>
+                                        {!Capacitor.isNativePlatform() ? (
+                                            <button onClick={handleActivateSubscription} className="w-full py-5 bg-white text-indigo-700 rounded-[2rem] font-black uppercase tracking-widest hover:bg-indigo-50 transition-all shadow-xl active:scale-95 border-b-4 border-indigo-200 relative z-10">Activar Ahora</button>
+                                        ) : (
+                                            <button
+                                                onClick={() => window.open('https://vunlek.com', '_system')}
+                                                className="clay-button w-full py-4 bg-indigo-50 text-indigo-600 rounded-2xl font-black text-xs uppercase"
+                                            >
+                                                Gestionar en Web
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="bg-white p-8 rounded-3xl border-2 border-blue-100 flex flex-col items-center text-center">
-                                    <Gift className="w-10 h-10 text-blue-500 mb-4" />
-                                    <h3 className="text-xl font-black mb-2">Prueba Gratis</h3>
-                                    <p className="text-sm text-slate-500 mb-6 font-medium">30 días sin costo, luego $399/año.</p>
-                                    <button onClick={handleStartFreeTrial} className="clay-button w-full py-4 bg-blue-500 text-white rounded-2xl font-black">Iniciar Prueba</button>
-                                </div>
-                                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-8 rounded-3xl border-2 border-indigo-200 flex flex-col items-center text-center">
-                                    <Zap className="w-10 h-10 text-indigo-600 mb-4" />
-                                    <h3 className="text-xl font-black mb-2">Suscripción PRO</h3>
-                                    <div className="mb-6"><span className="text-3xl font-black text-indigo-600">$599</span><span className="text-slate-400 font-bold">/año</span></div>
-                                    {!Capacitor.isNativePlatform() ? (
-                                        <button onClick={handleActivateSubscription} className="clay-button w-full py-4 bg-indigo-500 text-white rounded-2xl font-black">Activar Ahora</button>
-                                    ) : (
-                                        <button
-                                            onClick={() => window.open('https://vunlek.com', '_system')}
-                                            className="clay-button w-full py-4 bg-indigo-50 text-indigo-600 rounded-2xl font-black text-xs uppercase"
-                                        >
-                                            Gestionar en Web
-                                        </button>
-                                    )}
-                                </div>
+                            <div className="mt-8">
+                                <button onClick={handleCancelRegistration} className="w-full py-4 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 rounded-2xl transition-all flex items-center justify-center gap-2">
+                                    <Trash2 className="w-4 h-4" /> Cancelar Registro
+                                </button>
                             </div>
                         </div>
                     )}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
-import { Save, RefreshCw, AlertTriangle, Zap, Users, LayoutGrid, DollarSign, Clock } from 'lucide-react'
+import { Save, RefreshCw, AlertTriangle, Zap, Users, DollarSign, Clock } from 'lucide-react'
 
 export const PlanLimitManager = () => {
     const [limits, setLimits] = useState<any[]>([])
@@ -72,9 +72,9 @@ export const PlanLimitManager = () => {
             <div className="flex items-center justify-between">
                 <div>
                     <h3 className="text-2xl font-black text-indigo-950 italic uppercase tracking-tighter">Gestión de Planes y Límites</h3>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Configuración Core de Negocio</p>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">Configuración Core de Negocio</p>
                 </div>
-                <button
+                <button aria-label="Actualizar"
                     onClick={fetchLimits}
                     className="p-3 bg-white border border-indigo-50 rounded-2xl text-indigo-600 hover:border-indigo-600 transition-all active:scale-95 shadow-sm"
                 >
@@ -85,7 +85,7 @@ export const PlanLimitManager = () => {
             {message && (
                 <div className={`p-4 rounded-2xl border-2 flex items-center gap-3 animate-in shake duration-300 ${message.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'
                     }`}>
-                    {message.type === 'success' ? <Zap className="w-5 h-5 text-emerald-500" /> : <AlertTriangle className="w-5 h-5 text-rose-500" />}
+                    {message.type === 'success' ? <Zap className="w-5 h-5 text-emerald-700" /> : <AlertTriangle className="w-5 h-5 text-rose-500" />}
                     <p className="text-sm font-bold uppercase tracking-tight">{message.text}</p>
                 </div>
             )}
@@ -94,14 +94,14 @@ export const PlanLimitManager = () => {
                 {limits.map(limit => (
                     <div key={limit.id} className="squishy-card p-8 border-indigo-50 relative overflow-hidden group">
                         {/* Decorative Background Icon */}
-                        <div className={`absolute -top-10 -right-10 w-40 h-40 opacity-5 group-hover:scale-110 transition-transform duration-1000 ${limit.plan_type === 'pro' ? 'text-indigo-600' : 'text-slate-400'
+                        <div className={`absolute -top-10 -right-10 w-40 h-40 opacity-5 group-hover:scale-110 transition-transform duration-1000 ${limit.plan_type === 'pro' ? 'text-indigo-600' : 'text-slate-500'
                             }`}>
                             {limit.plan_type === 'pro' ? <Zap className="w-full h-full" /> : <Users className="w-full h-full" />}
                         </div>
 
                         <div className="flex justify-between items-center mb-8 relative z-10">
                             <div>
-                                <span className={`px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${limit.plan_type === 'pro' ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-600'
+                                <span className={`px-4 py-1 rounded-full text-[11px] font-black uppercase tracking-widest ${limit.plan_type === 'pro' ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-600'
                                     }`}>
                                     Plan {limit.plan_type}
                                 </span>
@@ -110,7 +110,7 @@ export const PlanLimitManager = () => {
                                 </h4>
                             </div>
                             <div className="text-right">
-                                <p className="text-[10px] text-slate-400 font-mono tracking-tighter uppercase font-bold">
+                                <p className="text-[11px] text-slate-500 font-mono tracking-tighter uppercase font-bold">
                                     Ult. Sync: {new Date(limit.updated_at).toLocaleDateString()}
                                 </p>
                             </div>
@@ -120,7 +120,7 @@ export const PlanLimitManager = () => {
                             {/* Max Groups */}
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between ml-1">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
                                         <Zap className="w-3 h-3 text-indigo-400" /> Máximo de Grupos
                                     </label>
                                     <span className="text-xs font-black text-indigo-950">{limit.max_groups} Unidades</span>
@@ -138,7 +138,7 @@ export const PlanLimitManager = () => {
                             {/* Max Students */}
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between ml-1">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
                                         <Users className="w-3 h-3 text-blue-400" /> Alumnos por Grupo
                                     </label>
                                     <span className="text-xs font-black text-indigo-950">{limit.max_students_per_group} Pax</span>
@@ -154,11 +154,11 @@ export const PlanLimitManager = () => {
                             <div className="grid grid-cols-2 gap-4">
                                 {/* Price */}
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
                                         <DollarSign className="w-3 h-3 text-emerald-400" /> Precio Anual
                                     </label>
                                     <div className="relative">
-                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">$</span>
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-black text-sm">$</span>
                                         <input
                                             type="number"
                                             value={limit.price_annual}
@@ -170,7 +170,7 @@ export const PlanLimitManager = () => {
 
                                 {/* Trial Days */}
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
                                         <Clock className="w-3 h-3 text-amber-400" /> Periodo Prueba
                                     </label>
                                     <div className="relative">
@@ -180,7 +180,7 @@ export const PlanLimitManager = () => {
                                             onChange={(e) => handleUpdateLimit(limit.id, 'trial_days', parseInt(e.target.value))}
                                             className="input-squishy w-full px-4 py-3 text-sm font-black text-indigo-950 border-2 border-slate-50 focus:border-indigo-100"
                                         />
-                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-[9px] uppercase tracking-tighter">Días</span>
+                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-[11px] uppercase tracking-tighter">Días</span>
                                     </div>
                                 </div>
                             </div>

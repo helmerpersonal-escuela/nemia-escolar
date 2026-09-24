@@ -184,17 +184,17 @@ export const ScheduleGrid = ({ entries, settings, onSlotClick, onEntryClick, gro
         <div className="space-y-4">
             {/* Mobile Day Selector */}
             <div className="md:hidden bg-white p-2 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between">
-                <button
+                <button aria-label="Anterior"
                     onClick={handlePrevDay}
                     className="p-2 hover:bg-gray-100 rounded-lg text-gray-500"
                 >
                     <ChevronLeft className="w-5 h-5" />
                 </button>
                 <div className="flex flex-col items-center">
-                    <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Viendo</span>
+                    <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">Viendo</span>
                     <span className="text-lg font-black text-gray-900">{DAYS[currentDayIndex].label}</span>
                 </div>
-                <button
+                <button aria-label="Siguiente"
                     onClick={handleNextDay}
                     className="p-2 hover:bg-gray-100 rounded-lg text-gray-500"
                 >
@@ -267,12 +267,12 @@ export const ScheduleGrid = ({ entries, settings, onSlotClick, onEntryClick, gro
                                                             e.stopPropagation()
                                                             onEntryClick(entry)
                                                         }}
-                                                        className={`absolute inset-1 ${getGroupColor(entry.group_id)} text-white text-[10px] rounded-lg p-1.5 cursor-pointer hover:brightness-110 transition-all overflow-hidden shadow-md z-10 flex flex-col justify-center items-center text-center`}
+                                                        className={`absolute inset-1 ${getGroupColor(entry.group_id)} text-white text-[11px] rounded-lg p-1.5 cursor-pointer hover:brightness-110 transition-all overflow-hidden shadow-md z-10 flex flex-col justify-center items-center text-center`}
                                                     >
-                                                        <div className="font-extrabold leading-tight uppercase text-[9px] lg:text-[10px]">
+                                                        <div className="font-extrabold leading-tight uppercase text-[11px] lg:text-[11px]">
                                                             {entry.group ? `${entry.group.grade}° ${entry.group.section}` : 'N/A'}
                                                         </div>
-                                                        <div className="truncate w-full font-medium opacity-90 mt-0.5 text-[8px] lg:text-[10px]">
+                                                        <div className="truncate w-full font-medium opacity-90 mt-0.5 text-[11px] lg:text-[11px]">
                                                             {entry.subject?.name || entry.custom_subject}
                                                         </div>
                                                     </div>

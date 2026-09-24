@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { X, Zap, Sparkles, ArrowRight, Loader2, BookOpen } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
+import { todayISO, toLocalISODate } from '../../../lib/dates'
 
 type AIAssistantModalProps = {
     isOpen: boolean
@@ -69,22 +70,22 @@ export const AIAssistantModal = ({
                 description: `Desarrollar un texto descriptivo que analice los puntos fundamentales de ${topic}, destacando su importancia en el contexto actual.`,
                 type: 'HOMEWORK',
                 criterion: criteria.find(c => c.name.toLowerCase().includes('tarea') || c.name.toLowerCase().includes('clase'))?.id || criteria[0]?.id,
-                due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                due_date: toLocalISODate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000))
             },
             {
                 title: `Proyecto: Aplicación Práctica de ${topic}`,
                 description: `Crear una maqueta, experimento o presentación creativa que demuestre el dominio práctico de los conceptos de ${topic}.`,
                 type: 'PROJECT',
                 criterion: criteria.find(c => c.name.toLowerCase().includes('proyecto') || c.name.toLowerCase().includes('evaluación'))?.id || criteria[0]?.id,
-                start_date: new Date().toISOString().split('T')[0],
-                due_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                start_date: todayISO(),
+                due_date: toLocalISODate(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000))
             },
             {
                 title: `Evaluación Flash: ${topic}`,
                 description: `Cuestionario rápido de 5 preguntas sobre la sesión anterior para verificar la retención de conocimientos clave.`,
                 type: 'EXAM',
                 criterion: criteria.find(c => c.name.toLowerCase().includes('examen') || c.name.toLowerCase().includes('prueba'))?.id || criteria[0]?.id,
-                due_date: new Date().toISOString().split('T')[0]
+                due_date: todayISO()
             }
         ]
         setSuggestions(baseSuggestions)
@@ -108,7 +109,7 @@ export const AIAssistantModal = ({
                                 <p className="text-blue-200 text-xs">Potenciando tu didáctica con inteligencia artificial</p>
                             </div>
                         </div>
-                        <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/70 hover:text-white">
+                        <button aria-label="Cerrar" onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/70 hover:text-white">
                             <X className="w-5 h-5" />
                         </button>
                     </div>
@@ -119,10 +120,10 @@ export const AIAssistantModal = ({
                         <div className="py-12 flex flex-col items-center">
                             <div className="relative">
                                 <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
-                                <Sparkles className="w-5 h-5 text-amber-500 absolute -top-1 -right-1 animate-pulse" />
+                                <Sparkles className="w-5 h-5 text-amber-700 absolute -top-1 -right-1 animate-pulse" />
                             </div>
                             <p className="mt-6 text-gray-500 font-medium">Consultando planeación didáctica...</p>
-                            <p className="text-xs text-gray-400 mt-1">Generando sugerencias pedagógicas personalizadas</p>
+                            <p className="text-xs text-gray-500 mt-1">Generando sugerencias pedagógicas personalizadas</p>
                         </div>
                     ) : lessonPlan ? (
                         <div className="space-y-6">
@@ -131,7 +132,7 @@ export const AIAssistantModal = ({
                                     <BookOpen className="w-5 h-5 text-blue-600" />
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Contexto Detectado</p>
+                                    <p className="text-[11px] font-black text-blue-600 uppercase tracking-widest mb-1">Contexto Detectado</p>
                                     <h3 className="text-lg font-bold text-gray-900 leading-tight">Tema: {lessonPlan.topic}</h3>
                                     <p className="text-sm text-blue-800/60 mt-1 line-clamp-1">{lessonPlan.subject}</p>
                                 </div>
@@ -149,7 +150,7 @@ export const AIAssistantModal = ({
                                             <div className="flex-1">
                                                 <div className="flex items-center mb-1">
                                                     <div className={`p-1 rounded-md mr-2 ${s.type === 'PROJECT' ? 'bg-purple-100 text-purple-600' :
-                                                        s.type === 'EXAM' ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'
+                                                        s.type === 'EXAM' ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-700'
                                                         }`}>
                                                         <Sparkles className="w-3 h-3" />
                                                     </div>

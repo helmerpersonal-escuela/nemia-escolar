@@ -3,6 +3,7 @@ import { Bell, CheckSquare, AlertCircle, X, MessageSquare, Calendar as CalendarI
 import { supabase } from '../../lib/supabase'
 import { Link } from 'react-router-dom'
 import { useTenant } from '../../hooks/useTenant'
+import { todayISO } from '../../lib/dates'
 
 export const NotificationsMenu = () => {
     const [isOpen, setIsOpen] = useState(false)
@@ -28,7 +29,7 @@ export const NotificationsMenu = () => {
             case 'MENS_UNREAD': return <MessageSquare className="w-4 h-4 text-blue-600" />
             case 'AGENDA_EVENT': return <CalendarIcon className="w-4 h-4 text-purple-600" />
             case 'NEW_ACTIVITY': return <Bell className="w-4 h-4 text-indigo-600" />
-            case 'GRADING_PENDING': return <CheckSquare className="w-4 h-4 text-amber-600" />
+            case 'GRADING_PENDING': return <CheckSquare className="w-4 h-4 text-amber-700" />
             default: return <Flag className="w-4 h-4 text-slate-600" />
         }
     }
@@ -164,7 +165,7 @@ export const NotificationsMenu = () => {
                 }
 
                 // --- 3. AGENDA NOTIFICATIONS (TODAY) ---
-                const today = new Date().toISOString().split('T')[0]
+                const today = todayISO()
                 const { data: calEvents } = await supabase
                     .from('calendar_events')
                     .select('id, title, type')
@@ -222,11 +223,14 @@ export const NotificationsMenu = () => {
     return (
         <div className="relative">
             <button
+                type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="p-2 rounded-full hover:bg-gray-100 relative transition-colors"
+                className="p-2.5 rounded-full hover:bg-gray-100 relative transition-colors"
                 title="Notificaciones"
+                aria-label={notifications.length > 0 ? `Notificaciones: ${notifications.length} nuevas` : 'Notificaciones'}
+                aria-expanded={isOpen}
             >
-                <Bell className={`w-5 h-5 ${notifications.length > 0 ? 'text-gray-600' : 'text-gray-400'}`} />
+                <Bell className={`w-5 h-5 ${notifications.length > 0 ? 'text-gray-600' : 'text-gray-500'}`} />
                 {notifications.length > 0 && (
                     <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
                 )}
@@ -238,19 +242,33 @@ export const NotificationsMenu = () => {
                         className="fixed inset-0 z-40"
                         onClick={() => setIsOpen(false)}
                     />
-                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                    <div className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-1.5rem))] bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
                         <div className="p-4 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
                             <h3 className="font-bold text-gray-900 text-sm">Notificaciones</h3>
-                            <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
-                                {notifications.length} Nuevas
-                            </span>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const muted = localStorage.getItem('edu_manager_mute') === 'true'
+                                        localStorage.setItem('edu_manager_mute', String(!muted))
+                                        window.dispatchEvent(new Event('edu:mute-changed'))
+                                        setIsOpen(false)
+                                    }}
+                                    className="text-[11px] font-bold text-slate-600 hover:text-indigo-700 px-2 py-1 rounded-lg hover:bg-white"
+                                >
+                                    {localStorage.getItem('edu_manager_mute') === 'true' ? 'Activar sonido' : 'Silenciar'}
+                                </button>
+                                <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">
+                                    {notifications.length} nuevas
+                                </span>
+                            </div>
                         </div>
 
                         <div className="max-h-80 overflow-y-auto custom-scrollbar">
                             {loading ? (
-                                <div className="p-8 text-center text-gray-400 text-xs">Cargando...</div>
+                                <div className="p-8 text-center text-gray-500 text-xs">Cargando...</div>
                             ) : notifications.length === 0 ? (
-                                <div className="p-8 text-center text-gray-400">
+                                <div className="p-8 text-center text-gray-500">
                                     <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" />
                                     <p className="text-xs font-medium">No tienes notificaciones pendientes</p>
                                 </div>
@@ -275,13 +293,13 @@ export const NotificationsMenu = () => {
                                                         {notif.message}
                                                     </p>
                                                     {(notif.type === 'NEW_ACTIVITY' || notif.type === 'GRADING_PENDING') && (
-                                                        <p className={`text-[10px] mt-1 font-semibold flex items-center ${notif.type === 'NEW_ACTIVITY' ? 'text-indigo-600' : 'text-amber-600'}`}>
+                                                        <p className={`text-[11px] mt-1 font-semibold flex items-center ${notif.type === 'NEW_ACTIVITY' ? 'text-indigo-600' : 'text-amber-700'}`}>
                                                             <AlertCircle className="w-3 h-3 mr-1" />
                                                             {notif.pendingCount === 0 ? '¡Completado!' : `${notif.pendingCount} alumnos sin calificar`}
                                                         </p>
                                                     )}
                                                     {notif.type === 'AGENDA_EVENT' && (
-                                                        <p className="text-[10px] text-purple-600 mt-1 font-bold uppercase tracking-widest">
+                                                        <p className="text-[11px] text-purple-600 mt-1 font-bold uppercase tracking-widest">
                                                             Sucediendo hoy
                                                         </p>
                                                     )}

@@ -1,5 +1,6 @@
 -- Add PREFECT to staff attendance management
 DROP POLICY IF EXISTS "Admins manage staff attendance" ON public.staff_attendance;
+DROP POLICY IF EXISTS "Admins and Prefects manage staff attendance" ON public.staff_attendance;
 CREATE POLICY "Admins and Prefects manage staff attendance" ON public.staff_attendance
 FOR ALL USING (
     EXISTS (
@@ -12,6 +13,7 @@ FOR ALL USING (
 
 -- Ensure PREFECT can also view and update student incidents (already covered by 'Users can view incidents for their tenant', but good to be explicit for update if needed)
 DROP POLICY IF EXISTS "Users can update incidents" ON public.student_incidents;
+DROP POLICY IF EXISTS "Staff can update incidents for their tenant" ON public.student_incidents;
 CREATE POLICY "Staff can update incidents for their tenant"
 ON public.student_incidents FOR UPDATE
 USING (

@@ -99,7 +99,13 @@ export const PDFUpload = ({ onUploadComplete, onClear, label = "Subir PDF", vali
             // 2. Upload to Storage
             const fileExt = file.name.split('.').pop()
             const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
-            const filePath = `teacher-uploads/${fileName}`
+            // En "textbooks" cada docente solo puede subir a su carpeta (política de Storage).
+            let filePath = `teacher-uploads/${fileName}`
+            if (bucket === 'textbooks') {
+                const { data: { user } } = await supabase.auth.getUser()
+                if (!user) throw new Error('Tu sesión expiró. Vuelve a iniciar sesión.')
+                filePath = `teacher-uploads/${user.id}/${fileName}`
+            }
 
             const { error: uploadError } = await supabase.storage
                 .from(bucket)
@@ -141,7 +147,7 @@ export const PDFUpload = ({ onUploadComplete, onClear, label = "Subir PDF", vali
                         </div>
                         <div className="text-left">
                             <p className="text-xs font-bold text-gray-700">{label}</p>
-                            <p className="text-[10px] text-gray-400">Clic o arrastrar PDF aquí</p>
+                            <p className="text-[11px] text-gray-500">Clic o arrastrar PDF aquí</p>
                         </div>
                     </div>
                 )}
@@ -157,13 +163,13 @@ export const PDFUpload = ({ onUploadComplete, onClear, label = "Subir PDF", vali
                             <button
                                 onClick={handleUpload}
                                 disabled={uploading}
-                                className="bg-indigo-600 text-white px-3 py-1 rounded-lg text-[10px] font-bold uppercase hover:bg-indigo-700 disabled:opacity-50"
+                                className="bg-indigo-600 text-white px-3 py-1 rounded-lg text-[11px] font-bold uppercase hover:bg-indigo-700 disabled:opacity-50"
                             >
                                 {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Subir'}
                             </button>
-                            <button
+                            <button aria-label="Cerrar"
                                 onClick={handleClear}
-                                className="p-1 hover:bg-gray-200 rounded-full text-gray-400"
+                                className="p-1 hover:bg-gray-200 rounded-full text-gray-500"
                                 disabled={uploading}
                             >
                                 <X className="w-4 h-4" />
@@ -173,7 +179,7 @@ export const PDFUpload = ({ onUploadComplete, onClear, label = "Subir PDF", vali
                 )}
 
                 {error && (
-                    <div className="mt-2 text-[10px] text-rose-600 font-bold flex items-center">
+                    <div className="mt-2 text-[11px] text-rose-600 font-bold flex items-center">
                         <AlertCircle className="w-3 h-3 mr-1" /> {error}
                     </div>
                 )}
@@ -181,12 +187,12 @@ export const PDFUpload = ({ onUploadComplete, onClear, label = "Subir PDF", vali
                 {success && (
                     <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-2 flex items-center justify-between">
                         <div className="flex items-center">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-600 mr-2" />
+                            <CheckCircle2 className="w-4 h-4 text-emerald-700 mr-2" />
                             <span className="text-xs font-bold text-emerald-700">Listo</span>
                         </div>
                         <button
                             onClick={() => setSuccess(false)}
-                            className="text-[10px] font-bold text-emerald-600 hover:underline"
+                            className="text-[11px] font-bold text-emerald-700 hover:underline"
                         >
                             Cambiar
                         </button>
@@ -210,11 +216,11 @@ export const PDFUpload = ({ onUploadComplete, onClear, label = "Subir PDF", vali
                             <UploadCloud className="w-6 h-6 text-indigo-500" />
                         </div>
                         <p className="text-sm font-bold text-gray-700">{label}</p>
-                        <p className="text-xs text-gray-400 mt-1">Arrastra tu PDF aquí o haz clic (Máximo 100MB)</p>
+                        <p className="text-xs text-gray-500 mt-1">Arrastra tu PDF aquí o haz clic (Máximo 100MB)</p>
                     </div>
                     {currentFileUrl && (
                         <div className="mt-4 pt-4 border-t border-gray-100" onClick={(e) => e.stopPropagation()}>
-                            <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-2">Archivo Actual</p>
+                            <p className="text-[11px] text-gray-500 uppercase tracking-widest mb-2">Archivo Actual</p>
                             <a
                                 href={currentFileUrl}
                                 target="_blank"
@@ -251,9 +257,9 @@ export const PDFUpload = ({ onUploadComplete, onClear, label = "Subir PDF", vali
                                 <p className="text-xs text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                             </div>
                         </div>
-                        <button
+                        <button aria-label="Cerrar"
                             onClick={handleClear}
-                            className="p-1 hover:bg-gray-200 rounded-full text-gray-400 hover:text-gray-600"
+                            className="p-1 hover:bg-gray-200 rounded-full text-gray-500 hover:text-gray-600"
                             disabled={uploading}
                         >
                             <X className="w-5 h-5" />
@@ -287,12 +293,12 @@ export const PDFUpload = ({ onUploadComplete, onClear, label = "Subir PDF", vali
             {success && (
                 <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex items-center justify-between animate-in fade-in zoom-in-95">
                     <div className="flex items-center">
-                        <CheckCircle2 className="w-5 h-5 text-emerald-600 mr-2" />
+                        <CheckCircle2 className="w-5 h-5 text-emerald-700 mr-2" />
                         <span className="text-sm font-bold text-emerald-700">Documento cargado correctamente</span>
                     </div>
                     <button
                         onClick={handleClear}
-                        className="text-xs font-bold text-emerald-600 hover:underline"
+                        className="text-xs font-bold text-emerald-700 hover:underline"
                     >
                         Subir otro
                     </button>

@@ -1,14 +1,14 @@
-import { ShieldCheck, AlertCircle, CheckCircle2, Layout, Database, Server, Smartphone, Lock, Eye, Zap, TrendingUp, Accessibility, Palette, BookOpen, RefreshCcw, Link, History } from 'lucide-react'
+import { ShieldCheck, AlertCircle, Layout, Database, Server, Smartphone, Lock, Eye, Zap, BookOpen, RefreshCcw, Link } from 'lucide-react'
 
 const AuditItem = ({ title, status, description, icon: Icon }: any) => (
     <div className="flex items-start p-4 bg-white/50 backdrop-blur-sm rounded-2xl border border-gray-100 hover:shadow-lg transition-all duration-300 group">
-        <div className={`p-3 rounded-xl mr-4 ${status === 'PASS' ? 'bg-emerald-100 text-emerald-600' : status === 'WARN' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'}`}>
+        <div className={`p-3 rounded-xl mr-4 ${status === 'PASS' ? 'bg-emerald-100 text-emerald-700' : status === 'WARN' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-600'}`}>
             <Icon className="h-5 w-5" />
         </div>
         <div className="flex-1">
             <div className="flex items-center justify-between mb-1">
                 <h4 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{title}</h4>
-                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${status === 'PASS' ? 'bg-emerald-500/10 text-emerald-600' : status === 'WARN' ? 'bg-amber-500/10 text-amber-600' : 'bg-blue-500/10 text-blue-600'}`}>
+                <span className={`text-[11px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${status === 'PASS' ? 'bg-emerald-500/10 text-emerald-700' : status === 'WARN' ? 'bg-amber-500/10 text-amber-700' : 'bg-blue-500/10 text-blue-600'}`}>
                     {status === 'PASS' ? 'CUMPLIDO' : status === 'WARN' ? 'REVISIÓN' : 'PENDIENTE'}
                 </span>
             </div>
@@ -41,7 +41,7 @@ export const AuditOverviewPage = () => {
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-2 bg-blue-600 text-white px-3 py-1 rounded-full animate-pulse shadow-lg shadow-blue-200">
                         <Lock className="h-3 w-3" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">SISTEMA INTEGRAL DE AUDITORÍA</span>
+                        <span className="text-[11px] font-black uppercase tracking-widest">SISTEMA INTEGRAL DE AUDITORÍA</span>
                     </div>
                 </div>
                 <h1 className="text-4xl font-black text-slate-900 mb-2 tracking-tighter">Estado de Resiliencia Vunlek</h1>
@@ -108,15 +108,15 @@ export const AuditOverviewPage = () => {
 const ResilienceMetric = ({ title, value, status, icon: Icon }: any) => (
     <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-gray-50 rounded-xl text-gray-400">
+            <div className="p-2 bg-gray-50 rounded-xl text-gray-500">
                 <Icon className="w-5 h-5" />
             </div>
-            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${status === 'PASS' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+            <span className={`text-[11px] font-black px-2 py-0.5 rounded-full ${status === 'PASS' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
                 }`}>
                 {status}
             </span>
         </div>
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{title}</p>
+        <p className="text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1">{title}</p>
         <p className="text-2xl font-black text-gray-900 tracking-tighter">{value}</p>
     </div>
 )

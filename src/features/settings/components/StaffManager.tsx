@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { useProfile } from '../../../hooks/useProfile'
-import { UserPlus, Mail, Shield, Copy, Check, Trash2, Clock, AlertCircle } from 'lucide-react'
+import { UserPlus, Mail, Shield, Copy, Trash2, Clock } from 'lucide-react'
 
 const ROLES = [
     { id: 'DIRECTOR', name: 'Director' },
@@ -173,7 +173,7 @@ export const StaffManager = () => {
                             onClick={() => setRegistrationMethod('invite')}
                             className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${registrationMethod === 'invite'
                                 ? 'bg-white text-indigo-600 shadow-sm'
-                                : 'text-gray-400 hover:text-gray-600'
+                                : 'text-gray-500 hover:text-gray-600'
                                 }`}
                         >
                             <Mail className="w-3 h-3 inline mr-2" />
@@ -183,8 +183,8 @@ export const StaffManager = () => {
                             type="button"
                             onClick={() => setRegistrationMethod('direct')}
                             className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${registrationMethod === 'direct'
-                                ? 'bg-white text-amber-600 shadow-sm'
-                                : 'text-gray-400 hover:text-gray-600'
+                                ? 'bg-white text-amber-700 shadow-sm'
+                                : 'text-gray-500 hover:text-gray-600'
                                 }`}
                         >
                             <UserPlus className="w-3 h-3 inline mr-2" />
@@ -197,10 +197,10 @@ export const StaffManager = () => {
 
                             {/* Common Fields */}
                             <div>
-                                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2 ml-1">Correo Electrónico</label>
+                                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-2 ml-1">Correo Electrónico</label>
                                 <div className="relative">
-                                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                                    <input
+                                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
+                                    <input aria-label="Correo Electrónico"
                                         type="email"
                                         required
                                         placeholder="ejemplo@escuela.com"
@@ -212,8 +212,8 @@ export const StaffManager = () => {
                             </div>
 
                             <div>
-                                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2 ml-1">Rol Asignado</label>
-                                <select
+                                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-2 ml-1">Rol Asignado</label>
+                                <select aria-label="Rol Asignado"
                                     className="w-full px-4 py-2.5 bg-gray-50 border-transparent rounded-xl text-sm focus:bg-white focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-inner"
                                     value={inviteData.role}
                                     onChange={(e) => setInviteData({ ...inviteData, role: e.target.value })}
@@ -226,8 +226,8 @@ export const StaffManager = () => {
                             {registrationMethod === 'direct' && (
                                 <>
                                     <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2 ml-1">Nombre(s)</label>
-                                        <input
+                                        <label className="block text-[11px] font-bold text-gray-500 uppercase mb-2 ml-1">Nombre(s)</label>
+                                        <input aria-label="Nombre(s)"
                                             type="text"
                                             required
                                             placeholder="Juan"
@@ -237,8 +237,8 @@ export const StaffManager = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2 ml-1">Apellido Paterno</label>
-                                        <input
+                                        <label className="block text-[11px] font-bold text-gray-500 uppercase mb-2 ml-1">Apellido Paterno</label>
+                                        <input aria-label="Apellido Paterno"
                                             type="text"
                                             required
                                             placeholder="Pérez"
@@ -248,8 +248,8 @@ export const StaffManager = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2 ml-1">Contraseña de Acceso</label>
-                                        <input
+                                        <label className="block text-[11px] font-bold text-gray-500 uppercase mb-2 ml-1">Contraseña de Acceso</label>
+                                        <input aria-label="Contraseña de Acceso"
                                             type="text"
                                             required
                                             placeholder="Clave123"
@@ -288,20 +288,20 @@ export const StaffManager = () => {
                                     className="flex-1 text-xs bg-white border-transparent rounded-xl p-3 font-mono text-indigo-600 shadow-inner"
                                     value={`${window.location.origin}/register?token=${lastToken}`}
                                 />
-                                <button
+                                <button aria-label="Copiar"
                                     onClick={() => copyInviteLink(lastToken)}
                                     className="p-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all"
                                 >
                                     <Copy className="w-5 h-5" />
                                 </button>
                             </div>
-                            <p className="text-[10px] text-indigo-400 font-bold mt-3 uppercase tracking-tight">Copia y envía este enlace manualmente al docente.</p>
+                            <p className="text-[11px] text-indigo-400 font-bold mt-3 uppercase tracking-tight">Copia y envía este enlace manualmente al docente.</p>
                         </div>
                     )}
                 </div>
             ) : (
                 <div className="p-8 bg-amber-50 rounded-3xl border border-amber-100 flex flex-col items-center text-center">
-                    <Shield className="w-12 h-12 text-amber-500 mb-4 opacity-50" />
+                    <Shield className="w-12 h-12 text-amber-700 mb-4 opacity-50" />
                     <h3 className="text-lg font-black text-amber-900 uppercase tracking-tight">Acceso de Lectura</h3>
                     <p className="text-sm text-amber-700 max-w-sm mt-1">
                         Solo el **Director** o el **Administrador** pueden gestionar las invitaciones y el registro de nuevo personal.
@@ -319,20 +319,20 @@ export const StaffManager = () => {
             {/* Existing Lists */}
             {invitations.length > 0 && (
                 <div className="space-y-4">
-                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center ml-2">
-                        <Clock className="w-3 h-3 mr-2 text-amber-500" />
+                    <h3 className="text-[11px] font-black text-gray-500 uppercase tracking-widest flex items-center ml-2">
+                        <Clock className="w-3 h-3 mr-2 text-amber-700" />
                         Invitaciones Pendientes ({invitations.length})
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {invitations.map(inv => (
                             <div key={inv.id} className="p-5 bg-white border border-gray-100 rounded-3xl flex items-center justify-between group hover:shadow-xl hover:shadow-gray-100 transition-all">
                                 <div className="flex items-center">
-                                    <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl mr-4">
+                                    <div className="p-3 bg-amber-50 text-amber-700 rounded-2xl mr-4">
                                         <Mail className="w-4 h-4" />
                                     </div>
                                     <div>
                                         <p className="text-sm font-black text-gray-900 tracking-tight">{inv.email}</p>
-                                        <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mt-0.5">
+                                        <p className="text-[11px] font-black text-amber-700 uppercase tracking-widest mt-0.5">
                                             {ROLES.find(r => r.id === inv.role)?.name || inv.role}
                                         </p>
                                     </div>
@@ -362,7 +362,7 @@ export const StaffManager = () => {
             )}
 
             <div className="space-y-4">
-                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center ml-2">
+                <h3 className="text-[11px] font-black text-gray-500 uppercase tracking-widest flex items-center ml-2">
                     <Shield className="w-3 h-3 mr-2 text-green-500" />
                     Personal Activo ({staff.length})
                 </h3>
@@ -382,7 +382,7 @@ export const StaffManager = () => {
                                     <p className="text-sm font-black text-gray-900 uppercase tracking-tight leading-none mb-1.5">
                                         {member.first_name} {member.last_name_paternal}
                                     </p>
-                                    <div className="inline-flex items-center px-3 py-1 bg-gray-50 text-[10px] font-black text-gray-500 rounded-full border border-gray-100 uppercase tracking-widest">
+                                    <div className="inline-flex items-center px-3 py-1 bg-gray-50 text-[11px] font-black text-gray-500 rounded-full border border-gray-100 uppercase tracking-widest">
                                         {ROLES.find(r => r.id === member.role)?.name || member.role}
                                     </div>
                                 </div>

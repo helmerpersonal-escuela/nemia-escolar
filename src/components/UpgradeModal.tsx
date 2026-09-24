@@ -88,7 +88,7 @@ export const UpgradeModal = ({ isOpen, onClose, currentPlan, currentGroups, maxG
         <div className="flex items-center gap-3 group">
             <div className={`
                 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-110
-                ${highlight ? 'bg-indigo-100 text-indigo-600' : 'bg-emerald-100 text-emerald-600'}
+                ${highlight ? 'bg-indigo-100 text-indigo-600' : 'bg-emerald-100 text-emerald-700'}
             `}>
                 <Check className="w-5 h-5" />
             </div>
@@ -114,10 +114,10 @@ export const UpgradeModal = ({ isOpen, onClose, currentPlan, currentGroups, maxG
                 <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-indigo-200/40 to-purple-200/40 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
                 <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-blue-200/40 to-cyan-200/40 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none" />
 
-                <button
+                <button aria-label="Cerrar"
                     onClick={onClose}
                     className="
-                        absolute top-6 right-6 z-20 p-3 bg-white/50 hover:bg-white rounded-2xl text-slate-400 hover:text-slate-700 
+                        absolute top-6 right-6 z-20 p-3 bg-white/50 hover:bg-white rounded-2xl text-slate-500 hover:text-slate-700 
                         transition-all duration-300 hover:scale-110 hover:shadow-lg backdrop-blur-sm border border-white/60
                     "
                 >
@@ -162,7 +162,7 @@ export const UpgradeModal = ({ isOpen, onClose, currentPlan, currentGroups, maxG
                                 <span className="text-2xl font-black text-indigo-600">V</span>
                             </div>
                             <div>
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">POWERED BY</p>
+                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">POWERED BY</p>
                                 <p className="text-xl font-black text-slate-800">Vunlek</p>
                             </div>
                         </div>
@@ -203,7 +203,7 @@ export const UpgradeModal = ({ isOpen, onClose, currentPlan, currentGroups, maxG
 
                             <button
                                 onClick={() => setPreferenceId(null)}
-                                className="w-full mt-6 py-3 text-slate-400 hover:text-slate-600 font-bold text-sm transition-colors"
+                                className="w-full mt-6 py-3 text-slate-500 hover:text-slate-600 font-bold text-sm transition-colors"
                             >
                                 ← Volver a los detalles
                             </button>
@@ -221,7 +221,7 @@ export const UpgradeModal = ({ isOpen, onClose, currentPlan, currentGroups, maxG
                                                 {!Capacitor.isNativePlatform() ? (
                                                     <div className="flex items-baseline gap-1">
                                                         <span className="text-5xl font-black text-slate-900 tracking-tight">$599</span>
-                                                        <span className="text-xl font-bold text-slate-400">mxn</span>
+                                                        <span className="text-xl font-bold text-slate-500">mxn</span>
                                                     </div>
                                                 ) : (
                                                     <div className="text-2xl font-black text-slate-900 tracking-tight">Plan Profesional</div>

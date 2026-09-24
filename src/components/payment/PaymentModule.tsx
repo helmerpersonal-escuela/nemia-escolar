@@ -53,7 +53,7 @@ export const PaymentModule = ({ preferenceId, publicKey, onReady, onError }: Pay
                     Hubo un problema conectando con Mercado Pago.
                     <br /> Verifica tu conexión o intenta de nuevo.
                 </p>
-                <div className="text-xs font-mono bg-slate-100 p-2 rounded text-slate-400 max-w-xs break-all">
+                <div className="text-xs font-mono bg-slate-100 p-2 rounded text-slate-500 max-w-xs break-all">
                     Ref: {preferenceId?.substring(0, 15)}...
                 </div>
                 <button
@@ -90,7 +90,7 @@ export const PaymentModule = ({ preferenceId, publicKey, onReady, onError }: Pay
                 <div className="flex flex-col items-center justify-center p-8 space-y-4">
                     <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                     <p className="text-slate-500 font-medium text-sm animate-pulse">Cargando pasarela de pago...</p>
-                    <p className="text-xs text-slate-400">Espere un momento, por favor.</p>
+                    <p className="text-xs text-slate-500">Espere un momento, por favor.</p>
                 </div>
             )}
         </div>

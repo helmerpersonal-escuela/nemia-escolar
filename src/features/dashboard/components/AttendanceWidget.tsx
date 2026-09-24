@@ -3,6 +3,7 @@ import { Clock, CheckCircle2, QrCode, LogIn, LogOut, Loader2, AlertCircle } from
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
 import { useToast } from '../../../components/ui/Toast'
+import { todayISO } from '../../../lib/dates'
 
 export const AttendanceWidget = () => {
     const { data: tenant } = useTenant()
@@ -25,7 +26,7 @@ export const AttendanceWidget = () => {
         if (!tenant) return
         setLoading(true)
 
-        const today = new Date().toISOString().split('T')[0]
+        const today = todayISO()
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
 
@@ -78,7 +79,7 @@ export const AttendanceWidget = () => {
     const handleDailyCheckIn = async () => {
         if (!tenant) return
         setSubmitting(true)
-        const today = new Date().toISOString().split('T')[0]
+        const today = todayISO()
         const now = new Date().toISOString()
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
@@ -223,7 +224,7 @@ export const AttendanceWidget = () => {
                     <h3 className="font-black text-slate-800 uppercase tracking-tight text-xs sm:text-sm">Asistencia</h3>
                 </div>
                 <div className="text-right">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Hoy</p>
+                    <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest leading-none">Hoy</p>
                     <p className="text-xs font-bold text-slate-600">{currentDate.toLocaleDateString()}</p>
                 </div>
             </div>
@@ -234,10 +235,10 @@ export const AttendanceWidget = () => {
                     <div className="flex items-center justify-between mb-4">
                         <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Jornada Laboral</span>
                         {dailyAttendance?.check_in && !dailyAttendance?.check_out && (
-                            <span className="text-[10px] font-black px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-md uppercase">En Plantel</span>
+                            <span className="text-[11px] font-black px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-md uppercase">En Plantel</span>
                         )}
                         {dailyAttendance?.check_in && dailyAttendance?.check_out && (
-                            <span className="text-[10px] font-black px-2 py-0.5 bg-slate-100 text-slate-500 rounded-md uppercase">Finalizada</span>
+                            <span className="text-[11px] font-black px-2 py-0.5 bg-slate-100 text-slate-500 rounded-md uppercase">Finalizada</span>
                         )}
                     </div>
                     <div className="grid grid-cols-2 gap-3">
@@ -252,7 +253,7 @@ export const AttendanceWidget = () => {
                         ) : !dailyAttendance?.check_out ? (
                             <>
                                 <div className="p-3 bg-slate-50 rounded-2xl">
-                                    <p className="text-[9px] font-black text-slate-400 uppercase">Entrada</p>
+                                    <p className="text-[11px] font-black text-slate-500 uppercase">Entrada</p>
                                     <p className="text-sm font-black text-slate-700">
                                         {new Date(dailyAttendance.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </p>
@@ -267,7 +268,7 @@ export const AttendanceWidget = () => {
                             </>
                         ) : (
                             <div className="col-span-2 p-4 bg-emerald-50 rounded-2xl flex items-center justify-center gap-2">
-                                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                                <CheckCircle2 className="w-4 h-4 text-emerald-700" />
                                 <span className="text-xs font-black text-emerald-700 uppercase">Jornada Completada</span>
                             </div>
                         )}
@@ -278,7 +279,7 @@ export const AttendanceWidget = () => {
             {/* Module Attendance for Teachers */}
             {isTeacher && (
                 <div className="flex-1 overflow-y-auto space-y-3 pr-1 -mr-1">
-                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Clases de Hoy (Módulos)</h4>
+                    <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">Clases de Hoy (Módulos)</h4>
                     {teacherModules.length > 0 ? (
                         teacherModules.map(module => {
                             const active = isCurrentModule(module.start_time, module.end_time)
@@ -291,11 +292,11 @@ export const AttendanceWidget = () => {
                                 <div key={module.id} className={`p-3 rounded-2xl border transition-all ${active ? 'border-blue-200 bg-blue-50/30' : 'border-slate-50 bg-white'}`}>
                                     <div className="flex justify-between items-start">
                                         <div>
-                                            <p className="text-[10px] font-bold text-slate-400">{module.start_time.slice(0, 5)} - {module.end_time.slice(0, 5)}</p>
+                                            <p className="text-[11px] font-bold text-slate-500">{module.start_time.slice(0, 5)} - {module.end_time.slice(0, 5)}</p>
                                             <p className="text-xs font-black text-slate-700 leading-tight">
                                                 {module.subject_catalog?.name || module.custom_subject}
                                             </p>
-                                            <p className="text-[10px] font-medium text-slate-400">{module.groups?.grade}° "{module.groups?.section}"</p>
+                                            <p className="text-[11px] font-medium text-slate-500">{module.groups?.grade}° "{module.groups?.section}"</p>
                                         </div>
 
                                         {/* State Logic: 
@@ -309,7 +310,7 @@ export const AttendanceWidget = () => {
                                             <button
                                                 disabled={submitting}
                                                 onClick={() => handleModuleCheckIn(module.id)}
-                                                className="px-3 py-1.5 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700"
+                                                className="px-3 py-1.5 bg-blue-600 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-700"
                                             >
                                                 Entrada
                                             </button>
@@ -317,16 +318,16 @@ export const AttendanceWidget = () => {
                                             <button
                                                 disabled={submitting}
                                                 onClick={() => handleModuleCheckOut(att.id)}
-                                                className="px-3 py-1.5 bg-amber-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-600 flex items-center gap-1"
+                                                className="px-3 py-1.5 bg-amber-500 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-amber-600 flex items-center gap-1"
                                             >
                                                 Salida
                                             </button>
                                         ) : exited ? (
                                             <span className="w-6 h-6 rounded-full bg-emerald-50 flex items-center justify-center">
-                                                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                                                <CheckCircle2 className="w-4 h-4 text-emerald-700" />
                                             </span>
                                         ) : (
-                                            <span className="text-[9px] font-black text-slate-300 uppercase py-1.5">Espera</span>
+                                            <span className="text-[11px] font-black text-slate-300 uppercase py-1.5">Espera</span>
                                         )}
                                     </div>
                                 </div>
@@ -334,7 +335,7 @@ export const AttendanceWidget = () => {
                         })
                     ) : (
                         <div className="py-8 text-center bg-slate-50 rounded-2xl border-2 border-dashed border-slate-100">
-                            <p className="text-[10px] font-black text-slate-400 uppercase">Sin módulos hoy</p>
+                            <p className="text-[11px] font-black text-slate-500 uppercase">Sin módulos hoy</p>
                         </div>
                     )}
                 </div>
@@ -343,7 +344,7 @@ export const AttendanceWidget = () => {
             {!isTeacher && (
                 <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
                     <QrCode className="w-12 h-12 text-slate-200 mb-2" />
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Asistencia Administrativa</p>
+                    <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Asistencia Administrativa</p>
                     <p className="text-xs font-medium text-slate-500 mt-2">Tu registro se limita a la entrada y salida de la jornada laboral.</p>
                 </div>
             )}

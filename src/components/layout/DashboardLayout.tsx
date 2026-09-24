@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { PageLoader } from '../common/PageLoader'
+import { useState, useEffect, Suspense } from 'react'
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import {
     LayoutDashboard,
@@ -16,14 +17,10 @@ import {
     Mail,
     Calendar,
     RefreshCw,
-    ShieldCheck,
     AlertTriangle,
     TrendingUp,
-    BookOpen,
     Package,
     HeartHandshake,
-    History,
-    FileText,
     BarChart3,
     Clock,
     ShieldAlert,
@@ -34,7 +31,6 @@ import {
     MessageSquare,
     Home
 } from 'lucide-react'
-import { Capacitor } from '@capacitor/core'
 import { supabase } from '../../lib/supabase'
 import { queryClient } from '../../lib/queryClient'
 import { OnboardingWizard } from '../../features/onboarding/components/OnboardingWizard'
@@ -45,15 +41,21 @@ import { NotificationsMenu } from './NotificationsMenu'
 import { WorkspaceSwitcher } from './WorkspaceSwitcher'
 import { useAttendanceReminder } from '../../hooks/useAttendanceReminder'
 import { NotificationManager } from '../ui/NotificationManager'
-import { useOfflineSync } from '../../hooks/useOfflineSync'
+import { ErrorBoundary } from '../common/ErrorBoundary'
+import { OfflineCenter } from '../offline/OfflineCenter'
 import { TrialNotificationSystem } from '../../features/subscription/components/TrialNotificationSystem'
+
+const DocumentTitle = ({ title }: { title: string }) => {
+    useEffect(() => { document.title = `${title} · Vunlek` }, [title])
+    return null
+}
 
 const MenuSection = ({ title, items, location }: any) => {
     return (
         <section className="mb-6" aria-labelledby={`section-title-${title.toLowerCase().replace(/\s+/g, '-')}`}>
             <h3
                 id={`section-title-${title.toLowerCase().replace(/\s+/g, '-')}`}
-                className="px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 opacity-80"
+                className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 opacity-80"
             >
                 {title}
             </h3>
@@ -88,12 +90,12 @@ const MenuItem = ({ item, location }: any) => {
                     `}
                 >
                     <div className="flex items-center">
-                        <div className={`p-1.5 rounded-xl mr-3 transition-colors ${isActiveParent ? 'bg-indigo-200 text-indigo-700' : 'bg-transparent text-slate-400'}`}>
+                        <div className={`p-1.5 rounded-xl mr-3 transition-colors ${isActiveParent ? 'bg-indigo-200 text-indigo-700' : 'bg-transparent text-slate-500'}`}>
                             <item.icon className="h-5 w-5" />
                         </div>
                         {item.label}
                     </div>
-                    {isOpen ? <ChevronDown className="h-4 w-4 text-slate-400" /> : <ChevronRight className="h-4 w-4 text-slate-400" />}
+                    {isOpen ? <ChevronDown className="h-4 w-4 text-slate-500" /> : <ChevronRight className="h-4 w-4 text-slate-500" />}
                 </button>
                 {isOpen && (
                     <div className="ml-4 mt-2 space-y-1 border-l-2 border-indigo-100/50 pl-3 animate-in fade-in slide-in-from-left-2 duration-300">
@@ -103,8 +105,9 @@ const MenuItem = ({ item, location }: any) => {
                                 <Link
                                     key={`${sub.path}-${idx}`}
                                     to={sub.path}
+                                    aria-current={isSubActive ? 'page' : undefined}
                                     className={`
-                                        block px-4 py-2 text-sm rounded-xl transition-all duration-200 btn-tactile
+                                        flex items-center min-h-11 px-4 py-2 text-sm rounded-xl transition-all duration-200 btn-tactile
                                         ${isSubActive
                                             ? 'text-indigo-700 font-bold bg-indigo-50 shadow-sm translate-x-1'
                                             : 'text-slate-500 hover:text-slate-900 hover:bg-white/50'}
@@ -132,7 +135,7 @@ const MenuItem = ({ item, location }: any) => {
                 }
             `}
         >
-            <div className={`p-1.5 rounded-xl mr-3 transition-colors ${isActive ? 'bg-white/20 text-white' : 'bg-transparent text-slate-400'}`}>
+            <div className={`p-1.5 rounded-xl mr-3 transition-colors ${isActive ? 'bg-white/20 text-white' : 'bg-transparent text-slate-500'}`}>
                 <item.icon className="h-5 w-5" />
             </div>
             {item.label}
@@ -151,7 +154,6 @@ export const DashboardLayout = () => {
     const [syncError, setSyncError] = useState<string | null>(null)
     const { data: tenant, isLoading: isTenantLoading } = useTenant()
     const { profile, isLoading: isProfileLoading, isSuperAdmin = false } = useProfile()
-    const { isOnline, pendingCount, isSyncing } = useOfflineSync()
 
     // Derived states
     // Use window.location.search directly to be absolute even across re-renders
@@ -296,6 +298,11 @@ export const DashboardLayout = () => {
     }
 
     const handleLogout = async () => {
+        sessionStorage.removeItem('vunlek_onboarding_step')
+        sessionStorage.removeItem('vunlek_onboarding_school_data')
+        sessionStorage.removeItem('vunlek_onboarding_year_data')
+        sessionStorage.removeItem('vunlek_onboarding_schedule_data')
+        sessionStorage.removeItem('vunlek_payment_syncing')
         await supabase.auth.signOut()
         window.location.href = '/login'
     }
@@ -325,14 +332,14 @@ export const DashboardLayout = () => {
                         </>
                     ) : (
                         <>
-                            <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner shadow-emerald-200">
+                            <div className="w-20 h-20 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner shadow-emerald-200">
                                 <Zap className="w-10 h-10 animate-pulse" />
                             </div>
                             <h2 className="text-3xl font-black text-slate-900 mb-2">¡Suscripción Activa!</h2>
                             <p className="text-slate-500 font-medium mb-8">Estamos preparando tu nueva oficina digital escolar...</p>
                             <div className="flex flex-col items-center gap-2">
-                                <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
-                                <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Finalizando proceso</span>
+                                <Loader2 className="w-8 h-8 text-emerald-700 animate-spin" />
+                                <span className="text-[11px] font-black text-slate-300 uppercase tracking-[0.2em]">Finalizando proceso</span>
                             </div>
                         </>
                     )}
@@ -350,7 +357,7 @@ export const DashboardLayout = () => {
                 <div className="text-center">
                     <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-6 shadow-xl shadow-blue-100"></div>
                     <p className="text-gray-900 font-bold text-lg animate-pulse tracking-tight">Cargando tu espacio...</p>
-                    <p className="text-gray-400 text-xs mt-2 font-medium">Validando configuración de seguridad</p>
+                    <p className="text-gray-500 text-xs mt-2 font-medium">Validando configuración de seguridad</p>
                 </div>
             </div>
         )
@@ -385,7 +392,7 @@ export const DashboardLayout = () => {
                         </button>
                         <button
                             onClick={handleLogout}
-                            className="text-[10px] font-bold text-red-400 hover:text-red-500 uppercase tracking-widest"
+                            className="text-[11px] font-bold text-red-400 hover:text-red-500 uppercase tracking-widest"
                         >
                             Cerrar Sesión Forzadamente
                         </button>
@@ -415,12 +422,14 @@ export const DashboardLayout = () => {
     const menuByRole: Record<string, any[]> = {
         SUPER_ADMIN: [
             { icon: Shield, label: 'Dashboard TI (God Mode)', path: '/admin' },
+            { icon: Sparkles, label: 'Asistente NEM Ai', path: '/nem-assistant' },
             { icon: Mail, label: 'Mensajes', path: '/messages' },
             { icon: UserCheck, label: 'Portal Docente', path: '/' },
             { icon: Settings, label: 'Ajustes de Cuenta', path: '/settings' }
         ],
         DIRECTOR: [
             { icon: LayoutDashboard, label: 'Consola Directiva', path: '/' },
+            { icon: Sparkles, label: 'Asistente NEM Ai', path: '/nem-assistant' },
             { icon: Users, label: 'Control de Personal', path: '/admin/staff' },
             { icon: Users, label: 'Grupos (Inscripciones)', path: '/groups' },
             { icon: GraduationCap, label: 'Alumnos (Expedientes)', path: '/students' },
@@ -430,7 +439,9 @@ export const DashboardLayout = () => {
                 label: 'Gestión NEM',
                 path: '#institution',
                 subItems: [
+                    { label: 'Consejo Técnico (CTE)', path: '/cte' },
                     { label: 'Programa de Mejora (PEMC)', path: '/admin/pemc' },
+                    { label: 'Libros de Texto', path: '/libros' },
                     { label: 'Programa Analítico', path: '/analytical-program' },
                     { label: 'Estadísticas Globales', path: '/stats' },
                     { label: 'Validar Planeaciones', path: '/planning' }
@@ -439,6 +450,7 @@ export const DashboardLayout = () => {
         ],
         ACADEMIC_COORD: [
             { icon: LayoutDashboard, label: 'Panel Pedagógico', path: '/' },
+            { icon: Sparkles, label: 'Asistente NEM Ai', path: '/nem-assistant' },
             { icon: Users, label: 'Grupos / Docentes', path: '/groups' },
             { icon: Mail, label: 'Comunicados', path: '/messages' },
             {
@@ -446,8 +458,10 @@ export const DashboardLayout = () => {
                 label: 'Supervisión',
                 path: '#pedagogy',
                 subItems: [
+                    { label: 'Consejo Técnico (CTE)', path: '/cte' },
                     { label: 'Validar Planeaciones', path: '/planning' },
                     { label: 'Avance Programático', path: '/progress' },
+                    { label: 'Libros de Texto', path: '/libros' },
                     { label: 'Análisis de Aprovechamiento', path: '/stats' }
                 ]
             }
@@ -461,6 +475,7 @@ export const DashboardLayout = () => {
                 label: 'Tecnologías',
                 path: '#tech',
                 subItems: [
+                    { label: 'Consejo Técnico (CTE)', path: '/cte' },
                     { label: 'Inventario de Insumos', path: '/inventory' },
                     { label: 'Planeaciones Técnicas', path: '/planning' },
                     { label: 'Supervisión de Prácticas', path: '/stats' }
@@ -485,6 +500,7 @@ export const DashboardLayout = () => {
         ],
         TEACHER: [
             { icon: LayoutDashboard, label: 'Inicio', path: '/' },
+            { icon: Sparkles, label: 'Asistente NEM Ai', path: '/nem-assistant' },
             { icon: Users, label: 'Mis Grupos', path: '/groups' },
             { icon: Mail, label: 'Mensajes', path: '/messages' },
             {
@@ -505,6 +521,7 @@ export const DashboardLayout = () => {
                 subItems: [
                     { label: 'Mis Planeaciones', path: '/planning' },
                     { label: 'Programa Analítico', path: '/analytical-program' },
+                    { label: 'Libros de Texto', path: '/libros' },
                     { label: 'Instrumentos', path: '/rubrics' },
                     { label: 'Guardias (Ausencias)', path: '/absences' }
                 ]
@@ -592,7 +609,8 @@ export const DashboardLayout = () => {
             }
         ],
         INDEPENDENT_TEACHER: [
-            { icon: LayoutDashboard, label: 'Inicio', path: '/' },
+            { icon: LayoutDashboard, label: 'Consola de Docente', path: '/' },
+            { icon: Sparkles, label: 'Asistente NEM Ai', path: '/nem-assistant' },
             {
                 icon: Users,
                 label: 'Mis Clases',
@@ -612,6 +630,7 @@ export const DashboardLayout = () => {
                 subItems: [
                     { label: 'Mis Planeaciones', path: '/planning' },
                     { label: 'Programa Analítico', path: '/analytical-program' },
+                    { label: 'Libros de Texto', path: '/libros' },
                     { label: 'Rúbricas', path: '/rubrics' },
                     { label: 'Guardias (Ausencias)', path: '/absences' }
                 ]
@@ -630,6 +649,7 @@ export const DashboardLayout = () => {
         ],
         ADMIN: [
             { icon: LayoutDashboard, label: 'Consola de Gestión', path: '/' },
+            { icon: Sparkles, label: 'Asistente NEM Ai', path: '/nem-assistant' },
             { icon: Users, label: 'Personal y Accesos', path: '/admin/staff' },
             { icon: Mail, label: 'Comunicados', path: '/messages' },
             {
@@ -637,6 +657,7 @@ export const DashboardLayout = () => {
                 label: 'Institución',
                 path: '#institution',
                 subItems: [
+                    { label: 'Consejo Técnico (CTE)', path: '/cte' },
                     { label: 'Módulo PEMC', path: '/admin/pemc' },
                     { label: 'Ciclo Escolar', path: '/settings' },
                     { label: 'Inventarios', path: '/inventory' },
@@ -651,7 +672,7 @@ export const DashboardLayout = () => {
 
     // Robust Role Enforcement for Independent Workspaces
     // Only override to INDEPENDENT_TEACHER if NOT a special institutional role
-    const PROTECTED_ROLES = ['TUTOR', 'DIRECTOR', 'ADMIN', 'ACADEMIC_COORD', 'TECH_COORD', 'SCHOOL_CONTROL', 'PREFECT', 'SUPPORT', 'STUDENT', 'SUPER_ADMIN']
+    const PROTECTED_ROLES = ['TUTOR', 'SCHOOL_CONTROL', 'PREFECT', 'SUPPORT', 'STUDENT', 'SUPER_ADMIN']
     if (workspaceType === 'INDEPENDENT' && !PROTECTED_ROLES.includes(currentRole)) {
         currentRole = 'INDEPENDENT_TEACHER'
     }
@@ -661,11 +682,30 @@ export const DashboardLayout = () => {
     // Mobile App Restrictions (Capacitor) - REMOVED per user request to see full menu
     const finalMenuItems = menuItems
 
+    // Título de la pantalla actual (antes siempre decía "Panel de Control").
+    type MenuEntry = { label: unknown; path: string; subItems?: MenuEntry[] }
+    const flatMenu = (finalMenuItems as MenuEntry[]).flatMap(i => [i, ...(i.subItems ?? [])])
+        .filter((i): i is { label: string; path: string } => typeof i.label === 'string' && !i.path.startsWith('#'))
+    const EXTRA_TITLES: Record<string, string> = {
+        '/settings': 'Configuración', '/gradebook': 'Libreta', '/planning/new': 'Nueva planeación', '/planning': 'Planeaciones',
+        '/messages': 'Mensajes', '/agenda': 'Calendario', '/cte': 'Consejo Técnico', '/libros': 'Libros de texto',
+        '/paywall': 'Planes y licencia', '/students': 'Alumnos', '/groups': 'Grupos', '/nem-assistant': 'Asistente NEM',
+        '/rubrics': 'Instrumentos', '/schedule': 'Horario', '/admin/pemc': 'PEMC', '/admin/staff': 'Personal',
+    }
+    const path = location.pathname
+    const pageTitle = path === '/'
+        ? (workspaceType === 'INDEPENDENT' ? 'Aula Privada' : currentRole === 'TUTOR' ? 'Portal de Tutor' : 'Inicio')
+        : (flatMenu.filter(i => !i.path.includes('?') && i.path !== '/' && (path === i.path || path.startsWith(i.path + '/')))
+            .sort((a, b) => b.path.length - a.path.length)[0]?.label
+            ?? Object.entries(EXTRA_TITLES).filter(([k]) => path === k || path.startsWith(k + '/')).sort((a, b) => b[0].length - a[0].length)[0]?.[1]
+            ?? 'Vunlek')
+
     const principalMenu = finalMenuItems.filter(i => !i.path.startsWith('#'))
     const academicMenu = finalMenuItems.filter(i => i.path.startsWith('#'))
 
     return (
         <div className="min-h-screen bg-slate-50/50 flex overflow-hidden">
+            <DocumentTitle title={pageTitle} />
             <NotificationManager />
             <TrialNotificationSystem />
 
@@ -678,39 +718,46 @@ export const DashboardLayout = () => {
             )}
 
             {/* Mobile Bottom Navigation */}
-            <div className="fixed bottom-0 left-0 right-0 h-20 bg-white border-t border-slate-200 z-50 lg:hidden flex justify-around items-center px-2 pb-safe-area-bottom shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
+            <nav aria-label="Navegación principal" className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 lg:hidden flex justify-around items-center px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
                 <Link
                     to="/"
-                    className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all ${location.pathname === '/' ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400'}`}
+                    aria-current={location.pathname === '/' ? 'page' : undefined}
+                    className={`flex flex-col items-center justify-center min-w-16 min-h-12 px-3 py-1.5 rounded-xl transition-all ${location.pathname === '/' ? 'text-indigo-700 bg-indigo-50' : 'text-slate-500'}`}
                 >
                     <Home className="w-6 h-6 mb-1" />
-                    <span className="text-[10px] font-bold">Inicio</span>
+                    <span className="text-[11px] font-bold">Inicio</span>
                 </Link>
                 <Link
                     to="/messages"
-                    className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all ${location.pathname === '/messages' ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400'}`}
+                    aria-current={location.pathname === '/messages' ? 'page' : undefined}
+                    className={`flex flex-col items-center justify-center min-w-16 min-h-12 px-3 py-1.5 rounded-xl transition-all ${location.pathname === '/messages' ? 'text-indigo-700 bg-indigo-50' : 'text-slate-500'}`}
                 >
                     <Mail className="w-6 h-6 mb-1" />
-                    <span className="text-[10px] font-bold">Mensajes</span>
+                    <span className="text-[11px] font-bold">Mensajes</span>
                 </Link>
                 <Link
                     to="/agenda"
-                    className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all ${location.pathname === '/agenda' ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400'}`}
+                    aria-current={location.pathname === '/agenda' ? 'page' : undefined}
+                    className={`flex flex-col items-center justify-center min-w-16 min-h-12 px-3 py-1.5 rounded-xl transition-all ${location.pathname === '/agenda' ? 'text-indigo-700 bg-indigo-50' : 'text-slate-500'}`}
                 >
                     <Calendar className="w-6 h-6 mb-1" />
-                    <span className="text-[10px] font-bold">Agenda</span>
+                    <span className="text-[11px] font-bold">Agenda</span>
                 </Link>
                 <button
                     onClick={() => setIsSidebarOpen(true)}
-                    className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all ${isSidebarOpen ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400'}`}
+                    aria-expanded={isSidebarOpen}
+                    aria-controls="app-sidebar"
+                    className={`flex flex-col items-center justify-center min-w-16 min-h-12 px-3 py-1.5 rounded-xl transition-all ${isSidebarOpen ? 'text-indigo-700 bg-indigo-50' : 'text-slate-500'}`}
                 >
                     <Menu className="w-6 h-6 mb-1" />
-                    <span className="text-[10px] font-bold">Menú</span>
+                    <span className="text-[11px] font-bold">Menú</span>
                 </button>
-            </div>
+            </nav>
 
             {/* Sidebar */}
             <aside
+                id="app-sidebar"
+                aria-label="Menú"
                 className={`
                     fixed lg:static inset-y-0 left-0 z-40
                     w-72 transform transition-all duration-300 ease-elastic
@@ -733,7 +780,7 @@ export const DashboardLayout = () => {
                             <span className="text-2xl font-black text-slate-800 tracking-tight block leading-none">
                                 VUNLEK
                             </span>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-0.5">
+                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest pl-0.5">
                                 Escolar
                             </span>
                         </div>
@@ -763,7 +810,7 @@ export const DashboardLayout = () => {
                             to="/settings"
                             className="group flex items-center px-4 py-3 text-sm font-bold rounded-2xl text-slate-600 hover:bg-white hover:text-indigo-600 transition-all shadow-sm border border-transparent hover:border-indigo-50 btn-tactile"
                         >
-                            <Settings className="mr-3 h-5 w-5 text-slate-400 group-hover:text-indigo-500" />
+                            <Settings className="mr-3 h-5 w-5 text-slate-500 group-hover:text-indigo-500" />
                             Configuración
                         </Link>
                         <button
@@ -778,10 +825,10 @@ export const DashboardLayout = () => {
             </aside >
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col min-h-screen relative overflow-hidden transition-all duration-300 pb-24 lg:pb-0">
+            <div className="flex-1 min-w-0 flex flex-col min-h-screen relative overflow-hidden transition-all duration-300 pb-24 lg:pb-0">
                 {/* Header */}
                 <header className={`
-                    h-20 px-4 sm:px-8 flex items-center justify-between transition-all duration-300 z-20 mt-4 mx-4 rounded-[2rem]
+                    h-16 sm:h-20 px-4 sm:px-8 flex items-center justify-between gap-3 transition-all duration-300 z-20 mt-3 mx-3 sm:mt-4 sm:mx-4 rounded-[1.5rem] sm:rounded-[2rem]
                     ${workspaceType === 'INDEPENDENT'
                         ? 'bg-indigo-900/5 backdrop-blur-md border border-indigo-100/50'
                         : 'glass-panel'}
@@ -794,37 +841,19 @@ export const DashboardLayout = () => {
                             {!isSidebarOpen ? <Menu className="h-6 w-6" /> : <X className="h-6 w-6" />}
                         </button>
 
-                        <div className="flex flex-col">
-                            <h1 className="text-xl font-black text-slate-800 tracking-tight hidden sm:block">
-                                {workspaceType === 'INDEPENDENT' ? 'Aula Privada' : currentRole === 'TUTOR' ? 'Portal de Tutor' : 'Panel de Control'}
-                            </h1>
-                            <p className="text-xs text-slate-400 font-bold hidden sm:block">
+                        <div className="flex flex-col min-w-0">
+                            <p className="text-lg sm:text-xl font-black text-slate-800 tracking-tight truncate" aria-live="polite">
+                                {pageTitle}
+                            </p>
+                            <p className="text-xs text-slate-500 font-bold hidden sm:block first-letter:uppercase">
                                 {new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}
                             </p>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
-                        {/* Connectivity Indicators */}
-                        <div className="hidden md:flex items-center gap-2">
-                            {isSyncing && (
-                                <div className="flex items-center px-3 py-1.5 bg-blue-50 text-blue-600 rounded-xl animate-pulse border border-blue-100 shadow-sm">
-                                    <RefreshCw className="w-3.5 h-3.5 mr-2 animate-spin" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest">Sincronizando</span>
-                                </div>
-                            )}
-                            {!isOnline ? (
-                                <div className="flex items-center px-3 py-1.5 bg-amber-50 text-amber-600 rounded-xl border border-amber-100 shadow-sm">
-                                    <AlertTriangle className="w-3.5 h-3.5 mr-2" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest">Offline</span>
-                                </div>
-                            ) : (
-                                <div className="flex items-center px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100 shadow-sm">
-                                    <div className="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest">En Línea</span>
-                                </div>
-                            )}
-                        </div>
+                    <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+                        {/* Conexión y trabajo sin señal */}
+                        <OfflineCenter />
 
                         <div className="h-8 w-[1px] bg-slate-200 mx-2 hidden sm:block" />
 
@@ -839,7 +868,7 @@ export const DashboardLayout = () => {
                 </header>
 
                 {/* Page Content */}
-                <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-8 relative scroll-smooth">
+                <main id="contenido" className="flex-1 overflow-x-hidden overflow-y-auto px-3 py-4 sm:p-6 lg:p-8 relative scroll-smooth">
                     {/* Demo Mode Banner */}
                     {profile?.is_demo && (
                         <div className="mb-6 animate-in slide-in-from-top-4 duration-500">
@@ -863,15 +892,50 @@ export const DashboardLayout = () => {
                                         sessionStorage.removeItem('vunlek_impersonate_id')
                                         window.location.href = '/admin' // Or just refresh
                                     }}
-                                    className="px-4 py-1.5 bg-white/20 hover:bg-white/40 rounded-xl text-[10px] font-black uppercase tracking-tighter transition-all"
+                                    className="px-4 py-1.5 bg-white/20 hover:bg-white/40 rounded-xl text-[11px] font-black uppercase tracking-tighter transition-all"
                                 >
                                     Salir de Simulación
                                 </button>
                             </div>
                         </div>
                     )}
+                    {/* Email Verification Banner */}
+                    {profile && !profile.email_confirmed_at && !isSuperAdmin && (
+                        <div className="mb-6 animate-in slide-in-from-top-4 duration-500">
+                            <div className="flex items-center justify-between p-4 bg-amber-50 border-2 border-amber-200 text-amber-900 rounded-[2rem] shadow-lg shadow-amber-100/50">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-amber-200/50 rounded-2xl flex items-center justify-center text-amber-700">
+                                        <Mail className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-black uppercase tracking-tight text-sm italic">Verificación Pendiente</h4>
+                                        <p className="text-xs font-bold text-amber-800/80 leading-relaxed">
+                                            Tu correo no ha sido validado. Tienes <span className="text-amber-900 font-extrabold underline decoration-2 underline-offset-2">24 horas para activarlo</span> o perderás el acceso.
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={async () => {
+                                        const { error } = await supabase.auth.resend({
+                                            type: 'signup',
+                                            email: (await supabase.auth.getUser()).data.user?.email || '',
+                                        })
+                                        if (error) alert('Error al reenviar: ' + error.message)
+                                        else alert('Correo de verificación reenviado con éxito.')
+                                    }}
+                                    className="px-6 py-2.5 bg-amber-200 hover:bg-amber-300 text-amber-900 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all shadow-sm active:scale-95"
+                                >
+                                    Reenviar Correo
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
-                    <Outlet />
+                    <ErrorBoundary key={location.pathname} area={location.pathname}>
+                        <Suspense fallback={<PageLoader />}>
+                            <Outlet />
+                        </Suspense>
+                    </ErrorBoundary>
                 </main>
             </div>
         </div>

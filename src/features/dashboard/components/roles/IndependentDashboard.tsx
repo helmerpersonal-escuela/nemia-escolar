@@ -4,18 +4,9 @@ import { useTenant } from '../../../../hooks/useTenant'
 import { useProfile } from '../../../../hooks/useProfile'
 import { useNavigate } from 'react-router-dom'
 import {
-    LayoutDashboard,
-    BookOpen,
     Users,
     Calendar,
-    Settings,
-    Plus,
-    FileText,
     CheckSquare,
-    ChevronRight,
-    TrendingUp,
-    Users2,
-    BookMarked,
     Clock,
     MessageSquare,
     Bell,
@@ -27,7 +18,6 @@ import {
 } from 'lucide-react'
 import { useChat } from '../../../../hooks/useChat'
 import { supabase } from '../../../../lib/supabase'
-import { AttendanceWidget } from '../AttendanceWidget'
 import { StudentSelectionModal } from './StudentSelectionModal'
 
 export const IndependentDashboard = () => {
@@ -127,10 +117,10 @@ export const IndependentDashboard = () => {
                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
                     <div>
                         <div className="flex items-center gap-3 mb-4">
-                            <span className="px-3 py-1 bg-indigo-500/20 border border-indigo-400/30 rounded-full text-[10px] font-black uppercase tracking-widest text-indigo-300 backdrop-blur-md">
+                            <span className="px-3 py-1 bg-indigo-500/20 border border-indigo-400/30 rounded-full text-[11px] font-black uppercase tracking-widest text-indigo-300 backdrop-blur-md">
                                 Aula Privada Activa
                             </span>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
                                 {currentTime.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}
                             </span>
                         </div>
@@ -174,7 +164,7 @@ export const IndependentDashboard = () => {
                         { label: 'Grupos Activos', value: loading ? '...' : stats.groups.toString(), icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
                         { label: 'Alumnos Totales', value: loading ? '...' : stats.students.toString(), icon: GraduationCap, color: 'text-indigo-600', bg: 'bg-indigo-50' },
                         { label: 'Clases Hoy', value: loading ? '...' : upcomingClasses.length.toString(), icon: Presentation, color: 'text-purple-600', bg: 'bg-purple-50' },
-                        { label: 'Materias s/Plan', value: loading ? '...' : stats.pending.toString(), icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
+                        { label: 'Materias s/Plan', value: loading ? '...' : stats.pending.toString(), icon: Clock, color: 'text-amber-700', bg: 'bg-amber-50' },
                     ].map((stat, i) => (
                         <div key={i} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-indigo-100/50 transition-all flex items-center gap-5 group">
                             <div className={`p-4 ${stat.bg} ${stat.color} rounded-2xl group-hover:scale-110 transition-transform`}>
@@ -188,7 +178,7 @@ export const IndependentDashboard = () => {
                                         stat.value
                                     )}
                                 </div>
-                                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">{stat.label}</div>
+                                <div className="text-[11px] font-black text-slate-500 uppercase tracking-widest mt-0.5">{stat.label}</div>
                             </div>
                         </div>
                     ))
@@ -208,10 +198,10 @@ export const IndependentDashboard = () => {
                                 </div>
                                 <div>
                                     <h3 className="text-2xl font-black text-slate-900 tracking-tight">Tu Agenda</h3>
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Gestión de clases diarias</p>
+                                    <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mt-0.5">Gestión de clases diarias</p>
                                 </div>
                             </div>
-                            <button onClick={() => navigate('/schedule')} className="p-3 hover:bg-slate-50 rounded-xl transition-colors text-slate-400 group">
+                            <button onClick={() => navigate('/schedule')} className="p-3 hover:bg-slate-50 rounded-xl transition-colors text-slate-500 group">
                                 <ArrowUpRight className="w-5 h-5 group-hover:text-indigo-600" />
                             </button>
                         </div>
@@ -227,9 +217,9 @@ export const IndependentDashboard = () => {
                                             <div className="h-16 w-1 hover:h-20 bg-indigo-500 rounded-full transition-all" />
                                             <div>
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">{session.start_time.slice(0, 5)} - {session.end_time.slice(0, 5)}</span>
+                                                    <span className="text-[11px] font-black text-indigo-600 uppercase tracking-widest">{session.start_time.slice(0, 5)} - {session.end_time.slice(0, 5)}</span>
                                                     <span className="w-1 h-1 bg-slate-300 rounded-full" />
-                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{session.group?.grade}° "{session.group?.section}"</span>
+                                                    <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">{session.group?.grade}° "{session.group?.section}"</span>
                                                 </div>
                                                 <h4 className="text-xl font-black text-slate-900 uppercase">
                                                     {session.subject?.name || 'Clase de Reforzamiento'}
@@ -249,10 +239,10 @@ export const IndependentDashboard = () => {
                                     <div className="p-6 bg-slate-50 rounded-full mb-4">
                                         <Calendar className="w-10 h-10 text-slate-300" />
                                     </div>
-                                    <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">Sin clases programadas</p>
+                                    <p className="text-slate-500 font-bold uppercase tracking-widest text-sm">Sin clases programadas</p>
                                     <button
                                         onClick={() => navigate('/schedule')}
-                                        className="mt-6 px-6 py-3 bg-indigo-50 text-indigo-600 rounded-xl font-black text-[10px] uppercase tracking-widest border border-indigo-100 hover:bg-indigo-100 transition-all"
+                                        className="mt-6 px-6 py-3 bg-indigo-50 text-indigo-600 rounded-xl font-black text-[11px] uppercase tracking-widest border border-indigo-100 hover:bg-indigo-100 transition-all"
                                     >
                                         Configurar Horario
                                     </button>
@@ -273,7 +263,7 @@ export const IndependentDashboard = () => {
                                 </div>
                                 <h3 className="text-base font-black text-slate-800 tracking-tight">Tutores</h3>
                             </div>
-                            <button onClick={() => navigate('/messages')} className="text-[10px] font-black text-purple-600 uppercase tracking-widest hover:underline">Chat</button>
+                            <button onClick={() => navigate('/messages')} className="text-[11px] font-black text-purple-600 uppercase tracking-widest hover:underline">Chat</button>
                         </div>
                         <div className="p-6 space-y-4">
                             {rooms.slice(0, 3).map(room => (
@@ -283,12 +273,12 @@ export const IndependentDashboard = () => {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <h4 className="font-bold text-slate-800 text-sm truncate">{room.name}</h4>
-                                        <p className="text-[10px] text-slate-400 truncate mt-0.5">{room.last_message?.content || 'Inicia chat'}</p>
+                                        <p className="text-[11px] text-slate-500 truncate mt-0.5">{room.last_message?.content || 'Inicia chat'}</p>
                                     </div>
                                 </div>
                             ))}
                             {rooms.length === 0 && (
-                                <p className="text-center py-4 text-slate-300 font-black text-[10px] uppercase tracking-widest italic">Nada nuevo</p>
+                                <p className="text-center py-4 text-slate-300 font-black text-[11px] uppercase tracking-widest italic">Nada nuevo</p>
                             )}
                         </div>
                     </div >
@@ -305,11 +295,11 @@ export const IndependentDashboard = () => {
                             {announcements.map(ann => (
                                 <div key={ann.id} className="p-4 bg-amber-50 rounded-2xl border border-amber-100 group hover:scale-[1.02] transition-transform cursor-pointer">
                                     <h4 className="font-black text-amber-900 text-xs truncate uppercase tracking-tighter">{ann.title}</h4>
-                                    <p className="text-[10px] text-amber-800/70 mt-1 line-clamp-1">{ann.content}</p>
+                                    <p className="text-[11px] text-amber-800/70 mt-1 line-clamp-1">{ann.content}</p>
                                 </div>
                             ))}
                             {announcements.length === 0 && (
-                                <p className="text-center py-4 text-slate-300 font-black text-[10px] uppercase tracking-widest italic">Sin avisos</p>
+                                <p className="text-center py-4 text-slate-300 font-black text-[11px] uppercase tracking-widest italic">Sin avisos</p>
                             )}
                         </div>
                     </div >

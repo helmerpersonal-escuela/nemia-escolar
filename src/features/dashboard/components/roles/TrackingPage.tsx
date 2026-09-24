@@ -5,8 +5,6 @@ import {
     FileText,
     Plus,
     Search,
-    AlertTriangle,
-    CheckCircle2,
     Calendar,
     ArrowRight,
     Printer,
@@ -107,7 +105,7 @@ export const TrackingPage = () => {
             {/* Filters */}
             <div className="flex flex-col md:flex-row gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
                 <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                     <input
                         type="text"
                         placeholder="Buscar por nombre de alumno..."
@@ -134,7 +132,7 @@ export const TrackingPage = () => {
 
             {/* Content List */}
             {loading ? (
-                <div className="text-center py-12 text-slate-400">Cargando registros...</div>
+                <div className="text-center py-12 text-slate-500">Cargando registros...</div>
             ) : filteredItems.length > 0 ? (
                 <div className="grid gap-4">
                     {filteredItems.map(item => (
@@ -142,7 +140,7 @@ export const TrackingPage = () => {
                             <div className="flex flex-col md:flex-row justify-between gap-4">
                                 <div className="flex gap-4">
                                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${item.type === 'ENTREVISTA' ? 'bg-purple-50 text-purple-600' :
-                                        item.type === 'CANALIZACION' ? 'bg-amber-50 text-amber-600' :
+                                        item.type === 'CANALIZACION' ? 'bg-amber-50 text-amber-700' :
                                             'bg-blue-50 text-blue-600'
                                         }`}>
                                         {item.type === 'ENTREVISTA' ? <Users className="w-6 h-6" /> :
@@ -152,17 +150,17 @@ export const TrackingPage = () => {
                                     <div>
                                         <div className="flex items-center gap-2 mb-1">
                                             <h3 className="font-bold text-slate-800">{item.students?.first_name} {item.students?.last_name_paternal}</h3>
-                                            <span className="px-2 py-0.5 bg-slate-100 rounded text-[10px] font-black text-slate-500">
+                                            <span className="px-2 py-0.5 bg-slate-100 rounded text-[11px] font-black text-slate-500">
                                                 {item.students?.groups?.grade}° "{item.students?.groups?.section}"
                                             </span>
-                                            <span className={`px-2 py-0.5 rounded text-[10px] font-black text-white uppercase ${item.severity === 'ALTA' ? 'bg-red-500' :
+                                            <span className={`px-2 py-0.5 rounded text-[11px] font-black text-white uppercase ${item.severity === 'ALTA' ? 'bg-red-500' :
                                                 item.severity === 'MEDIA' ? 'bg-amber-400' : 'bg-blue-400'
                                                 }`}>
                                                 {item.severity}
                                             </span>
                                         </div>
                                         <p className="text-sm font-medium text-slate-600 mb-2">{item.title}</p>
-                                        <div className="flex items-center gap-4 text-xs text-slate-400">
+                                        <div className="flex items-center gap-4 text-xs text-slate-500">
                                             <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(item.created_at).toLocaleDateString()}</span>
                                             <span className="flex items-center gap-1"><User className="w-3 h-3" /> Registrado por Personal</span>
                                         </div>
@@ -170,8 +168,8 @@ export const TrackingPage = () => {
                                 </div>
 
                                 <div className="flex flex-col items-end gap-2">
-                                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${item.status === 'EN_PROCESO' ? 'bg-blue-50 text-blue-600' :
-                                        item.status === 'CERRADO' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'
+                                    <span className={`px-3 py-1 rounded-full text-[11px] font-black uppercase ${item.status === 'EN_PROCESO' ? 'bg-blue-50 text-blue-600' :
+                                        item.status === 'CERRADO' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
                                         }`}>
                                         {item.status.replace('_', ' ')}
                                     </span>

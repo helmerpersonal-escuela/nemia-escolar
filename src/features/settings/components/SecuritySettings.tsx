@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { QRCodeSVG } from 'qrcode.react'
-import { Lock, Smartphone, Shield, AlertCircle, Copy, Save, Database, DownloadCloud, Trash2, CheckCircle, RefreshCw } from 'lucide-react'
+import { Lock, Smartphone, Shield, AlertCircle, Database, DownloadCloud, Trash2, CheckCircle } from 'lucide-react'
 import { exportUserData } from '../../../utils/backupUtils'
+import { todayISO } from '../../../lib/dates'
 
 interface SecuritySettingsProps {
     profile: any
@@ -137,7 +138,7 @@ export const SecuritySettings = ({ profile, tenant, isDirectorOrAdmin }: Securit
         if (!confirm('¿Deseas descargar una copia de seguridad?')) return
         try {
             setLoading(true)
-            await exportUserData(tenant.id, `Respaldo_Vunlek_${new Date().toISOString().split('T')[0]}.json`)
+            await exportUserData(tenant.id, `Respaldo_Vunlek_${todayISO()}.json`)
             alert('Respaldo descargado correctamente')
         } catch (e) {
             alert('Error al generar respaldo')
@@ -161,7 +162,7 @@ export const SecuritySettings = ({ profile, tenant, isDirectorOrAdmin }: Securit
                 <div className="flex flex-col md:flex-row gap-8 items-start">
                     <div className="bg-white p-4 rounded-2xl shadow-lg shadow-indigo-100">
                         {hasVerifiedFactor ? (
-                            <Shield className="w-12 h-12 text-emerald-500" />
+                            <Shield className="w-12 h-12 text-emerald-700" />
                         ) : (
                             <Smartphone className="w-12 h-12 text-indigo-500" />
                         )}
@@ -170,11 +171,11 @@ export const SecuritySettings = ({ profile, tenant, isDirectorOrAdmin }: Securit
                         <div className="flex items-center gap-3 mb-2">
                             <h4 className="text-xl font-black text-gray-900">Autenticación de Dos Factores (2FA)</h4>
                             {hasVerifiedFactor ? (
-                                <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
+                                <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[11px] font-black uppercase tracking-widest flex items-center gap-1">
                                     <CheckCircle className="w-3 h-3" /> Activado
                                 </span>
                             ) : (
-                                <span className="px-3 py-1 bg-gray-200 text-gray-600 rounded-full text-[10px] font-black uppercase tracking-widest">
+                                <span className="px-3 py-1 bg-gray-200 text-gray-600 rounded-full text-[11px] font-black uppercase tracking-widest">
                                     Desactivado
                                 </span>
                             )}
@@ -222,7 +223,7 @@ export const SecuritySettings = ({ profile, tenant, isDirectorOrAdmin }: Securit
                                             <label className="text-xs font-bold text-gray-500 uppercase tracking-widest block text-center xl:text-left">
                                                 Código de Verificación
                                             </label>
-                                            <input
+                                            <input aria-label="Código de Verificación"
                                                 type="text"
                                                 value={verifyCode}
                                                 onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
@@ -245,7 +246,7 @@ export const SecuritySettings = ({ profile, tenant, isDirectorOrAdmin }: Securit
                                                 Cancelar
                                             </button>
                                         </div>
-                                        <p className="text-xs text-gray-400 text-center xl:text-left font-medium">
+                                        <p className="text-xs text-gray-500 text-center xl:text-left font-medium">
                                             Abre tu app de autenticación (Google/Microsoft Authenticator) y escanea el código QR para obtener tu código de 6 dígitos.
                                         </p>
                                     </div>
@@ -268,8 +269,8 @@ export const SecuritySettings = ({ profile, tenant, isDirectorOrAdmin }: Securit
                     </h4>
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Nueva Contraseña</label>
-                            <input
+                            <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Nueva Contraseña</label>
+                            <input aria-label="Nueva Contraseña"
                                 type="password"
                                 value={passwords.new}
                                 onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
@@ -278,8 +279,8 @@ export const SecuritySettings = ({ profile, tenant, isDirectorOrAdmin }: Securit
                             />
                         </div>
                         <div>
-                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Confirmar Contraseña</label>
-                            <input
+                            <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Confirmar Contraseña</label>
+                            <input aria-label="Confirmar Contraseña"
                                 type="password"
                                 value={passwords.confirm}
                                 onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
@@ -301,7 +302,7 @@ export const SecuritySettings = ({ profile, tenant, isDirectorOrAdmin }: Securit
                 <div className="bg-emerald-50 p-8 rounded-[2.5rem] border border-emerald-100 flex flex-col justify-between">
                     <div>
                         <div className="flex items-center gap-4 mb-4">
-                            <div className="bg-white p-3 rounded-xl shadow-sm text-emerald-600">
+                            <div className="bg-white p-3 rounded-xl shadow-sm text-emerald-700">
                                 <Database className="w-6 h-6" />
                             </div>
                             <h4 className="font-bold text-gray-900 text-lg">Respaldo de Datos</h4>
@@ -313,7 +314,7 @@ export const SecuritySettings = ({ profile, tenant, isDirectorOrAdmin }: Securit
                     <button
                         onClick={handleBackup}
                         disabled={loading}
-                        className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="w-full py-4 bg-emerald-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-800 transition-all shadow-lg shadow-emerald-200 disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                         <DownloadCloud className="w-4 h-4" />
                         Descargar Respaldo
@@ -324,7 +325,7 @@ export const SecuritySettings = ({ profile, tenant, isDirectorOrAdmin }: Securit
             {/* Danger Zone: Delete Account */}
             {(isDirectorOrAdmin || profile?.role?.toUpperCase() === 'INDEPENDENT_TEACHER' || profile?.role?.toUpperCase() === 'TEACHER') && (
                 <div className="border-t border-gray-100 pt-8 mt-8">
-                    <h4 className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-4 flex items-center">
+                    <h4 className="text-[11px] font-black text-red-400 uppercase tracking-widest mb-4 flex items-center">
                         <AlertCircle className="w-3 h-3 mr-2" />
                         Zona de Peligro
                     </h4>

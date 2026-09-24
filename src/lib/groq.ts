@@ -1,50 +1,11 @@
 
 import { getMethodologyInstructions } from './nemMethodologies'
+import { aiGenerate } from './aiClient'
 
 export class GroqService {
-    private apiKey: string;
-    private baseUrl = 'https://api.groq.com/openai/v1/chat/completions';
-    private model = 'llama-3.1-8b-instant'; // Cambio a 8b para mayor velocidad y límites de tasa más altos
-
-    constructor(apiKey?: string) {
-        // 1. Try environment variable
-        let key = import.meta.env.VITE_GROQ_API_KEY
-
-        // 2. Try localStorage (God Mode settings)
-        if (!key) {
-            try {
-                const saved = localStorage.getItem('godmode_ai_settings')
-                if (saved && saved !== 'undefined' && saved !== 'null') {
-                    const settings = JSON.parse(saved)
-                    if (settings.groq_key) {
-                        key = settings.groq_key
-                        console.log('[GroqService] Usando API Key de configuración global (God Mode)')
-                    }
-                }
-            } catch (e) {
-                console.warn('[GroqService] Error leyendo configuración local:', e)
-            }
-        }
-
-        // Priority: Argument > Environment > LocalStorage
-        this.apiKey = (apiKey || key || '').trim();
-
-        // Autodetección de Proveedor: Grok (xAI) vs Groq
-        if (this.apiKey.startsWith('xai-')) {
-            this.baseUrl = 'https://api.x.ai/v1/chat/completions';
-            this.model = 'grok-3';
-            console.log('[GroqService] Detectada llave de xAI (Grok). Usando modelo grok-3');
-        } else {
-            this.baseUrl = 'https://api.groq.com/openai/v1/chat/completions';
-            this.model = 'llama-3.1-8b-instant';
-        }
-
-        if (this.apiKey) {
-            console.log(`[GroqService] Inicializado satisfactoriamente (${this.apiKey.substring(0, 4)}...${this.apiKey.slice(-4)})`);
-        } else {
-            console.warn('[GroqService] Inicializado SIN clave API');
-        }
-    }
+    // Las llamadas se hacen en el servidor (función Edge `ai-proxy`).
+     
+    constructor(_apiKey?: string) { }
 
     async generateLessonPlanSuggestions(context: {
         topic?: string
@@ -61,6 +22,7 @@ export class GroqService {
         pagesFrom?: string
         pagesTo?: string
         extractedText?: string
+        level?: string // Nivel educativo (Primaria, Secundaria, etc.)
     }) {
         const isProject = context.temporality === 'PROJECT'
         const projectPurpose = context.purpose ? `Propósito del Proyecto: ${context.purpose}` : ''
@@ -87,6 +49,7 @@ export class GroqService {
 
             Parámetros:
             - Tipo: ${isProject ? 'PROYECTO EDUCATIVO (Detallado)' : 'SECUENCIA DIDÁCTICA'}
+            - Nivel Educativo: ${context.level || 'No especificado'}
             - Grado: ${context.grade || 'No especificado'}
             - Materia: ${context.subject || 'General'}
             - Tema: ${context.topic || 'No especificado'}
@@ -96,6 +59,8 @@ export class GroqService {
             - PDA: ${context.pdaDetail || 'No especificado'}
             ${context.textbook ? `- LIBRO DE TEXTO: "${context.textbook}" (Páginas: ${context.pagesFrom || ''} a ${context.pagesTo || ''})` : ''}
             ${context.extractedText ? `\n--- CONTENIDO TEXTUAL EXTRAÍDO DEL LIBRO (ÚSALO COMO BASE PARA LA PLANEACIÓN) ---\n${context.extractedText.substring(0, 8000)}\n---------------------------------------------------------` : ''}
+            
+            ${context.level?.toLowerCase().includes('primaria') ? 'ENFOQUE PRIMARIA: Prioriza actividades lúdicas, material concreto, y evaluación formativa. Usa un lenguaje y dinámicas aptas para niños de primaria.' : ''}
 
             ${projectInstructions}
 
@@ -155,59 +120,7 @@ export class GroqService {
     }
 
     private async callGroq(prompt: string, isJson = false): Promise<string> {
-        try {
-            const response = await fetch(this.baseUrl, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${this.apiKey}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    model: this.model,
-                    messages: [
-                        {
-                            role: 'system',
-                            content: 'Eres un experto pedagogo de la Nueva Escuela Mexicana (NEM). ' +
-                                (isJson ? 'Responde únicamente con el objeto JSON solicitado, sin texto extra ni bloques de código markdown.' : '')
-                        },
-                        {
-                            role: 'user',
-                            content: prompt
-                        }
-                    ],
-                    temperature: 0.7,
-                    response_format: isJson ? { type: 'json_object' } : undefined
-                })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                const msg = (typeof errorData.error === 'string' ? errorData.error : errorData.error?.message) || errorData.message || response.statusText;
-
-                // Si es error 400 por JSON, reintentar sin modo JSON forzado pero pidiéndolo en el prompt
-                if (response.status === 400 && isJson) {
-                    console.warn('[GroqService] Falló con json_object, reintentando modo texto...');
-                    return this.callGroq(prompt, false);
-                }
-
-                // Si es error de límite de tasa, sugerir esperar
-                if (response.status === 429) {
-                    throw new Error(`Límite de Groq alcanzado (429): ${msg}. Por favor espera unos minutos.`);
-                }
-
-                if (response.status === 401) {
-                    throw new Error(`Error de Autenticación (401): La clave API de Groq es inválida o ha expirado. Por favor verifica los Ajustes de IA.`);
-                }
-
-                throw new Error(`Error de Groq (${response.status}): ${msg}`);
-            }
-
-            const data = await response.json();
-            return data.choices?.[0]?.message?.content || '';
-        } catch (error: any) {
-            console.error('Error in Groq call:', error);
-            throw error;
-        }
+        return aiGenerate(prompt, isJson)
     }
 
     async generateDiagnosis(schoolData: any, groupData: any) {

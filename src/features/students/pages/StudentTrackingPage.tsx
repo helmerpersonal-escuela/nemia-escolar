@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
+import { saveOrQueue } from '../../../lib/offline/outbox'
 import { useTenant } from '../../../hooks/useTenant'
 import {
     Activity,
@@ -116,18 +117,22 @@ export const StudentTrackingPage = () => {
     const logIncident = async () => {
         if (!selectedStudent || !tenant) return
         setSaving(true)
-        const { error } = await supabase.from('student_incidents').insert([{
-            ...newIncident,
-            student_id: selectedStudent.id,
-            tenant_id: tenant.id
-        }])
-
-        if (!error) {
+        try {
+            const { queued } = await saveOrQueue({
+                table: 'student_incidents',
+                op: 'insert',
+                rows: [{ id: crypto.randomUUID(), ...newIncident, student_id: selectedStudent.id, tenant_id: tenant.id }],
+                label: 'Incidencia',
+            })
             setShowIncidentModal(false)
             setNewIncident({ type: 'CONDUCTA', severity: 'BAJA', description: '', action_taken: '' })
-            fetchStudentIncidents(selectedStudent.id)
+            if (queued) alert('Sin conexión: la incidencia quedó guardada en este dispositivo y se enviará al volver la señal.')
+            else fetchStudentIncidents(selectedStudent.id)
+        } catch (err: any) {
+            alert('Error al guardar la incidencia: ' + (err?.message || 'Error desconocido'))
+        } finally {
+            setSaving(false)
         }
-        setSaving(false)
     }
 
     const filteredStudents = students.filter(s =>
@@ -140,7 +145,7 @@ export const StudentTrackingPage = () => {
             <div className="flex justify-between items-end">
                 <div>
                     <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tighter uppercase">Bitácora Escolar</h1>
-                    <p className="text-gray-400 font-bold text-xs sm:text-sm uppercase tracking-widest mt-1">
+                    <p className="text-gray-500 font-bold text-xs sm:text-sm uppercase tracking-widest mt-1">
                         Seguimiento Rápido {selectedStudent ? `• ${selectedStudent.first_name} ${selectedStudent.last_name_paternal}` : ''}
                     </p>
                 </div>
@@ -154,7 +159,7 @@ export const StudentTrackingPage = () => {
                             <Plus className="w-4 h-4 mr-2" /> Nueva Acción
                         </button>
                     )}
-                    <select
+                    <select aria-label="Grupo"
                         value={selectedGroupId}
                         onChange={(e) => setSelectedGroupId(e.target.value)}
                         className="input-squishy px-4 py-2 font-bold text-gray-700 cursor-pointer"
@@ -183,7 +188,7 @@ export const StudentTrackingPage = () => {
                         </div>
                         <div className="divide-y divide-gray-50 max-h-[500px] overflow-y-auto">
                             {loading ? (
-                                <div className="p-12 text-center animate-pulse text-gray-300 font-bold uppercase text-[10px]">Actualizando lista...</div>
+                                <div className="p-12 text-center animate-pulse text-gray-300 font-bold uppercase text-[11px]">Actualizando lista...</div>
                             ) : filteredStudents.map(student => (
                                 <button
                                     key={student.id}
@@ -206,10 +211,10 @@ export const StudentTrackingPage = () => {
                                             </p>
                                             <div className="flex items-center space-x-2 mt-0.5">
                                                 {student.condition && (
-                                                    <span className="bg-rose-100 text-rose-600 text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase">BAP</span>
+                                                    <span className="bg-rose-100 text-rose-600 text-[11px] font-black px-1.5 py-0.5 rounded-full uppercase">BAP</span>
                                                 )}
                                                 {student.first_name.length % 7 === 0 && (
-                                                    <span className="bg-amber-100 text-amber-600 text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase">Alerta</span>
+                                                    <span className="bg-amber-100 text-amber-700 text-[11px] font-black px-1.5 py-0.5 rounded-full uppercase">Alerta</span>
                                                 )}
                                             </div>
                                         </div>
@@ -237,7 +242,7 @@ export const StudentTrackingPage = () => {
                                             <h2 className="text-2xl sm:text-3xl font-black tracking-tighter leading-tight">
                                                 {selectedStudent.first_name} <br className="sm:hidden" /> {selectedStudent.last_name_paternal}
                                             </h2>
-                                            <p className="text-indigo-100 font-bold uppercase text-[9px] sm:text-[10px] tracking-widest mt-1 bg-white/10 px-3 py-1 rounded-full inline-block">
+                                            <p className="text-indigo-100 font-bold uppercase text-[11px] sm:text-[11px] tracking-widest mt-1 bg-white/10 px-3 py-1 rounded-full inline-block">
                                                 {selectedStudent.group?.grade}° "{selectedStudent.group?.section}" • Expediente Activo
                                             </p>
                                         </div>
@@ -261,7 +266,7 @@ export const StudentTrackingPage = () => {
                                         <Brain className="w-8 h-8" />
                                     </div>
                                     <div>
-                                        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">Inclusividad</h3>
+                                        <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest">Inclusividad</h3>
                                         <p className="text-sm font-black text-rose-600 uppercase mt-1">
                                             {selectedStudent.condition ? `Diagnóstico: ${selectedStudent.condition}` : 'Sin barreras detectadas'}
                                         </p>
@@ -270,11 +275,11 @@ export const StudentTrackingPage = () => {
 
                                 {/* Last Movement */}
                                 <div className="squishy-card p-6 flex items-center space-x-6">
-                                    <div className="p-4 bg-amber-50 text-amber-500 rounded-2xl">
+                                    <div className="p-4 bg-amber-50 text-amber-700 rounded-2xl">
                                         <History className="w-8 h-8" />
                                     </div>
                                     <div>
-                                        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">Última Nota</h3>
+                                        <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest">Última Nota</h3>
                                         <p className="text-sm font-black text-gray-800 uppercase mt-1">
                                             {incidents.length > 0 ? new Date(incidents[0].created_at).toLocaleDateString() : 'Ninguno registrado'}
                                         </p>
@@ -289,24 +294,24 @@ export const StudentTrackingPage = () => {
                                         <div className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse" />
                                         <h3 className="font-black text-gray-900 uppercase text-xs sm:text-sm tracking-widest">Historial de Bitácora</h3>
                                     </div>
-                                    <span className="text-[9px] sm:text-[10px] font-black text-gray-300 uppercase">{incidents.length} Registros Totales</span>
+                                    <span className="text-[11px] sm:text-[11px] font-black text-gray-300 uppercase">{incidents.length} Registros Totales</span>
                                 </div>
                                 <div className="divide-y divide-gray-50 bg-gray-50/30">
                                     {incidents.map(incident => (
                                         <div key={incident.id} className="p-5 sm:p-8 hover:bg-white transition-all group">
                                             <div className="flex justify-between items-start mb-4">
                                                 <div className="flex items-center space-x-4">
-                                                    <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider shadow-sm
+                                                    <div className={`px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider shadow-sm
                                                         ${incident.type === 'POSITIVO' ? 'bg-green-600 text-white' :
                                                             incident.type === 'CONDUCTA' ? 'bg-amber-500 text-white' :
                                                                 incident.type === 'SALUD' ? 'bg-rose-500 text-white' : 'bg-indigo-600 text-white'}`}>
                                                         {incident.type}
                                                     </div>
-                                                    <span className="text-[10px] font-black text-gray-400 uppercase">{new Date(incident.created_at).toLocaleDateString(['es-MX'], { day: '2-digit', month: 'long', year: 'numeric' })}</span>
+                                                    <span className="text-[11px] font-black text-gray-500 uppercase">{new Date(incident.created_at).toLocaleDateString(['es-MX'], { day: '2-digit', month: 'long', year: 'numeric' })}</span>
                                                 </div>
-                                                <div className={`px-3 py-1 rounded-lg border-2 text-[8px] font-black uppercase
+                                                <div className={`px-3 py-1 rounded-lg border-2 text-[11px] font-black uppercase
                                                     ${incident.severity === 'ALTA' ? 'border-red-100 text-red-500 bg-red-50' :
-                                                        incident.severity === 'MEDIA' ? 'border-amber-100 text-amber-500 bg-amber-50' : 'border-green-100 text-green-500 bg-green-50'}`}>
+                                                        incident.severity === 'MEDIA' ? 'border-amber-100 text-amber-700 bg-amber-50' : 'border-green-100 text-green-500 bg-green-50'}`}>
                                                     Prioridad {incident.severity}
                                                 </div>
                                             </div>
@@ -315,7 +320,7 @@ export const StudentTrackingPage = () => {
                                                 <div className="mt-4 flex items-start bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
                                                     <Award className="w-5 h-5 text-indigo-600 mr-3 shrink-0 mt-0.5" />
                                                     <div>
-                                                        <p className="text-[9px] font-black text-indigo-400 uppercase mb-1">Acuerdo o Acción</p>
+                                                        <p className="text-[11px] font-black text-indigo-400 uppercase mb-1">Acuerdo o Acción</p>
                                                         <p className="text-sm font-medium text-gray-600">{incident.action_taken}</p>
                                                     </div>
                                                 </div>
@@ -357,9 +362,9 @@ export const StudentTrackingPage = () => {
                         <div className="p-8 bg-indigo-600 text-white flex justify-between items-center shrink-0">
                             <div>
                                 <h3 className="text-2xl font-black tracking-tighter uppercase leading-none">Nueva Nota</h3>
-                                <p className="text-indigo-200 font-bold text-[10px] uppercase tracking-widest mt-1">Alumno: {selectedStudent?.first_name} {selectedStudent?.last_name_paternal}</p>
+                                <p className="text-indigo-200 font-bold text-[11px] uppercase tracking-widest mt-1">Alumno: {selectedStudent?.first_name} {selectedStudent?.last_name_paternal}</p>
                             </div>
-                            <button
+                            <button aria-label="Cerrar"
                                 onClick={() => setShowIncidentModal(false)}
                                 className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center transition-all"
                             >
@@ -370,16 +375,16 @@ export const StudentTrackingPage = () => {
                         <div className="p-8 space-y-8 overflow-y-auto">
                             {/* Step 1: Category Selection */}
                             <div>
-                                <label className="block text-[10px] font-black text-gray-400 uppercase mb-3 tracking-widest ml-1">1. ¿Qué tipo de evento es?</label>
+                                <label className="block text-[11px] font-black text-gray-500 uppercase mb-3 tracking-widest ml-1">1. ¿Qué tipo de evento es?</label>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                     {Object.keys(QUICK_PHRASES).map(cat => (
                                         <button
                                             key={cat}
                                             onClick={() => setNewIncident(prev => ({ ...prev, type: cat, description: '' }))}
-                                            className={`px-3 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-tight border-2 transition-all
+                                            className={`px-3 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-tight border-2 transition-all
                                                 ${newIncident.type === cat
                                                     ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg scale-105'
-                                                    : 'bg-white border-gray-100 text-gray-400 hover:border-indigo-200'}`}
+                                                    : 'bg-white border-gray-100 text-gray-500 hover:border-indigo-200'}`}
                                         >
                                             {cat === 'CONDUCTA' && 'Disciplina'}
                                             {cat === 'ACADEMICO' && 'Académico'}
@@ -393,13 +398,13 @@ export const StudentTrackingPage = () => {
 
                             {/* Step 2: Quick Phrases (THE "NO TYPING" PART) */}
                             <div className="animate-in fade-in duration-500" key={newIncident.type}>
-                                <label className="block text-[10px] font-black text-gray-400 uppercase mb-3 tracking-widest ml-1">2. Selecciona lo sucedido:</label>
+                                <label className="block text-[11px] font-black text-gray-500 uppercase mb-3 tracking-widest ml-1">2. Selecciona lo sucedido:</label>
                                 <div className="flex flex-wrap gap-2">
                                     {QUICK_PHRASES[newIncident.type].map((phrase: string) => (
                                         <button
                                             key={phrase}
                                             onClick={() => setNewIncident(prev => ({ ...prev, description: phrase }))}
-                                            className={`px-3 py-2.5 rounded-lg text-[10px] font-bold text-left transition-all border
+                                            className={`px-3 py-2.5 rounded-lg text-[11px] font-bold text-left transition-all border
                                                 ${newIncident.description === phrase
                                                     ? 'bg-indigo-50 border-indigo-200 text-indigo-700 font-black'
                                                     : 'bg-gray-50 border-gray-100 text-gray-600 hover:bg-white'}`}
@@ -409,7 +414,7 @@ export const StudentTrackingPage = () => {
                                     ))}
                                     <button
                                         onClick={() => setNewIncident(prev => ({ ...prev, description: '' }))}
-                                        className="px-3 py-2.5 rounded-lg text-[10px] font-black border-2 border-dashed border-gray-200 text-gray-400 hover:border-indigo-300 hover:text-indigo-400 transition-all"
+                                        className="px-3 py-2.5 rounded-lg text-[11px] font-black border-2 border-dashed border-gray-200 text-gray-500 hover:border-indigo-300 hover:text-indigo-400 transition-all"
                                     >
                                         + Otro
                                     </button>
@@ -419,28 +424,28 @@ export const StudentTrackingPage = () => {
                             {/* Optional: Manual Description & Action */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-50">
                                 <div>
-                                    <label className="block text-[9px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Detalle (Opcional)</label>
-                                    <textarea
+                                    <label className="block text-[11px] font-black text-gray-500 uppercase mb-2 tracking-widest ml-1">Detalle (Opcional)</label>
+                                    <textarea aria-label="Detalle (Opcional)"
                                         rows={2}
                                         value={newIncident.description}
                                         onChange={e => setNewIncident(prev => ({ ...prev, description: e.target.value }))}
-                                        className="w-full bg-gray-50 border-2 border-transparent focus:border-indigo-500 rounded-xl px-4 py-3 font-medium text-gray-700 outline-none transition-all placeholder:text-[10px] text-xs"
+                                        className="w-full bg-gray-50 border-2 border-transparent focus:border-indigo-500 rounded-xl px-4 py-3 font-medium text-gray-700 outline-none transition-all placeholder:text-[11px] text-xs"
                                         placeholder="Escribe aquí..."
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-[9px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Gravedad</label>
+                                    <label className="block text-[11px] font-black text-gray-500 uppercase mb-2 tracking-widest ml-1">Gravedad</label>
                                     <div className="flex space-x-2">
                                         {['BAJA', 'MEDIA', 'ALTA'].map(sev => (
                                             <button
                                                 key={sev}
                                                 onClick={() => setNewIncident(prev => ({ ...prev, severity: sev }))}
-                                                className={`flex-1 py-3 rounded-xl text-[9px] font-black transition-all border-2
+                                                className={`flex-1 py-3 rounded-xl text-[11px] font-black transition-all border-2
                                                     ${newIncident.severity === sev
                                                         ? (sev === 'ALTA' ? 'bg-red-600 border-red-600 text-white' :
                                                             sev === 'MEDIA' ? 'bg-amber-500 border-amber-500 text-white' :
                                                                 'bg-green-600 border-green-600 text-white')
-                                                        : 'bg-white border-gray-100 text-gray-400'}`}
+                                                        : 'bg-white border-gray-100 text-gray-500'}`}
                                             >
                                                 {sev}
                                             </button>
@@ -454,7 +459,7 @@ export const StudentTrackingPage = () => {
                         <div className="p-8 pt-0 flex space-x-3 shrink-0">
                             <button
                                 onClick={() => setShowIncidentModal(false)}
-                                className="px-6 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-gray-50 transition-all"
+                                className="px-6 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest text-gray-500 hover:bg-gray-50 transition-all"
                             >
                                 Cancelar
                             </button>

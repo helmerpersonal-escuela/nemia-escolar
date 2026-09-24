@@ -346,7 +346,7 @@ export const seedDatabase = async (tenantId: string) => {
 
                             // Create Attendance
                             const attendanceRecords: any[] = []
-                            let loopDate = new Date(CYCLE_START)
+                            const loopDate = new Date(CYCLE_START)
                             while (loopDate <= effectiveEndDate) {
                                 const dayName = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'][loopDate.getDay()]
                                 const hasClass = SCHEDULE_SLOTS[config.grade as 1 | 2 | 3].days.includes(dayName)

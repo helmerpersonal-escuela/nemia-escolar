@@ -9,8 +9,7 @@ import {
     ChevronRight,
     Info,
     Trash2,
-    Eye,
-    Shield
+    Eye
 } from 'lucide-react'
 
 export const AnalyticalProgramListPage = () => {
@@ -87,7 +86,7 @@ export const AnalyticalProgramListPage = () => {
         }
     }
 
-    if (loading) return <div className="p-20 text-center animate-pulse text-gray-400 font-bold uppercase tracking-widest italic font-sans">Buscando Programas Analíticos...</div>
+    if (loading) return <div className="p-20 text-center animate-pulse text-gray-500 font-bold uppercase tracking-widest italic font-sans">Buscando Programas Analíticos...</div>
 
     return (
         <div className="max-w-6xl mx-auto px-4">
@@ -95,7 +94,7 @@ export const AnalyticalProgramListPage = () => {
                 <div>
                     <h1 className="text-3xl font-black text-gray-900 tracking-tighter">Programas Analíticos (NEM)</h1>
                     {!isIndependent && (
-                        <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mt-2 flex items-center">
+                        <p className="text-sm text-gray-500 font-bold uppercase tracking-widest mt-2 flex items-center">
                             <span className="w-2 h-2 bg-indigo-500 rounded-full mr-2 animate-pulse" />
                             Sesión Permanente de CTE
                         </p>
@@ -134,7 +133,7 @@ export const AnalyticalProgramListPage = () => {
                                     <BookOpen className="w-6 h-6" />
                                 </div>
                                 <div className="flex items-center space-x-2">
-                                    <span className="text-[9px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600 px-3 py-1 rounded-lg">
+                                    <span className="text-[11px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-700 px-3 py-1 rounded-lg">
                                         {prog.status || 'ACTIVO'}
                                     </span>
                                     <button
@@ -164,27 +163,27 @@ export const AnalyticalProgramListPage = () => {
                                     {prog.school_data?.name || "PROGRAMA ESCOLAR"}
                                 </h2>
                                 <div className="flex flex-wrap gap-2">
-                                    <span className="text-[9px] font-black uppercase text-gray-400 px-2 py-1 bg-gray-50 rounded-md border border-gray-100">
+                                    <span className="text-[11px] font-black uppercase text-gray-500 px-2 py-1 bg-gray-50 rounded-md border border-gray-100">
                                         {prog.school_data?.level || "NIVEL NO DEF."}
                                     </span>
-                                    <span className="text-[9px] font-black uppercase text-indigo-500 px-2 py-1 bg-indigo-50/50 rounded-md border border-indigo-100">
+                                    <span className="text-[11px] font-black uppercase text-indigo-500 px-2 py-1 bg-indigo-50/50 rounded-md border border-indigo-100">
                                         CICLO {cycles.find(c => c.id === prog.academic_year_id)?.name || "2023-2024"}
                                     </span>
                                 </div>
                             </div>
 
-                            <p className="text-xs font-bold text-gray-400 leading-relaxed mb-10 line-clamp-3 italic">
-                                {prog.group_diagnosis?.narrative || "Sin narrativa diagnóstica capturada aún..."}
+                            <p className="text-xs font-bold text-gray-500 leading-relaxed mb-10 line-clamp-3 italic">
+                                {prog.group_diagnosis?.narrative_final || prog.group_diagnosis?.narrative || "Sin narrativa diagnóstica capturada aún..."}
                             </p>
 
                             <div className="mt-auto pt-6 border-t border-gray-50 flex items-center justify-between">
                                 <div className="flex flex-col">
-                                    <span className="text-[8px] font-black uppercase tracking-widest text-gray-300">Último ajuste</span>
-                                    <span className="text-[10px] font-black text-gray-500">
+                                    <span className="text-[11px] font-black uppercase tracking-widest text-gray-300">Último ajuste</span>
+                                    <span className="text-[11px] font-black text-gray-500">
                                         {new Date(prog.updated_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
                                     </span>
                                 </div>
-                                <div className="p-2 bg-gray-50 rounded-xl text-gray-400 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                                <div className="p-2 bg-gray-50 rounded-xl text-gray-500 group-hover:bg-indigo-600 group-hover:text-white transition-all">
                                     <ChevronRight className="w-4 h-4" />
                                 </div>
                             </div>
@@ -197,7 +196,7 @@ export const AnalyticalProgramListPage = () => {
                         <Plus className="w-10 h-10" />
                     </div>
                     <h3 className="text-2xl font-black text-gray-900 mb-4 tracking-tight">No hay programas registrados</h3>
-                    <p className="text-gray-400 font-bold text-sm leading-relaxed mb-10">
+                    <p className="text-gray-500 font-bold text-sm leading-relaxed mb-10">
                         Inicia la construcción del Programa Analítico de tu escuela para este ciclo escolar siguiendo los lineamientos de la NEM.
                     </p>
                     {isDirectorOrAdmin ? (
@@ -208,7 +207,7 @@ export const AnalyticalProgramListPage = () => {
                             Comenzar Ahora
                         </button>
                     ) : (
-                        <p className="text-amber-600 font-black text-xs uppercase tracking-widest bg-amber-50 px-6 py-3 rounded-xl border border-amber-100 inline-block">
+                        <p className="text-amber-700 font-black text-xs uppercase tracking-widest bg-amber-50 px-6 py-3 rounded-xl border border-amber-100 inline-block">
                             Consulta con la dirección para la creación del programa
                         </p>
                     )}
@@ -216,7 +215,7 @@ export const AnalyticalProgramListPage = () => {
             )}
 
             <div className="mt-20 bg-amber-50 rounded-[2.5rem] p-10 border border-amber-100 flex items-start max-w-4xl mx-auto">
-                <div className="p-3 bg-amber-100 rounded-2xl text-amber-600 mr-6">
+                <div className="p-3 bg-amber-100 rounded-2xl text-amber-700 mr-6">
                     <Info className="w-6 h-6" />
                 </div>
                 <div>

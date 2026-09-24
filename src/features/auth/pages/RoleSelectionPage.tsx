@@ -84,7 +84,7 @@ export const RoleSelectionPage = () => {
                     label: 'Docente',
                     description: 'Gestión de grupos, planeación y evaluación',
                     icon: GraduationCap,
-                    color: 'text-emerald-600',
+                    color: 'text-emerald-700',
                     bgColor: 'bg-emerald-600',
                     lightColor: 'bg-emerald-50'
                 }
@@ -93,7 +93,7 @@ export const RoleSelectionPage = () => {
                     label: 'Prefecto',
                     description: 'Seguridad, disciplina y monitoreo de campus',
                     icon: ShieldAlert,
-                    color: 'text-amber-600',
+                    color: 'text-amber-700',
                     bgColor: 'bg-amber-600',
                     lightColor: 'bg-amber-50'
                 }
@@ -197,7 +197,7 @@ export const RoleSelectionPage = () => {
                                 </div>
                                 <div className="ml-5 flex-1">
                                     <h3 className="text-xl font-black text-slate-800 leading-none mb-1">{config.label}</h3>
-                                    <p className="text-sm text-slate-400 font-bold">{config.description}</p>
+                                    <p className="text-sm text-slate-500 font-bold">{config.description}</p>
                                 </div>
                                 {isSwitching ? (
                                     <Loader2 className="w-6 h-6 text-indigo-600 animate-spin" />
@@ -211,7 +211,7 @@ export const RoleSelectionPage = () => {
                     })}
                 </div>
 
-                <p className="text-center text-xs text-slate-400 font-bold uppercase tracking-widest">
+                <p className="text-center text-xs text-slate-500 font-bold uppercase tracking-widest">
                     Puedes cambiar de rol desde el menú lateral
                 </p>
             </div>

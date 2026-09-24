@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
-import { Sparkles, Loader2, Lock, ArrowRight, AlertTriangle, CheckCircle } from 'lucide-react'
+import { Loader2, Lock, ArrowRight, AlertTriangle, CheckCircle } from 'lucide-react'
 
 export const ResetPasswordPage = () => {
     const [password, setPassword] = useState('')
@@ -119,7 +119,7 @@ export const ResetPasswordPage = () => {
                 ) : (
                     <div className="text-center space-y-6 animate-in zoom-in duration-300">
                         <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <CheckCircle className="w-10 h-10 text-emerald-500" />
+                            <CheckCircle className="w-10 h-10 text-emerald-700" />
                         </div>
                         <h3 className="text-xl font-black text-slate-800">¡Contraseña Actualizada!</h3>
                         <p className="text-slate-500 font-bold">Serás redirigido al inicio de sesión en unos segundos...</p>

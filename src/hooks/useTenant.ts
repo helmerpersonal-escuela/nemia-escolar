@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 
 export const useTenant = () => {
-    return useQuery({
+    const query = useQuery({
         queryKey: ['tenant'],
         queryFn: async () => {
             const { data: { user } } = await supabase.auth.getUser()
@@ -47,6 +47,7 @@ export const useTenant = () => {
                     onboardingCompleted: true,
                     aiConfig: {
                         apiKey: settings.groq_key || '',
+                        groqKey: settings.groq_key || '',
                         geminiKey: settings.gemini_key || '',
                         openaiKey: settings.openai_key || ''
                     },
@@ -86,10 +87,12 @@ export const useTenant = () => {
 
                 // Use the profile's actual role if it's a special role (TUTOR, ADMIN, etc.)
                 // Only default to TEACHER/INDEPENDENT_TEACHER for school/independent workspaces
-                const specialRoles = ['TUTOR', 'ADMIN', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD', 'SCHOOL_CONTROL', 'PREFECT', 'SUPPORT', 'STUDENT', 'INDEPENDENT_TEACHER']
-                const fallbackRole = specialRoles.includes(profile.role)
-                    ? profile.role
-                    : tenant.type === 'INDEPENDENT' ? 'INDEPENDENT_TEACHER' : 'TEACHER'
+                // DEFAULT INDEPENDENT OVERRIDE: 
+                // Any non-special role in an INDEPENDENT workspace becomes INDEPENDENT_TEACHER
+                const PROTECTED_ROLES = ['TUTOR', 'SCHOOL_CONTROL', 'PREFECT', 'SUPPORT', 'STUDENT', 'SUPER_ADMIN']
+                const fallbackRole = (tenant.type === 'INDEPENDENT' && !PROTECTED_ROLES.includes(profile.role))
+                    ? 'INDEPENDENT_TEACHER'
+                    : profile.role
 
                 return {
                     id: tenant.id,
@@ -107,8 +110,11 @@ export const useTenant = () => {
                     logoLeftUrl: tenant.logo_left_url,
                     logoRightUrl: tenant.logo_right_url,
                     onboardingCompleted: tenant.onboarding_completed,
+                    grade: tenant.grade,
+                    phase: tenant.phase,
                     aiConfig: {
                         apiKey: tenant.ai_config?.apiKey || tenant.ai_config?.groq_key || globalSettings.groq_key || '',
+                        groqKey: tenant.ai_config?.groq_key || tenant.ai_config?.apiKey || globalSettings.groq_key || '',
                         geminiKey: tenant.ai_config?.geminiKey || tenant.ai_config?.gemini_key || globalSettings.gemini_key || '',
                         openaiKey: tenant.ai_config?.openaiKey || tenant.ai_config?.openai_key || globalSettings.openai_key || ''
                     },
@@ -119,10 +125,9 @@ export const useTenant = () => {
             const tenant = ptData.tenants as any
             let finalRole = ptData.role
 
-            // ROBUST INDEPENDENT CHECK: 
             // If the workspace is independent, the user MUST be treated as INDEPENDENT_TEACHER
-            // UNLESS they have a special role that should be preserved (TUTOR, DIRECTOR, ADMIN, etc.)
-            const SPECIAL_ROLES = ['TUTOR', 'DIRECTOR', 'ADMIN', 'ACADEMIC_COORD', 'TECH_COORD', 'SCHOOL_CONTROL', 'PREFECT', 'SUPPORT', 'STUDENT', 'SUPER_ADMIN']
+            // UNLESS they have a special role that should be preserved (TUTOR, STUDENT, etc.)
+            const SPECIAL_ROLES = ['TUTOR', 'SCHOOL_CONTROL', 'PREFECT', 'SUPPORT', 'STUDENT', 'SUPER_ADMIN']
             if (tenant.type?.toUpperCase() === 'INDEPENDENT' && !SPECIAL_ROLES.includes(finalRole)) {
                 finalRole = 'INDEPENDENT_TEACHER'
             }
@@ -149,8 +154,11 @@ export const useTenant = () => {
                 logoRightUrl: tenant.logo_right_url,
                 address: tenant.address,
                 onboardingCompleted: tenant.onboarding_completed,
+                grade: tenant.grade,
+                phase: tenant.phase,
                 aiConfig: {
                     apiKey: tenant.ai_config?.apiKey || tenant.ai_config?.groq_key || globalSettings.groq_key || '',
+                    groqKey: tenant.ai_config?.groq_key || tenant.ai_config?.apiKey || globalSettings.groq_key || '',
                     geminiKey: tenant.ai_config?.geminiKey || tenant.ai_config?.gemini_key || globalSettings.gemini_key || '',
                     openaiKey: tenant.ai_config?.openaiKey || tenant.ai_config?.openai_key || globalSettings.openai_key || ''
                 },
@@ -159,6 +167,8 @@ export const useTenant = () => {
         },
         staleTime: 1000 * 30, // 30 seconds
     })
+    // isPending: mientras se restaura la copia guardada tampoco hay datos todavía.
+    return { ...query, isLoading: query.isPending }
 }
 
 export const useWorkspaces = () => {

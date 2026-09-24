@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { QrCode, UserCheck, Clock, ShieldCheck, Search, CheckCircle2, XCircle } from 'lucide-react'
+import { QrCode, UserCheck, Clock, ShieldCheck, Search, CheckCircle2 } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
+import { todayISO } from '../../../lib/dates'
 
 export const StaffAttendancePortal = () => {
     const { data: tenant } = useTenant()
@@ -31,7 +32,7 @@ export const StaffAttendancePortal = () => {
             .order('full_name')
 
         // Fetch today's attendance
-        const today = new Date().toISOString().split('T')[0]
+        const today = todayISO()
         const { data: attendance } = await supabase
             .from('staff_attendance')
             .select('*')
@@ -46,7 +47,7 @@ export const StaffAttendancePortal = () => {
     const handleCheckIn = async (profileId: string) => {
         if (!tenant) return
         setSubmitting(true)
-        const today = new Date().toISOString().split('T')[0]
+        const today = todayISO()
         const now = new Date().toISOString()
 
         try {
@@ -72,7 +73,7 @@ export const StaffAttendancePortal = () => {
     const handleCheckOut = async (profileId: string) => {
         if (!tenant) return
         setSubmitting(true)
-        const today = new Date().toISOString().split('T')[0]
+        const today = todayISO()
         const now = new Date().toISOString()
 
         try {
@@ -105,13 +106,13 @@ export const StaffAttendancePortal = () => {
                 <div className="flex bg-white p-1 rounded-2xl shadow-sm border border-slate-100">
                     <button
                         onClick={() => setView('MONITOR')}
-                        className={`px-6 py-2 rounded-xl font-bold text-sm transition-all ${view === 'MONITOR' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600'}`}
+                        className={`px-6 py-2 rounded-xl font-bold text-sm transition-all ${view === 'MONITOR' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-500 hover:text-slate-600'}`}
                     >
                         Monitoreo
                     </button>
                     <button
                         onClick={() => setView('CHECKIN')}
-                        className={`px-6 py-2 rounded-xl font-bold text-sm transition-all ${view === 'CHECKIN' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600'}`}
+                        className={`px-6 py-2 rounded-xl font-bold text-sm transition-all ${view === 'CHECKIN' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-500 hover:text-slate-600'}`}
                     >
                         Registrar Entrada
                     </button>
@@ -122,7 +123,7 @@ export const StaffAttendancePortal = () => {
                 <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-100 border border-slate-50 overflow-hidden">
                     <div className="p-8 border-b border-slate-50 flex justify-between items-center">
                         <div className="relative w-72">
-                            <Search className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                            <Search className="absolute left-3 top-3 w-4 h-4 text-slate-500" />
                             <input
                                 placeholder="Buscar personal..."
                                 className="w-full pl-10 pr-4 py-3 bg-slate-50 border-none rounded-2xl outline-none focus:ring-2 ring-blue-100 font-bold text-sm"
@@ -132,7 +133,7 @@ export const StaffAttendancePortal = () => {
                         </div>
                         <div className="flex gap-4">
                             <div className="text-right">
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Personal Presente</p>
+                                <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Personal Presente</p>
                                 <p className="text-2xl font-black text-blue-600">{attendanceToday.length} / {staff.length}</p>
                             </div>
                         </div>
@@ -142,12 +143,12 @@ export const StaffAttendancePortal = () => {
                         <table className="w-full">
                             <thead>
                                 <tr className="bg-slate-50/50">
-                                    <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Colaborador</th>
-                                    <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Rol</th>
-                                    <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Entrada</th>
-                                    <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Salida</th>
-                                    <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Estado</th>
-                                    <th className="px-8 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Acciones</th>
+                                    <th className="px-8 py-4 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">Colaborador</th>
+                                    <th className="px-8 py-4 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">Rol</th>
+                                    <th className="px-8 py-4 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">Entrada</th>
+                                    <th className="px-8 py-4 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">Salida</th>
+                                    <th className="px-8 py-4 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">Estado</th>
+                                    <th className="px-8 py-4 text-right text-[11px] font-black text-slate-500 uppercase tracking-widest">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
@@ -166,7 +167,7 @@ export const StaffAttendancePortal = () => {
                                                     </div>
                                                 </td>
                                                 <td className="px-8 py-4">
-                                                    <span className="text-[10px] font-black px-2 py-1 bg-slate-100 text-slate-600 rounded-md uppercase tracking-wider">{p.role}</span>
+                                                    <span className="text-[11px] font-black px-2 py-1 bg-slate-100 text-slate-600 rounded-md uppercase tracking-wider">{p.role}</span>
                                                 </td>
                                                 <td className="px-8 py-4 font-bold text-slate-600">
                                                     {att?.check_in ? new Date(att.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
@@ -176,11 +177,11 @@ export const StaffAttendancePortal = () => {
                                                 </td>
                                                 <td className="px-8 py-4">
                                                     {att ? (
-                                                        <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center w-fit gap-1">
+                                                        <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-[11px] font-black uppercase tracking-widest flex items-center w-fit gap-1">
                                                             <CheckCircle2 className="w-3 h-3" /> Presente
                                                         </span>
                                                     ) : (
-                                                        <span className="px-3 py-1 bg-slate-50 text-slate-400 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center w-fit gap-1">
+                                                        <span className="px-3 py-1 bg-slate-50 text-slate-500 rounded-full text-[11px] font-black uppercase tracking-widest flex items-center w-fit gap-1">
                                                             <Clock className="w-3 h-3" /> Pendiente
                                                         </span>
                                                     )}
@@ -223,7 +224,7 @@ export const StaffAttendancePortal = () => {
                             <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/20 to-transparent pointer-events-none" />
                         </div>
                         <h3 className="text-2xl font-black mb-4">Escanear Código QR</h3>
-                        <p className="text-slate-400 font-medium mb-8">El personal puede usar su identificación digital para registrar su asistencia al instante.</p>
+                        <p className="text-slate-500 font-medium mb-8">El personal puede usar su identificación digital para registrar su asistencia al instante.</p>
                         <div className="flex gap-4">
                             <span className="px-4 py-2 bg-white/10 rounded-xl text-xs font-bold flex items-center gap-2">
                                 <ShieldCheck className="w-4 h-4 text-emerald-400" /> Sistema Seguro

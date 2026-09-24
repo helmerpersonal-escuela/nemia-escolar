@@ -11,11 +11,14 @@ export interface Subscription {
 }
 
 export const useSubscription = () => {
-    const { data: subscription, isLoading, error } = useQuery<Subscription | null>({
+    const { data: subscription, isPending, error } = useQuery<Subscription | null>({
         queryKey: ['subscription'],
         queryFn: async () => {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) return null
+            // La sesión local basta para saber quién es; getUser() consulta al servidor y
+            // si falla un momento dejaba la suscripción en null (mandaba a "Planes" por error).
+            const { data: { session } } = await supabase.auth.getSession()
+            const user = session?.user
+            if (!user) throw new Error('Sesión no disponible todavía')
 
             // Check for impersonation
             const impersonateId = sessionStorage.getItem('vunlek_impersonate_id')
@@ -35,7 +38,9 @@ export const useSubscription = () => {
             if (subError && subError.code !== 'PGRST116') throw subError
             return data
         },
-        staleTime: 1000 * 60 * 5 // 5 minutes
+        staleTime: 1000 * 60 * 5, // 5 minutes
+        retry: (failures, err) => failures < 3 && !/JWT|permission|401|403/i.test(String((err as Error)?.message ?? '')),
+        retryDelay: attempt => Math.min(1000 * 2 ** attempt, 4000),
     })
 
     const isTrialExpired = () => {
@@ -51,5 +56,7 @@ export const useSubscription = () => {
         return false
     }
 
-    return { subscription, loading: isLoading, error, isTrialExpired, isActive }
+    // isPending (no isLoading): mientras React Query restaura la copia guardada no hay
+    // petición en curso, e isLoading era false; eso mandaba a "Planes" por error.
+    return { subscription, loading: isPending, error, isTrialExpired, isActive }
 }

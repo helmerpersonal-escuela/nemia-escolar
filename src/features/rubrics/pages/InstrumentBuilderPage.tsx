@@ -143,7 +143,7 @@ export const InstrumentBuilderPage = () => {
                         <div className="absolute top-0 right-0 p-12 -mr-10 -mt-10 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-full blur-3xl opacity-50" />
 
                         <label className="block text-sm font-bold text-gray-900 mb-2">Tema o Actividad</label>
-                        <input
+                        <input aria-label="Tema o Actividad"
                             type="text"
                             value={topic}
                             onChange={(e) => setTopic(e.target.value)}
@@ -175,7 +175,7 @@ export const InstrumentBuilderPage = () => {
 
                     <button
                         onClick={() => setStep(1)}
-                        className="mt-8 text-gray-400 hover:text-gray-600 font-medium text-sm"
+                        className="mt-8 text-gray-500 hover:text-gray-600 font-medium text-sm"
                     >
                         Cancelar y volver
                     </button>

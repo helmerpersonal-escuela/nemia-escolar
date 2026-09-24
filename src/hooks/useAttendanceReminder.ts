@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useTenant } from './useTenant'
 import { useProfile } from './useProfile'
+import { toLocalISODate } from '../lib/dates'
 
 export const useAttendanceReminder = () => {
     const { data: tenant } = useTenant()
@@ -31,7 +32,7 @@ export const useAttendanceReminder = () => {
             if (now < limitTime) return
 
             // 3. Check if already checked/notified today
-            const today = now.toISOString().split('T')[0]
+            const today = toLocalISODate(now)
             const storageKey = `attendance_reminder_${profile.id}_${today}`
             if (localStorage.getItem(storageKey)) return
 

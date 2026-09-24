@@ -80,20 +80,20 @@ export const PlanningListPage = () => {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 sm:pt-12">
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 md:gap-8 mb-8 md:mb-16">
                     <div>
-                        <div className="flex items-center space-x-2 text-indigo-600 font-black uppercase text-[10px] tracking-[0.3em] mb-2 md:mb-4">
+                        <div className="flex items-center space-x-2 text-indigo-600 font-black uppercase text-[11px] tracking-[0.3em] mb-2 md:mb-4">
                             <Sparkles className="w-4 h-4" />
                             <span>Gobernanza Pedagógica</span>
                         </div>
                         <h1 className="text-3xl sm:text-6xl font-black text-gray-900 tracking-tight leading-none">
                             Planeación <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">Didáctica</span>
                         </h1>
-                        <p className="mt-2 md:mt-4 text-gray-400 font-medium max-w-xl text-sm md:text-lg">
+                        <p className="mt-2 md:mt-4 text-gray-500 font-medium max-w-xl text-sm md:text-lg">
                             Diseña proyectos y secuencias alineadas a la NEM con asistencia inteligente.
                         </p>
                     </div>
                     <Link
                         to="/planning/new"
-                        className="bg-indigo-600 text-white px-6 py-4 md:px-10 md:py-5 rounded-[1.5rem] md:rounded-[2rem] hover:bg-indigo-700 transition-all font-black text-[10px] md:text-xs uppercase tracking-[0.2em] shadow-2xl shadow-indigo-100 flex items-center justify-center group btn-tactile w-full md:w-auto"
+                        className="bg-indigo-600 text-white px-6 py-4 md:px-10 md:py-5 rounded-[1.5rem] md:rounded-[2rem] hover:bg-indigo-700 transition-all font-black text-[11px] md:text-xs uppercase tracking-[0.2em] shadow-2xl shadow-indigo-100 flex items-center justify-center group btn-tactile w-full md:w-auto"
                     >
                         <Plus className="w-5 h-5 mr-3 group-hover:rotate-90 transition-transform duration-500" />
                         Nueva Planeación
@@ -119,12 +119,12 @@ export const PlanningListPage = () => {
                             <FileText className="w-8 h-8 md:w-12 md:h-12 text-gray-200" />
                         </div>
                         <h3 className="text-xl md:text-2xl font-black text-gray-900 uppercase tracking-tighter">No hay documentos aún</h3>
-                        <p className="text-gray-400 max-w-sm mx-auto mt-2 font-medium text-sm md:text-base">
+                        <p className="text-gray-500 max-w-sm mx-auto mt-2 font-medium text-sm md:text-base">
                             Toda gran enseñanza comienza con un plan. Crea hoy tu primer proyecto o secuencia didáctica.
                         </p>
                         <Link
                             to="/planning/new"
-                            className="mt-6 md:mt-10 inline-flex items-center bg-indigo-50 text-indigo-600 px-6 py-3 md:px-8 md:py-4 rounded-2xl font-black text-[10px] md:text-xs uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all btn-tactile"
+                            className="mt-6 md:mt-10 inline-flex items-center bg-indigo-50 text-indigo-600 px-6 py-3 md:px-8 md:py-4 rounded-2xl font-black text-[11px] md:text-xs uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all btn-tactile"
                         >
                             Comenzar ahora <ArrowRight className="w-4 h-4 ml-2" />
                         </Link>
@@ -165,7 +165,7 @@ export const PlanningListPage = () => {
                                     <div className="p-4 bg-indigo-50 rounded-2xl text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-500 transform group-hover:rotate-6">
                                         <FileText className="w-6 h-6" />
                                     </div>
-                                    <span className="text-[9px] font-black uppercase bg-gray-50 text-gray-400 px-4 py-1.5 rounded-full tracking-widest">
+                                    <span className="text-[11px] font-black uppercase bg-gray-50 text-gray-500 px-4 py-1.5 rounded-full tracking-widest">
                                         {plan.temporality === 'WEEKLY' ? 'Semanal' : plan.temporality === 'MONTHLY' ? 'Mensual' : 'Proyecto'}
                                     </span>
                                 </div>
@@ -197,8 +197,8 @@ export const PlanningListPage = () => {
 
                                 {plan.metodologia && (
                                     <div className="mt-8 pt-6 border-t border-gray-50">
-                                        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2 text-right">Metodología</p>
-                                        <p className="text-[11px] font-bold text-gray-400 text-right leading-relaxed italic line-clamp-2">
+                                        <p className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2 text-right">Metodología</p>
+                                        <p className="text-[11px] font-bold text-gray-500 text-right leading-relaxed italic line-clamp-2">
                                             {plan.metodologia}
                                         </p>
                                     </div>

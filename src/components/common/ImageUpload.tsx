@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { UploadCloud, X, Image as ImageIcon, Loader2 } from 'lucide-react'
+import { X, Image as ImageIcon, Loader2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
 interface ImageUploadProps {
@@ -119,12 +119,12 @@ export const ImageUpload = ({ currentUrl, onUpload, label, bucket = 'school-asse
                 ) : (
                     <>
                         <div className="p-3 bg-white rounded-full shadow-sm mb-3">
-                            <ImageIcon className="w-6 h-6 text-gray-400" />
+                            <ImageIcon className="w-6 h-6 text-gray-500" />
                         </div>
                         <p className="text-sm font-medium text-gray-600 mb-1">
                             {isDragActive ? 'Suelta la imagen aquí' : 'Haz clic o arrastra una imagen'}
                         </p>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-gray-500">
                             PNG, JPG, WEBP (Máx. {maxSizeMB}MB)
                         </p>
                     </>

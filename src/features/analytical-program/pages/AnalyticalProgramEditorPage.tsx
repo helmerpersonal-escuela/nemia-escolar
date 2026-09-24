@@ -1,12 +1,11 @@
-import { useState, useEffect, useMemo } from 'react'
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 // Force rebuild to fix intermittent 500 errors in some environments
 import { useTenant } from '../../../hooks/useTenant'
-import { GroqService } from '../../../lib/groq'
+import { geminiService } from '../../../lib/gemini'
 import { useProfile } from '../../../hooks/useProfile'
 import {
-    Save,
     ArrowLeft,
     Sparkles,
     CheckCircle2,
@@ -19,7 +18,9 @@ import {
     ChevronRight,
     Loader2,
     Check,
-    RotateCcw
+    RotateCcw,
+    Layers,
+    GraduationCap
 } from 'lucide-react'
 
 // Wizard Steps Configuration
@@ -45,7 +46,8 @@ const DEFAULT_SCHOOL_DATA = {
     turn: 'Matutino',
     students_total: '',
     teachers_count: '',
-    logo_url: ''
+    logo_url: '',
+    grade: '' // New property to determine phase for primary
 }
 
 const DEFAULT_FIELDS = {
@@ -76,7 +78,7 @@ export const AnalyticalProgramEditorPage = () => {
     const { data: tenant } = useTenant()
 
     // Service Instance
-    const groqService = useMemo(() => new GroqService((tenant as any)?.groqApiKey || ''), [(tenant as any)?.groqApiKey])
+    const aiService = geminiService
 
     // State
     const [currentStep, setCurrentStep] = useState(1)
@@ -85,9 +87,29 @@ export const AnalyticalProgramEditorPage = () => {
     const [isGenerating, setIsGenerating] = useState(false)
     const [syntheticCatalog, setSyntheticCatalog] = useState<any[]>([])
     const [suggestedContents, setSuggestedContents] = useState<any[]>([])
+    const [syntheticContext, setSyntheticContext] = useState<string>('') // Raw text from uploaded PDF
     const [customInputs, setCustomInputs] = useState({
         geo: '', social: '', cultural: '', infra: '', academic: ''
     })
+
+    // Helpers
+    const getPhaseFromLevel = (level: string, gradeStr?: string): number => {
+        const lower = level.toLowerCase()
+        if (lower.includes('inicial')) return 1
+        if (lower.includes('preescolar')) return 2
+
+        if (lower.includes('primaria') || lower.includes('primary')) {
+            if (!gradeStr) return 4 // Default intermediate phase for primary
+            const numericGrade = parseInt(gradeStr.replace(/\D/g, ''))
+            if (numericGrade === 1 || numericGrade === 2) return 3
+            if (numericGrade === 3 || numericGrade === 4) return 4
+            if (numericGrade === 5 || numericGrade === 6) return 5
+            return 4
+        }
+
+        if (lower.includes('secundaria') || lower.includes('secondary') || lower.includes('telesecundaria')) return 6
+        return 6 // Default
+    }
 
     // Steps Data Enums (Extended)
     const CONTEXT_OPTIONS = {
@@ -170,61 +192,92 @@ export const AnalyticalProgramEditorPage = () => {
                 .eq('phase', 6)
             if (catalog) setSyntheticCatalog(catalog)
 
-            // 2. Load from LocalStorage (Draft)
-            const savedDraft = localStorage.getItem(`analytical_program_draft_${id || 'new'}`)
-            if (savedDraft) {
-                try {
-                    const parsed = JSON.parse(savedDraft)
-                    // Merge with current initial state to avoid missing fields if schema changed
-                    setFormData(prev => ({
-                        ...prev,
-                        ...parsed.formData,
-                        diagnosis: { ...prev.diagnosis, ...parsed.formData?.diagnosis },
-                        school_data: { ...prev.school_data, ...parsed.formData?.school_data },
-                        // Ensure codesign_process exists even in old drafts
-                        codesign_process: {
-                            ...prev.codesign_process,
-                            ...(parsed.formData?.codesign_process || {})
-                        }
-                    }))
-                    setCurrentStep(parsed.currentStep || 1)
-                    if (parsed.suggestedContents) setSuggestedContents(parsed.suggestedContents)
-
-                } catch (e) {
-                    console.error('Error restoring draft', e)
-                }
-            } else if (id && id !== 'new') {
-                // 3. Fetch from DB if no draft
-                const { data: program } = await supabase
+            // 2. Try to fetch from DB if we have an ID
+            let dbProgram = null
+            if (id && id !== 'new') {
+                const { data: program, error: fetchError } = await supabase
                     .from('analytical_programs')
                     .select('*')
                     .eq('id', id)
                     .maybeSingle()
 
-                if (program) {
-                    const groupDiag = program.group_diagnosis || {}
-                    setFormData({
-                        school_data: program.school_data || DEFAULT_SCHOOL_DATA,
-                        diagnosis: {
-                            ...groupDiag,
-                            narrative_final: groupDiag.narrative_final || ''
-                        },
-                        problems: groupDiag.problem_situations || [],
-                        program_by_fields: program.program_by_fields || DEFAULT_FIELDS,
-                        codesign_process: groupDiag.codesign_process || DEFAULT_CODESIGN
-                    })
-                }
-            } else {
-                // 4. Default Fill for New
-                setFormData(prev => ({
-                    ...prev,
+                if (fetchError) console.error('Error loading existing program:', fetchError)
+                if (program) dbProgram = program
+            }
+
+            // 3. Load from LocalStorage (Draft) as potential override or for "new"
+            const savedDraft = localStorage.getItem(`analytical_program_draft_${id || 'new'}`)
+
+            if (dbProgram) {
+                // DB found - Prioritize DB data and handle standardizing mapping
+                const groupDiag = dbProgram.group_diagnosis || {}
+                const baseData = {
                     school_data: {
-                        ...prev.school_data,
-                        name: tenant?.name || '',
-                        cct: tenant?.cct || '',
-                        level: (tenant?.educationalLevel as string) || prev.school_data.level,
+                        ...DEFAULT_SCHOOL_DATA,
+                        ...(dbProgram.school_data || {}),
+                        // Fallback to top-level if legacy data used them
+                        name: dbProgram.school_data?.name || dbProgram.school_data?.official_name || DEFAULT_SCHOOL_DATA.name
+                    },
+                    diagnosis: {
+                        external_context: groupDiag.external_context || { geo: '', social: '', cultural: '' },
+                        internal_context: groupDiag.internal_context || { infrastructure: '', resources: '', environment: '' },
+                        students: groupDiag.students || { characteristics: '', needs: '', interests: '' },
+                        teachers: groupDiag.teachers || { strengths: '', areas_opportunity: '' },
+                        narrative_final: groupDiag.narrative_final || groupDiag.narrative || dbProgram.diagnosis_context || ''
+                    },
+                    problems: groupDiag.problem_situations || dbProgram.problem_statements || [],
+                    program_by_fields: dbProgram.program_by_fields || DEFAULT_FIELDS,
+                    codesign_process: groupDiag.codesign_process || dbProgram.codesign_process || DEFAULT_CODESIGN
+                }
+
+                setFormData(baseData)
+                if (groupDiag.suggested_contents) {
+                    setSuggestedContents(groupDiag.suggested_contents)
+                }
+
+                // If draft exists, use it ONLY for UI state like currentStep to avoid overriding DB data with stale/empty draft
+                if (savedDraft) {
+                    try {
+                        const parsed = JSON.parse(savedDraft)
+                        setCurrentStep(parsed.currentStep || 1)
+                    } catch { /* borrador corrupto: se ignora */ }
+                }
+            } else if (savedDraft) {
+                // No DB data (or it's "new"), but draft exists
+                try {
+                    const parsed = JSON.parse(savedDraft)
+                    setFormData(prev => ({
+                        ...prev,
+                        ...parsed.formData,
+                        diagnosis: { ...prev.diagnosis, ...parsed.formData?.diagnosis },
+                        school_data: { ...prev.school_data, ...parsed.formData?.school_data },
+                        codesign_process: { ...prev.codesign_process, ...(parsed.formData?.codesign_process || {}) }
+                    }))
+                    setCurrentStep(parsed.currentStep || 1)
+                    if (parsed.suggestedContents) setSuggestedContents(parsed.suggestedContents)
+                } catch (e) {
+                    console.error('Error restoring draft', e)
+                }
+            } else if (id === 'new' || !id) {
+                setFormData(prev => {
+                    const rawLevel = (tenant?.educationalLevel as string) || prev.school_data.level;
+                    let mappedLevel = rawLevel;
+                    if (rawLevel === 'PRIMARY') mappedLevel = 'Primaria';
+                    else if (rawLevel === 'SECONDARY') mappedLevel = 'Secundaria';
+                    else if (rawLevel === 'TELESECUNDARIA') mappedLevel = 'Telesecundaria';
+                    else if (rawLevel === 'HIGH_SCHOOL') mappedLevel = 'Preparatoria';
+
+                    return {
+                        ...prev,
+                        school_data: {
+                            ...prev.school_data,
+                            name: tenant?.name || '',
+                            cct: tenant?.cct || '',
+                            level: mappedLevel,
+                            grade: tenant?.grade?.toString() || prev.school_data.grade,
+                        }
                     }
-                }))
+                })
             }
             setLoading(false)
         }
@@ -243,6 +296,37 @@ export const AnalyticalProgramEditorPage = () => {
         }
     }, [formData, currentStep, suggestedContents, loading, id])
 
+    // Fetch Official Synthetic Program Context
+    useEffect(() => {
+        const fetchContext = async () => {
+            if (!formData.school_data.level) return
+            // Try to extract grade from problems or other data if needed.
+            // Currently, AnalyticalProgram applies to the whole school/cycle, but often is focused by teachers on a specific grade.
+            // If the user's tenant has a specific grade linked, or if they are a teacher, we might deduce it.
+            // For now, if no grade is provided, it defaults to Phase 4 for primary. We'll need a grade selector in Step 1.
+            const phase = getPhaseFromLevel(formData.school_data.level, formData.school_data.grade)
+
+            try {
+                const { data, error } = await supabase
+                    .from('synthetic_programs_pdfs')
+                    .select('extracted_text')
+                    .eq('phase', phase)
+                    .maybeSingle()
+
+                if (data && data.extracted_text) {
+                    setSyntheticContext(data.extracted_text)
+                    console.log(`[AnalyticalProgram] Cargado contexto oficial de Fase ${phase} (${data.extracted_text.length} caracteres)`)
+                } else {
+                    setSyntheticContext('')
+                }
+            } catch (error) {
+                console.error('Error fetching synthetic context:', error)
+            }
+        }
+
+        fetchContext()
+    }, [formData.school_data.level])
+
     // --- Actions ---
 
     const handleNext = () => {
@@ -256,26 +340,36 @@ export const AnalyticalProgramEditorPage = () => {
     const generateDiagnosisNarrative = async () => {
         setIsGenerating(true)
         try {
+            const level = formData.school_data.level || 'Secundaria'
+            const isPrimary = level.toLowerCase().includes('primaria')
+            const primaryContext = isPrimary ? 'ENFOQUE PRIMARIA: Resalta la importancia del desarrollo integral, habilidades fundamentales (lectura, escritura, aritmética), y un entorno lúdico y de evaluación formativa. Usa lenguaje apropiado para primaria.' : ''
+
             const prompt = `
-                Actúa como un experto pedagogo de la Nueva Escuela Mexicana (NEM).
-                Genera una narrativa diagnóstica socioeducativa (Primer Plano) coherente y profesional para la escuela "${formData.school_data.name}" (CCT: ${formData.school_data.cct}).
+                Actúa como un director experto de la NEM.
+                Redacta un diagnóstico socioeducativo narrativo y profesional integrando los siguientes elementos de la escuela.
                 
-                Contexto proporcionado:
+                Nivel Educativo: ${level}
+                
+                Contexto Externo:
                 - Entorno Geográfico: ${formData.diagnosis.external_context.geo}
                 - Factores Sociales: ${formData.diagnosis.external_context.social}
                 - Factores Culturales: ${formData.diagnosis.external_context.cultural}
+
+                Contexto Interno:
                 - Infraestructura: ${formData.diagnosis.internal_context.infrastructure}
-                - Características Alumnos: ${formData.diagnosis.internal_context.environment}
+                - Entorno Académico: ${formData.diagnosis.internal_context.environment}
 
-                REGLAS DE REDACCIÓN:
-                1. Redacta en párrafos fluidos (3-5 párrafos).
-                2. Usa un lenguaje pedagógico crítico propio de la NEM.
-                3. Identifica cómo el contexto influye en el proceso de enseñanza-aprendizaje.
-                4. No uses viñetas ni listas.
-                5. Menciona explícitamente el nombre de la escuela si es posible.
+                ${primaryContext}
+
+                Instrucciones Adicionales:
+                1. Muestra cómo estos factores (positivos o negativos) impactan el aprendizaje de los alumnos.
+                2. Usa un tono analítico, propositivo y humanista.
+                3. Organiza en 3 párrafos fluidos y bien conectados, sin usar viñetas.
+                ${syntheticContext ? `\nINSPIRACIÓN OFICIAL (PROGRAMA SINTÉTICO FASE CORRESPONDIENTE):\nAlinea este diagnóstico con las especificidades de este documento oficial:\n${syntheticContext.substring(0, 5000)}...\n` : ''}
+                
+                Responde ÚNICAMENTE con el texto de la narrativa, no agregues saludos ni comentarios extra.
             `
-
-            const narrative = await groqService.generateContent(prompt)
+            const narrative = await aiService.generateContent(prompt)
 
             setFormData(prev => ({
                 ...prev,
@@ -302,7 +396,7 @@ export const AnalyticalProgramEditorPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Nombre de la Escuela</label>
-                        <input
+                        <input aria-label="Nombre de la Escuela"
                             value={formData.school_data.name}
                             onChange={e => setFormData({ ...formData, school_data: { ...formData.school_data, name: e.target.value } })}
                             className="w-full bg-gray-50 border-gray-200 rounded-xl px-4 py-3 font-bold text-gray-700"
@@ -310,7 +404,7 @@ export const AnalyticalProgramEditorPage = () => {
                     </div>
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-2">CCT</label>
-                        <input
+                        <input aria-label="CCT"
                             value={formData.school_data.cct}
                             onChange={e => setFormData({ ...formData, school_data: { ...formData.school_data, cct: e.target.value } })}
                             className="w-full bg-gray-50 border-gray-200 rounded-xl px-4 py-3 font-bold text-gray-700"
@@ -318,7 +412,7 @@ export const AnalyticalProgramEditorPage = () => {
                     </div>
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Zona Escolar</label>
-                        <input
+                        <input aria-label="Zona Escolar"
                             value={formData.school_data.zone}
                             onChange={e => setFormData({ ...formData, school_data: { ...formData.school_data, zone: e.target.value } })}
                             className="w-full bg-gray-50 border-gray-200 rounded-xl px-4 py-3 font-bold text-gray-700"
@@ -326,7 +420,7 @@ export const AnalyticalProgramEditorPage = () => {
                     </div>
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Sector</label>
-                        <input
+                        <input aria-label="Sector"
                             value={formData.school_data.sector}
                             onChange={e => setFormData({ ...formData, school_data: { ...formData.school_data, sector: e.target.value } })}
                             className="w-full bg-gray-50 border-gray-200 rounded-xl px-4 py-3 font-bold text-gray-700"
@@ -334,7 +428,7 @@ export const AnalyticalProgramEditorPage = () => {
                     </div>
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Municipio</label>
-                        <input
+                        <input aria-label="Municipio"
                             value={formData.school_data.municipality}
                             onChange={e => setFormData({ ...formData, school_data: { ...formData.school_data, municipality: e.target.value } })}
                             className="w-full bg-gray-50 border-gray-200 rounded-xl px-4 py-3 font-bold text-gray-700"
@@ -342,11 +436,79 @@ export const AnalyticalProgramEditorPage = () => {
                     </div>
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Matrícula Total</label>
-                        <input
+                        <input aria-label="Matrícula Total"
                             value={formData.school_data.students_total}
                             onChange={e => setFormData({ ...formData, school_data: { ...formData.school_data, students_total: e.target.value } })}
                             className="w-full bg-gray-50 border-gray-200 rounded-xl px-4 py-3 font-bold text-gray-700"
                         />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Nivel Educativo</label>
+                        <select aria-label="Nivel Educativo"
+                            value={formData.school_data.level}
+                            onChange={e => setFormData({ ...formData, school_data: { ...formData.school_data, level: e.target.value } })}
+                            className="w-full bg-gray-50 border-gray-200 rounded-xl px-4 py-3 font-bold text-gray-700"
+                        >
+                            <option value="Primaria">Primaria</option>
+                            <option value="Secundaria">Secundaria</option>
+                            <option value="Telesecundaria">Telesecundaria</option>
+                            <option value="Preparatoria">Preparatoria / Bachillerato</option>
+                        </select>
+                    </div>
+                </div>
+
+                {/* Additional Info Section (Grade and Phase) */}
+                <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="squishy-card p-6 bg-indigo-50 border-2 border-indigo-100 flex items-center gap-4">
+                        <div className="p-4 bg-indigo-100 text-indigo-600 rounded-2xl">
+                            <GraduationCap className="h-8 w-8" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-black text-indigo-400 uppercase tracking-widest">Grado Asignado</p>
+                            {formData.school_data.level.toLowerCase().includes('primaria') ? (
+                                <select
+                                    value={formData.school_data.grade}
+                                    onChange={e => setFormData({ ...formData, school_data: { ...formData.school_data, grade: e.target.value } })}
+                                    className="mt-1 block w-full bg-white border-indigo-200 rounded-xl px-3 py-2 text-sm font-bold text-indigo-700"
+                                >
+                                    <option value="">Seleccione Grado...</option>
+                                    <option value="1">1° Año (Fase 3)</option>
+                                    <option value="2">2° Año (Fase 3)</option>
+                                    <option value="3">3° Año (Fase 4)</option>
+                                    <option value="4">4° Año (Fase 4)</option>
+                                    <option value="5">5° Año (Fase 5)</option>
+                                    <option value="6">6° Año (Fase 5)</option>
+                                </select>
+                            ) : (
+                                <h4 className="text-2xl font-black text-indigo-900 mt-1">
+                                    {formData.school_data.grade ? `${formData.school_data.grade}° Grado` : 'No aplicable / No asignado'}
+                                </h4>
+                            )}
+                        </div>
+                    </div>
+                    <div className="squishy-card p-6 bg-purple-50 border-2 border-purple-100 flex items-center gap-4">
+                        <div className="p-4 bg-purple-100 text-purple-600 rounded-2xl">
+                            <Layers className="h-8 w-8" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-black text-purple-400 uppercase tracking-widest">Fase NEM</p>
+                            <h4 className="text-2xl font-black text-purple-900 mt-1">
+                                {(() => {
+                                    // Local minimal logic to get phase for display in the UI based on current form state
+                                    const lvl = formData.school_data.level?.toLowerCase() || ''
+                                    let ph = '2' // preschool default
+                                    if (lvl.includes('secundaria')) ph = '6'
+                                    else if (lvl.includes('primaria')) {
+                                        const g = parseInt(formData.school_data.grade || '0')
+                                        if (g === 1 || g === 2) ph = '3'
+                                        else if (g === 3 || g === 4) ph = '4'
+                                        else if (g === 5 || g === 6) ph = '5'
+                                        else ph = 'Pendiente'
+                                    }
+                                    return ph !== 'Pendiente' ? `Fase ${ph}` : 'Pendiente'
+                                })()}
+                            </h4>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -354,7 +516,7 @@ export const AnalyticalProgramEditorPage = () => {
     )
 
     const handleAddCustom = (category: string, sub: string, inputKey: string) => {
-        // @ts-ignore
+        // @ts-expect-error -- pendiente de tipar
         const val = customInputs[inputKey].trim()
         if (!val) return
         toggleOption(category, sub, val)
@@ -362,14 +524,14 @@ export const AnalyticalProgramEditorPage = () => {
     }
 
     const renderOptionGroup = (title: string, options: string[], category: string, sub: string, inputKey: string) => {
-        // @ts-ignore
+        // @ts-expect-error -- pendiente de tipar
         const currentSelection = formData.diagnosis[category][sub].split(', ').filter(Boolean)
         // Find selected items that are NOT in the default options (custom ones)
         const customSelected = currentSelection.filter((s: string) => !options.includes(s))
 
         return (
             <div>
-                <label className="text-xs font-bold text-gray-400 uppercase mb-3 block">{title}</label>
+                <label className="text-xs font-bold text-gray-500 uppercase mb-3 block">{title}</label>
                 <div className="flex flex-wrap gap-2 mb-3">
                     {/* Default Options */}
                     {options.map(opt => (
@@ -401,9 +563,8 @@ export const AnalyticalProgramEditorPage = () => {
                         type="text"
                         placeholder="Agregar otro..."
                         className="flex-1 bg-gray-50 border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 outline-none"
-                        // @ts-ignore
+                        // @ts-expect-error -- pendiente de tipar
                         value={customInputs[inputKey]}
-                        // @ts-ignore
                         onChange={(e) => setCustomInputs(prev => ({ ...prev, [inputKey]: e.target.value }))}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') {
@@ -412,7 +573,7 @@ export const AnalyticalProgramEditorPage = () => {
                             }
                         }}
                     />
-                    <button
+                    <button aria-label="Confirmar"
                         onClick={() => handleAddCustom(category, sub, inputKey)}
                         className="bg-gray-200 hover:bg-gray-300 text-gray-600 rounded-lg p-1.5 transition-colors"
                     >
@@ -479,7 +640,7 @@ export const AnalyticalProgramEditorPage = () => {
                         <h3 className="text-sm font-black text-gray-800 uppercase tracking-wide flex items-center">
                             <CheckCircle2 className="w-5 h-5 mr-2 text-green-500" /> Diagnóstico Generado
                         </h3>
-                        <span className="text-[10px] font-bold text-gray-400 uppercase bg-gray-100 px-3 py-1 rounded-full">Editable</span>
+                        <span className="text-[11px] font-bold text-gray-500 uppercase bg-gray-100 px-3 py-1 rounded-full">Editable</span>
                     </div>
                     <textarea
                         className="w-full bg-gray-50 border-gray-100 rounded-xl p-6 text-sm leading-relaxed font-medium text-gray-700 focus:ring-2 focus:ring-indigo-500 min-h-[300px]"
@@ -502,34 +663,49 @@ export const AnalyticalProgramEditorPage = () => {
         'Uso irresponsable de redes sociales y tecnología'
     ]
 
-    const handleGenerateLinkage = async () => {
+    const handleGenerateLinkage = async (specificProblems?: any[]) => {
+        if (isGenerating) return // Prevent multiple concurrent calls
         setIsGenerating(true)
         try {
-            const problems = formData.problems
+            const problems = specificProblems || formData.problems
             if (problems.length === 0) return
 
             const prompt = `
-                Actúa como un experto de la NEM.
-                Para las siguientes problemáticas, identifica para CADA UNA el Rasgo del Perfil de Egreso más relevante y los Ejes Articuladores que se vinculan directamente.
+            Actúa como un experto de la NEM.
+            Para las siguientes problemáticas, identifica para CADA UNA el Rasgo del Perfil de Egreso más relevante y los Ejes Articuladores que se vinculan directamente.
 
-                Problemáticas:
-                ${problems.map((p, i) => `${i + 1}. ${p.description}`).join('\n')}
+            Problemáticas:
+            ${problems.map((p, i) => `${i + 1}. ${p.description}`).join('\n')}
 
-                Responde ÚNICAMENTE un objeto JSON con este formato:
-                {
-                    "linkages": [
-                        { 
-                            "description": "Texto exacto de la problemática",
-                            "trait_id": "Descripción corta del rasgo del perfil de egreso",
-                            "axes_ids": ["Eje 1", "Eje 2"]
+            Responde ÚNICAMENTE un objeto JSON con este formato:
+            {
+                "linkages": [
+            {
+                "description": "Texto exacto de la problemática",
+            "trait_id": "Descripción corta del rasgo del perfil de egreso",
+            "axes_ids": ["Eje 1", "Eje 2"]
                         }
-                    ]
+            ]
                 }
 
-                Ejes Articuladores válidos: Inclusión, Pensamiento Crítico, Interculturalidad crítica, Igualdad de género, Vida saludable, Apropiación de las culturas a través de la lectura y la escritura, Artes y experiencias estéticas.
+            Ejes Articuladores válidos: Inclusión, Pensamiento Crítico, Interculturalidad crítica, Igualdad de género, Vida saludable, Apropiación de las culturas a través de la lectura y la escritura, Artes y experiencias estéticas.
+
+            Rasgos del Perfil de Egreso (Resumen):
+            1. Ciudadanía y derecho a una vida digna.
+            2. Valoración de la diversidad (etnia, cultura, lengua).
+            3. Igualdad de derechos entre mujeres y hombres.
+            4. Valoración de potencialidades (cognitivas, físicas, afectivas).
+            5. Pensamiento propio y juicio autónomo.
+            6. Sentido de pertenencia a la naturaleza y medio ambiente.
+            7. Interpretación de hechos históricos y sociales.
+            8. Diálogo respetuoso y aprecio a la diversidad.
+            9. Comunicación mediante diversos lenguajes.
+            10. Pensamiento crítico y valoración de saberes científicos/humanísticos.
+
+            ${syntheticContext ? `\nDOCUMENTO OFICIAL DE REFERENCIA (RESUMEN):\n${syntheticContext.substring(0, 2500)}...\n` : ''}
             `
 
-            const response = await groqService.generateContent(prompt, true)
+            const response = await aiService.generateContent(prompt, true)
             const data = JSON.parse(response)
 
             const updatedProblems = problems.map(prob => {
@@ -542,9 +718,13 @@ export const AnalyticalProgramEditorPage = () => {
             })
 
             setFormData(prev => ({ ...prev, problems: updatedProblems }))
-        } catch (e) {
+        } catch (e: any) {
             console.error(e)
-            alert('Error vinculando problemáticas con NEM')
+            if (e.message?.includes('429') || e.message?.includes('limit')) {
+                alert('Estamos procesando muchas peticiones. Por favor, espera unos segundos y vuelve a intentar vincular con el botón "Vincular con NEM".')
+            } else {
+                alert('Error vinculando problemáticas con NEM. Por favor intenta de nuevo.')
+            }
         } finally {
             setIsGenerating(false)
         }
@@ -556,7 +736,12 @@ export const AnalyticalProgramEditorPage = () => {
             if (exists) {
                 return { ...prev, problems: prev.problems.filter(p => p.description !== prob) }
             } else {
-                return { ...prev, problems: [...prev.problems, { id: Date.now(), description: prob }] }
+                const newProblems = [...prev.problems, { id: Date.now(), description: prob }]
+                // Auto-trigger linkage with the new list immediately if not already busy
+                if (!isGenerating) {
+                    handleGenerateLinkage(newProblems)
+                }
+                return { ...prev, problems: newProblems }
             }
         })
     }
@@ -571,11 +756,12 @@ export const AnalyticalProgramEditorPage = () => {
                 <p className="text-gray-500 max-w-lg mx-auto mb-8">Elige una o más situaciones prioritarias (se recomiendan 2 o 3). La IA las vinculará con el Perfil de Egreso y los Ejes Articuladores.</p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left max-w-4xl mx-auto">
+                    {/* Default Catalog */}
                     {PROBLEMS_CATALOG.map((prob, idx) => {
                         const isSelected = formData.problems.some(p => p.description === prob)
                         return (
                             <button
-                                key={idx}
+                                key={`cat-${idx}`}
                                 onClick={() => toggleProblem(prob)}
                                 className={`p-6 rounded-2xl border-2 transition-all flex items-center ${isSelected
                                     ? 'bg-rose-50 border-rose-500 shadow-xl shadow-rose-100 scale-105'
@@ -591,6 +777,20 @@ export const AnalyticalProgramEditorPage = () => {
                             </button>
                         )
                     })}
+
+                    {/* Custom Selected Problems */}
+                    {formData.problems.filter(p => !PROBLEMS_CATALOG.includes(p.description)).map((p, idx) => (
+                        <button
+                            key={`custom-${idx}`}
+                            onClick={() => toggleProblem(p.description)}
+                            className="p-6 rounded-2xl border-2 bg-rose-50 border-rose-500 shadow-xl shadow-rose-100 scale-105 transition-all flex items-center"
+                        >
+                            <div className="w-6 h-6 rounded-full border-2 mr-4 flex items-center justify-center border-rose-500 bg-rose-500">
+                                <Check className="w-4 h-4 text-white" />
+                            </div>
+                            <span className="font-bold text-sm text-rose-900">{p.description}</span>
+                        </button>
+                    ))}
                 </div>
 
                 {/* Custom Problem */}
@@ -602,7 +802,7 @@ export const AnalyticalProgramEditorPage = () => {
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                                 toggleProblem((e.target as HTMLInputElement).value)
-                                // @ts-ignore
+                                // @ts-expect-error -- pendiente de tipar
                                 e.target.value = ''
                             }
                         }}
@@ -626,7 +826,7 @@ export const AnalyticalProgramEditorPage = () => {
             {formData.problems.length > 0 && formData.problems.some(p => !p.trait_id) && (
                 <div className="flex justify-center">
                     <button
-                        onClick={handleGenerateLinkage}
+                        onClick={() => handleGenerateLinkage()}
                         disabled={isGenerating}
                         className="bg-gray-900 text-white px-8 py-4 rounded-full font-black uppercase tracking-widest shadow-xl hover:scale-105 transition-all flex items-center gap-3"
                     >
@@ -651,16 +851,16 @@ export const AnalyticalProgramEditorPage = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             {formData.problems.map((prob, idx) => (
                                 <div key={idx} className="bg-white/10 p-8 rounded-3xl backdrop-blur-sm border border-white/5">
-                                    <span className="text-indigo-300 text-[10px] font-black uppercase tracking-widest block mb-3">Problemática {idx + 1}</span>
+                                    <span className="text-indigo-300 text-[11px] font-black uppercase tracking-widest block mb-3">Problemática {idx + 1}</span>
                                     <p className="font-bold text-lg leading-tight mb-6">{prob.description}</p>
 
                                     <div className="space-y-4 pt-4 border-t border-white/10">
                                         <div>
-                                            <span className="text-indigo-300 text-[10px] font-black uppercase tracking-widest block mb-2">Rasgo Perfil de Egreso</span>
+                                            <span className="text-indigo-300 text-[11px] font-black uppercase tracking-widest block mb-2">Rasgo Perfil de Egreso</span>
                                             <p className="text-sm font-medium leading-relaxed">{prob.trait_id}</p>
                                         </div>
                                         <div>
-                                            <span className="text-indigo-300 text-[10px] font-black uppercase tracking-widest block mb-2">Ejes Articuladores</span>
+                                            <span className="text-indigo-300 text-[11px] font-black uppercase tracking-widest block mb-2">Ejes Articuladores</span>
                                             <div className="flex flex-wrap gap-2">
                                                 {prob.axes_ids?.map((axis: string) => (
                                                     <span key={axis} className="bg-indigo-500/50 px-3 py-1 rounded-lg text-xs font-bold border border-indigo-400/30">{axis}</span>
@@ -678,36 +878,52 @@ export const AnalyticalProgramEditorPage = () => {
     )
 
     const handleSuggestContents = async () => {
+        if (isGenerating) return
         setIsGenerating(true)
         try {
             const level = formData.school_data.level || 'Secundaria'
+            const isPrimary = level.toLowerCase().includes('primaria')
             const problemsString = formData.problems.map(p => p.description).join('; ') || 'General'
+            const primaryContext = isPrimary ? 'ENFOQUE PRIMARIA: Asegúrate de que los PDAs reflejen actividades más lúdicas, material concreto y trabajo formativo adecuado para niños de primaria.' : ''
 
-            // Limit catalog to avoid token limits, but keep relevant items
-            // In a real app we'd filter by keywords, here we take a sample + top matches if possible
-            const catalogSample = syntheticCatalog.slice(0, 30).map(c => ({
-                id: c.id,
-                content: c.content,
-                field: c.field_of_study
-            }))
+            // Group by field and take a balanced sample (e.g. 10 per field)
+            const groupedCatalog: Record<string, any[]> = {}
+            syntheticCatalog.forEach(c => {
+                const field = c.field_of_study || 'Otros'
+                if (!groupedCatalog[field]) groupedCatalog[field] = []
+                if (groupedCatalog[field].length < 15) {
+                    groupedCatalog[field].push({
+                        id: c.id,
+                        content: c.content,
+                        field: field,
+                        pda_base: c.pda_grade_1 || c.pda || '' // Base PDA to contextualize
+                    })
+                }
+            })
+
+            const catalogSample = Object.values(groupedCatalog).flat()
 
             const prompt = `
-                Actúa como un experto pedagogo de la NEM.
-                Para el nivel ${level} y las problemáticas siguientes: "${problemsString}", selecciona los 6 contenidos del Programa Sintético más pertinentes de la siguiente lista:
+            Actúa como un experto pedagogo de la NEM.
+            Para el nivel ${level} y las problemáticas siguientes: "${problemsString}", selecciona al menos 1 o 2 contenidos de CADA campo formativo (Lenguajes, Saberes, Ética, Humano) de la siguiente lista:
 
-                ${JSON.stringify(catalogSample)}
+            ${JSON.stringify(catalogSample)}
 
-                Para cada contenido seleccionado, propón un PDA (Proceso de Desarrollo de Aprendizaje) breve y contextualizado.
+            Para cada contenido seleccionado, utiliza su "pda_base" y redáctalo de forma "Contextualizada" para que atienda específicamente las problemáticas mencionadas.
 
-                Responde ÚNICAMENTE un objeto JSON con este formato:
-                {
-                    "selected": [
-                        { "id": "ID_DEL_CONTENIDO", "pda": "Texto del PDA contextualizado" }
-                    ]
+            ${primaryContext}
+
+            Responde ÚNICAMENTE un objeto JSON con este formato:
+            {
+                "selected": [
+            {"id": "ID_DEL_CONTENIDO", "pda": "Texto del PDA contextualizado" }
+            ]
                 }
+
+            ${syntheticContext ? `\nDOCUMENTO OFICIAL DE REFERENCIA (RESUMEN):\nExtrae inspiración de este texto oficial de la SEP para redactar PDAs alineados:\n${syntheticContext.substring(0, 5000)}...\n` : ''}
             `
 
-            const response = await groqService.generateContent(prompt, true)
+            const response = await aiService.generateContent(prompt, true)
             const data = JSON.parse(response)
 
             const suggested = (data.selected || []).map((sel: any) => {
@@ -783,7 +999,7 @@ export const AnalyticalProgramEditorPage = () => {
                                             />
                                             <div className="flex-1">
                                                 <p className="font-bold text-gray-800 text-sm mb-1">{content.content}</p>
-                                                <p className="text-xs text-gray-400 font-medium line-clamp-2">{content.pda_grade_1 || content.pda_grade_2 || content.pda_grade_3}</p>
+                                                <p className="text-xs text-gray-500 font-medium line-clamp-2">{content.pda_grade_1 || content.pda_grade_2 || content.pda_grade_3}</p>
                                             </div>
                                         </label>
                                     ))}
@@ -806,31 +1022,33 @@ export const AnalyticalProgramEditorPage = () => {
             const problemsString = formData.problems.map(p => p.description).join('; ')
 
             const prompt = `
-                Actúa como un experto de la NEM.
-                Para los siguientes contenidos y las problemáticas: "${problemsString}", genera una propuesta didáctica técnica (Tercer Plano).
-                
-                Contenidos:
-                ${selected.map(c => `- ${c.content} (PDA: ${c.pda})`).join('\n')}
+            Actúa como un experto de la NEM.
+            Para los siguientes contenidos y las problemáticas: "${problemsString}", genera una propuesta didáctica técnica (Tercer Plano).
 
-                Para cada contenido, define:
-                1. Metodología sugerida (ABP, STEAM, Aprendizaje de Servicio, etc.)
-                2. Sugerencia de evaluación formativa.
-                3. Temporalidad (ej. 2 semanas).
+            Contenidos:
+            ${selected.map(c => `- ${c.content} (PDA: ${c.pda})`).join('\n')}
 
-                Responde ÚNICAMENTE un objeto JSON con este formato:
-                {
-                    "proposals": [
-                        {
-                            "contentId": "ID_DEL_CONTENIDO",
-                            "methodology": "Nombre de la metodología",
-                            "evaluation": "Sugerencia de evaluación",
-                            "timeframe": "Temporalidad"
+            Para cada contenido, define:
+            1. Metodología sugerida (ABP, STEAM, Aprendizaje de Servicio, etc.)
+            2. Sugerencia de evaluación formativa.
+            3. Temporalidad (ej. 2 semanas).
+
+            Responde ÚNICAMENTE un objeto JSON con este formato:
+            {
+                "proposals": [
+            {
+                "contentId": "ID_DEL_CONTENIDO",
+            "methodology": "Nombre de la metodología",
+            "evaluation": "Sugerencia de evaluación",
+            "timeframe": "Temporalidad"
                         }
-                    ]
+            ]
                 }
+
+            ${syntheticContext ? `\nDOCUMENTO OFICIAL DE REFERENCIA (PROGRAMA SINTÉTICO):\nEmplea el enfoque didáctico y los lineamientos que marca el siguiente texto oficial de la SEP para proponer las metodologías y estrategias de evaluación idóneas en esta fase:\n${syntheticContext.substring(0, 15000)}...\n` : ''}
             `
 
-            const response = await groqService.generateContent(prompt, true)
+            const response = await aiService.generateContent(prompt, true)
             const data = JSON.parse(response)
 
             const newProgramByFields = { ...formData.program_by_fields }
@@ -839,10 +1057,10 @@ export const AnalyticalProgramEditorPage = () => {
                 const proposal = (data.proposals || []).find((p: any) => p.contentId === item.id)
                 const field = item.field_of_study || 'Otros'
 
-                // @ts-ignore
+                // @ts-expect-error -- pendiente de tipar
                 if (!newProgramByFields[field]) newProgramByFields[field] = []
 
-                // @ts-ignore
+                // @ts-expect-error -- pendiente de tipar
                 const existingIndex = newProgramByFields[field].findIndex(x => x.contentId === item.id)
 
                 const fieldData = {
@@ -857,18 +1075,22 @@ export const AnalyticalProgramEditorPage = () => {
                 }
 
                 if (existingIndex >= 0) {
-                    // @ts-ignore
+                    // @ts-expect-error -- pendiente de tipar
                     newProgramByFields[field][existingIndex] = fieldData
                 } else {
-                    // @ts-ignore
+                    // @ts-expect-error -- pendiente de tipar
                     newProgramByFields[field].push(fieldData)
                 }
             })
 
             setFormData(prev => ({ ...prev, program_by_fields: newProgramByFields }))
-        } catch (e) {
+        } catch (e: any) {
             console.error(e)
-            alert('Error generando diseño didáctico con IA')
+            if (e.message?.includes('429') || e.message?.includes('limit')) {
+                alert('Estamos procesando muchas peticiones. Por favor, espera unos segundos y vuelve a intentar generar sugerencias.')
+            } else {
+                alert('Error al generar sugerencias. Por favor intenta de nuevo.')
+            }
         } finally {
             setIsGenerating(false)
         }
@@ -882,40 +1104,42 @@ export const AnalyticalProgramEditorPage = () => {
             const userNotes = formData.codesign_process?.dialogue_notes || ''
 
             const prompt = `
-                Actúa como un experto pedagogo de la Nueva Escuela Mexicana (NEM). 
-                Genera el contenido para el "Proceso de Codiseño" del Programa Analítico.
-                
-                Problemáticas seleccionadas: "${problems}"
-                Notas del colectivo docente: "${userNotes || 'No hay notas previas, propón tú el inicio del diálogo.'}"
-                
-                Debes generar:
-                1. Un diálogo de 3 turnos (Director y 2 docentes) que refleje la discusión colectiva. SI HAY NOTAS DEL USUARIO, ÚSALAS COMO BASE Y MEJORA SU REDACCIÓN PEDAGÓGICA. Si no hay notas, propón un diálogo realista de planeación.
-                2. Una fila para la tabla de problematización técnica.
-                3. 3 preguntas reflexivas para el colectivo.
-                4. 2 notas finales para el colectivo.
+            Actúa como un experto pedagogo de la Nueva Escuela Mexicana (NEM).
+            Genera el contenido para el "Proceso de Codiseño" del Programa Analítico.
 
-                Estructura de respuesta requerida (JSON estricto):
-                {
-                    "dialogue": [
-                        { "role": "Director", "name": "Director(a)", "content": "..." },
-                        { "role": "Docente", "name": "Mtra. Ruth", "content": "..." },
-                        { "role": "Docente", "name": "Mtro. Antonio", "content": "..." }
-                    ],
-                    "problematization_table": [
-                        {
-                            "synthesis_info": "Descripción técnica del programa sintético",
-                            "missing_info": "Qué hace falta contextualizar",
-                            "certainties": "Problemas o certezas identificadas",
-                            "causes": "Causas y consecuencias",
-                            "learning_goal": "Objetivo de aprendizaje comunitario"
+            Problemáticas seleccionadas: "${problems}"
+            Notas del colectivo docente: "${userNotes || 'No hay notas previas, propón tú el inicio del diálogo.'}"
+
+            Debes generar:
+            1. Un diálogo de 3 turnos (Director y 2 docentes) que refleje la discusión colectiva. SI HAY NOTAS DEL USUARIO, ÚSALAS COMO BASE Y MEJORA SU REDACCIÓN PEDAGÓGICA. Si no hay notas, propón un diálogo realista de planeación.
+            2. Una fila para la tabla de problematización técnica.
+            3. 3 preguntas reflexivas para el colectivo.
+            4. 2 notas finales para el colectivo.
+
+            Estructura de respuesta requerida (JSON estricto):
+            {
+                "dialogue": [
+            {"role": "Director", "name": "Director(a)", "content": "..." },
+            {"role": "Docente", "name": "Mtra. Ruth", "content": "..." },
+            {"role": "Docente", "name": "Mtro. Antonio", "content": "..." }
+            ],
+            "problematization_table": [
+            {
+                "synthesis_info": "Descripción técnica del programa sintético",
+            "missing_info": "Qué hace falta contextualizar",
+            "certainties": "Problemas o certezas identificadas",
+            "causes": "Causas y consecuencias",
+            "learning_goal": "Objetivo de aprendizaje comunitario"
                         }
-                    ],
-                    "reflexive_questions": ["Pregunta 1", "Pregunta 2", "Pregunta 3"],
-                    "collective_notes": ["Nota 1", "Nota 2"]
+            ],
+            "reflexive_questions": ["Pregunta 1", "Pregunta 2", "Pregunta 3"],
+            "collective_notes": ["Nota 1", "Nota 2"]
                 }
+
+            ${syntheticContext ? `\nDOCUMENTO OFICIAL DE REFERENCIA (PROGRAMA SINTÉTICO):\nUtiliza el lenguaje, enfoque y orientaciones de este documento oficial de la SEP para que el diálogo del colectivo docente y la tabla de problematización evidencien un dominio experto de la fase correspondiente:\n${syntheticContext.substring(0, 15000)}...\n` : ''}
             `
 
-            const responseText = await groqService.generateContent(prompt, true)
+            const responseText = await aiService.generateContent(prompt, true)
             const data = JSON.parse(responseText)
 
             setFormData(prev => ({
@@ -956,8 +1180,8 @@ export const AnalyticalProgramEditorPage = () => {
                 {!hasProcess ? (
                     <div className="space-y-6 max-w-2xl mx-auto">
                         <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-                            <label className="block text-sm font-black text-gray-400 uppercase tracking-widest mb-4">Notas previas del colectivo (Opcional)</label>
-                            <textarea
+                            <label className="block text-sm font-black text-gray-500 uppercase tracking-widest mb-4">Notas previas del colectivo (Opcional)</label>
+                            <textarea aria-label="Notas previas del colectivo (Opcional)"
                                 placeholder="Describe brevemente con tus palabras qué se discutió, qué dudas surgieron o qué acuerdos preliminares tomaron..."
                                 className="w-full bg-gray-50 border-transparent rounded-2xl p-4 text-sm font-medium text-gray-700 min-h-[120px] focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all"
                                 value={formData.codesign_process?.dialogue_notes || ''}
@@ -966,7 +1190,7 @@ export const AnalyticalProgramEditorPage = () => {
                                     codesign_process: { ...formData.codesign_process, dialogue_notes: e.target.value }
                                 })}
                             />
-                            <p className="mt-4 text-xs text-gray-400 italic">
+                            <p className="mt-4 text-xs text-gray-500 italic">
                                 La IA usará tus palabras para redactar un diálogo más realista y fiel a tu realidad escolar.
                             </p>
                         </div>
@@ -987,11 +1211,11 @@ export const AnalyticalProgramEditorPage = () => {
                         <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm relative group">
                             <button
                                 onClick={() => setFormData({ ...formData, codesign_process: { ...formData.codesign_process, dialogue: [] } })}
-                                className="absolute top-6 right-8 text-[10px] font-bold text-gray-400 uppercase hover:text-rose-500 transition-colors flex items-center gap-1 opacity-0 group-hover:opacity-100"
+                                className="absolute top-6 right-8 text-[11px] font-bold text-gray-500 uppercase hover:text-rose-500 transition-colors flex items-center gap-1 opacity-0 group-hover:opacity-100"
                             >
                                 <RotateCcw className="w-3 h-3" /> Reiniciar y Editar Notas
                             </button>
-                            <h4 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-6 border-b pb-4">Diálogo del Colectivo Docente</h4>
+                            <h4 className="text-sm font-black text-gray-500 uppercase tracking-widest mb-6 border-b pb-4">Diálogo del Colectivo Docente</h4>
                             <div className="space-y-6">
                                 {formData.codesign_process?.dialogue?.map((chat, idx) => (
                                     <div key={idx} className={`flex gap-4 ${chat.role === 'Director' ? 'flex-row' : 'flex-row-reverse'}`}>
@@ -999,7 +1223,7 @@ export const AnalyticalProgramEditorPage = () => {
                                             {chat.name[0]}
                                         </div>
                                         <div className={`p-4 rounded-2xl text-sm max-w-[80%] ${chat.role === 'Director' ? 'bg-indigo-50 text-indigo-900' : 'bg-gray-50 text-gray-700'}`}>
-                                            <span className="block font-black text-[10px] uppercase opacity-50 mb-1">{chat.name}</span>
+                                            <span className="block font-black text-[11px] uppercase opacity-50 mb-1">{chat.name}</span>
                                             {chat.content}
                                         </div>
                                     </div>
@@ -1016,11 +1240,11 @@ export const AnalyticalProgramEditorPage = () => {
                                 <table className="w-full text-xs text-left border-collapse">
                                     <thead>
                                         <tr className="border-b border-gray-100">
-                                            <th className="pb-4 font-black text-gray-400 uppercase w-1/5 pr-4">¿Qué hay en el P. Sintético?</th>
-                                            <th className="pb-4 font-black text-gray-400 uppercase w-1/5 px-4">¿Qué NO hay / Falta?</th>
-                                            <th className="pb-4 font-black text-gray-400 uppercase w-1/5 px-4">Certezas / Problemas</th>
-                                            <th className="pb-4 font-black text-gray-400 uppercase w-1/5 px-4">Causas / Consecuencias</th>
-                                            <th className="pb-4 font-black text-gray-400 uppercase w-1/5 pl-4">¿Qué queremos logar?</th>
+                                            <th className="pb-4 font-black text-gray-500 uppercase w-1/5 pr-4">¿Qué hay en el P. Sintético?</th>
+                                            <th className="pb-4 font-black text-gray-500 uppercase w-1/5 px-4">¿Qué NO hay / Falta?</th>
+                                            <th className="pb-4 font-black text-gray-500 uppercase w-1/5 px-4">Certezas / Problemas</th>
+                                            <th className="pb-4 font-black text-gray-500 uppercase w-1/5 px-4">Causas / Consecuencias</th>
+                                            <th className="pb-4 font-black text-gray-500 uppercase w-1/5 pl-4">¿Qué queremos logar?</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-50">
@@ -1047,7 +1271,7 @@ export const AnalyticalProgramEditorPage = () => {
                                 <ul className="space-y-4">
                                     {formData.codesign_process?.reflexive_questions?.map((q, idx) => (
                                         <li key={idx} className="flex items-start gap-4">
-                                            <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center shrink-0 border border-green-200 text-[10px] font-black text-green-600">{idx + 1}</div>
+                                            <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center shrink-0 border border-green-200 text-[11px] font-black text-green-600">{idx + 1}</div>
                                             <p className="text-sm font-medium text-green-800">{q}</p>
                                         </li>
                                     ))}
@@ -1116,10 +1340,10 @@ export const AnalyticalProgramEditorPage = () => {
                                         <table className="w-full text-sm text-left">
                                             <thead>
                                                 <tr className="border-b border-gray-100">
-                                                    <th className="pb-4 font-black text-gray-400 uppercase text-xs w-1/4">Contenido</th>
-                                                    <th className="pb-4 font-black text-gray-400 uppercase text-xs w-1/4">PDA Contextualizado</th>
-                                                    <th className="pb-4 font-black text-gray-400 uppercase text-xs w-1/4">Metodología / Proyecto</th>
-                                                    <th className="pb-4 font-black text-gray-400 uppercase text-xs w-1/4">Evaluación</th>
+                                                    <th className="pb-4 font-black text-gray-500 uppercase text-xs w-1/4">Contenido</th>
+                                                    <th className="pb-4 font-black text-gray-500 uppercase text-xs w-1/4">PDA Contextualizado</th>
+                                                    <th className="pb-4 font-black text-gray-500 uppercase text-xs w-1/4">Metodología / Proyecto</th>
+                                                    <th className="pb-4 font-black text-gray-500 uppercase text-xs w-1/4">Evaluación</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-50">
@@ -1127,11 +1351,11 @@ export const AnalyticalProgramEditorPage = () => {
                                                     <tr key={idx} className="group hover:bg-gray-50/50 transition-colors">
                                                         <td className="py-6 pr-4 align-top">
                                                             <p className="font-bold text-gray-800 mb-1">{item.contentName}</p>
-                                                            <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-1 rounded-full font-bold uppercase">{item.timeframe}</span>
+                                                            <span className="text-[11px] bg-gray-100 text-gray-500 px-2 py-1 rounded-full font-bold uppercase">{item.timeframe}</span>
                                                         </td>
                                                         <td className="py-6 px-4 align-top space-y-4">
                                                             <div>
-                                                                <span className="text-[10px] text-indigo-400 font-bold uppercase mb-1 block">1er Grado</span>
+                                                                <span className="text-[11px] text-indigo-400 font-bold uppercase mb-1 block">1er Grado</span>
                                                                 <textarea
                                                                     className="w-full bg-white border-gray-200 rounded-lg text-xs p-2 focus:ring-2 focus:ring-indigo-500"
                                                                     value={item.pda_grade_1}
@@ -1202,10 +1426,10 @@ export const AnalyticalProgramEditorPage = () => {
                         <button onClick={() => setCurrentStep(1)} className="absolute top-6 right-6 text-xs font-bold text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity uppercase">Editar</button>
                         <h4 className="font-black text-gray-800 uppercase tracking-wide text-sm mb-4 flex items-center"><School className="w-4 h-4 mr-2" /> Datos Generales</h4>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
-                            <div><span className="block text-xs font-bold text-gray-400 uppercase">Escuela</span>{formData.school_data.name}</div>
-                            <div><span className="block text-xs font-bold text-gray-400 uppercase">CCT</span>{formData.school_data.cct}</div>
-                            <div><span className="block text-xs font-bold text-gray-400 uppercase">Zona</span>{formData.school_data.zone}</div>
-                            <div><span className="block text-xs font-bold text-gray-400 uppercase">Nivel</span>{formData.school_data.level}</div>
+                            <div><span className="block text-xs font-bold text-gray-500 uppercase">Escuela</span>{formData.school_data.name}</div>
+                            <div><span className="block text-xs font-bold text-gray-500 uppercase">CCT</span>{formData.school_data.cct}</div>
+                            <div><span className="block text-xs font-bold text-gray-500 uppercase">Zona</span>{formData.school_data.zone}</div>
+                            <div><span className="block text-xs font-bold text-gray-500 uppercase">Nivel</span>{formData.school_data.level}</div>
                         </div>
                     </div>
 
@@ -1215,7 +1439,7 @@ export const AnalyticalProgramEditorPage = () => {
                         <h4 className="font-black text-gray-800 uppercase tracking-wide text-sm mb-4 flex items-center"><BookOpen className="w-4 h-4 mr-2" /> Diagnóstico</h4>
                         <div className="text-sm text-gray-600 italic leading-relaxed whitespace-pre-line">
                             {formData.diagnosis.narrative_final || (
-                                <span className="text-gray-400">Sin diagnóstico generado aún. Regresa al paso 2 para generarlo con IA.</span>
+                                <span className="text-gray-500">Sin diagnóstico generado aún. Regresa al paso 2 para generarlo con IA.</span>
                             )}
                         </div>
                     </div>
@@ -1242,9 +1466,9 @@ export const AnalyticalProgramEditorPage = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                             {Object.entries(formData.program_by_fields).map(([field, items]: any) => (
                                 <div key={field} className="bg-gray-50 rounded-xl p-3 text-center">
-                                    <span className="block text-xs font-bold text-gray-400 uppercase mb-1">{field}</span>
+                                    <span className="block text-xs font-bold text-gray-500 uppercase mb-1">{field}</span>
                                     <span className="text-2xl font-black text-indigo-600">{items.length}</span>
-                                    <span className="block text-[10px] text-gray-500">Contenidos</span>
+                                    <span className="block text-[11px] text-gray-500">Contenidos</span>
                                 </div>
                             ))}
                         </div>
@@ -1278,7 +1502,8 @@ export const AnalyticalProgramEditorPage = () => {
             const updatedDiagnosis = {
                 ...formData.diagnosis,
                 problem_situations: formData.problems, // Store problems here
-                codesign_process: formData.codesign_process // Store codiseño here
+                codesign_process: formData.codesign_process, // Store codiseño here
+                suggested_contents: suggestedContents // Store selection context here
             }
 
             const programData = {
@@ -1286,7 +1511,7 @@ export const AnalyticalProgramEditorPage = () => {
                 school_data: formData.school_data,
                 group_diagnosis: updatedDiagnosis,
                 program_by_fields: formData.program_by_fields,
-                status: 'COMPLETED',
+                status: 'DRAFT',
                 updated_at: new Date().toISOString(),
                 academic_year_id: activeYear?.id || null
             }
@@ -1342,12 +1567,12 @@ export const AnalyticalProgramEditorPage = () => {
             <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <button onClick={() => navigate('/analytical-program')} className="p-2 hover:bg-gray-100 rounded-full transition-all">
+                        <button aria-label="Regresar" onClick={() => navigate('/analytical-program')} className="p-2 hover:bg-gray-100 rounded-full transition-all">
                             <ArrowLeft className="w-6 h-6 text-gray-500" />
                         </button>
                         <div>
                             <h1 className="text-xl font-black text-gray-900 tracking-tight">Constructor de Programa Analítico</h1>
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider hidden sm:block">Nueva Escuela Mexicana • Fase 6</p>
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider hidden sm:block">Nueva Escuela Mexicana • Fase 6</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -1394,14 +1619,28 @@ export const AnalyticalProgramEditorPage = () => {
                 {/* Footer Navigation */}
                 <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50">
                     <div className="max-w-5xl mx-auto flex justify-between items-center">
-                        <button
-                            onClick={handleBack}
-                            disabled={currentStep === 1}
-                            className="bg-white border border-gray-200 text-gray-600 px-6 py-3 rounded-xl font-bold text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center"
-                        >
-                            <ChevronLeft className="w-4 h-4 mr-2" />
-                            Anterior
-                        </button>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={handleBack}
+                                disabled={currentStep === 1}
+                                className="bg-white border border-gray-200 text-gray-600 px-6 py-3 rounded-xl font-bold text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center"
+                            >
+                                <ChevronLeft className="w-4 h-4 mr-2" />
+                                Anterior
+                            </button>
+                            <button
+                                onClick={() => {
+                                    if (confirm('¿Estás seguro de que deseas reiniciar la construcción? Se borrará todo el progreso actual de esta sesión.')) {
+                                        localStorage.removeItem(`analytical_program_draft_${id || 'new'}`)
+                                        window.location.reload()
+                                    }
+                                }}
+                                className="text-gray-500 hover:text-rose-600 px-4 py-2 text-[11px] font-black uppercase tracking-widest flex items-center transition-colors"
+                            >
+                                <RotateCcw className="w-3 h-3 mr-2" />
+                                Reiniciar
+                            </button>
+                        </div>
                         <button
                             onClick={currentStep === STEPS.length ? handleSaveProgram : handleNext}
                             disabled={saving}

@@ -43,7 +43,7 @@ export const DirectorDashboard = () => {
                 </div>
                 <div className="bg-white p-8 rounded-[2rem] shadow-xl shadow-slate-100 border border-slate-50">
                     <h3 className="text-xl font-bold mb-6">Últimos Comunicados</h3>
-                    <p className="text-slate-400 font-medium text-center py-10">No hay comunicados recientes.</p>
+                    <p className="text-slate-500 font-medium text-center py-10">No hay comunicados recientes.</p>
                 </div>
             </div>
         </div>
@@ -53,7 +53,7 @@ export const DirectorDashboard = () => {
 const StatCard = ({ title, value, icon: Icon, color }: any) => {
     const colors: any = {
         blue: 'text-blue-600 bg-blue-50',
-        emerald: 'text-emerald-600 bg-emerald-50',
+        emerald: 'text-emerald-700 bg-emerald-50',
         purple: 'text-purple-600 bg-purple-50',
         orange: 'text-orange-600 bg-orange-50'
     }
@@ -62,7 +62,7 @@ const StatCard = ({ title, value, icon: Icon, color }: any) => {
             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 ${colors[color]}`}>
                 <Icon className="w-6 h-6" />
             </div>
-            <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">{title}</p>
+            <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">{title}</p>
             <h4 className="text-2xl font-black text-slate-900">{value}</h4>
         </div>
     )

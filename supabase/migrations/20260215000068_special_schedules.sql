@@ -16,10 +16,12 @@ create table if not exists public.special_schedule_structure (
 alter table public.special_schedule_structure enable row level security;
 
 -- Policies
+DROP POLICY IF EXISTS "Users can view special schedules in own tenant" ON public.special_schedule_structure;
 create policy "Users can view special schedules in own tenant"
   on public.special_schedule_structure for select
   using (tenant_id = get_current_tenant_id());
 
+DROP POLICY IF EXISTS "Admins can manage special schedules" ON public.special_schedule_structure;
 create policy "Admins can manage special schedules"
   on public.special_schedule_structure for all
   using (tenant_id = get_current_tenant_id());

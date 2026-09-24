@@ -72,20 +72,20 @@ export const LandingPage = () => {
             </div>
 
             {/* Floating Contact Widget */}
-            <div className="fixed bottom-8 right-8 z-50 animate-in slide-in-from-bottom-10 fade-in duration-1000">
+            <div className="hidden md:block fixed bottom-8 right-8 z-50 animate-in slide-in-from-bottom-10 fade-in duration-1000">
                 <div className="flex items-center gap-4 bg-white/5 backdrop-blur-xl border border-white/10 p-4 rounded-2xl shadow-2xl hover:bg-white/10 transition-colors group cursor-default">
                     <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
                         <Mail className="w-5 h-5 text-indigo-400" />
                     </div>
                     <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Contacto</p>
+                        <p className="text-[11px] font-black uppercase tracking-widest text-indigo-400">Contacto</p>
                         <p className="text-sm font-bold text-white tracking-wide">ventas@vunlek.com</p>
                     </div>
                 </div>
             </div>
 
             {/* Navbar */}
-            <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'py-4 bg-[#050510]/80 backdrop-blur-xl border-b border-white/5' : 'py-8 bg-transparent'}`}>
+            <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'py-3 sm:py-4 bg-[#050510]/80 backdrop-blur-xl border-b border-white/5' : 'py-4 sm:py-8 bg-transparent'}`}>
                 <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
                     <div
                         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
@@ -102,13 +102,13 @@ export const LandingPage = () => {
                         <a href="#stats" className="text-xs font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Impacto</a>
                         <button
                             onClick={() => navigate('/register')}
-                            className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors"
+                            className="text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors"
                         >
                             Registrarse
                         </button>
                         <button
                             onClick={() => navigate('/login')}
-                            className="px-8 py-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-[10px] font-black uppercase tracking-widest"
+                            className="px-8 py-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-[11px] font-black uppercase tracking-widest"
                         >
                             Iniciar Sesión
                         </button>
@@ -118,7 +118,7 @@ export const LandingPage = () => {
                     <div className="md:hidden">
                         <button
                             onClick={() => navigate('/login')}
-                            className="px-6 py-2 rounded-xl bg-white/10 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white"
+                            className="px-6 py-2 rounded-xl bg-white/10 border border-white/10 text-[11px] font-black uppercase tracking-widest text-white"
                         >
                             Ingresar
                         </button>
@@ -127,22 +127,22 @@ export const LandingPage = () => {
             </nav>
 
             {/* Hero Section */}
-            <section className="relative pt-40 pb-32 px-6 overflow-hidden">
-                <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+            <section className="relative pt-28 sm:pt-40 pb-20 sm:pb-32 px-5 sm:px-6 overflow-hidden">
+                <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
                     <div className="relative z-10 space-y-8">
                         <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-full animate-in slide-in-from-left duration-700">
                             <Sparkles className="w-4 h-4 text-indigo-400" />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-indigo-300">Inteligencia Artificial Educativa</span>
+                            <span className="text-[11px] font-black uppercase tracking-widest text-indigo-300">Inteligencia Artificial Educativa</span>
                         </div>
 
-                        <h1 className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.9] animate-in slide-in-from-bottom-8 duration-700 delay-100">
+                        <h1 className="text-[2.6rem] leading-[0.95] sm:text-6xl md:text-7xl xl:text-8xl font-black tracking-tighter sm:leading-[0.9] animate-in slide-in-from-bottom-8 duration-700 delay-100">
                             {landingConfig.heroTitle} <br />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-rose-400">
                                 {landingConfig.heroSubtitle}
                             </span>
                         </h1>
 
-                        <p className="text-xl text-slate-400 max-w-lg leading-relaxed font-bold animate-in fade-in duration-1000 delay-300">
+                        <p className="text-lg sm:text-xl text-slate-300 max-w-lg leading-relaxed font-bold animate-in fade-in duration-1000 delay-300">
                             {landingConfig.heroDescription}
                         </p>
 
@@ -158,7 +158,7 @@ export const LandingPage = () => {
                                 <div className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-all group-hover:scale-110 active:scale-90">
                                     <Play className="w-5 h-5 text-white fill-white" />
                                 </div>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-white transition-colors">Ver Video</span>
+                                <span className="text-[11px] font-black uppercase tracking-widest text-slate-400 group-hover:text-white transition-colors">Ver Video</span>
                             </button>
                         </div>
                     </div>
@@ -188,7 +188,7 @@ export const LandingPage = () => {
                             <div className="absolute top-20 right-[-20px] w-40 p-4 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl rotate-12 group-hover:rotate-0 transition-transform duration-700">
                                 <div className="flex items-center gap-3 mb-2">
                                     <div className="w-3 h-3 bg-emerald-400 rounded-full animate-ping"></div>
-                                    <span className="text-[8px] font-black uppercase tracking-widest">En Vivo</span>
+                                    <span className="text-[11px] font-black uppercase tracking-widest">En Vivo</span>
                                 </div>
                                 <div className="h-2 bg-white/20 rounded-full overflow-hidden">
                                     <div className="w-2/3 h-full bg-gradient-to-r from-emerald-400 to-cyan-400"></div>
@@ -207,7 +207,7 @@ export const LandingPage = () => {
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-20 space-y-4">
                         <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter italic">Infraestructura de Grado Superior</h2>
-                        <p className="text-slate-500 font-bold max-w-2xl mx-auto uppercase text-xs tracking-[0.3em]">Redescubre lo que es posible en la gestión educativa</p>
+                        <p className="text-slate-400 font-bold max-w-2xl mx-auto uppercase text-xs tracking-[0.3em]">Redescubre lo que es posible en la gestión educativa</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -232,19 +232,19 @@ export const LandingPage = () => {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
                         <div className="space-y-2">
                             <h3 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-br from-indigo-400 to-white italic">+200</h3>
-                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Escuelas</p>
+                            <p className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Escuelas</p>
                         </div>
                         <div className="space-y-2">
                             <h3 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-br from-purple-400 to-white italic">15K</h3>
-                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Docentes</p>
+                            <p className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Docentes</p>
                         </div>
                         <div className="space-y-2">
                             <h3 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-br from-rose-400 to-white italic">98%</h3>
-                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Eficiencia</p>
+                            <p className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Eficiencia</p>
                         </div>
                         <div className="space-y-2">
                             <h3 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-br from-indigo-400 to-white italic">AI-X</h3>
-                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Integración</p>
+                            <p className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Integración</p>
                         </div>
                     </div>
                 </div>
@@ -255,7 +255,7 @@ export const LandingPage = () => {
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-16 space-y-4">
                         <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter italic">Lo que dicen los educadores</h2>
-                        <p className="text-slate-500 font-bold max-w-2xl mx-auto uppercase text-xs tracking-[0.3em]">Únete a la revolución educativa</p>
+                        <p className="text-slate-400 font-bold max-w-2xl mx-auto uppercase text-xs tracking-[0.3em]">Únete a la revolución educativa</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
@@ -291,7 +291,7 @@ export const LandingPage = () => {
                                     />
                                     <div>
                                         <p className="text-sm font-bold text-white">{review.name}</p>
-                                        <p className="text-[10px] text-slate-500 uppercase tracking-wider">{review.role}</p>
+                                        <p className="text-[11px] text-slate-400 uppercase tracking-wider">{review.role}</p>
                                     </div>
                                 </div>
                             </div>
@@ -316,7 +316,7 @@ export const LandingPage = () => {
                     <div className="bg-[#0A0A1F] border border-white/10 rounded-2xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xl font-bold text-white">Tu opinión cuenta</h3>
-                            <button onClick={() => setIsReviewModalOpen(false)} className="text-slate-400 hover:text-white">
+                            <button aria-label="Cerrar" onClick={() => setIsReviewModalOpen(false)} className="text-slate-400 hover:text-white">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -328,16 +328,16 @@ export const LandingPage = () => {
                             alert("¡Gracias! Tu comentario ha sido enviado a moderación.")
                         }} className="space-y-4">
                             <div>
-                                <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Nombre Completo</label>
-                                <input required type="text" className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-indigo-500 transition-colors" placeholder="Ej. Juan Pérez" />
+                                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Nombre Completo</label>
+                                <input aria-label="Nombre Completo" required type="text" className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-indigo-500 transition-colors" placeholder="Ej. Juan Pérez" />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Cargo / Rol</label>
-                                <input required type="text" className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-indigo-500 transition-colors" placeholder="Ej. Docente de Matemáticas" />
+                                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Cargo / Rol</label>
+                                <input aria-label="Cargo / Rol" required type="text" className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-indigo-500 transition-colors" placeholder="Ej. Docente de Matemáticas" />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Comentario</label>
-                                <textarea required rows={4} className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-indigo-500 transition-colors" placeholder="¿Qué te parece Vunlek?"></textarea>
+                                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Comentario</label>
+                                <textarea aria-label="Comentario" required rows={4} className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-indigo-500 transition-colors" placeholder="¿Qué te parece Vunlek?"></textarea>
                             </div>
                             <div className="pt-2">
                                 <button type="submit" className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl font-bold uppercase tracking-widest text-xs hover:shadow-lg hover:shadow-indigo-500/20 transition-all">
@@ -358,11 +358,17 @@ export const LandingPage = () => {
                         </div>
                         <span className="text-xl font-black uppercase italic tracking-tighter">VUNLEK</span>
                     </div>
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">© 2026 Vunlek Corporation. Educación Inmersiva.</p>
+                    <div className="flex flex-col items-center gap-3">
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">© 2026 Vunlek · Ko'on Soluciones. Educación Inmersiva.</p>
+                        <nav aria-label="Legal" className="flex gap-6 text-sm font-bold">
+                            <a href="/privacidad" className="text-slate-300 hover:text-white underline-offset-4 hover:underline">Política de Privacidad</a>
+                            <a href="/terminos" className="text-slate-300 hover:text-white underline-offset-4 hover:underline">Términos y Condiciones</a>
+                        </nav>
+                    </div>
                     <div className="flex items-center gap-8">
-                        <Globe className="w-5 h-5 text-slate-500 hover:text-white transition-colors cursor-pointer" />
-                        <Shield className="w-5 h-5 text-slate-500 hover:text-white transition-colors cursor-pointer" />
-                        <MousePointer2 className="w-5 h-5 text-slate-500 hover:text-white transition-colors cursor-pointer" />
+                        <Globe className="w-5 h-5 text-slate-400 hover:text-white transition-colors cursor-pointer" />
+                        <Shield className="w-5 h-5 text-slate-400 hover:text-white transition-colors cursor-pointer" />
+                        <MousePointer2 className="w-5 h-5 text-slate-400 hover:text-white transition-colors cursor-pointer" />
                     </div>
                 </div>
             </footer>

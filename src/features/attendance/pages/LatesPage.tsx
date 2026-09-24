@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react'
 import {
-    Clock,
     Search,
     Calendar as CalendarIcon,
-    User,
     ChevronRight,
     CheckCircle2,
     AlertCircle,
@@ -13,6 +11,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
+import { todayISO } from '../../../lib/dates'
 
 interface LateRecord {
     id: string
@@ -35,7 +34,7 @@ export const LatesPage = () => {
     const [lates, setLates] = useState<LateRecord[]>([])
     const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState('')
-    const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0])
+    const [filterDate, setFilterDate] = useState(todayISO())
 
     useEffect(() => {
         if (tenant?.id) {
@@ -75,7 +74,7 @@ export const LatesPage = () => {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
                 <div>
                     <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Control de Retardos</h1>
-                    <p className="text-slate-400 font-bold text-sm uppercase tracking-widest mt-1">Monitoreo de Puntualidad Estudiantil</p>
+                    <p className="text-slate-500 font-bold text-sm uppercase tracking-widest mt-1">Monitoreo de Puntualidad Estudiantil</p>
                 </div>
                 <div className="flex gap-3 w-full sm:w-auto">
                     <input
@@ -84,7 +83,7 @@ export const LatesPage = () => {
                         onChange={(e) => setFilterDate(e.target.value)}
                         className="flex-1 sm:flex-none px-4 py-2 bg-white border-2 border-slate-100 rounded-xl font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
                     />
-                    <button className="px-6 py-2 bg-slate-900 text-white font-black rounded-xl shadow-lg hover:bg-black transition-all flex items-center gap-2 uppercase text-[10px] tracking-widest">
+                    <button className="px-6 py-2 bg-slate-900 text-white font-black rounded-xl shadow-lg hover:bg-black transition-all flex items-center gap-2 uppercase text-[11px] tracking-widest">
                         <Download className="w-4 h-4" /> Exportar
                     </button>
                 </div>
@@ -93,7 +92,7 @@ export const LatesPage = () => {
             {/* Quick Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
                 <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Hoy</p>
+                    <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Hoy</p>
                     <p className="text-3xl font-black text-slate-800">{lates.length}</p>
                 </div>
                 {/* Visual indicator of "critical" groups or similar could go here */}
@@ -113,7 +112,7 @@ export const LatesPage = () => {
                         />
                     </div>
                     <div className="flex gap-2">
-                        <button className="p-3 rounded-xl bg-slate-50 text-slate-400 hover:text-slate-600 transition-all">
+                        <button aria-label="Filtrar" className="p-3 rounded-xl bg-slate-50 text-slate-500 hover:text-slate-600 transition-all">
                             <Filter className="w-4 h-4" />
                         </button>
                     </div>
@@ -123,11 +122,11 @@ export const LatesPage = () => {
                     <table className="w-full">
                         <thead className="bg-slate-50/50">
                             <tr>
-                                <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Alumno</th>
-                                <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Grupo</th>
-                                <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha</th>
-                                <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Notas</th>
-                                <th className="px-8 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Acciones</th>
+                                <th className="px-8 py-4 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">Alumno</th>
+                                <th className="px-8 py-4 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">Grupo</th>
+                                <th className="px-8 py-4 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">Fecha</th>
+                                <th className="px-8 py-4 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">Notas</th>
+                                <th className="px-8 py-4 text-right text-[11px] font-black text-slate-500 uppercase tracking-widest">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
@@ -135,17 +134,17 @@ export const LatesPage = () => {
                                 <tr key={late.id} className="hover:bg-slate-50/50 transition-colors group">
                                     <td className="px-8 py-5">
                                         <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center font-black text-slate-400">
+                                            <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center font-black text-slate-500">
                                                 {late.student.first_name[0]}
                                             </div>
                                             <div>
                                                 <p className="font-black text-slate-700 text-sm">{late.student.first_name} {late.student.last_name_paternal}</p>
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase">{late.student.group.grade}° "{late.student.group.section}"</p>
+                                                <p className="text-[11px] font-bold text-slate-500 uppercase">{late.student.group.grade}° "{late.student.group.section}"</p>
                                             </div>
                                         </div>
                                     </td>
                                     <td className="px-8 py-5">
-                                        <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-widest">
+                                        <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[11px] font-black uppercase tracking-widest">
                                             {late.student.group.grade}° {late.student.group.section}
                                         </span>
                                     </td>
@@ -159,7 +158,7 @@ export const LatesPage = () => {
                                         <p className="text-xs font-medium text-slate-500 italic">{late.notes || 'Sin observaciones'}</p>
                                     </td>
                                     <td className="px-8 py-5 text-right">
-                                        <button className="p-2 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all">
+                                        <button aria-label="Siguiente" className="p-2 rounded-xl text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-all">
                                             <ChevronRight className="w-4 h-4" />
                                         </button>
                                     </td>
@@ -178,14 +177,14 @@ export const LatesPage = () => {
                             <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <CheckCircle2 className="w-8 h-8 text-slate-200" />
                             </div>
-                            <p className="text-slate-400 font-bold text-sm uppercase">Sin retardos registrados para esta fecha</p>
+                            <p className="text-slate-500 font-bold text-sm uppercase">Sin retardos registrados para esta fecha</p>
                         </div>
                     )}
                 </div>
             </div>
 
             <div className="bg-amber-50 border border-amber-100 rounded-[2rem] p-8 flex items-start gap-4">
-                <AlertCircle className="w-6 h-6 text-amber-600 shrink-0 mt-1" />
+                <AlertCircle className="w-6 h-6 text-amber-700 shrink-0 mt-1" />
                 <div>
                     <h4 className="text-amber-900 font-black uppercase text-sm tracking-tight">Política de Puntualidad</h4>
                     <p className="text-amber-700/80 text-xs font-medium mt-2 leading-relaxed">

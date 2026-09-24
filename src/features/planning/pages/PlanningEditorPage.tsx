@@ -4,41 +4,44 @@ import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
 import { useProfile } from '../../../hooks/useProfile'
 import { useOfflineSync } from '../../../hooks/useOfflineSync'
-import { GeminiService, geminiService } from '../../../lib/gemini'
-import { GroqService } from '../../../lib/groq'
+import { GeminiService } from '../../../lib/gemini'
 import {
     Save,
     ArrowLeft,
     Clock,
     Plus,
-    Trash2,
     Target,
     BookOpen,
     Layers,
     ClipboardCheck,
     Sparkles,
     Printer,
-    CheckCircle2,
     Calendar,
-    Search,
-    BookMarked,
-    Briefcase,
-    Hash,
     ChevronLeft,
     ChevronRight,
-    Maximize2,
-    Eye,
     ExternalLink,
-    X,
-    FileText
+    X
 } from 'lucide-react'
-import { PDFUpload } from '../../../components/common/PDFUpload'
 import * as pdfjsLib from 'pdfjs-dist'
 
 // Worker setup
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
 
-import { PDA_CATALOG, RESOURCE_CATALOG } from '../constants/planningConstants'
+import { PDA_CATALOG } from '../constants/planningConstants'
+import type { LessonPlanFormData, Session, AiSuggestion } from '../types/planning.types'
+import { Step1Context } from '../components/editor/Step1Context'
+import { Step2Resources } from '../components/editor/Step2Resources'
+import { Step3Methodology } from '../components/editor/Step3Methodology'
+import { Step4Sequence } from '../components/editor/Step4Sequence'
+import { PdaCatalogModal } from '../components/editor/modals/PdaCatalogModal'
+import { ResourceCatalogModal } from '../components/editor/modals/ResourceCatalogModal'
+import { AiSuggestionsModal } from '../components/editor/modals/AiSuggestionsModal'
+import { PdfViewerModal } from '../components/editor/modals/PdfViewerModal'
+import { ProgramContentModal } from '../components/editor/modals/ProgramContentModal'
+import { TemplateBankModal } from '../components/editor/modals/TemplateBankModal'
+import { ErrorModal } from '../components/editor/modals/ErrorModal'
+import { PreviewModal } from '../components/editor/modals/PreviewModal'
+import { todayISO } from '../../../lib/dates'
 
 interface Group {
     id: string
@@ -97,9 +100,12 @@ export const PlanningEditorPage = () => {
     const [saving, setSaving] = useState(false)
     const [generating, setGenerating] = useState(false)
     const [isPreviewMode, setIsPreviewMode] = useState(false)
-    const [aiSuggestions, setAiSuggestions] = useState<any[]>([])
+    const [aiSuggestions, setAiSuggestions] = useState<AiSuggestion[]>([])
     const [selectedAiProposalIdx, setSelectedAiProposalIdx] = useState<number | null>(null)
     const [isAiPanelOpen, setIsAiPanelOpen] = useState(false)
+    const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false)
+    const [templates, setTemplates] = useState<any[]>([])
+    const [loadingTemplates, setLoadingTemplates] = useState(false)
     const [analyticalProgram, setAnalyticalProgram] = useState<any>(null)
     const [programContents, setProgramContents] = useState<any[]>([])
     const [isProgramModalOpen, setIsProgramModalOpen] = useState(false)
@@ -111,7 +117,7 @@ export const PlanningEditorPage = () => {
     const [generatingThemes, setGeneratingThemes] = useState(false)
     const [isExtractingText, setIsExtractingText] = useState(false)
     const [textbookThemesProposal, setTextbookThemesProposal] = useState<any[]>([])
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<LessonPlanFormData>({
         title: '',
         group_id: '',
         subject_id: '',
@@ -128,11 +134,13 @@ export const PlanningEditorPage = () => {
         contents: [''],
         pda: [''],
         ejes_articuladores: [] as string[],
-        activities_sequence: [] as any[],
+        activities_sequence: [] as Session[],
         resources: [''],
         evaluation_plan: {
             instruments: ['']
         },
+        evaluation_instruments: [] as string[],
+        evaluation_criteria: '',
         textbook_id: '',
         textbook_pages_from: '',
         textbook_pages_to: '',
@@ -345,10 +353,16 @@ export const PlanningEditorPage = () => {
                     })
                     if (match) {
                         setAnalyticalProgram(match)
-                        setFormData(prev => ({
-                            ...prev,
-                            problem_context: prev.problem_context || match.diagnosis_narrative || ''
-                        }))
+                        const newContext = match.diagnosis_narrative || ''
+                        setFormData(prev => {
+                            if (prev.problem_context === newContext || (!prev.problem_context && !newContext)) {
+                                return prev
+                            }
+                            return {
+                                ...prev,
+                                problem_context: prev.problem_context || newContext
+                            }
+                        })
                     }
                 }
             }
@@ -467,6 +481,8 @@ export const PlanningEditorPage = () => {
                             activities_sequence: plan.activities_sequence || [],
                             resources: plan.resources || [''],
                             evaluation_plan: plan.evaluation_plan || { instruments: [''] },
+                            evaluation_instruments: plan.evaluation_instruments || [],
+                            evaluation_criteria: plan.evaluation_criteria || '',
                             selected_themes: plan.selected_themes || []
                         }
                         const localDraft = localStorage.getItem(`lp_draft_${id}`)
@@ -524,7 +540,18 @@ export const PlanningEditorPage = () => {
 
                 // 5. AUTO-FETCH SUBJECTS (CRITICAL STEP to prevent race conditions)
                 if (finalFormData.group_id) {
-                    await fetchSubjects(finalFormData.group_id, tenant.id)
+                    const fetchedSubjects = await fetchSubjects(finalFormData.group_id, tenant.id)
+                    if (isNew && fetchedSubjects.length === 0) {
+                        setErrorModal({
+                            isOpen: true,
+                            title: 'Materias Requeridas',
+                            message: 'No se encontraron materias asignadas a este grupo. Para crear una planeación, primero debes definir las materias en la configuración del grupo.',
+                            buttonText: 'Ir a Grupos',
+                            action: () => navigate('/groups')
+                        })
+                        setLoading(false)
+                        return
+                    }
                 }
 
                 // 6. AUTO-MATCH PROGRAM (If Group Selected)
@@ -541,10 +568,30 @@ export const PlanningEditorPage = () => {
                         }
                     }
                 }
+                // 7. Schedule Validation
+                if (isNew && finalFormData.group_id) {
+                    const { data: schedule } = await supabase
+                        .from('schedules') // la tabla de horarios se llama 'schedules' (group_schedules no existe)
+                        .select('id')
+                        .eq('group_id', finalFormData.group_id)
+                        .limit(1)
+
+                    if (!schedule || schedule.length === 0) {
+                        setErrorModal({
+                            isOpen: true,
+                            title: 'Horario Requerido',
+                            message: 'Para generar una secuencia de sesiones realista, es obligatorio contar con un horario configurado para este grupo.',
+                            buttonText: 'Configurar Horario',
+                            action: () => navigate(`/groups/${finalFormData.group_id}`)
+                        })
+                        setLoading(false)
+                        return
+                    }
+                }
 
                 // 7. Final Period Adjustment
                 if (!finalFormData.period_id) {
-                    const today = new Date().toISOString().split('T')[0]
+                    const today = todayISO()
                     const currentPeriod = periodsRes.data?.find((p: any) => today >= p.start_date && today <= p.end_date)
                     if (currentPeriod) {
                         finalFormData.period_id = currentPeriod.id
@@ -639,13 +686,15 @@ export const PlanningEditorPage = () => {
             }
             const mappedLevel = levelMap[tenant.educationalLevel] || 'PRIMARIA'
 
-            let query = supabase
+            // Catálogo oficial vigente (CONALITEG): libros del grado y multigrado.
+            const grade = Number(selectedGroup.grade)
+            const { data, error } = await supabase
                 .from('textbooks')
-                .select('*')
+                .select('id, title, level, grade, grades, field_of_study, file_url, reader_url, text_status, source')
                 .eq('level', mappedLevel)
-                .eq('grade', selectedGroup.grade)
-
-            const { data, error } = await query
+                .eq('is_current', true)
+                .or(`grade.eq.${grade},grades.cs.{${grade}}`)
+                .order('title')
 
             if (!error && data) {
                 setAvailableTextbooks(data)
@@ -664,145 +713,185 @@ export const PlanningEditorPage = () => {
     // Analytical Program Sync Effect: Auto-populate context, contents, and PDAs
     useEffect(() => {
         const fetchAnalyticalData = async () => {
-            if (!tenant?.id || !formData.subject_id || !formData.campo_formativo) return
+            console.log('[DEBUG] fetchAnalyticalData triggered', {
+                hasProgram: !!analyticalProgram,
+                campoFormativo: formData.campo_formativo,
+                groupId: formData.group_id
+            })
 
+            if (!analyticalProgram || !formData.campo_formativo || !formData.group_id) return
 
+            console.log('[DEBUG] fetchAnalyticalData passed early return checks')
 
-            // 1. Fetch main program (One per school/cycle)
-            const { data: programs, error: progErr } = await supabase
-                .from('analytical_programs')
-                .select('*')
-                .eq('tenant_id', tenant.id)
-                .order('created_at', { ascending: false })
-                .limit(1)
+            const selectedGroup = groups.find(g => g.id === formData.group_id)
+            const grade = selectedGroup?.grade || 1
 
-            if (progErr) {
-                console.error('[AnalyticalSync] Error buscando programa:', progErr)
-                return
+            console.log('[DEBUG] fetchAnalyticalData group info', {
+                grade,
+                subjectId: formData.subject_id
+            })
+
+            const pdaNames: string[] = []
+            const contentNames: string[] = []
+            let programJustification = ''
+
+            // 1. Fetch from 'analytical_program_contents' table for Secondary (where subject_id exists)
+            if (formData.subject_id) {
+                const { data: contents } = await supabase
+                    .from('analytical_program_contents')
+                    .select(`
+                        justification, 
+                        content_id,
+                        pda_ids
+                    `)
+                    .eq('program_id', analyticalProgram.id)
+                    .eq('subject_id', formData.subject_id)
+                    .eq('campo_formativo', formData.campo_formativo)
+
+                if (contents && contents.length > 0) {
+                    for (const cont of contents) {
+                        if (cont.justification) programJustification += cont.justification + '\n'
+
+                        // Fetch Content Text
+                        if (cont.content_id) {
+                            const { data: cData } = await supabase
+                                .from('synthetic_program_contents')
+                                .select('content')
+                                .eq('id', cont.content_id)
+                                .single()
+                            if (cData?.content && !contentNames.includes(cData.content)) contentNames.push(cData.content)
+                        }
+
+                        // Fetch PDA Text
+                        if (cont.pda_ids && cont.pda_ids.length > 0) {
+                            const { data: pItems } = await supabase
+                                .from('synthetic_program_contents')
+                                .select('pda')
+                                .in('id', cont.pda_ids)
+                            if (pItems) {
+                                pItems.forEach(i => {
+                                    if (i.pda && !pdaNames.includes(i.pda)) pdaNames.push(i.pda)
+                                })
+                            }
+                        }
+                    }
+                }
             }
 
-            const program = programs?.[0]
-            if (!program) {
-
-                return
-            }
-
-
-            // 2. Fetch specific content for the selected subject and field
-            const { data: contents, error: contErr } = await supabase
-                .from('analytical_program_contents')
-                .select(`
-                    justification, 
-                    content_id,
-                    pda_ids
-                `)
-                .eq('program_id', program.id)
-                .eq('subject_id', formData.subject_id)
-                .eq('campo_formativo', formData.campo_formativo)
-                .limit(1)
-
-            if (contErr) console.error('[AnalyticalSync] Error buscando contenidos:', contErr)
-
-            let programContent = contents?.[0] as any
-
-            // 2b. Fallback: Search in JSONB program_by_fields if table is empty
-            if (!programContent && program.program_by_fields) {
-
-                const fieldKeyMap: Record<string, string> = {
+            // 2. Fetch from JSONB program_by_fields (Used by both Secondary and Primary to store contextualized PDAs)
+            const hasDataInTable = contentNames.length > 0
+            if (analyticalProgram.program_by_fields) {
+                // Mapping from full campo formativo to the short keys used in DEFAULT_FIELDS
+                const fieldMapping: Record<string, string> = {
                     'Lenguajes': 'lenguajes',
                     'Saberes y Pensamiento Científico': 'saberes',
                     'Ética, Naturaleza y Sociedades': 'etica',
                     'De lo Humano y lo Comunitario': 'humano'
                 }
-                const fieldKey = fieldKeyMap[formData.campo_formativo] || formData.campo_formativo.toLowerCase()
-                const fieldItems = (program.program_by_fields as any)[fieldKey] || []
 
-                // Try to find an item (since we don't have subject_id inside JSONB easily, take any relevant if available)
-                if (fieldItems.length > 0) {
-                    const fallbackItem = fieldItems[0] // Taking first for now
-                    programContent = {
-                        justification: '', // JSONB doesn't seem to have per-item justification in this version
-                        content_id: fallbackItem.contentId,
-                        pda_ids: fallbackItem.pda_grade_1 ? [fallbackItem.contentId] : [] // PDA handling simplified
+                const fieldKeyFull = formData.campo_formativo
+                const fieldKeyShort = fieldMapping[fieldKeyFull] || fieldKeyFull.toLowerCase().split(' ')[0]
+
+                let fieldItems = (analyticalProgram.program_by_fields as any)[fieldKeyShort]
+                if (!fieldItems || fieldItems.length === 0) {
+                    fieldItems = (analyticalProgram.program_by_fields as any)[fieldKeyFull]
+                }
+                if (!fieldItems) {
+                    fieldItems = []
+                }
+
+                console.log(`[DEBUG] Found field items for keys (short: ${fieldKeyShort}, full: ${fieldKeyFull}):`, fieldItems)
+
+                fieldItems.forEach((item: any) => {
+                    const extractedContentName = item.contentName || item.content
+                    if (extractedContentName && !contentNames.includes(extractedContentName)) {
+                        contentNames.push(extractedContentName)
                     }
 
-                }
+                    const pdaText = item[`pda_grade_${grade}`] || item.pda_grade_1 || item.pda_grade_2 || item.pda_grade_3 || item.pda
+                    if (pdaText && typeof pdaText === 'string' && !pdaNames.includes(pdaText)) {
+                        pdaNames.push(pdaText)
+                    }
+                })
+
+                console.log('[DEBUG] Merged with JSON data', { contentNames, pdaNames })
             }
 
-            if (!programContent && !program.diagnosis_context && !(program.group_diagnosis as any)?.narrative_final) {
-
-                return
-            }
-
-            // Fetch PDA names and Content name manually to avoid complex join typing issues
-            let pdaNames: string[] = []
-            let contentName = ''
-
-            if (programContent?.content_id) {
-                const { data: contentData } = await supabase
-                    .from('synthetic_program_contents')
-                    .select('content')
-                    .eq('id', programContent.content_id)
-                    .single()
-                if (contentData) contentName = contentData.content
-            }
-
-            if (programContent?.pda_ids && programContent.pda_ids.length > 0) {
-                const { data: pdaItems } = await supabase
-                    .from('synthetic_program_contents')
-                    .select('pda')
-                    .in('id', programContent.pda_ids)
-
-                if (pdaItems) {
-                    pdaNames = pdaItems.map(i => i.pda).filter(Boolean)
-                }
-            }
+            console.log('[DEBUG] Final extracted data before setState', {
+                contentNames,
+                pdaNames,
+                programJustification
+            })
 
             // Update formData
             setFormData(prev => {
                 const updates: any = {}
+                let hasChanges = false
 
                 // Problem Context: Update if empty or very short
                 const currentCtx = (prev.problem_context || '').trim()
                 if (!currentCtx || currentCtx.length < 10) {
                     let newContext = ''
-                    const diagnosisResult = program.diagnosis_context || (program.group_diagnosis as any)?.narrative_final || (program.group_diagnosis as any)?.narrative
+                    const diagnosisResult = analyticalProgram.diagnosis_context || (analyticalProgram.group_diagnosis as any)?.narrative_final || (analyticalProgram.group_diagnosis as any)?.narrative
+                    const problemsArray = (analyticalProgram.group_diagnosis as any)?.problem_situations
+                    let problemsText = ''
+
+                    if (problemsArray && Array.isArray(problemsArray) && problemsArray.length > 0) {
+                        problemsText = problemsArray.map(p => p.description || p).join('; ')
+                    }
 
                     if (diagnosisResult) newContext += `DIAGNÓSTICO:\n${diagnosisResult}\n\n`
-                    if (programContent?.justification) newContext += `JUSTIFICACIÓN DEL CAMPO:\n${programContent.justification}`
+                    if (problemsText) newContext += `PROBLEMÁTICAS DETECTADAS:\n${problemsText}\n\n`
+                    if (programJustification) newContext += `JUSTIFICACIÓN DEL CAMPO:\n${programJustification.trim()}`
 
-                    if (newContext.trim()) {
+                    if (newContext.trim() && currentCtx !== newContext.trim()) {
                         updates.problem_context = newContext.trim()
+                        hasChanges = true
                     }
                 }
 
-                // PDAs and Contents (if empty)
-                if ((!prev.pda || prev.pda.length === 0 || prev.pda[0] === '') && pdaNames.length > 0) {
-                    updates.pda = pdaNames
-                }
-                if ((!prev.contents || prev.contents.length === 0 || prev.contents[0] === '') && contentName) {
-                    updates.contents = [contentName]
+                // PDAs and Contents
+                if (pdaNames.length > 0) {
+                    // Solo actualizar si son diferentes para evitar loop de referencias
+                    if (JSON.stringify(prev.pda) !== JSON.stringify(pdaNames)) {
+                        updates.pda = pdaNames
+                        hasChanges = true
+                    }
                 }
 
-                if (Object.keys(updates).length === 0) {
+                if (contentNames.length > 0) {
+                    if (JSON.stringify(prev.contents) !== JSON.stringify(contentNames)) {
+                        updates.contents = contentNames
+                        hasChanges = true
+                    }
+                }
 
+                if (!hasChanges) {
                     return prev
                 }
-
 
                 return { ...prev, ...updates }
             })
         }
 
         fetchAnalyticalData()
-    }, [formData.subject_id, formData.campo_formativo, tenant?.id])
+    }, [formData.subject_id, formData.campo_formativo, formData.group_id, analyticalProgram, groups])
 
     // Theme Sync Effect: Auto-trigger theme generation when book is selected or auto-selected
     useEffect(() => {
         const fetchInitialThemes = async () => {
             if (formData.textbook_id && availableTextbooks.length > 0 && textbookThemesProposal.length === 0 && !generatingThemes) {
                 const book = availableTextbooks.find(b => b.id === formData.textbook_id)
-                if (book && book.file_url) {
+                if (book && book.source === 'CONALITEG') {
+                    // Libros oficiales: el texto solo existe si CONALITEG publica el PDF sin cifrar.
+                    setGeneratingThemes(true)
+                    let indexText: string | undefined
+                    if (book.text_status === 'done') {
+                        const { data } = await supabase.rpc('get_textbook_text', { p_textbook: book.id, p_from: 1, p_to: 25 })
+                        indexText = (data as string | null) || undefined
+                    }
+                    await triggerThemeGeneration(book.title, indexText)
+                } else if (book && book.file_url) {
                     setGeneratingThemes(true) // Lock early
                     try {
                         const loadingTask = pdfjsLib.getDocument(book.file_url)
@@ -833,6 +922,22 @@ export const PlanningEditorPage = () => {
 
         setIsExtractingText(true)
         try {
+            // Libro oficial del catálogo: usar el texto indexado (si existe) en vez del PDF.
+            const officialBook = !formData.source_document_url
+                ? availableTextbooks.find(b => b.id === formData.textbook_id && b.source === 'CONALITEG')
+                : undefined
+            if (officialBook) {
+                if (officialBook.text_status !== 'done') {
+                    alert('Este libro está protegido por CONALITEG: ábrelo con "Ver libro", copia el texto de esas páginas y pégalo en el recuadro de abajo.')
+                    return
+                }
+                const { data, error } = await supabase.rpc('get_textbook_text', { p_textbook: officialBook.id, p_from: from, p_to: to })
+                if (error) throw error
+                const text = (data as string | null) ?? ''
+                setFormData(prev => ({ ...prev, extracted_text: text }))
+                if (text.length > 100) triggerThemeGeneration(undefined, text)
+                return
+            }
 
             const loadingTask = pdfjsLib.getDocument(fileUrl)
             const pdf = await loadingTask.promise
@@ -868,29 +973,30 @@ export const PlanningEditorPage = () => {
         setGeneratingThemes(true)
         try {
             let themes: any[] = []
-
             const apiKey = tenant?.aiConfig?.apiKey
 
             // 1. Try AI Generation
             if ((bookTitle || extractedText) && apiKey) {
-                const aiService = apiKey.startsWith('gsk_')
-                    ? new GroqService(apiKey)
-                    : new GeminiService(
+                try {
+                    const aiService = new GeminiService(
                         tenant?.aiConfig?.geminiKey || apiKey,
-                        tenant?.aiConfig?.apiKey,
+                        tenant?.aiConfig?.groqKey || (apiKey.startsWith('gsk_') ? apiKey : ''),
                         tenant?.aiConfig?.openaiKey
                     )
 
-                themes = await aiService.extractThemesFromText({
-                    textbookTitle: bookTitle,
-                    text: extractedText,
-                    field: formData.campo_formativo
-                })
+                    themes = await aiService.extractThemesFromText({
+                        textbookTitle: bookTitle,
+                        text: extractedText,
+                        field: formData.campo_formativo
+                    })
+                } catch (aiError) {
+                    console.error('AI extraction failed, using fallback:', aiError)
+                    // Let it fall through to the fallback logic
+                }
             }
 
             // 2. FALLBACK: If AI returned nothing (missing key or error), use local catalog
             if (!themes || themes.length === 0) {
-
                 const catalogItems = PDA_CATALOG[formData.campo_formativo] || []
                 // Extract some keywords from catalog descriptions to create "Themes"
                 themes = catalogItems.slice(0, 6).map(desc => {
@@ -915,6 +1021,11 @@ export const PlanningEditorPage = () => {
             setTextbookThemesProposal(normalizedThemes)
         } catch (error) {
             console.error('Error in triggerThemeGeneration:', error)
+            // Ensure we never leave it empty to prevent infinite loop
+            setTextbookThemesProposal([
+                { theme: 'Error al cargar', pages: 'N/A' },
+                { theme: 'Pensamiento Crítico', pages: 'Base' }
+            ])
         } finally {
             setGeneratingThemes(false)
         }
@@ -987,7 +1098,7 @@ export const PlanningEditorPage = () => {
 
             let weeksToGenerate = 1
             if (formData.temporality === 'MONTHLY') weeksToGenerate = 4
-            if (formData.temporality === 'TRIMESTER') weeksToGenerate = 12
+            if (formData.temporality === 'TRIMESTER' as any) weeksToGenerate = 12
             if (formData.temporality === 'PROJECT') weeksToGenerate = 2
 
             const referenceDate = new Date()
@@ -1126,18 +1237,17 @@ export const PlanningEditorPage = () => {
         setHasDecidedStrategy(true)
 
         try {
-            const aiService = apiKey.startsWith('gsk_')
-                ? new GroqService(apiKey)
-                : new GeminiService(
-                    tenant?.aiConfig?.geminiKey || apiKey,
-                    tenant?.aiConfig?.apiKey,
-                    tenant?.aiConfig?.openaiKey
-                )
+            const aiService = new GeminiService(
+                tenant?.aiConfig?.geminiKey || apiKey,
+                tenant?.aiConfig?.groqKey || (apiKey.startsWith('gsk_') ? apiKey : ''),
+                tenant?.aiConfig?.openaiKey
+            )
 
             const suggestions = await aiService.generateLessonPlanSuggestions({
                 topic: formData.title || 'Tema General',
                 subject: subjects.find(s => s.id === formData.subject_id)?.name,
                 grade: groups.find(g => g.id === formData.group_id)?.grade,
+                level: tenant?.educationalLevel, // Enviar Nivel Educativo para mejor contexto
                 field: formData.campo_formativo,
                 methodology: formData.metodologia,
                 problemContext: formData.problem_context,
@@ -1262,9 +1372,9 @@ export const PlanningEditorPage = () => {
     const toggleThemeSelection = (theme: string) => {
         setFormData(prev => ({
             ...prev,
-            selected_themes: prev.selected_themes.includes(theme)
-                ? prev.selected_themes.filter(t => t !== theme)
-                : [...prev.selected_themes, theme]
+            selected_themes: (prev.selected_themes || []).includes(theme)
+                ? (prev.selected_themes || []).filter(t => t !== theme)
+                : [...(prev.selected_themes || []), theme]
         }))
     }
 
@@ -1289,6 +1399,57 @@ export const PlanningEditorPage = () => {
                 return { ...prev, ejes_articuladores: [...current, eje] }
             }
         })
+    }
+
+    const fetchTemplates = async () => {
+        if (!formData.group_id) {
+            alert('Selecciona un grupo primero para cargar plantillas compatibles.')
+            return
+        }
+        setLoadingTemplates(true)
+        setIsTemplateModalOpen(true)
+        try {
+            const selectedGroup = groups.find(g => g.id === formData.group_id)
+            const level = tenant?.educationalLevel || 'PRIMARY'
+            const grade = selectedGroup?.grade || 1
+
+            let query = supabase
+                .from('lesson_plan_templates')
+                .select('*')
+                .eq('educational_level', level)
+                .eq('grade', grade)
+
+            if (formData.subject_id) {
+                const subject = subjects.find(s => s.id === formData.subject_id)
+                if (subject) {
+                    query = query.ilike('subject_name', `%${subject.name}%`)
+                }
+            }
+
+            const { data, error } = await query
+            if (error) throw error
+            setTemplates(data || [])
+        } catch (error) {
+            console.error('Error fetching templates:', error)
+        } finally {
+            setLoadingTemplates(false)
+        }
+    }
+
+    const applyTemplate = async (template: any) => {
+        if (confirm(`¿Deseas cargar la plantilla "${template.title}"? Esto reemplazará el progreso actual.`)) {
+            setFormData(prev => ({
+                ...prev,
+                title: template.title,
+                campo_formativo: template.campo_formativo || prev.campo_formativo,
+                metodologia: template.metodologia || prev.metodologia,
+                purpose: template.purpose || prev.purpose,
+                pda: template.pda && template.pda.length > 0 ? template.pda : prev.pda,
+                activities_sequence: template.activities_sequence || prev.activities_sequence
+            }))
+            setIsTemplateModalOpen(false)
+            setHasDecidedStrategy(true)
+        }
     }
 
     const validateStep = (currentStep: number) => {
@@ -1455,7 +1616,7 @@ export const PlanningEditorPage = () => {
         printWindow.document.close();
     }
 
-    if (loading) return <div className="p-20 text-center animate-pulse text-gray-400">Cargando editor...</div>
+    if (loading) return <div className="p-20 text-center animate-pulse text-gray-500">Cargando editor...</div>
 
     return (
         <div className="max-w-6xl mx-auto px-4 py-8 pb-32">
@@ -1472,13 +1633,13 @@ export const PlanningEditorPage = () => {
                     {pendingCount > 0 && (
                         <div className="flex items-center px-3 py-1 bg-blue-50 text-blue-600 rounded-full border border-blue-100 animate-pulse">
                             <Clock className="w-3 h-3 mr-1.5" />
-                            <span className="text-[10px] font-black uppercase tracking-widest">{pendingCount} Pendientes</span>
+                            <span className="text-[11px] font-black uppercase tracking-widest">{pendingCount} Pendientes</span>
                         </div>
                     )}
                     {!isOnline && (
-                        <div className="flex items-center px-3 py-1 bg-amber-50 text-amber-600 rounded-full border border-amber-100">
+                        <div className="flex items-center px-3 py-1 bg-amber-50 text-amber-700 rounded-full border border-amber-100">
                             <Sparkles className="w-3 h-3 mr-1.5" />
-                            <span className="text-[10px] font-black uppercase tracking-widest">Offline</span>
+                            <span className="text-[11px] font-black uppercase tracking-widest">Offline</span>
                         </div>
                     )}
                     {!isPreviewMode && (
@@ -1502,7 +1663,7 @@ export const PlanningEditorPage = () => {
                         <div className="absolute top-[24px] left-0 w-full h-2 bg-slate-100 rounded-full z-0"></div>
                         <div
                             className="absolute top-[24px] left-0 h-2 bg-indigo-500 rounded-full z-0 transition-all duration-700 ease-out"
-                            style={{ width: `${((step - 1) / 3) * 100}% ` }}
+                            style={{ width: `${((step - 1) / 3) * 100}%` }}
                         ></div>
 
                         {[
@@ -1517,17 +1678,17 @@ export const PlanningEditorPage = () => {
                                     if (s.n < step) setStep(s.n)
                                     else if (validateStep(step)) setStep(s.n)
                                 }}
-                                className={`relative z - 10 flex flex - col items - center group transition - all duration - 500
+                                className={`relative z-10 flex flex-col items-center group transition-all duration-500
                                     ${step === s.n ? 'scale-110' : 'opacity-70 hover:opacity-100'} 
-                                    ${step > s.n ? 'text-indigo-600' : 'text-slate-300'} `}
+                                    ${step > s.n ? 'text-indigo-600' : 'text-slate-300'}`}
                             >
-                                <div className={`w - 14 h - 14 rounded - 2xl flex items - center justify - center border - [3px] transition - all duration - 300 btn - tactile
-                                    ${step === s.n ? 'bg-indigo-600 border-indigo-400 text-white shadow-[0_6px_0_0_#4338ca]' : step > s.n ? 'bg-indigo-50 border-indigo-200 text-indigo-600 shadow-[0_6px_0_0_#e0e7ff]' : 'bg-white border-slate-100 text-slate-300 shadow-[0_6px_0_0_#f1f5f9]'} `}
+                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border-[3px] transition-all duration-300 btn-tactile
+                                    ${step === s.n ? 'bg-indigo-600 border-indigo-400 text-white shadow-[0_6px_0_0_#4338ca]' : step > s.n ? 'bg-indigo-50 border-indigo-200 text-indigo-600 shadow-[0_6px_0_0_#e0e7ff]' : 'bg-white border-slate-100 text-slate-300 shadow-[0_6px_0_0_#f1f5f9]'}`}
                                 >
-                                    <s.icon className={`w - 6 h - 6 ${step === s.n ? 'animate-bounce' : ''} `} />
+                                    <s.icon className={`w-6 h-6 ${step === s.n ? 'animate-bounce' : ''}`} />
                                 </div>
-                                <span className={`text - [10px] font - black uppercase mt - 4 tracking - widest bg - white px - 3 py - 1 rounded - full shadow - sm border border - slate - 50
-                                    ${step === s.n ? 'text-indigo-600 border-indigo-100' : 'text-slate-400'} `}>
+                                <span className={`text-[11px] font-black uppercase mt-4 tracking-widest bg-white px-3 py-1 rounded-full shadow-sm border border-slate-50
+                                    ${step === s.n ? 'text-indigo-600 border-indigo-100' : 'text-slate-500'}`}>
                                     {s.label}
                                 </span>
                             </button>
@@ -1538,7 +1699,7 @@ export const PlanningEditorPage = () => {
 
             <div className="flex gap-8 items-start relative">
                 {/* Main Content Area */}
-                <div className={`flex - 1 bg - white rounded - [2.5rem] shadow - tactile border - 4 border - white overflow - hidden transition - all duration - 500 ${isPreviewMode ? 'max-w-4xl mx-auto' : ''} `}>
+                <div className={`flex-1 bg-white rounded-[2.5rem] shadow-tactile border-4 border-white overflow-hidden transition-all duration-500 ${isPreviewMode ? 'max-w-4xl mx-auto' : ''}`}>
 
                     {/* Header Banner (Conditional) */}
                     {isPreviewMode && (
@@ -1549,18 +1710,18 @@ export const PlanningEditorPage = () => {
                                 </div>
                                 <div>
                                     <h1 className="text-xl font-black text-gray-900 uppercase tracking-tighter">Planeación Didáctica</h1>
-                                    <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mt-1">Vunlek • Nueva Escuela Mexicana</p>
+                                    <p className="text-[11px] font-bold text-indigo-600 uppercase tracking-widest mt-1">Vunlek • Nueva Escuela Mexicana</p>
                                 </div>
                             </div>
                             <div className="text-right flex flex-col items-end">
-                                <span className="text-[10px] uppercase font-black text-gray-400 mb-1">Ciclo Escolar</span>
+                                <span className="text-[11px] uppercase font-black text-gray-500 mb-1">Ciclo Escolar</span>
                                 <div className="flex items-center bg-white px-3 py-1 rounded-full border border-gray-100 text-sm font-bold text-gray-800 shadow-sm">
                                     <Calendar className="w-3 h-3 mr-2 text-indigo-400" />
                                     2025-2026
                                 </div>
                                 <button
                                     onClick={() => profile?.is_demo ? alert('Modo Demo: La impresión está deshabilitada.') : handlePrint()}
-                                    className={`mt - 4 flex items - center font - bold text - [10px] uppercase tracking - widest no - print transition - colors ${profile?.is_demo ? 'text-gray-400 cursor-not-allowed' : 'text-indigo-600 hover:text-indigo-800'} `}
+                                    className={`mt-4 flex items-center font-bold text-[11px] uppercase tracking-widest no-print transition-colors ${profile?.is_demo ? 'text-gray-500 cursor-not-allowed' : 'text-indigo-600 hover:text-indigo-800'}`}
                                 >
                                     <Printer className="w-3.5 h-3.5 mr-2" /> Imprimir / PDF
                                 </button>
@@ -1568,745 +1729,72 @@ export const PlanningEditorPage = () => {
                         </div>
                     )}
 
-                    <div className={`p - 4 md: p - 8 lg: p - 12 space - y - 6 md: space - y - 8 ${isPreviewMode ? 'print:p-0 print:space-y-8' : ''} `}>
+                    <div className={`p-4 md:p-8 lg:p-12 space-y-6 md:space-y-8 ${isPreviewMode ? 'print:p-0 print:space-y-8' : ''}`}>
                         {/* Section 1: Selección y Carga (Contexto) */}
-                        {(step === 1 || isPreviewMode) && (<section className={isPreviewMode ? 'grid grid-cols-2 gap-8' : ''}>
-                            {!isPreviewMode ? (
-                                <>
-                                    <div className="flex items-center space-x-3 mb-8">
-                                        <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100">
-                                            <Target className="w-6 h-6 text-white" />
-                                        </div>
-                                        <div>
-                                            <h2 className="text-xl font-black text-gray-900 tracking-tight">Paso 01. Identificación y Formación</h2>
-                                            <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mt-1">Configura el destino de tu planeación NEM</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 bg-white p-8 rounded-[2.5rem] border-2 border-slate-50 shadow-sm">
-                                        <div className="col-span-1 md:col-span-2 lg:col-span-3">
-                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Título del Proyecto / Unidad</label>
-                                            <div className="relative group">
-                                                <input
-                                                    type="text"
-                                                    value={formData.title}
-                                                    onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                                                    placeholder="Ej: Explorando la Biotecnología en mi comunidad..."
-                                                    className="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-100 rounded-2xl px-6 py-4 text-sm font-bold text-indigo-950 outline-none transition-all"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-3">
-                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Campo Formativo</label>
-                                            <select
-                                                value={formData.campo_formativo}
-                                                onChange={e => setFormData(prev => ({ ...prev, campo_formativo: e.target.value }))}
-                                                className="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-100 rounded-2xl px-6 py-4 text-sm font-bold text-indigo-950 outline-none transition-all appearance-none cursor-pointer"
-                                            >
-                                                <option value="">Seleccionar Campo</option>
-                                                {CAMPOS.map(c => (
-                                                    <option key={c} value={c}>{c}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-
-                                        <div className="space-y-3">
-                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Grupo Escolar</label>
-                                            <select
-                                                value={formData.group_id}
-                                                onChange={e => setFormData(prev => ({ ...prev, group_id: e.target.value, subject_id: '' }))}
-                                                className="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-100 rounded-2xl px-6 py-4 text-sm font-bold text-indigo-950 outline-none transition-all appearance-none cursor-pointer"
-                                            >
-                                                <option value="">Seleccionar Grupo</option>
-                                                {groups.map(g => (
-                                                    <option key={g.id} value={g.id}>{g.grade}° "{g.section}"</option>
-                                                ))}
-                                            </select>
-                                        </div>
-
-                                        <div className="space-y-3">
-                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Asignatura / Disciplina</label>
-                                            <select
-                                                value={formData.subject_id}
-                                                onChange={e => setFormData(prev => ({ ...prev, subject_id: e.target.value }))}
-                                                disabled={!formData.group_id}
-                                                className="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-100 rounded-2xl px-6 py-4 text-sm font-bold text-indigo-950 outline-none transition-all appearance-none cursor-pointer disabled:opacity-50"
-                                            >
-                                                <option value="">{formData.group_id ? 'Seleccionar Asignatura' : 'Primero elige un grupo'}</option>
-                                                {subjects.map(s => (
-                                                    <option key={s.id} value={s.id}>{s.name}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-
-                                        <div className="space-y-3">
-                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Periodo de Evaluación</label>
-                                            <select
-                                                value={formData.period_id}
-                                                onChange={e => setFormData(prev => ({ ...prev, period_id: e.target.value }))}
-                                                className="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-100 rounded-2xl px-6 py-4 text-sm font-bold text-indigo-950 outline-none transition-all appearance-none cursor-pointer"
-                                            >
-                                                <option value="">Seleccionar Periodo</option>
-                                                {periods.map(p => (
-                                                    <option key={p.id} value={p.id}>{p.name}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-
-
-
-                                        <div className="space-y-3">
-                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Esquema de Planeación</label>
-                                            <select
-                                                value={formData.temporality}
-                                                onChange={e => setFormData(prev => ({ ...prev, temporality: e.target.value }))}
-                                                className="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-100 rounded-2xl px-6 py-4 text-sm font-bold text-indigo-950 outline-none transition-all appearance-none cursor-pointer"
-                                            >
-                                                <option value="WEEKLY">Semanal (Normal)</option>
-                                                <option value="MONTHLY">Mensual (Unidad)</option>
-                                                <option value="PROJECT">Por Proyecto (NEM)</option>
-                                            </select>
-                                        </div>
-
-                                        {formData.temporality === 'PROJECT' && (
-                                            <div className="space-y-3">
-                                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Número de Sesiones</label>
-                                                <input
-                                                    type="number"
-                                                    min="1"
-                                                    value={formData.project_duration || 10}
-                                                    onChange={e => setFormData(prev => ({ ...prev, project_duration: parseInt(e.target.value) || 1 }))}
-                                                    className="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-100 rounded-2xl px-6 py-4 text-sm font-bold text-indigo-950 outline-none transition-all"
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {analyticalProgram && formData.group_id && (
-                                        <div className="mt-8 p-6 bg-emerald-50 rounded-3xl border-2 border-emerald-100 animate-in fade-in slide-in-from-top-4 duration-500">
-                                            <div className="flex items-center space-x-4">
-                                                <div className="p-3 bg-emerald-600 text-white rounded-2xl shadow-lg">
-                                                    <ClipboardCheck className="w-6 h-6" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Programa Analítico Detectado</p>
-                                                    <h4 className="text-sm font-black text-emerald-950 uppercase italic">
-                                                        Contenidos y Problemáticas cargados automáticamente
-                                                    </h4>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </>
-                            ) : (
-                                <div className="col-span-2 grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-50 p-6 rounded-2xl border border-gray-100">
-                                    <div>
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Proyecto</p>
-                                        <p className="font-bold text-gray-900">{formData.title || 'Sin Título'}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Grupo</p>
-                                        <p className="font-bold text-gray-900">{groups.find(g => g.id === formData.group_id)?.grade}° "{groups.find(g => g.id === formData.group_id)?.section}"</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Asignatura</p>
-                                        <p className="font-bold text-gray-900">{subjects.find(s => s.id === formData.subject_id)?.name}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Temporalidad</p>
-                                        <p className="font-bold text-indigo-600">
-                                            {formData.temporality === 'WEEKLY' ? 'Semanal' :
-                                                formData.temporality === 'MONTHLY' ? 'Mensual' : 'Proyecto'}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Campo Formativo</p>
-                                        <p className="font-bold text-gray-900">{formData.campo_formativo || 'No seleccionado'}</p>
-                                    </div>
-                                </div>
-                            )}
-                        </section>
+                        {/* Paso 1: Datos Generales */}
+                        {(step === 1 || isPreviewMode) && (
+                            <Step1Context
+                                formData={formData}
+                                setFormData={setFormData}
+                                groups={groups}
+                                subjects={subjects}
+                                periods={periods}
+                                CAMPOS={CAMPOS}
+                                isPreviewMode={isPreviewMode}
+                                fetchTemplates={fetchTemplates}
+                                generateAiSuggestions={generateAiSuggestions}
+                                generating={generating}
+                                analyticalProgram={analyticalProgram}
+                            />
                         )}
 
                         {/* Paso 02: Libro de Texto */}
-                        {(step === 2 || isPreviewMode) && (<section className="animate-in fade-in slide-in-from-bottom-8 duration-700">
-                            {!isPreviewMode ? (
-                                <>
-                                    <div className="flex items-center space-x-3 mb-8">
-                                        <div className="w-12 h-12 bg-amber-500 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-100">
-                                            <BookOpen className="w-6 h-6 text-white" />
-                                        </div>
-                                        <div>
-                                            <h2 className="text-xl font-black text-gray-900 tracking-tight">Paso 02. Libro de Texto e Insumos</h2>
-                                            <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest mt-1">Selecciona el contenido base de tus actividades</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                        <div className="space-y-6">
-                                            <div className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-50 shadow-sm">
-                                                <h3 className="text-xs font-black text-indigo-950 uppercase tracking-widest mb-6 flex items-center">
-                                                    <Search className="w-4 h-4 mr-2 text-indigo-400" />
-                                                    Seleccionar Libro Oficial
-                                                </h3>
-                                                <select
-                                                    value={formData.textbook_id}
-                                                    onChange={async (e) => {
-                                                        const bookId = e.target.value
-                                                        setFormData(prev => ({ ...prev, textbook_id: bookId }))
-
-                                                        if (bookId) {
-                                                            const book = availableTextbooks.find(b => b.id === bookId)
-                                                            if (book) {
-                                                                triggerThemeGeneration(book.title)
-                                                            }
-                                                        } else {
-                                                            setTextbookThemesProposal([])
-                                                        }
-                                                    }}
-                                                    className="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-100 rounded-2xl px-6 py-4 text-sm font-bold text-indigo-950 outline-none transition-all appearance-none cursor-pointer"
-                                                >
-                                                    <option value="">Seleccionar Libro CONALITEG</option>
-                                                    {availableTextbooks.filter(book => {
-                                                        if (!formData.campo_formativo) return true
-                                                        const bField = (book.field_of_study || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-                                                        const fField = formData.campo_formativo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-                                                        return bField.includes(fField) || fField.includes(bField)
-                                                    }).map(book => (
-                                                        <option key={book.id} value={book.id}>{book.title}</option>
-                                                    ))}
-                                                </select>
-
-                                                {(formData.textbook_id || formData.source_document_url) && (
-                                                    <div className="mt-6 p-6 bg-slate-50 rounded-3xl border-2 border-slate-100 animate-in fade-in slide-in-from-top-4 duration-500">
-                                                        <div className="flex flex-col space-y-4">
-                                                            <div className="flex items-center justify-between">
-                                                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Contexto Específico</h4>
-                                                                <button
-                                                                    onClick={() => {
-                                                                        const url = formData.source_document_url || availableTextbooks.find(b => b.id === formData.textbook_id)?.file_url
-                                                                        if (url) {
-                                                                            setPdfViewerUrl(url)
-                                                                            setIsPdfViewerOpen(true)
-                                                                        }
-                                                                    }}
-                                                                    className="flex items-center space-x-2 text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:text-indigo-700 transition-colors"
-                                                                >
-                                                                    <Eye className="w-3 h-3" />
-                                                                    <span>Ver Libro</span>
-                                                                </button>
-                                                            </div>
-
-                                                            <div className="grid grid-cols-2 gap-4">
-                                                                <div>
-                                                                    <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Página Desde</label>
-                                                                    <input
-                                                                        type="number"
-                                                                        min="1"
-                                                                        value={formData.textbook_pages_from}
-                                                                        onChange={e => setFormData(prev => ({ ...prev, textbook_pages_from: e.target.value }))}
-                                                                        className="w-full bg-white border-2 border-slate-100 rounded-xl px-4 py-2 text-sm font-bold text-slate-700 outline-none focus:border-indigo-200 transition-all"
-                                                                        placeholder="Ej: 12"
-                                                                    />
-                                                                </div>
-                                                                <div>
-                                                                    <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Página Hasta</label>
-                                                                    <input
-                                                                        type="number"
-                                                                        min="1"
-                                                                        value={formData.textbook_pages_to}
-                                                                        onChange={e => setFormData(prev => ({ ...prev, textbook_pages_to: e.target.value }))}
-                                                                        className="w-full bg-white border-2 border-slate-100 rounded-xl px-4 py-2 text-sm font-bold text-slate-700 outline-none focus:border-indigo-200 transition-all"
-                                                                        placeholder="Ej: 15"
-                                                                    />
-                                                                </div>
-                                                            </div>
-
-                                                            <button
-                                                                onClick={async () => {
-                                                                    const url = formData.source_document_url || availableTextbooks.find(b => b.id === formData.textbook_id)?.file_url
-                                                                    const from = parseInt(formData.textbook_pages_from)
-                                                                    const to = parseInt(formData.textbook_pages_to)
-                                                                    if (url && from && to) {
-                                                                        await extractSpecificPages(url, from, to)
-                                                                    } else {
-                                                                        alert('Por favor indica el rango de páginas y asegúrate de tener un libro seleccionado.')
-                                                                    }
-                                                                }}
-                                                                disabled={isExtractingText || !formData.textbook_pages_from || !formData.textbook_pages_to}
-                                                                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-100 flex items-center justify-center space-x-2"
-                                                            >
-                                                                {isExtractingText ? (
-                                                                    <>
-                                                                        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                                                        <span>Leyendo páginas...</span>
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <Sparkles className="w-3 h-3" />
-                                                                        <span>Usar estas páginas para la planeación</span>
-                                                                    </>
-                                                                )}
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                <div className="mt-8 border-t-2 border-slate-50 pt-8">
-                                                    <h3 className="text-xs font-black text-indigo-950 uppercase tracking-widest mb-4 flex items-center">
-                                                        <BookMarked className="w-4 h-4 mr-2 text-indigo-400" />
-                                                        Mi Biblioteca Personal
-                                                    </h3>
-
-                                                    {personalTextbooks.length > 0 ? (
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-                                                            {personalTextbooks.map(book => (
-                                                                <div
-                                                                    key={book.id}
-                                                                    onClick={() => {
-                                                                        setFormData(prev => ({
-                                                                            ...prev,
-                                                                            source_document_url: book.file_url,
-                                                                            textbook_id: '',
-                                                                            textbook_pages_from: '',
-                                                                            textbook_pages_to: ''
-                                                                        }))
-                                                                    }}
-                                                                    className={`p - 3 rounded - xl border - 2 cursor - pointer transition - all flex items - center shadow - sm ${formData.source_document_url === book.file_url && !formData.textbook_id
-                                                                            ? 'bg-indigo-50 border-indigo-400 ring-2 ring-indigo-200'
-                                                                            : 'bg-white border-slate-100 hover:border-indigo-200'
-                                                                        } `}
-                                                                >
-                                                                    <div className={`w - 8 h - 8 rounded - lg flex items - center justify - center mr - 3 ${formData.source_document_url === book.file_url && !formData.textbook_id
-                                                                            ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400'
-                                                                        } `}>
-                                                                        <FileText className="w-4 h-4" />
-                                                                    </div>
-                                                                    <div className="flex-1 min-w-0">
-                                                                        <p className="text-xs font-bold text-slate-700 truncate">{book.title}</p>
-                                                                        <p className="text-[9px] font-black text-slate-400 tracking-widest uppercase">
-                                                                            {new Date(book.created_at).toLocaleDateString()}
-                                                                        </p>
-                                                                    </div>
-                                                                    {formData.source_document_url === book.file_url && !formData.textbook_id && (
-                                                                        <CheckCircle2 className="w-4 h-4 text-indigo-600 ml-2" />
-                                                                    )}
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    ) : (
-                                                        <p className="text-xs text-slate-400 italic mb-6">Aún no has guardado libros en tu biblioteca.</p>
-                                                    )}
-
-                                                    <h3 className="text-xs font-black text-indigo-950 uppercase tracking-widest mb-4 flex items-center">
-                                                        <Plus className="w-4 h-4 mr-2 text-indigo-400" />
-                                                        Subir Nuevo Libro (PDF)
-                                                    </h3>
-                                                    <PDFUpload
-                                                        label="Subir PDF del Libro"
-                                                        bucket="textbooks"
-                                                        currentFileUrl={formData.source_document_url}
-                                                        onUploadComplete={async (url, text, fileName) => {
-                                                            // Guardar en repositorio personal
-                                                            const { data: { user } } = await supabase.auth.getUser()
-                                                            if (user) {
-                                                                const { data: newBook } = await supabase.from('user_textbooks').insert({
-                                                                    profile_id: user.id,
-                                                                    title: fileName || 'Libro Personalizado',
-                                                                    file_url: url
-                                                                }).select().single()
-
-                                                                if (newBook) {
-                                                                    setPersonalTextbooks(prev => [newBook, ...prev])
-                                                                }
-                                                            }
-
-                                                            setFormData(prev => ({
-                                                                ...prev,
-                                                                source_document_url: url,
-                                                                extracted_text: text,
-                                                                textbook_id: ''
-                                                            }))
-
-                                                            if (text) {
-                                                                triggerThemeGeneration(undefined, text)
-                                                            }
-                                                        }}
-                                                        onClear={() => {
-                                                            setFormData(prev => ({
-                                                                ...prev,
-                                                                source_document_url: '',
-                                                                extracted_text: '',
-                                                                textbook_pages_from: '',
-                                                                textbook_pages_to: ''
-                                                            }))
-                                                        }}
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-6">
-                                            <div className="bg-slate-900 p-8 rounded-[2.5rem] shadow-xl relative overflow-hidden group min-h-[300px]">
-                                                <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-                                                    <Sparkles className="w-32 h-32 text-indigo-400" />
-                                                </div>
-
-                                                <div className="relative z-10">
-                                                    <h3 className="text-xs font-black text-indigo-400 uppercase tracking-[0.2em] mb-4">Análisis Inteligente (IA)</h3>
-                                                    <h4 className="text-xl font-bold text-white mb-6">Temas detectados en el recurso</h4>
-
-                                                    {generatingThemes ? (
-                                                        <div className="flex flex-col items-center justify-center py-12">
-                                                            <div className="w-12 h-12 border-4 border-indigo-400 border-t-transparent rounded-full animate-spin mb-4"></div>
-                                                            <p className="text-xs font-black text-indigo-300 uppercase tracking-widest animate-pulse">Analizando PDF...</p>
-                                                        </div>
-                                                    ) : textbookThemesProposal.length > 0 ? (
-                                                        <div className="space-y-3">
-                                                            {textbookThemesProposal.map((item, idx) => (
-                                                                <button
-                                                                    key={idx}
-                                                                    onClick={() => toggleThemeSelection(item.theme)}
-                                                                    className={`w - full flex items - center justify - between p - 4 rounded - 2xl border - 2 transition - all duration - 300 ${(formData.selected_themes || []).includes(item.theme)
-                                                                            ? 'bg-indigo-500 border-indigo-400 text-white shadow-lg shadow-indigo-600/20'
-                                                                            : 'bg-white/5 border-white/10 text-white/60 hover:border-white/20'
-                                                                        } `}
-                                                                >
-                                                                    <div className="flex items-center space-x-3 text-left">
-                                                                        <div className={`p - 2 rounded - lg ${(formData.selected_themes || []).includes(item.theme) ? 'bg-white/20' : 'bg-white/5'} `}>
-                                                                            <CheckCircle2 className="w-4 h-4" />
-                                                                        </div>
-                                                                        <span className="text-sm font-bold uppercase tracking-tight">{item.theme}</span>
-                                                                    </div>
-                                                                    <span className="text-[10px] font-black opacity-60 bg-black/20 px-3 py-1 rounded-full uppercase">{item.pages}</span>
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    ) : (
-                                                        <div className="bg-white/5 border-2 border-dashed border-white/10 rounded-[2rem] p-12 text-center">
-                                                            <p className="text-indigo-300/40 font-bold italic text-sm">Selecciona o sube un libro para que la IA proponga los temas clave aquí.</p>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="col-span-2 bg-amber-50 p-6 rounded-2xl border border-amber-100">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1">Libro Seleccionado</p>
-                                            <p className="font-bold text-amber-950">
-                                                {availableTextbooks.find(b => b.id === formData.textbook_id)?.title || (formData.source_document_url ? 'Libro Personalizado' : 'Sin Libro')}
-                                            </p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1">Temas del Libro</p>
-                                            <p className="text-xs font-bold text-amber-800">
-                                                {formData.selected_themes.join(', ') || 'Varios temas seleccionados'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </section>)}
+                        {/* Paso 02: Libro de Texto */}
+                        {(step === 2 || isPreviewMode) && (
+                            <Step2Resources
+                                formData={formData}
+                                setFormData={setFormData}
+                                isPreviewMode={isPreviewMode}
+                                availableTextbooks={availableTextbooks}
+                                personalTextbooks={personalTextbooks}
+                                setPersonalTextbooks={setPersonalTextbooks}
+                                triggerThemeGeneration={triggerThemeGeneration}
+                                isExtractingText={isExtractingText}
+                                extractSpecificPages={extractSpecificPages}
+                                generatingThemes={generatingThemes}
+                                textbookThemesProposal={textbookThemesProposal}
+                                toggleThemeSelection={toggleThemeSelection}
+                                setIsPdfViewerOpen={setIsPdfViewerOpen}
+                                setPdfViewerUrl={setPdfViewerUrl}
+                            />
+                        )}
 
                         {/* Paso 03: Metodología NEM */}
-                        {(step === 3 || isPreviewMode) && (<section className="animate-in fade-in slide-in-from-bottom-8 duration-700">
-                            {!isPreviewMode ? (
-                                <>
-                                    <div className="flex items-center space-x-3 mb-8">
-                                        <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100">
-                                            <Target className="w-6 h-6 text-white" />
-                                        </div>
-                                        <div>
-                                            <h2 className="text-xl font-black text-gray-900 tracking-tight">Paso 03. Metodología y Ejes Articuladores</h2>
-                                            <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-1">Define el enfoque pedagógico de tu planeación</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        <div className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-50 shadow-sm space-y-6">
-                                            <div>
-                                                <label className="block text-[10px] font-black text-gray-400 uppercase mb-3 ml-1 tracking-widest">Metodología NEM Sugerida</label>
-                                                <div className="grid grid-cols-1 gap-3">
-                                                    {METODOLOGIAS.map(m => (
-                                                        <button
-                                                            key={m}
-                                                            onClick={() => setFormData(prev => ({ ...prev, metodologia: m }))}
-                                                            className={`text - left px - 6 py - 4 rounded - 2xl border - 2 font - bold text - sm transition - all duration - 300 ${formData.metodologia === m
-                                                                    ? 'bg-indigo-50 border-indigo-500 text-indigo-700 shadow-sm'
-                                                                    : 'bg-slate-50 border-transparent text-gray-500 hover:border-indigo-100'
-                                                                } btn - tactile`}
-                                                        >
-                                                            {m}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-[10px] font-black text-gray-400 uppercase mb-3 ml-1 tracking-widest">Ejes Articuladores (Mínimo 2-3 sugeridos)</label>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {EJES.map(eje => {
-                                                        const isSelected = formData.ejes_articuladores.includes(eje)
-                                                        return (
-                                                            <button
-                                                                key={eje}
-                                                                onClick={() => toggleEje(eje)}
-                                                                className={`px - 4 py - 2.5 rounded - xl text - [10px] font - black uppercase tracking - wider border - 2 transition - all duration - 300
-                                                                    ${isSelected
-                                                                        ? 'bg-rose-50 border-rose-500 text-rose-700 shadow-sm'
-                                                                        : 'bg-slate-50 border-transparent text-gray-400 hover:bg-gray-100'
-                                                                    } `}
-                                                            >
-                                                                {eje}
-                                                            </button>
-                                                        )
-                                                    })}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-50 shadow-sm space-y-6">
-                                            <div>
-                                                <label className="block text-[10px] font-black text-gray-400 uppercase mb-3 ml-1 tracking-widest">Propósito del Proyecto / Justificación</label>
-                                                <textarea
-                                                    rows={6}
-                                                    value={formData.problem_context}
-                                                    onChange={e => setFormData(prev => ({ ...prev, problem_context: e.target.value }))}
-                                                    placeholder="Extraído del Programa Analítico. Puedes ajustarlo aquí..."
-                                                    className="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-100 rounded-2xl px-6 py-4 text-sm font-medium text-slate-700 outline-none transition-all resize-none"
-                                                />
-                                            </div>
-
-                                            <div className="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100">
-                                                <div className="flex items-center space-x-3 mb-4">
-                                                    <Sparkles className="w-4 h-4 text-indigo-600" />
-                                                    <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Resumen de Contenidos cargados</p>
-                                                </div>
-                                                <div className="space-y-2">
-                                                    {formData.pda.slice(0, 3).map((p, i) => (
-                                                        <div key={i} className="flex items-start space-x-2">
-                                                            <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full mt-1.5 shrink-0" />
-                                                            <p className="text-[11px] font-bold text-indigo-900 line-clamp-1">{p}</p>
-                                                        </div>
-                                                    ))}
-                                                    {formData.pda.length > 3 && (
-                                                        <p className="text-[9px] font-black text-indigo-400 uppercase italic mt-2">+ {formData.pda.length - 3} PDAs adicionales</p>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="bg-indigo-50 p-6 rounded-2xl border border-indigo-100">
-                                        <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1">Metodología</p>
-                                        <p className="font-bold text-indigo-950">{formData.metodologia}</p>
-                                    </div>
-                                    <div className="bg-indigo-50 p-6 rounded-2xl border border-indigo-100">
-                                        <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1">Ejes Articuladores</p>
-                                        <p className="font-bold text-indigo-950">{formData.ejes_articuladores.join(', ')}</p>
-                                    </div>
-                                </div>
-                            )}
-                        </section>)}
+                        {/* Paso 03: Metodología NEM */}
+                        {(step === 3 || isPreviewMode) && (
+                            <Step3Methodology
+                                formData={formData}
+                                setFormData={setFormData}
+                                isPreviewMode={isPreviewMode}
+                                METODOLOGIAS={METODOLOGIAS}
+                                EJES={EJES}
+                                toggleEje={toggleEje}
+                            />
+                        )}
                         {/* Section 4: Distribución, Secuencia y Evaluación */}
-                        {
-                            (step === 4 || isPreviewMode) && (<section className="animate-in fade-in slide-in-from-bottom-8 duration-700">
-                                <div className="flex items-center space-x-3 mb-8">
-                                    <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100">
-                                        <Sparkles className="w-6 h-6 text-white" />
-                                    </div>
-                                    <div>
-                                        <h2 className="text-xl font-black text-gray-900 tracking-tight">Paso 04. Configuración y Generación Final</h2>
-                                        <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-1">Revisa tu cronograma y genera las actividades con IA</p>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                    {/* Columna Izquierda: Horario y Fechas */}
-                                    <div className="lg:col-span-1 space-y-6">
-                                        <div className="bg-white p-6 rounded-[2rem] border-2 border-slate-50 shadow-sm">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Cronograma</label>
-                                                {!isPreviewMode && (
-                                                    <button
-                                                        onClick={generateSequenceFromSchedule}
-                                                        className="text-[9px] font-black text-indigo-600 uppercase bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-100 hover:bg-indigo-100 transition-all"
-                                                    >
-                                                        Cargar Horario
-                                                    </button>
-                                                )}
-                                            </div>
-
-                                            <div className="space-y-4">
-                                                <div className="flex items-center space-x-3 p-3 bg-slate-50 rounded-2xl border border-transparent focus-within:border-indigo-100 transition-all">
-                                                    <Calendar className="w-4 h-4 text-indigo-400" />
-                                                    <div className="flex-1">
-                                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Inicio</p>
-                                                        <input
-                                                            type="date"
-                                                            value={formData.start_date}
-                                                            onChange={e => setFormData(prev => ({ ...prev, start_date: e.target.value }))}
-                                                            disabled={isPreviewMode}
-                                                            className="w-full bg-transparent border-none p-0 text-xs font-bold text-gray-900 focus:ring-0"
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center space-x-3 p-3 bg-slate-50 rounded-2xl border border-transparent focus-within:border-indigo-100 transition-all">
-                                                    <Calendar className="w-4 h-4 text-indigo-400" />
-                                                    <div className="flex-1">
-                                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Fin</p>
-                                                        <input
-                                                            type="date"
-                                                            value={formData.end_date}
-                                                            onChange={e => setFormData(prev => ({ ...prev, end_date: e.target.value }))}
-                                                            disabled={isPreviewMode}
-                                                            className="w-full bg-transparent border-none p-0 text-xs font-bold text-gray-900 focus:ring-0"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="mt-4 pt-4 border-t border-slate-50 flex items-center justify-between">
-                                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Sesiones</span>
-                                                <span className="text-sm font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg">
-                                                    {formData.activities_sequence.length}
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        <div className="bg-white p-6 rounded-[2rem] border-2 border-slate-50 shadow-sm">
-                                            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 ml-1">Evaluación Sugerida</h3>
-                                            <div className="flex flex-wrap gap-2">
-                                                {['Rúbricas', 'Listas de cotejo', 'Portafolios', 'Diario', 'Boletos de salida'].map(inst => {
-                                                    const isSelected = formData.evaluation_plan.instruments.includes(inst)
-                                                    return (
-                                                        <button
-                                                            key={inst}
-                                                            onClick={() => {
-                                                                const current = formData.evaluation_plan.instruments
-                                                                const newInst = isSelected ? current.filter(i => i !== inst) : [...current, inst]
-                                                                setFormData(prev => ({
-                                                                    ...prev,
-                                                                    evaluation_plan: { ...prev.evaluation_plan, instruments: newInst }
-                                                                }))
-                                                            }}
-                                                            disabled={isPreviewMode}
-                                                            className={`px - 3 py - 1.5 rounded - xl text - [9px] font - black uppercase transition - all duration - 300 border - 2
-                                                                ${isSelected
-                                                                    ? 'bg-amber-50 border-amber-500 text-amber-700'
-                                                                    : 'bg-slate-50 border-transparent text-gray-400 hover:bg-gray-100'
-                                                                } `}
-                                                        >
-                                                            {inst}
-                                                        </button>
-                                                    )
-                                                })}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Columna Derecha: Generación y Secuencia */}
-                                    <div className="lg:col-span-2 space-y-6">
-                                        {!hasDecidedStrategy && formData.activities_sequence.length > 0 && !isPreviewMode ? (
-                                            <div className="bg-indigo-600 rounded-[2.5rem] p-10 text-white shadow-2xl relative overflow-hidden group">
-                                                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl group-hover:bg-white/20 transition-all duration-700"></div>
-                                                <div className="relative z-10">
-                                                    <div className="flex items-center space-x-3 mb-4">
-                                                        <Sparkles className="w-6 h-6 text-white" />
-                                                        <span className="text-xs font-black uppercase tracking-[0.3em]">IA Estratégica</span>
-                                                    </div>
-                                                    <h3 className="text-3xl font-black mb-4 leading-tight">Genera tu Planeación</h3>
-                                                    <p className="text-indigo-100 font-medium mb-8">
-                                                        La IA usará tu Programa Analítico, Metodología y Libro de Texto para generar las actividades de las {formData.activities_sequence.length} sesiones.
-                                                    </p>
-                                                    <div className="flex flex-col sm:flex-row gap-4">
-                                                        <button
-                                                            onClick={generateAiSuggestions}
-                                                            disabled={generating}
-                                                            className="bg-white text-indigo-600 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center flex-1"
-                                                        >
-                                                            {generating ? 'Generando...' : 'Generar con Asistente IA'}
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setHasDecidedStrategy(true)}
-                                                            className="bg-indigo-500/30 hover:bg-indigo-500/50 text-white border-2 border-white/20 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex-1"
-                                                        >
-                                                            Editar Manualmente
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-50 shadow-sm relative">
-                                                <div className="flex items-center justify-between mb-8">
-                                                    <h3 className="text-sm font-black text-gray-900 uppercase tracking-tight">Secuencia de Actividades</h3>
-                                                    {formData.activities_sequence.length > 0 && !isPreviewMode && (
-                                                        <button
-                                                            onClick={() => setHasDecidedStrategy(false)}
-                                                            className="text-[10px] font-black text-indigo-600 uppercase hover:underline"
-                                                        >
-                                                            Re-Generar con IA
-                                                        </button>
-                                                    )}
-                                                </div>
-
-                                                <div className="space-y-6">
-                                                    {formData.activities_sequence.length === 0 ? (
-                                                        <div className="py-20 text-center">
-                                                            <Clock className="w-12 h-12 text-slate-200 mx-auto mb-4" />
-                                                            <p className="text-slate-400 font-bold text-sm">Carga el horario para comenzar.</p>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="space-y-4">
-                                                            {formData.activities_sequence.slice(0, 3).map((session, idx) => (
-                                                                <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border-2 border-transparent">
-                                                                    <div className="flex items-center space-x-4">
-                                                                        <div className="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center font-black text-xs">
-                                                                            {idx + 1}
-                                                                        </div>
-                                                                        <div>
-                                                                            <p className="text-[11px] font-black text-gray-900 uppercase mb-0.5">Sesión {idx + 1}</p>
-                                                                            <p className="text-[10px] font-bold text-gray-400 uppercase">{new Date(session.date + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })}</p>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="flex items-center space-x-2">
-                                                                        {session.phases.some((p: any) => p.activities.length > 0) ? (
-                                                                            <span className="text-[8px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md uppercase">Listas</span>
-                                                                        ) : (
-                                                                            <span className="text-[8px] font-black text-amber-600 bg-amber-50 px-2 py-1 rounded-md uppercase">Pendientes</span>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                            {formData.activities_sequence.length > 3 && (
-                                                                <div className="text-center">
-                                                                    <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">+ {formData.activities_sequence.length - 3} sesiones más</p>
-                                                                </div>
-                                                            )}
-                                                            {!isPreviewMode && (
-                                                                <button
-                                                                    onClick={() => setStep(5)} // Hidden logic for detailed editing if needed, or we just let them go to preview
-                                                                    className="w-full py-4 border-2 border-dashed border-slate-100 rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-widest hover:border-indigo-100 hover:text-indigo-400 transition-all"
-                                                                >
-                                                                    Ver todas las sesiones / Editar Detallado
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </section>)
-                        }
+                        {(step === 4 || isPreviewMode) && (
+                            <Step4Sequence
+                                formData={formData}
+                                setFormData={setFormData}
+                                isPreviewMode={isPreviewMode}
+                                generating={generating}
+                                hasDecidedStrategy={hasDecidedStrategy}
+                                setHasDecidedStrategy={setHasDecidedStrategy}
+                                generateSequenceFromSchedule={generateSequenceFromSchedule}
+                                generateAiSuggestions={generateAiSuggestions}
+                                setStep={setStep}
+                            />
+                        )}
 
                         {/* Navigation Footer */}
                         {
@@ -2316,7 +1804,7 @@ export const PlanningEditorPage = () => {
                                         <button
                                             onClick={() => setStep(Math.max(1, step - 1))}
                                             disabled={step === 1}
-                                            className={`flex items - center px - 6 py - 3 rounded - xl font - bold text - gray - 500 hover: bg - white hover: text - indigo - 600 transition - all ${step === 1 ? 'opacity-50 cursor-not-allowed' : ''} `}
+                                            className={`flex items-center px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-white hover:text-indigo-600 transition-all ${step === 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
                                         >
                                             <ChevronLeft className="w-5 h-5 mr-2" />
                                             Anterior
@@ -2371,693 +1859,169 @@ export const PlanningEditorPage = () => {
                             )
                         }
 
-                    </div >
-
-                    {/* PDF Viewer Modal */}
-                    {
-                        isPdfViewerOpen && (
-                            <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-[200] flex flex-col no-print">
-                                <div className="flex justify-between items-center p-6 bg-white/5 border-b border-white/10">
-                                    <div className="flex items-center space-x-4">
-                                        <div className="p-3 bg-indigo-600 text-white rounded-2xl">
-                                            <BookOpen className="w-6 h-6" />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-white font-black uppercase text-sm tracking-tight">
-                                                {availableTextbooks.find(b => b.id === formData.textbook_id)?.title || 'Visualizador de Libro'}
-                                            </h3>
-                                            <p className="text-[10px] text-indigo-300 font-bold uppercase tracking-widest">
-                                                Páginas {formData.textbook_pages_from || '?'} a {formData.textbook_pages_to || '?'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center space-x-4">
-                                        <a
-                                            href={pdfViewerUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex items-center space-x-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-[10px] font-black uppercase transition-all"
-                                        >
-                                            <ExternalLink className="w-4 h-4" />
-                                            <span>Abrir en Nueva Pestaña</span>
-                                        </a>
-                                        <button
-                                            onClick={() => setIsPdfViewerOpen(false)}
-                                            className="bg-rose-500/20 hover:bg-rose-500 text-rose-500 hover:text-white p-3 rounded-2xl transition-all"
-                                        >
-                                            <Plus className="w-6 h-6 rotate-45" />
-                                        </button>
-                                    </div>
-                                </div>
-                                <div className="flex-1 bg-slate-800 relative overflow-hidden">
-                                    <iframe
-                                        src={pdfViewerUrl}
-                                        className="w-full h-full border-none"
-                                        title="PDF Viewer"
-                                    />
-                                </div>
-                            </div>
-                        )
-                    }
-
-                    {/* Footer Validation */}
-                    <div className="bg-gray-50 border-t border-gray-100 p-8 flex justify-between items-center text-[10px] font-black uppercase text-gray-400 print:bg-white print:border-t-2">
-                        <div className="flex items-center">
-                            <ClipboardCheck className="w-4 h-4 mr-2 text-green-500" />
-                            Validado para el programa sintético
-                        </div>
-                        <div className="flex items-center">
-                            <span className="mr-4 italic">Firma Digital del Docente</span>
-                            <div className="w-32 h-[1px] bg-gray-300 mr-4"></div>
-                            {new Date().toLocaleDateString()}
-                        </div>
-                    </div>
-                </div >
-
-                {/* AI Suggestions Modal */}
-                {
-                    isAiPanelOpen && (
-                        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[120] flex items-end md:items-center justify-center p-0 md:p-4">
-                            <div className="bg-white w-full md:max-w-2xl rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl border border-indigo-100 p-6 md:p-10 animate-in slide-in-from-bottom-10 md:zoom-in duration-300 overflow-hidden no-print flex flex-col h-[85vh] md:h-auto md:max-h-[95vh]">
-                                <div className="flex justify-between items-center mb-8 shrink-0">
-                                    <div className="flex items-center space-x-3">
-                                        <div className="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100">
-                                            <Sparkles className="w-5 h-5 text-white animate-pulse" />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-lg font-black text-gray-900 tracking-tight">Asistente IA</h3>
-                                            <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mt-1">Sugerencias Pedagógicas</p>
-                                        </div>
-                                    </div>
-                                    <button onClick={() => { setIsAiPanelOpen(false); setSelectedAiProposalIdx(null); }} className="bg-gray-50 p-2 rounded-xl text-gray-400 hover:text-gray-900 transition-colors">
-                                        <Plus className="w-6 h-6 rotate-45" />
-                                    </button>
-                                </div>
-
-                                <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
-                                    {selectedAiProposalIdx === null ? (
-                                        <>
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-6 leading-relaxed bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                                                Selecciona una propuesta para revisarla y editarla antes de aplicarla.
-                                            </p>
-
-                                            <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
-                                                {!Array.isArray(aiSuggestions) || aiSuggestions.length === 0 ? (
-                                                    <div className="space-y-3">
-                                                        {[1, 2, 3].map(i => (
-                                                            <div key={i} className="h-24 bg-gray-50 rounded-2xl animate-pulse"></div>
-                                                        ))}
-                                                    </div>
-                                                ) : (
-                                                    <>
-                                                        {Array.isArray(aiSuggestions) && aiSuggestions.map((suggestion, idx) => (
-                                                            <button
-                                                                key={idx}
-                                                                onClick={() => setSelectedAiProposalIdx(idx)}
-                                                                className="w-full text-left p-5 rounded-3xl bg-white border-2 border-gray-50 hover:border-indigo-500 hover:bg-indigo-50/30 transition-all group scale-in-center shadow-sm"
-                                                                style={{ animationDelay: `${idx * 150} ms` }}
-                                                            >
-                                                                <div className="flex items-start">
-                                                                    <div className="p-2 bg-indigo-50 rounded-lg mr-4 group-hover:bg-indigo-600 text-indigo-600 group-hover:text-white transition-colors">
-                                                                        <Sparkles className="w-4 h-4" />
-                                                                    </div>
-                                                                    <div>
-                                                                        <p className="text-sm font-black text-gray-800 group-hover:text-indigo-600 transition-colors">{suggestion.title}</p>
-                                                                        <p className="text-[10px] text-gray-400 mt-1 uppercase font-bold">Haz clic para ver fases y editar</p>
-                                                                    </div>
-                                                                </div>
-                                                            </button>
-                                                        ))}
-                                                        <div className="pt-4">
-                                                            <button
-                                                                onClick={generateAiSuggestions}
-                                                                disabled={generating}
-                                                                className="w-full py-4 rounded-2xl border-2 border-dashed border-gray-200 text-gray-400 hover:text-indigo-600 hover:border-indigo-200 font-bold text-sm transition-all"
-                                                            >
-                                                                {generating ? 'Generando nuevas opciones...' : '+ Solicitar otras estrategias'}
-                                                            </button>
-                                                        </div>
-                                                    </>
-                                                )}
+                        {/* PDF Viewer Modal */}
+                        {
+                            isPdfViewerOpen && (
+                                <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-[200] flex flex-col no-print">
+                                    <div className="flex justify-between items-center p-6 bg-white/5 border-b border-white/10">
+                                        <div className="flex items-center space-x-4">
+                                            <div className="p-3 bg-indigo-600 text-white rounded-2xl">
+                                                <BookOpen className="w-6 h-6" />
                                             </div>
-                                        </>
-                                    ) : (
-                                        <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                                            <div className="space-y-4 max-h-[55vh] overflow-y-auto pr-3 custom-scrollbar">
-                                                <div>
-                                                    <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1 block">Título de la Propuesta</label>
-                                                    <input
-                                                        value={aiSuggestions[selectedAiProposalIdx].title}
-                                                        onChange={e => {
-                                                            const newSugs = [...aiSuggestions]
-                                                            newSugs[selectedAiProposalIdx].title = e.target.value
-                                                            setAiSuggestions(newSugs)
-                                                        }}
-                                                        className="w-full bg-gray-50 border-gray-100 rounded-xl px-4 py-2 font-bold text-gray-800"
-                                                    />
-                                                </div>
-
-                                                <div className="space-y-6 pt-4">
-                                                    {aiSuggestions[selectedAiProposalIdx].sessions?.map((sessionSug: any, sIdx: number) => (
-                                                        <div key={sIdx} className="bg-gray-50/50 rounded-2xl p-6 border border-gray-100 space-y-4">
-                                                            <div className="flex items-center space-x-2 mb-2">
-                                                                <div className="w-6 h-6 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center text-[10px] font-black">
-                                                                    {sIdx + 1}
-                                                                </div>
-                                                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                                                                    Sesión: {sessionSug.date}
-                                                                </span>
-                                                            </div>
-
-                                                            <div className="grid grid-cols-1 gap-4">
-                                                                <div>
-                                                                    <label className="text-[8px] font-black text-indigo-300 uppercase tracking-widest mb-1 block">Apertura</label>
-                                                                    <textarea
-                                                                        value={sessionSug.apertura}
-                                                                        onChange={e => {
-                                                                            const newSugs = [...aiSuggestions]
-                                                                            newSugs[selectedAiProposalIdx].sessions[sIdx].apertura = e.target.value
-                                                                            setAiSuggestions(newSugs)
-                                                                        }}
-                                                                        rows={2}
-                                                                        className="w-full bg-white border-gray-50 rounded-xl px-3 py-2 text-xs text-gray-700 leading-relaxed"
-                                                                    />
-                                                                </div>
-                                                                <div>
-                                                                    <label className="text-[8px] font-black text-indigo-300 uppercase tracking-widest mb-1 block">Desarrollo</label>
-                                                                    <textarea
-                                                                        value={sessionSug.desarrollo}
-                                                                        onChange={e => {
-                                                                            const newSugs = [...aiSuggestions]
-                                                                            newSugs[selectedAiProposalIdx].sessions[sIdx].desarrollo = e.target.value
-                                                                            setAiSuggestions(newSugs)
-                                                                        }}
-                                                                        rows={3}
-                                                                        className="w-full bg-white border-gray-50 rounded-xl px-3 py-2 text-xs text-gray-700 leading-relaxed"
-                                                                    />
-                                                                </div>
-                                                                <div>
-                                                                    <label className="text-[8px] font-black text-indigo-300 uppercase tracking-widest mb-1 block">Cierre</label>
-                                                                    <textarea
-                                                                        value={sessionSug.cierre}
-                                                                        onChange={e => {
-                                                                            const newSugs = [...aiSuggestions]
-                                                                            newSugs[selectedAiProposalIdx].sessions[sIdx].cierre = e.target.value
-                                                                            setAiSuggestions(newSugs)
-                                                                        }}
-                                                                        rows={2}
-                                                                        className="w-full bg-white border-gray-50 rounded-xl px-3 py-2 text-xs text-gray-700 leading-relaxed"
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            <div className="flex space-x-4 pt-4 border-t border-gray-100">
-                                                <button
-                                                    onClick={() => setSelectedAiProposalIdx(null)}
-                                                    className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-gray-200 transition-all"
-                                                >
-                                                    Volver al listado
-                                                </button>
-                                                <button
-                                                    onClick={() => applyAiSuggestion(aiSuggestions[selectedAiProposalIdx])}
-                                                    className="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
-                                                >
-                                                    Aplicar sugerencia validada
-                                                </button>
+                                            <div>
+                                                <h3 className="text-white font-black uppercase text-sm tracking-tight">
+                                                    {availableTextbooks.find(b => b.id === formData.textbook_id)?.title || 'Visualizador de Libro'}
+                                                </h3>
+                                                <p className="text-[11px] text-indigo-300 font-bold uppercase tracking-widest">
+                                                    Páginas {formData.textbook_pages_from || '?'} a {formData.textbook_pages_to || '?'}
+                                                </p>
                                             </div>
                                         </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    )
-                }
-
-                {/* PDA Catalog Modal */}
-                {
-                    isPdaModalOpen && (
-                        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-end md:items-center justify-center p-0 md:p-4">
-                            <div className="bg-white rounded-t-[2.5rem] md:rounded-3xl w-full max-w-2xl shadow-2xl border border-indigo-100 overflow-hidden animate-in slide-in-from-bottom-10 md:fade-in md:zoom-in duration-300 flex flex-col h-[85vh] md:h-auto md:max-h-[95vh]">
-                                <div className="p-8 border-b border-gray-50 flex justify-between items-center bg-indigo-50/30 shrink-0">
-                                    <div>
-                                        <h3 className="text-lg font-black text-gray-900 uppercase tracking-tighter flex items-center">
-                                            <BookMarked className="w-5 h-5 mr-3 text-indigo-600" />
-                                            Catálogo de PDAs: {formData.campo_formativo}
-                                        </h3>
-                                        <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mt-1">
-                                            Selecciona los procesos que deseas incluir en tu planeación
-                                        </p>
-                                    </div>
-                                    <button onClick={() => setIsPdaModalOpen(false)} className="text-gray-400 hover:text-gray-600">
-                                        <Plus className="w-6 h-6 rotate-45" />
-                                    </button>
-                                </div>
-                                <div className="flex-1 overflow-y-auto p-8 space-y-4 custom-scrollbar">
-                                    {PDA_CATALOG[formData.campo_formativo]?.map((pdaOption) => {
-                                        const isSelected = formData.pda.includes(pdaOption);
-                                        return (
-                                            <button
-                                                key={pdaOption}
-                                                onClick={() => {
-                                                    setFormData(prev => {
-                                                        const isSelected = prev.pda.includes(pdaOption)
-                                                        if (isSelected) {
-                                                            return { ...prev, pda: prev.pda.filter(p => p !== pdaOption) }
-                                                        } else {
-                                                            const currentPdAs = prev.pda.filter(p => p.trim() !== '')
-                                                            return { ...prev, pda: [...currentPdAs, pdaOption] }
-                                                        }
-                                                    })
-                                                }}
-                                                className={`w - full text - left p - 4 rounded - 2xl border - 2 transition - all flex items - start group
-                                            ${isSelected
-                                                        ? 'bg-indigo-50 border-indigo-500 shadow-lg shadow-indigo-100/50'
-                                                        : 'bg-white border-gray-50 hover:border-indigo-200 hover:bg-gray-50/50'
-                                                    } `}
+                                        <div className="flex items-center space-x-4">
+                                            <a
+                                                href={pdfViewerUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center space-x-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-[11px] font-black uppercase transition-all"
                                             >
-                                                <div className={`w - 6 h - 6 rounded - lg flex items - center justify - center mr - 4 shrink - 0 mt - 0.5 border
-                                            ${isSelected ? 'bg-indigo-500 border-indigo-600 text-white' : 'bg-white border-gray-200 text-transparent'} `}>
-                                                    <CheckCircle2 className="w-4 h-4" />
-                                                </div>
-                                                <span className={`text - sm font - medium leading - relaxed ${isSelected ? 'text-indigo-900 font-bold' : 'text-gray-600'} `}>
-                                                    {pdaOption}
-                                                </span>
+                                                <ExternalLink className="w-4 h-4" />
+                                                <span>Abrir en Nueva Pestaña</span>
+                                            </a>
+                                            <button aria-label="Agregar"
+                                                onClick={() => setIsPdfViewerOpen(false)}
+                                                className="bg-rose-500/20 hover:bg-rose-500 text-rose-500 hover:text-white p-3 rounded-2xl transition-all"
+                                            >
+                                                <Plus className="w-6 h-6 rotate-45" />
                                             </button>
-                                        );
-                                    })}
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 bg-slate-800 relative overflow-hidden">
+                                        <iframe
+                                            src={pdfViewerUrl}
+                                            className="w-full h-full border-none"
+                                            title="PDF Viewer"
+                                        />
+                                    </div>
                                 </div>
-                                <div className="p-8 bg-gray-50 border-t border-gray-100 flex justify-end">
-                                    <button
-                                        onClick={() => setIsPdaModalOpen(false)}
-                                        className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all"
-                                    >
-                                        Listo
-                                    </button>
-                                </div>
+                            )}
+
+                        {/* Footer Validation */}
+                        <div className="bg-gray-50 border-t border-gray-100 p-8 flex justify-between items-center text-[11px] font-black uppercase text-gray-500 print:bg-white print:border-t-2">
+                            <div className="flex items-center">
+                                <ClipboardCheck className="w-4 h-4 mr-2 text-green-500" />
+                                Validado para el programa sintético
                             </div>
-                        </div>
-                    )
-                }
-
-                {/* Resource Catalog Modal */}
-                {
-                    isResourceModalOpen && (
-                        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-end md:items-center justify-center p-0 md:p-4">
-                            <div className="bg-white rounded-t-[2.5rem] md:rounded-3xl w-full max-w-3xl shadow-2xl border border-emerald-100 overflow-hidden animate-in slide-in-from-bottom-10 md:fade-in md:zoom-in duration-300 flex flex-col h-[85vh] md:h-auto md:max-h-[95vh]">
-                                <div className="p-8 border-b border-gray-50 flex justify-between items-center bg-emerald-50/30 shrink-0">
-                                    <div>
-                                        <h3 className="text-lg font-black text-gray-900 uppercase tracking-tighter flex items-center">
-                                            <Briefcase className="w-5 h-5 mr-3 text-emerald-600" />
-                                            Catálogo de Recursos de Aula
-                                        </h3>
-                                        <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mt-1">
-                                            Explora y selecciona los materiales necesarios para tu proyecto
-                                        </p>
-                                    </div>
-                                    <button onClick={() => setIsResourceModalOpen(false)} className="text-gray-400 hover:text-gray-600">
-                                        <Plus className="w-6 h-6 rotate-45" />
-                                    </button>
-                                </div>
-
-                                <div className="flex-1 overflow-y-auto custom-scrollbar">
-                                    <div className="p-8 bg-emerald-50/10 border-b border-emerald-50">
-                                        <div className="relative">
-                                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-400" />
-                                            <input
-                                                type="text"
-                                                placeholder="Buscar materiales (ej: proyector, hojas, libros...)"
-                                                value={resourceSearch}
-                                                onChange={(e) => setResourceSearch(e.target.value)}
-                                                className="w-full bg-white border-2 border-emerald-50/50 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-gray-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all placeholder:text-emerald-200"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Note: the previous div was removed because we are wrapping everything in flex-1 overflow-y-auto */}
-                                    <div className="p-8 pt-0">
-                                        <div className="space-y-10">
-                                            {RESOURCE_CATALOG.map((cat) => {
-                                                const filteredItems = cat.items.filter(item =>
-                                                    item.toLowerCase().includes(resourceSearch.toLowerCase())
-                                                );
-                                                if (filteredItems.length === 0) return null;
-
-                                                return (
-                                                    <div key={cat.category}>
-                                                        <h4 className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mb-4 flex items-center">
-                                                            <span className="w-4 h-px bg-emerald-100 mr-2"></span>
-                                                            {cat.category}
-                                                        </h4>
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                                                            {filteredItems.map((item) => {
-                                                                const isSelected = formData.resources.includes(item);
-                                                                return (
-                                                                    <button
-                                                                        key={item}
-                                                                        onClick={() => {
-                                                                            setFormData(prev => {
-                                                                                const isResSelected = prev.resources.includes(item)
-                                                                                if (isResSelected) {
-                                                                                    return { ...prev, resources: prev.resources.filter(r => r !== item) }
-                                                                                } else {
-                                                                                    const currentResources = prev.resources.filter(r => r.trim() !== '')
-                                                                                    return { ...prev, resources: [...currentResources, item] }
-                                                                                }
-                                                                            })
-                                                                        }}
-                                                                        className={`text - left p - 3 rounded - xl border - 2 transition - all flex items - center group
-                                                                ${isSelected
-                                                                                ? 'bg-emerald-50 border-emerald-500 shadow-sm shadow-emerald-100/50'
-                                                                                : 'bg-white border-gray-50 hover:border-emerald-100 hover:bg-emerald-50/10'
-                                                                            } `}
-                                                                    >
-                                                                        <div className={`w - 4 h - 4 rounded flex items - center justify - center mr - 3 shrink - 0 border
-                                                                ${isSelected ? 'bg-emerald-500 border-emerald-600 text-white' : 'bg-white border-gray-200 text-transparent'} `}>
-                                                                            <CheckCircle2 className="w-3 h-3" />
-                                                                        </div>
-                                                                        <span className={`text - [11px] font - bold leading - tight ${isSelected ? 'text-emerald-900' : 'text-gray-500'} `}>
-                                                                            {item}
-                                                                        </span>
-                                                                    </button>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                    <div className="p-8 bg-gray-50 border-t border-gray-100 flex justify-end">
-                                        <button
-                                            onClick={() => setIsResourceModalOpen(false)}
-                                            className="bg-emerald-600 text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all"
-                                        >
-                                            Finalizar Selección
-                                        </button>
-                                    </div>
-                                </div>
+                            <div className="flex items-center">
+                                <span className="mr-4 italic">Firma Digital del Docente</span>
+                                <div className="w-32 h-[1px] bg-gray-300 mr-4"></div>
+                                {new Date().toLocaleDateString()}
                             </div>
-                        </div>
-                    )
-                }
-                {/* Error Modal */}
-                {
-                    errorModal.isOpen && (
-                        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-                            <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl animate-in fade-in zoom-in duration-300">
-                                <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mb-6 mx-auto">
-                                    <Briefcase className="w-8 h-8 text-amber-600" />
-                                </div>
-                                <h3 className="text-xl font-black text-gray-900 text-center mb-2">{errorModal.title}</h3>
-                                <p className="text-gray-500 text-center text-sm leading-relaxed mb-8">
-                                    {errorModal.message}
-                                </p>
-                                <button
-                                    onClick={() => {
-                                        if (errorModal.action) errorModal.action()
-                                        else setErrorModal({ ...errorModal, isOpen: false })
-                                    }}
-                                    className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-sm shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all uppercase tracking-widest"
-                                >
-                                    {errorModal.buttonText || 'Continuar'}
-                                </button>
-                            </div>
-                        </div>
-                    )
-                }
-                {/* Program Content Selector Modal */}
-                {/* Program Content Selector Modal */}
-                {
-                    isProgramModalOpen && (
-                        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[110] flex items-end md:items-center justify-center p-0 md:p-6">
-                            <div className="bg-white rounded-t-[2.5rem] md:rounded-[2rem] w-full md:max-w-4xl shadow-2xl animate-in slide-in-from-bottom-10 md:fade-in md:zoom-in duration-300 h-[85vh] md:h-auto md:max-h-[85vh] overflow-hidden flex flex-col">
-                                <div className="flex justify-between items-start mb-6 md:mb-8 p-6 md:p-10 pb-0 md:pb-0">
-                                    <div className="flex items-center">
-                                        <div className="w-12 h-12 md:w-14 md:h-14 bg-indigo-600 rounded-2xl flex items-center justify-center mr-4 md:mr-5 shadow-xl shadow-indigo-100 shrink-0">
-                                            <BookOpen className="w-6 h-6 md:w-7 md:h-7 text-white" />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight">Vincular Programa Analítico</h3>
-                                            <p className="text-indigo-600 text-[10px] md:text-xs font-bold uppercase tracking-widest mt-1">Selecciona los contenidos contextualizados</p>
-                                        </div>
-                                    </div>
-                                    <button onClick={() => setIsProgramModalOpen(false)} className="bg-gray-50 p-2 rounded-xl text-gray-400 hover:text-gray-900 transition-colors">
-                                        <Plus className="w-6 h-6 rotate-45" />
-                                    </button>
-                                </div>
-
-                                <div className="flex-1 overflow-y-auto px-6 md:px-10 py-4 space-y-4 custom-scrollbar">
-                                    {programContents.map((content) => (
-                                        <div
-                                            key={content.id}
-                                            onClick={() => {
-                                                setFormData(prev => ({
-                                                    ...prev,
-                                                    campo_formativo: content.campo_formativo || prev.campo_formativo,
-                                                    ejes_articuladores: [...new Set([...prev.ejes_articuladores, ...(content.ejes_articuladores || [])])],
-                                                    contents: [...new Set([...prev.contents, content.custom_content])].filter(c => c),
-                                                    pda: [...new Set([...prev.pda, ...(content.pda_ids || []).map((id: string) => PDA_CATALOG[id as keyof typeof PDA_CATALOG] || id)])].filter(p => p)
-                                                }))
-                                                setIsProgramModalOpen(false)
-                                            }}
-                                            className="p-5 md:p-6 rounded-2xl border-2 border-gray-100 hover:border-indigo-500 hover:bg-indigo-50/30 transition-all cursor-pointer group"
-                                        >
-                                            <div className="flex justify-between items-start mb-4">
-                                                <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
-                                                    {content.campo_formativo || 'Campo no definido'}
-                                                </span>
-                                                <span className="text-[10px] font-bold text-gray-400 uppercase">{content.temporality}</span>
-                                            </div>
-                                            <h4 className="font-bold text-gray-900 text-sm mb-3 group-hover:text-indigo-700 transition-colors">{content.custom_content}</h4>
-                                            <div className="flex flex-wrap gap-2">
-                                                {(content.ejes_articuladores || []).map((eje: string) => (
-                                                    <span key={eje} className="bg-rose-50 text-rose-600 px-2 py-0.5 rounded text-[9px] font-bold uppercase">{eje}</span>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div className="p-6 md:p-10 pt-4 md:pt-6 border-t border-gray-100 flex justify-end">
-                                    <button
-                                        onClick={() => setIsProgramModalOpen(false)}
-                                        className="w-full md:w-auto px-8 py-3 rounded-xl font-bold text-gray-400 hover:text-gray-900 transition-all bg-gray-50 md:bg-transparent"
-                                    >
-                                        Cancelar
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )
-                }
-
-                {/* Modal de Previsualización Imprimible */}
-                {
-                    isPreviewMode && (
-                        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[200] flex items-center justify-center p-4 overflow-y-auto no-print">
-                            <div className="bg-white w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                                    <div>
-                                        <h3 className="text-sm font-black text-gray-900 uppercase tracking-tighter flex items-center">
-                                            <Printer className="w-4 h-4 mr-2 text-indigo-600" />
-                                            Vista Previa de Impresión
-                                        </h3>
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Formato Oficial de Planeación Didáctica</p>
-                                    </div>
-                                    <div className="flex space-x-3">
-                                        <button
-                                            onClick={() => profile?.is_demo ? alert('Modo Demo: La impresión está deshabilitada.') : window.print()}
-                                            className={`px - 6 py - 2 rounded - xl font - black text - [10px] uppercase tracking - widest shadow - lg transition - all flex items - center ${profile?.is_demo ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100'
-                                                } `}
-                                        >
-                                            <Printer className="w-4 h-4 mr-2" /> Imprimir
-                                        </button>
-                                        <button
-                                            onClick={() => setIsPreviewMode(false)}
-                                            className="px-6 py-2 bg-white border border-gray-200 text-gray-500 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-gray-50 transition-all"
-                                        >
-                                            Cerrar
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="flex-1 overflow-y-auto p-12 bg-gray-100/30">
-                                    <div className="bg-white shadow-xl mx-auto p-12 border border-gray-200 print:shadow-none print:border-none print:p-0" style={{ width: '210mm', minHeight: '297mm' }}>
-                                        <div className="mb-8 border-b-2 border-gray-900 pb-4">
-                                            <div className="flex justify-between items-center mb-4">
-                                                <div className="w-24 h-24 flex items-center justify-center">
-                                                    {tenant?.logoLeftUrl && <img src={tenant.logoLeftUrl} alt="Logo Izquierdo" className="max-w-full max-h-full object-contain" />}
-                                                </div>
-                                                <div className="text-center flex-1 px-4">
-                                                    <h1 className="text-lg font-black uppercase tracking-widest">Planeación Didáctica</h1>
-                                                    <p className="text-sm font-bold uppercase">Ciclo Escolar 2024-2025</p>
-                                                </div>
-                                                <div className="w-24 h-24 flex items-center justify-center">
-                                                    {tenant?.logoRightUrl && <img src={tenant.logoRightUrl} alt="Logo Derecho" className="max-w-full max-h-full object-contain" />}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-0 border-2 border-gray-900 mb-6 text-[11px] uppercase">
-                                            <div className="p-2 border-r border-b border-gray-900 font-black bg-gray-50">Fase:</div>
-                                            <div className="p-2 border-b border-gray-900 font-bold">Fase 6 (Secundaria)</div>
-
-                                            <div className="p-2 border-r border-b border-gray-900 font-black bg-gray-50">Escuela:</div>
-                                            <div className="p-2 border-b border-gray-900 font-bold">{tenant?.name || 'Nombre de la Escuela'}</div>
-
-                                            <div className="p-2 border-r border-b border-gray-900 font-black bg-gray-50">Disciplina:</div>
-                                            <div className="p-2 border-b border-gray-900 font-bold">{subjects.find(s => s.id === formData.subject_id)?.name || 'Materia'}</div>
-
-                                            <div className="p-2 border-r border-b border-gray-900 font-black bg-gray-50">CCT:</div>
-                                            <div className="p-2 border-b border-gray-900 font-bold">{tenant?.cct?.toUpperCase() || '00DST0000X'}</div>
-
-                                            <div className="p-2 border-r border-b border-gray-900 font-black bg-gray-50">Docente:</div>
-                                            <div className="p-2 border-b border-gray-900 font-bold">PROF. {profile?.full_name?.toUpperCase() || 'DOCENTE'}</div>
-
-                                            <div className="p-2 border-r border-b border-gray-900 font-black bg-gray-50">Grado / Grupo:</div>
-                                            <div className="p-2 border-b border-gray-900 font-bold">
-                                                {groups.find(g => g.id === formData.group_id)?.grade}° {groups.find(g => g.id === formData.group_id)?.section}
-                                            </div>
-
-                                            <div className="p-2 border-r border-gray-900 font-black bg-gray-50">Temporalidad:</div>
-                                            <div className="p-2 font-bold">{formData.temporality}</div>
-                                        </div>
-
-                                        <div className="border-2 border-gray-900 mb-6 bg-gray-50">
-                                            <div className="grid grid-cols-3 gap-0 border-b border-gray-900 text-[10px] font-black italic">
-                                                <div className="p-1 border-r border-gray-900 text-center">Campo: {formData.campo_formativo}</div>
-                                                <div className="p-1 border-r border-gray-900 text-center">Metodología: {formData.metodologia}</div>
-                                                <div className="p-1 text-center">Sesiones: {formData.activities_sequence.length}</div>
-                                            </div>
-                                            <div className="p-4">
-                                                <h4 className="text-[12px] font-black uppercase mb-2 underline decoration-2">{formData.title || 'SIN TÍTULO'}</h4>
-                                                <div className="space-y-4 text-xs text-justify">
-                                                    <div>
-                                                        <span className="font-black">Problemática:</span> {formData.problem_context || 'No especificada'}
-                                                    </div>
-                                                    <div>
-                                                        <span className="font-black">PDA:</span>
-                                                        <ul className="list-disc pl-5 mt-1 space-y-1">
-                                                            {formData.pda.map((p, i) => <li key={i}>{p}</li>)}
-                                                        </ul>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="text-center font-black uppercase text-sm border-2 border-gray-900 bg-gray-100 p-2 mb-6">
-                                            Secuencia Didáctica
-                                        </div>
-
-                                        {formData.activities_sequence.map((session: any, sIdx: number) => (
-                                            <div key={sIdx} className="mb-8 break-inside-avoid border border-gray-200">
-                                                <div className="flex justify-between items-center bg-gray-900 text-white p-2 text-[10px] font-black uppercase tracking-widest">
-                                                    <span>Sesión {sIdx + 1}: {new Date(session.date + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
-                                                    <span>{session.duration}m</span>
-                                                </div>
-
-                                                <div className="grid grid-cols-3 gap-0">
-                                                    {session.phases.map((phase: any, pIdx: number) => (
-                                                        <div key={pIdx} className={`p - 3 ${pIdx < 2 ? 'border-r border-gray-200' : ''} `}>
-                                                            <div className="font-black text-[9px] uppercase border-b border-gray-100 pb-1 flex justify-between mb-2">
-                                                                <span>{phase.name}</span>
-                                                                <span className="italic">({phase.duration || 0}m)</span>
-                                                            </div>
-                                                            <div className="text-[10px] leading-relaxed text-justify text-gray-700">
-                                                                {phase.activities.map((act: string, aIdx: number) => (
-                                                                    <div key={aIdx} className="mb-1">
-                                                                        • {act}
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ))}
-
-                                        <div className="mt-16 grid grid-cols-2 gap-20">
-                                            <div className="text-center border-t border-gray-900 pt-2">
-                                                <p className="text-[9px] font-black uppercase">{profile?.full_name}</p>
-                                                <p className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">Firma del Docente</p>
-                                            </div>
-                                            <div className="text-center border-t border-gray-900 pt-2">
-                                                <p className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">Visto Bueno Dirección</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )
-                }
-            </div >
-
-            {/* Modal de Visor de PDF */}
-            {isPdfViewerOpen && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[300] flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-300">
-                    <div className="bg-white w-full max-w-6xl h-full rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col relative animate-in zoom-in-95 duration-300">
-                        {/* Header del Modal */}
-                        <div className="p-6 md:p-8 border-b border-slate-100 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0 z-20">
-                            <div className="flex items-center space-x-4">
-                                <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-100">
-                                    <BookOpen className="w-5 h-5 text-white" />
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-black text-slate-900 tracking-tight">Visor de Recurso</h3>
-                                    <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-0.5">Consulta tu libro para seleccionar páginas</p>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => setIsPdfViewerOpen(false)}
-                                className="p-3 bg-slate-50 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-2xl transition-all"
-                            >
-                                <Plus className="w-6 h-6 rotate-45" />
-                            </button>
-                        </div>
-
-                        {/* Contenido del Visor */}
-                        <div className="flex-1 bg-slate-800 relative">
-                            <iframe
-                                src={`${pdfViewerUrl} #toolbar = 1`}
-                                className="w-full h-full border-none"
-                                title="Visor de PDF"
-                            />
-
-                            {/* Overlay de Ayuda */}
-                            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 bg-white/90 backdrop-blur-md border border-slate-200 rounded-full shadow-2xl flex items-center space-x-4 pointer-events-none">
-                                <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse" />
-                                <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">
-                                    Localiza las páginas que quieres usar y anótalas
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Footer del Modal (Botones Rápidos) */}
-                        <div className="p-6 md:p-8 border-t border-slate-100 bg-gray-50/50 flex justify-end space-x-4">
-                            <button
-                                onClick={() => setIsPdfViewerOpen(false)}
-                                className="px-8 py-3 bg-white border-2 border-slate-200 text-slate-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95"
-                            >
-                                Cerrar Visor
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setIsPdfViewerOpen(false)
-                                }}
-                                className="px-8 py-3 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all active:scale-95"
-                            >
-                                Listo, tengo mis páginas
-                            </button>
                         </div>
                     </div>
+
+                    <AiSuggestionsModal
+                        isOpen={isAiPanelOpen}
+                        onClose={() => setIsAiPanelOpen(false)}
+                        generating={generating}
+                        aiSuggestions={aiSuggestions}
+                        selectedAiProposalIdx={selectedAiProposalIdx}
+                        setSelectedAiProposalIdx={setSelectedAiProposalIdx}
+                        applyAiSuggestion={applyAiSuggestion}
+                        generateAiSuggestions={generateAiSuggestions}
+                        setAiSuggestions={setAiSuggestions}
+                    />
+
+                    <PdaCatalogModal
+                        isOpen={isPdaModalOpen}
+                        onClose={() => setIsPdaModalOpen(false)}
+                        campoFormativo={formData.campo_formativo}
+                        selectedPdas={formData.pda}
+                        onTogglePda={(pdaOption) => {
+                            setFormData(prev => {
+                                const isSelected = (prev.pda || []).includes(pdaOption)
+                                if (isSelected) {
+                                    return { ...prev, pda: (prev.pda || []).filter(p => p !== pdaOption) }
+                                } else {
+                                    const currentPdAs = (prev.pda || []).filter(p => p.trim() !== '')
+                                    return { ...prev, pda: [...currentPdAs, pdaOption] }
+                                }
+                            })
+                        }}
+                    />
+
+                    <ResourceCatalogModal
+                        isOpen={isResourceModalOpen}
+                        onClose={() => setIsResourceModalOpen(false)}
+                        searchTerm={resourceSearch}
+                        onSearchChange={setResourceSearch}
+                        selectedResources={formData.resources}
+                        onToggleResource={(item) => {
+                            setFormData(prev => {
+                                const isSelected = (prev.resources || []).includes(item)
+                                if (isSelected) {
+                                    return { ...prev, resources: (prev.resources || []).filter(r => r !== item) }
+                                } else {
+                                    const currentResources = (prev.resources || []).filter(r => r.trim() !== '')
+                                    return { ...prev, resources: [...currentResources, item] }
+                                }
+                            })
+                        }}
+                    />
+
+                    <ErrorModal
+                        isOpen={errorModal.isOpen}
+                        title={errorModal.title}
+                        message={errorModal.message}
+                        buttonText={errorModal.buttonText}
+                        action={errorModal.action}
+                        onClose={() => setErrorModal({ ...errorModal, isOpen: false })}
+                    />
+
+                    <ProgramContentModal
+                        isOpen={isProgramModalOpen}
+                        onClose={() => setIsProgramModalOpen(false)}
+                        programContents={programContents}
+                        onSelectContent={(content) => {
+                            setFormData(prev => ({
+                                ...prev,
+                                campo_formativo: content.campo_formativo || prev.campo_formativo,
+                                ejes_articuladores: [...new Set([...(prev.ejes_articuladores || []), ...(content.ejes_articuladores || [])])],
+                                contents: [...new Set([...(prev.contents || []), content.custom_content])].filter(c => c),
+                                pda: [...new Set([...(prev.pda || []), ...(content.pda_ids || []).map((id: string) => (PDA_CATALOG as any)[id] || id)])].filter(p => p)
+                            }))
+                            setIsProgramModalOpen(false)
+                        }}
+                    />
+
+                    <PreviewModal
+                        isOpen={isPreviewMode}
+                        onClose={() => setIsPreviewMode(false)}
+                        formData={formData}
+                        tenant={tenant}
+                        profile={profile}
+                        groups={groups}
+                        subjects={subjects}
+                    />
+
+                    <TemplateBankModal
+                        isOpen={isTemplateModalOpen}
+                        onClose={() => setIsTemplateModalOpen(false)}
+                        loadingTemplates={loadingTemplates}
+                        templates={templates}
+                        applyTemplate={applyTemplate}
+                    />
+
+                    <PdfViewerModal
+                        isOpen={isPdfViewerOpen}
+                        onClose={() => setIsPdfViewerOpen(false)}
+                        title={formData.title}
+                        pagesFrom={formData.textbook_pages_from || null}
+                        pagesTo={formData.textbook_pages_to || null}
+                        pdfUrl={pdfViewerUrl}
+                    />
                 </div>
-            )}
-        </div >
+            </div>
+        </div>
     );
 };
 

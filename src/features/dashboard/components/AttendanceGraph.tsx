@@ -70,7 +70,7 @@ export const AttendanceGraph = () => {
     return (
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-64">
             <div className="flex items-center space-x-3 mb-6">
-                <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
+                <div className="p-2 bg-emerald-100 text-emerald-700 rounded-lg">
                     <BarChart3 className="w-5 h-5" />
                 </div>
                 <h3 className="font-bold text-gray-900">Asistencia Semanal</h3>
@@ -90,11 +90,11 @@ export const AttendanceGraph = () => {
                                 style={{ height: `${stat.percentage}%` }}
                             />
                         </div>
-                        <span className="text-xs font-bold text-gray-400 mt-2 capitalize">{stat.day}</span>
+                        <span className="text-xs font-bold text-gray-500 mt-2 capitalize">{stat.day}</span>
                     </div>
                 ))}
                 {stats.length === 0 && (
-                    <div className="w-full text-center text-gray-400 text-sm">
+                    <div className="w-full text-center text-gray-500 text-sm">
                         No hay datos de asistencia recientes.
                     </div>
                 )}

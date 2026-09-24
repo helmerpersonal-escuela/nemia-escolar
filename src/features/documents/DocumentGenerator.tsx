@@ -157,6 +157,7 @@ export const DocumentGenerator = ({ type, data, onClose }: DocumentProps) => {
                             Reporte de conductas que, aunque leves, afectan el desarrollo armónico de las actividades escolares
                             por parte del alumno(a) <strong>{data.studentName}</strong>.
                         </p>
+                        <div className="table-scroll">
                         <table className="w-full border-collapse border border-gray-300 text-sm mt-4">
                             <thead>
                                 <tr className="bg-gray-100">
@@ -175,6 +176,7 @@ export const DocumentGenerator = ({ type, data, onClose }: DocumentProps) => {
                                 ))}
                             </tbody>
                         </table>
+                        </div>
                     </div>
                 )
 
@@ -207,7 +209,7 @@ export const DocumentGenerator = ({ type, data, onClose }: DocumentProps) => {
                     <Signatures />
 
                     {/* Footer */}
-                    <div className="mt-12 pt-4 border-t border-gray-200 text-[10px] text-center text-gray-400 print:fixed print:bottom-8 print:left-0 print:right-0">
+                    <div className="mt-12 pt-4 border-t border-gray-200 text-[11px] text-center text-gray-500 print:fixed print:bottom-8 print:left-0 print:right-0">
                         Documento generado por Vunlek - {currentDate}
                     </div>
                 </div>

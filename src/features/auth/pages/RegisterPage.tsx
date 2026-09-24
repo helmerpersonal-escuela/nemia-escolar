@@ -1,8 +1,9 @@
 import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
+import { GoogleButton } from '../components/GoogleButton'
 import { Capacitor } from '@capacitor/core'
-import { School, User, Loader2, ArrowLeft, Mail, Lock, Building2, BookOpen, Check, X } from 'lucide-react'
+import { School, User, Loader2, ArrowLeft, Mail, Lock, Building2, BookOpen, Check } from 'lucide-react'
 
 type RegistrationMode = 'INDEPENDENT' | 'SCHOOL' | 'JOIN' | null
 
@@ -24,6 +25,7 @@ export const RegisterPage = () => {
     const [privacyAccepted, setPrivacyAccepted] = useState(false)
     const [showTerms, setShowTerms] = useState(false)
     const [showPrivacy, setShowPrivacy] = useState(false)
+    const [registrationSuccess, setRegistrationSuccess] = useState(false)
 
     const [isLoggedIn, setIsLoggedIn] = useState(false)
     const [formData, setFormData] = useState({
@@ -37,6 +39,13 @@ export const RegisterPage = () => {
     })
 
     useEffect(() => {
+        // Clear onboarding storage on mount to prevent old sessions from skipping steps
+        sessionStorage.removeItem('vunlek_onboarding_step')
+        sessionStorage.removeItem('vunlek_onboarding_school_data')
+        sessionStorage.removeItem('vunlek_onboarding_year_data')
+        sessionStorage.removeItem('vunlek_onboarding_schedule_data')
+        sessionStorage.removeItem('vunlek_payment_syncing')
+
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (session) {
                 setIsLoggedIn(true)
@@ -135,7 +144,7 @@ export const RegisterPage = () => {
                 const { data: newTenantId, error: rpcError } = await supabase.rpc('create_workspace', {
                     workspace_name: formData.organizationName,
                     workspace_type: mode === 'INDEPENDENT' ? 'INDEPENDENT' : 'SCHOOL',
-                    workspace_role: mode === 'INDEPENDENT' ? 'TEACHER' : 'DIRECTOR'
+                    workspace_role: mode === 'INDEPENDENT' ? 'INDEPENDENT_TEACHER' : 'DIRECTOR'
                 })
 
                 if (rpcError) throw rpcError
@@ -146,7 +155,7 @@ export const RegisterPage = () => {
             }
 
             // Scenario: New user registration
-            const { error: authError } = await supabase.auth.signUp({
+            const { data: signUpData, error: authError } = await supabase.auth.signUp({
                 email: formData.email,
                 password: formData.password,
                 options: {
@@ -162,7 +171,30 @@ export const RegisterPage = () => {
             })
             if (authError) throw authError
 
-            navigate('/')
+            // Check for session. 1st: From signUp, 2nd: From getSession, 3rd: Try login fallback
+            let regSession = signUpData.session
+
+            if (!regSession) {
+                const { data: sessionData } = await supabase.auth.getSession()
+                regSession = sessionData.session
+            }
+
+            if (regSession) {
+                navigate('/')
+            } else {
+                // Try automatic sign-in as a fallback (if allowed by Supabase settings)
+                const { data: signInData } = await supabase.auth.signInWithPassword({
+                    email: formData.email,
+                    password: formData.password
+                })
+
+                if (signInData.session) {
+                    navigate('/')
+                } else {
+                    // Only if all failed we show the success view
+                    setRegistrationSuccess(true)
+                }
+            }
 
         } catch (error: any) {
             console.error('Registration error:', error)
@@ -198,7 +230,7 @@ export const RegisterPage = () => {
                     <p className="text-slate-500 font-medium mb-8 leading-relaxed">
                         Para garantizar una mejor experiencia de configuración, el registro de nuevas cuentas debe realizarse desde nuestra plataforma web.
                         <br /><br />
-                        <span className="text-xs text-slate-400">Si ya tienes cuenta, puedes iniciar sesión aquí.</span>
+                        <span className="text-xs text-slate-500">Si ya tienes cuenta, puedes iniciar sesión aquí.</span>
                     </p>
 
                     <button
@@ -247,8 +279,32 @@ export const RegisterPage = () => {
                 <div className="absolute bottom-[-10%] left-[-10%] w-72 h-72 bg-indigo-300/40 rounded-full blur-3xl lg:hidden pointer-events-none mix-blend-multiply"></div>
 
                 <div className="squishy-card max-w-xl w-full animate-in fade-in slide-in-from-right-8 duration-500 p-8 md:p-10 relative z-10">
-
-                    {!mode ? (
+                    {registrationSuccess ? (
+                        <div className="text-center space-y-8 py-10">
+                            <div className="w-24 h-24 bg-emerald-50 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-inner">
+                                <Mail className="w-12 h-12 text-emerald-700 animate-bounce" />
+                            </div>
+                            <div>
+                                <h2 className="text-3xl font-black text-slate-900 mb-4 uppercase italic">¡Registro Exitoso!</h2>
+                                <p className="text-slate-500 font-bold leading-relaxed mb-2">
+                                    Hemos enviado un enlace de confirmación a:
+                                    <br />
+                                    <span className="text-indigo-600 font-black">{formData.email}</span>
+                                </p>
+                                <p className="text-sm text-slate-500 font-medium">
+                                    Por favor verifica tu bandeja de entrada (y la carpeta de spam) para activar tu cuenta y comenzar.
+                                </p>
+                            </div>
+                            <div className="pt-6 border-t border-gray-100">
+                                <Link
+                                    to="/login"
+                                    className=" clay-button inline-flex items-center px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-indigo-200 transition-all hover:scale-105 active:scale-95"
+                                >
+                                    Ir al Inicio de Sesión
+                                </Link>
+                            </div>
+                        </div>
+                    ) : !mode ? (
                         /* Mode Selection */
                         <div className="space-y-8">
                             <div className="text-center">
@@ -263,7 +319,7 @@ export const RegisterPage = () => {
                                 {isLoggedIn && (
                                     <div className="mt-4 p-3 bg-gray-100/50 rounded-2xl border border-gray-100 flex items-center justify-between">
                                         <div className="text-left">
-                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Sesión actual</p>
+                                            <p className="text-[11px] font-black text-gray-500 uppercase tracking-widest">Sesión actual</p>
                                             <p className="text-sm font-bold text-gray-700 truncate max-w-[150px]">{formData.email}</p>
                                         </div>
                                         <button
@@ -327,234 +383,252 @@ export const RegisterPage = () => {
                         </div>
                     ) : (
                         /* Registration Form */
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                            <button
-                                type="button"
-                                onClick={() => setMode(null)}
-                                className="flex items-center text-sm font-bold text-slate-500 hover:text-slate-800 transition-colors mb-6"
-                            >
-                                <ArrowLeft className="w-4 h-4 mr-2" />
-                                Volver a selección
-                            </button>
+                        <div className="w-full">
+                            <form onSubmit={handleSubmit} className="space-y-6">
+                                <button
+                                    type="button"
+                                    onClick={() => setMode(null)}
+                                    className="flex items-center text-sm font-bold text-slate-500 hover:text-slate-800 transition-colors mb-6"
+                                >
+                                    <ArrowLeft className="w-4 h-4 mr-2" />
+                                    Volver a selección
+                                </button>
 
-                            <div className="text-center mb-8">
-                                <div className="inline-block p-4 rounded-[2rem] bg-indigo-50 text-indigo-600 mb-6 shadow-inner">
-                                    {mode === 'INDEPENDENT' ? <User className="w-10 h-10 inflatable-icon" /> : <School className="w-10 h-10 inflatable-icon" />}
-                                </div>
-                                <h2 className="text-2xl font-black text-slate-900">
-                                    {invitationInfo
-                                        ? 'Completar Registro'
-                                        : isLoggedIn
-                                            ? (mode === 'INDEPENDENT' ? 'Nuevo Espacio Docente' : 'Nueva Institución')
-                                            : (mode === 'INDEPENDENT' ? 'Registro Docente' : 'Registro Institucional')}
-                                </h2>
-                                {invitationInfo ? (
-                                    <div className="mt-2 p-3 bg-indigo-50 border border-indigo-100 rounded-xl">
-                                        <p className="text-sm font-bold text-indigo-900">
-                                            Uniéndote a <span className="text-indigo-600">{invitationInfo.tenant_name}</span>
-                                        </p>
-                                        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-1">
-                                            Rol: {invitationInfo.role}
-                                        </p>
+                                <div className="text-center mb-8">
+                                    <div className="inline-block p-4 rounded-[2rem] bg-indigo-50 text-indigo-600 mb-6 shadow-inner">
+                                        {mode === 'INDEPENDENT' ? <User className="w-10 h-10 inflatable-icon" /> : <School className="w-10 h-10 inflatable-icon" />}
                                     </div>
-                                ) : (
-                                    <div>
-                                        <p className="text-slate-500 text-sm font-medium">
-                                            {isLoggedIn ? 'Esta configuración será independiente de tus otros espacios' : 'Completa tus datos para comenzar'}
-                                        </p>
-                                        {isLoggedIn && (
-                                            <button
-                                                type="button"
-                                                onClick={async () => {
-                                                    await supabase.auth.signOut();
-                                                    window.location.reload();
-                                                }}
-                                                className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-2 hover:underline"
-                                            >
-                                                ¿No eres tú? Cerrar sesión
-                                            </button>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <label className="text-xs font-bold text-slate-500 uppercase ml-1">Nombre(s)</label>
-                                    <input
-                                        name="firstName"
-                                        type="text"
-                                        required
-                                        className="input-squishy block w-full px-4 py-3 font-bold text-slate-700 placeholder:text-slate-300 outline-none uppercase"
-                                        placeholder="JUAN"
-                                        value={formData.firstName}
-                                        onChange={handleChange}
-                                    />
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-xs font-bold text-slate-500 uppercase ml-1">Apellido Paterno</label>
-                                    <input
-                                        name="lastNamePaternal"
-                                        type="text"
-                                        required
-                                        className="input-squishy block w-full px-4 py-3 font-bold text-slate-700 placeholder:text-slate-300 outline-none uppercase"
-                                        placeholder="PÉREZ"
-                                        value={formData.lastNamePaternal}
-                                        onChange={handleChange}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold text-slate-500 uppercase ml-1">Apellido Materno</label>
-                                <input
-                                    name="lastNameMaternal"
-                                    type="text"
-                                    required
-                                    className="input-squishy block w-full px-4 py-3 font-bold text-slate-700 placeholder:text-slate-300 outline-none uppercase"
-                                    placeholder="LÓPEZ"
-                                    value={formData.lastNameMaternal}
-                                    onChange={handleChange}
-                                />
-                            </div>
-
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold text-slate-500 uppercase ml-1">
-                                    {mode === 'INDEPENDENT' ? 'Nombre de tu Escuela / Proyecto' : 'Nombre de la Institución'}
-                                </label>
-                                <div className="relative">
-                                    <Building2 className="absolute top-3.5 left-4 w-5 h-5 text-gray-400" />
-                                    <input
-                                        name="organizationName"
-                                        type="text"
-                                        required
-                                        disabled={!!invitationInfo}
-                                        className="input-squishy block w-full pl-12 pr-4 py-3 font-bold text-slate-700 placeholder:text-slate-300 outline-none uppercase disabled:opacity-50"
-                                        placeholder={mode === 'INDEPENDENT' ? "SECUNDARIA TÉCNICA" : "INSTITUTO SECUNDARIO"}
-                                        value={formData.organizationName}
-                                        onChange={handleChange}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="border-t border-gray-100 my-6"></div>
-
-                            <div className="space-y-4">
-                                <div className="relative group">
-                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                        <Mail className="h-5 w-5 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
-                                    </div>
-                                    <input
-                                        name="email"
-                                        type="email"
-                                        required
-                                        disabled={!!invitationInfo}
-                                        className="input-squishy block w-full pl-11 pr-4 py-3 font-bold text-slate-700 placeholder:text-slate-300 outline-none disabled:opacity-50"
-                                        placeholder="correo@ejemplo.com"
-                                        value={formData.email}
-                                        onChange={handleChange}
-                                    />
-                                </div>
-                                <div className="relative group">
-                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                        <Lock className="h-5 w-5 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
-                                    </div>
-                                    <input
-                                        name="password"
-                                        type="password"
-                                        required
-                                        className="input-squishy block w-full pl-11 pr-4 py-3 font-bold text-slate-700 placeholder:text-slate-300 outline-none"
-                                        placeholder="Contraseña segura"
-                                        value={formData.password}
-                                        onChange={handleChange}
-                                    />
-                                </div>
-                                <div className="space-y-2 mb-4">
-                                    <div className="flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-widest">
-                                        <span className={`flex items-center gap-1 ${passwordCriteria.length ? 'text-emerald-600' : 'text-gray-400'}`}>
-                                            {passwordCriteria.length ? <Check className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border border-gray-300" />} Min 8 caracteres
-                                        </span>
-                                        <span className={`flex items-center gap-1 ${passwordCriteria.uppercase ? 'text-emerald-600' : 'text-gray-400'}`}>
-                                            {passwordCriteria.uppercase ? <Check className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border border-gray-300" />} 1 Mayúscula
-                                        </span>
-                                        <span className={`flex items-center gap-1 ${passwordCriteria.number ? 'text-emerald-600' : 'text-gray-400'}`}>
-                                            {passwordCriteria.number ? <Check className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border border-gray-300" />} 1 Número
-                                        </span>
-                                        <span className={`flex items-center gap-1 ${passwordCriteria.special ? 'text-emerald-600' : 'text-gray-400'}`}>
-                                            {passwordCriteria.special ? <Check className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border border-gray-300" />} 1 Símbolo
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className="relative group">
-                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                        <Lock className="h-5 w-5 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
-                                    </div>
-                                    <input
-                                        name="confirmPassword"
-                                        type="password"
-                                        required
-                                        className={`input-squishy block w-full pl-11 pr-4 py-3 font-bold text-slate-700 placeholder:text-slate-300 outline-none ${formData.confirmPassword && formData.password !== formData.confirmPassword ? 'border-red-300 focus:border-red-500' : ''}`}
-                                        placeholder="Confirmar contraseña"
-                                        value={formData.confirmPassword}
-                                        onChange={handleChange}
-                                    />
-                                    {formData.confirmPassword && formData.password !== formData.confirmPassword && (
-                                        <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-red-500 text-xs font-bold uppercase">
-                                            No coinciden
+                                    <h2 className="text-2xl font-black text-slate-900">
+                                        {invitationInfo
+                                            ? 'Completar Registro'
+                                            : isLoggedIn
+                                                ? (mode === 'INDEPENDENT' ? 'Nuevo Espacio Docente' : 'Nueva Institución')
+                                                : (mode === 'INDEPENDENT' ? 'Registro Docente' : 'Registro Institucional')}
+                                    </h2>
+                                    {invitationInfo ? (
+                                        <div className="mt-2 p-3 bg-indigo-50 border border-indigo-100 rounded-xl">
+                                            <p className="text-sm font-bold text-indigo-900">
+                                                Uniéndote a <span className="text-indigo-600">{invitationInfo.tenant_name}</span>
+                                            </p>
+                                            <p className="text-[11px] font-black text-indigo-400 uppercase tracking-widest mt-1">
+                                                Rol: {invitationInfo.role}
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <p className="text-slate-500 text-sm font-medium">
+                                                {isLoggedIn ? 'Esta configuración será independiente de tus otros espacios' : 'Completa tus datos para comenzar'}
+                                            </p>
+                                            {isLoggedIn && (
+                                                <button
+                                                    type="button"
+                                                    onClick={async () => {
+                                                        await supabase.auth.signOut();
+                                                        window.location.reload();
+                                                    }}
+                                                    className="text-[11px] font-black text-indigo-500 uppercase tracking-widest mt-2 hover:underline"
+                                                >
+                                                    ¿No eres tú? Cerrar sesión
+                                                </button>
+                                            )}
                                         </div>
                                     )}
                                 </div>
-                            </div>
 
-                            <div className="space-y-4 my-6">
-                                <div className="flex items-start">
-                                    <div className="flex items-center h-5">
-                                        <input
-                                            id="terms"
-                                            name="terms"
-                                            type="checkbox"
+                                {!isLoggedIn && (
+                                    <div className="space-y-4">
+                                        <GoogleButton
+                                            label={invitationInfo ? 'Unirme con mi cuenta de Google' : 'Registrarme con Google'}
+                                            intent={{
+                                                mode: invitationInfo ? 'JOIN' : (mode ?? undefined),
+                                                organizationName: formData.organizationName || undefined,
+                                                invitationToken: invitToken,
+                                            }}
+                                        />
+                                        <div className="flex items-center gap-3 text-[11px] font-bold text-slate-300 uppercase tracking-widest">
+                                            <span className="flex-1 border-t-2 border-slate-100" /> o con tu correo <span className="flex-1 border-t-2 border-slate-100" />
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-slate-500 uppercase ml-1">Nombre(s)</label>
+                                        <input aria-label="Nombre(s)"
+                                            name="firstName"
+                                            type="text"
                                             required
-                                            checked={termsAccepted}
-                                            onChange={(e) => setTermsAccepted(e.target.checked)}
-                                            className="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-indigo-300"
+                                            className="input-squishy block w-full px-4 py-3 font-bold text-slate-700 placeholder:text-slate-300 outline-none uppercase"
+                                            placeholder="JUAN"
+                                            value={formData.firstName}
+                                            onChange={handleChange}
                                         />
                                     </div>
-                                    <div className="ml-3 text-sm">
-                                        <label htmlFor="terms" className="font-medium text-gray-700">
-                                            Acepto los <button type="button" onClick={() => setShowTerms(true)} className="text-indigo-600 hover:underline font-bold">Términos y Condiciones de Uso</button>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div className="flex items-start">
-                                    <div className="flex items-center h-5">
-                                        <input
-                                            id="privacy"
-                                            name="privacy"
-                                            type="checkbox"
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-slate-500 uppercase ml-1">Apellido Paterno</label>
+                                        <input aria-label="Apellido Paterno"
+                                            name="lastNamePaternal"
+                                            type="text"
                                             required
-                                            checked={privacyAccepted}
-                                            onChange={(e) => setPrivacyAccepted(e.target.checked)}
-                                            className="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-indigo-300"
+                                            className="input-squishy block w-full px-4 py-3 font-bold text-slate-700 placeholder:text-slate-300 outline-none uppercase"
+                                            placeholder="PÉREZ"
+                                            value={formData.lastNamePaternal}
+                                            onChange={handleChange}
                                         />
                                     </div>
-                                    <div className="ml-3 text-sm">
-                                        <label htmlFor="privacy" className="font-medium text-gray-700">
-                                            He leído y acepto la <button type="button" onClick={() => setShowPrivacy(true)} className="text-indigo-600 hover:underline font-bold">Política de Privacidad</button>
-                                        </label>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-slate-500 uppercase ml-1">Apellido Materno</label>
+                                    <input aria-label="Apellido Materno"
+                                        name="lastNameMaternal"
+                                        type="text"
+                                        required
+                                        className="input-squishy block w-full px-4 py-3 font-bold text-slate-700 placeholder:text-slate-300 outline-none uppercase"
+                                        placeholder="LÓPEZ"
+                                        value={formData.lastNameMaternal}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-slate-500 uppercase ml-1">
+                                        {mode === 'INDEPENDENT' ? 'Nombre de tu Escuela / Proyecto' : 'Nombre de la Institución'}
+                                    </label>
+                                    <div className="relative">
+                                        <Building2 className="absolute top-3.5 left-4 w-5 h-5 text-gray-500" />
+                                        <input
+                                            name="organizationName"
+                                            type="text"
+                                            required
+                                            disabled={!!invitationInfo}
+                                            className="input-squishy block w-full pl-12 pr-4 py-3 font-bold text-slate-700 placeholder:text-slate-300 outline-none uppercase disabled:opacity-50"
+                                            placeholder={mode === 'INDEPENDENT' ? "SECUNDARIA TÉCNICA" : "INSTITUTO SECUNDARIO"}
+                                            value={formData.organizationName}
+                                            onChange={handleChange}
+                                        />
                                     </div>
                                 </div>
-                            </div>
 
-                            <button
-                                type="submit"
-                                disabled={loading || !termsAccepted || !privacyAccepted}
+                                <div className="border-t border-gray-100 my-6"></div>
 
-                                className="btn-tactile w-full flex justify-center items-center py-4 px-6 rounded-2xl text-base font-black text-white bg-gradient-to-r from-indigo-600 to-purple-600 shadow-xl shadow-indigo-200 hover:shadow-indigo-300 transition-all disabled:opacity-70 disabled:cursor-not-allowed mt-8 uppercase tracking-widest"
-                            >
-                                {loading ? <Loader2 className="animate-spin h-5 w-5" /> : (isLoggedIn ? 'Crear Espacio' : 'Registrar Cuenta')}
-                            </button>
-                        </form>
+                                <div className="space-y-4">
+                                    <div className="relative group">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <Mail className="h-5 w-5 text-gray-500 group-focus-within:text-indigo-500 transition-colors" />
+                                        </div>
+                                        <input
+                                            name="email"
+                                            type="email"
+                                            required
+                                            disabled={!!invitationInfo}
+                                            className="input-squishy block w-full pl-11 pr-4 py-3 font-bold text-slate-700 placeholder:text-slate-300 outline-none disabled:opacity-50"
+                                            placeholder="correo@ejemplo.com"
+                                            value={formData.email}
+                                            onChange={handleChange}
+                                        />
+                                    </div>
+                                    <div className="relative group">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <Lock className="h-5 w-5 text-gray-500 group-focus-within:text-indigo-500 transition-colors" />
+                                        </div>
+                                        <input
+                                            name="password"
+                                            type="password"
+                                            required
+                                            className="input-squishy block w-full pl-11 pr-4 py-3 font-bold text-slate-700 placeholder:text-slate-300 outline-none"
+                                            placeholder="Contraseña segura"
+                                            value={formData.password}
+                                            onChange={handleChange}
+                                        />
+                                    </div>
+                                    <div className="space-y-2 mb-4">
+                                        <div className="flex flex-wrap gap-2 text-[11px] font-bold uppercase tracking-widest">
+                                            <span className={`flex items-center gap-1 ${passwordCriteria.length ? 'text-emerald-700' : 'text-gray-500'}`}>
+                                                {passwordCriteria.length ? <Check className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border border-gray-300" />} <span>Min 8 caracteres</span>
+                                            </span>
+                                            <span className={`flex items-center gap-1 ${passwordCriteria.uppercase ? 'text-emerald-700' : 'text-gray-500'}`}>
+                                                {passwordCriteria.uppercase ? <Check className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border border-gray-300" />} <span>1 Mayúscula</span>
+                                            </span>
+                                            <span className={`flex items-center gap-1 ${passwordCriteria.number ? 'text-emerald-700' : 'text-gray-500'}`}>
+                                                {passwordCriteria.number ? <Check className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border border-gray-300" />} <span>1 Número</span>
+                                            </span>
+                                            <span className={`flex items-center gap-1 ${passwordCriteria.special ? 'text-emerald-700' : 'text-gray-500'}`}>
+                                                {passwordCriteria.special ? <Check className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border border-gray-300" />} <span>1 Símbolo</span>
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="relative group">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <Lock className="h-5 w-5 text-gray-500 group-focus-within:text-indigo-500 transition-colors" />
+                                        </div>
+                                        <input
+                                            name="confirmPassword"
+                                            type="password"
+                                            required
+                                            className={`input-squishy block w-full pl-11 pr-4 py-3 font-bold text-slate-700 placeholder:text-slate-300 outline-none ${formData.confirmPassword.length > 0 && formData.password !== formData.confirmPassword ? 'border-red-300 focus:border-red-500' : ''}`}
+                                            placeholder="Confirmar contraseña"
+                                            value={formData.confirmPassword}
+                                            onChange={handleChange}
+                                        />
+                                        {formData.confirmPassword.length > 0 && formData.password !== formData.confirmPassword && (
+                                            <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-red-500 text-xs font-bold uppercase">
+                                                No coinciden
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4 my-6">
+                                    <div className="flex items-start">
+                                        <div className="flex items-center h-5">
+                                            <input
+                                                id="terms"
+                                                name="terms"
+                                                type="checkbox"
+                                                required
+                                                checked={termsAccepted}
+                                                onChange={(e) => setTermsAccepted(e.target.checked)}
+                                                className="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-indigo-300"
+                                            />
+                                        </div>
+                                        <div className="ml-3 text-sm">
+                                            <label htmlFor="terms" className="font-medium text-gray-700">
+                                                Acepto los <button type="button" onClick={() => setShowTerms(true)} className="text-indigo-600 hover:underline font-bold">Términos y Condiciones de Uso</button>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start">
+                                        <div className="flex items-center h-5">
+                                            <input
+                                                id="privacy"
+                                                name="privacy"
+                                                type="checkbox"
+                                                required
+                                                checked={privacyAccepted}
+                                                onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                                                className="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-indigo-300"
+                                            />
+                                        </div>
+                                        <div className="ml-3 text-sm">
+                                            <label htmlFor="privacy" className="font-medium text-gray-700">
+                                                He leído y acepto la <button type="button" onClick={() => setShowPrivacy(true)} className="text-indigo-600 hover:underline font-bold">Política de Privacidad</button>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={loading || !termsAccepted || !privacyAccepted}
+
+                                    className="btn-tactile w-full flex justify-center items-center py-4 px-6 rounded-2xl text-base font-black text-white bg-gradient-to-r from-indigo-600 to-purple-600 shadow-xl shadow-indigo-200 hover:shadow-indigo-300 transition-all disabled:opacity-70 disabled:cursor-not-allowed mt-8 uppercase tracking-widest"
+                                >
+                                    {loading ? <Loader2 className="animate-spin h-5 w-5" /> : (isLoggedIn ? 'Crear Espacio' : 'Registrar Cuenta')}
+                                </button>
+                            </form>
+                        </div>
                     )}
                 </div>
             </div>

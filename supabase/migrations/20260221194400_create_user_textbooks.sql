@@ -12,18 +12,21 @@ ALTER TABLE public.user_textbooks ENABLE ROW LEVEL SECURITY;
 
 -- Políticas
 -- Un usuario solo puede ver sus propios libros
+DROP POLICY IF EXISTS "Users can view their own textbooks" ON public.user_textbooks;
 CREATE POLICY "Users can view their own textbooks"
 ON public.user_textbooks FOR SELECT
 TO authenticated
 USING (profile_id = auth.uid());
 
 -- Un usuario solo puede insertar libros bajo su propio ID
+DROP POLICY IF EXISTS "Users can insert their own textbooks" ON public.user_textbooks;
 CREATE POLICY "Users can insert their own textbooks"
 ON public.user_textbooks FOR INSERT
 TO authenticated
 WITH CHECK (profile_id = auth.uid());
 
 -- Un usuario solo puede borrar sus propios libros
+DROP POLICY IF EXISTS "Users can delete their own textbooks" ON public.user_textbooks;
 CREATE POLICY "Users can delete their own textbooks"
 ON public.user_textbooks FOR DELETE
 TO authenticated

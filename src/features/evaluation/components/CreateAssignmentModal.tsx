@@ -7,6 +7,7 @@ import { useTenant } from '../../../hooks/useTenant'
 import { AIInstrumentGenerator } from './AIInstrumentGenerator'
 import { DictationModeModal } from './DictationModeModal'
 import { createAssignmentAlerts } from '../../../utils/notificationUtils'
+import { todayISO } from '../../../lib/dates'
 
 type CreateAssignmentModalProps = {
     isOpen: boolean
@@ -65,8 +66,12 @@ export const CreateAssignmentModal = ({
         weight: 0,
         criterion_id: initialData?.criterion || '',
         start_date: initialData?.start_date || new Date().toLocaleDateString('en-CA'),
-        instrument_id: initialData?.instrument_id || ''
+        instrument_id: initialData?.instrument_id || '',
+        subject_id: subjectId || initialData?.subject_id || ''
     })
+
+    const [groupSubjects, setGroupSubjects] = useState<any[]>([])
+    const [loadingSubjects, setLoadingSubjects] = useState(false)
 
     const [rubrics, setRubrics] = useState<any[]>([])
     const [loadingRubrics, setLoadingRubrics] = useState(false)
@@ -80,10 +85,79 @@ export const CreateAssignmentModal = ({
                 type: initialData.type || 'HOMEWORK',
                 due_date: initialData.due_date || new Date().toLocaleDateString('en-CA'),
                 start_date: initialData.start_date || new Date().toLocaleDateString('en-CA'),
-                criterion_id: initialData.criterion || ''
+                criterion_id: initialData.criterion || '',
+                subject_id: initialData.subject_id || subjectId || ''
             }))
         }
-    }, [initialData])
+    }, [initialData, subjectId])
+
+    // Detect if multi-subject teacher (Primary or Telesecundaria)
+    const isMultiSubjectTeacher = tenant?.educationalLevel === 'PRIMARY' || tenant?.educationalLevel === 'TELESECUNDARIA'
+
+    useEffect(() => {
+        if (isOpen && groupId) {
+            setLoadingSubjects(true)
+
+            const fetchSubjects = async () => {
+                // 1. Fetch Group specific subjects
+                const { data: gsData } = await supabase
+                    .from('group_subjects')
+                    .select(`
+                        id, 
+                        subject_catalog_id, 
+                        custom_name,
+                        subject_catalog(name)
+                    `)
+                    .eq('group_id', groupId)
+
+                // 2. Fetch Profile subjects (for independent teachers or specific settings)
+                const { data: { user } } = await supabase.auth.getUser()
+                let profileSubjects: any[] = []
+                if (user) {
+                    const { data: psData } = await supabase
+                        .from('profile_subjects')
+                        .select(`
+                            id,
+                            subject_catalog_id,
+                            custom_detail,
+                            subject_catalog(name)
+                        `)
+                        .eq('profile_id', user.id)
+                    if (psData) profileSubjects = psData
+                }
+
+                // 3. Merge and Deduplicate
+                const subjectsMap = new Map()
+
+                gsData?.forEach((gs: any) => {
+                    subjectsMap.set(gs.id, {
+                        id: gs.id,
+                        name: gs.subject_catalog?.name || gs.custom_name || 'Sin Nombre'
+                    })
+                })
+
+                profileSubjects.forEach((ps: any) => {
+                    if (!subjectsMap.has(ps.id)) {
+                        subjectsMap.set(ps.id, {
+                            id: ps.id,
+                            name: ps.subject_catalog?.name || ps.custom_detail || 'Materia Personalizada'
+                        })
+                    }
+                })
+
+                const finalSubjects = Array.from(subjectsMap.values())
+                setGroupSubjects(finalSubjects)
+                setLoadingSubjects(false)
+
+                // Default selection logic
+                if (!subjectId && !formData.subject_id && finalSubjects.length > 0 && isMultiSubjectTeacher) {
+                    setFormData(prev => ({ ...prev, subject_id: finalSubjects[0].id }))
+                }
+            }
+
+            fetchSubjects()
+        }
+    }, [isOpen, groupId, tenant?.educationalLevel])
 
     const [criteria, setCriteria] = useState<any[]>([])
     const [loadingCriteria, setLoadingCriteria] = useState(false)
@@ -217,7 +291,7 @@ export const CreateAssignmentModal = ({
             const payload: any = {
                 tenant_id: tenant.id,
                 group_id: groupId,
-                subject_id: subjectId || null,
+                subject_id: formData.subject_id || subjectId || null,
                 title: formData.title,
                 description: finalDescription,
                 type: formData.type,
@@ -303,11 +377,12 @@ export const CreateAssignmentModal = ({
                 title: '',
                 description: '',
                 type: 'HOMEWORK',
-                due_date: new Date().toISOString().split('T')[0],
+                due_date: todayISO(),
                 weight: 0,
                 criterion_id: '',
-                start_date: new Date().toISOString().split('T')[0],
-                instrument_id: ''
+                start_date: todayISO(),
+                instrument_id: '',
+                subject_id: subjectId || ''
             })
             setLocation('SCHOOL')
         } catch (error: any) {
@@ -341,13 +416,13 @@ export const CreateAssignmentModal = ({
                                 {assignmentId ? 'Actualizar Actividad' : 'Nueva Misión'}
                             </h3>
                         </div>
-                        <p className="text-sm text-slate-400 font-bold uppercase tracking-widest pl-1">
+                        <p className="text-sm text-slate-500 font-bold uppercase tracking-widest pl-1">
                             {assignmentId ? 'Refinando los parámetros de la tarea' : 'Diseña una experiencia de aprendizaje'}
                         </p>
                     </div>
-                    <button
+                    <button aria-label="Cerrar"
                         onClick={onClose}
-                        className="p-3 bg-white rounded-2xl shadow-md text-slate-400 hover:text-rose-500 hover:rotate-90 transition-all duration-300 btn-tactile group"
+                        className="p-3 bg-white rounded-2xl shadow-md text-slate-500 hover:text-rose-500 hover:rotate-90 transition-all duration-300 btn-tactile group"
                     >
                         <X className="h-6 w-6 group-hover:scale-110" />
                     </button>
@@ -361,17 +436,17 @@ export const CreateAssignmentModal = ({
                                 <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-2">
                                         <div className="w-1.5 h-6 bg-purple-500 rounded-full" />
-                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-600">Vinculación Didáctica</span>
+                                        <span className="text-[11px] font-black uppercase tracking-[0.2em] text-purple-600">Vinculación Didáctica</span>
                                     </div>
-                                    <span className="text-[10px] font-bold bg-purple-100 text-purple-600 px-2 py-1 rounded">Planeación Activa</span>
+                                    <span className="text-[11px] font-bold bg-purple-100 text-purple-600 px-2 py-1 rounded">Planeación Activa</span>
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">
+                                    <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">
                                         Estrategia / Actividad a Evaluar
                                     </label>
                                     <div className="relative">
-                                        <select
+                                        <select aria-label="Estrategia / Actividad a Evaluar"
                                             disabled={loadingActivities}
                                             className={`input-squishy w-full px-6 py-4 text-xs font-black bg-white border-2 cursor-pointer transition-all appearance-none ${loadingActivities ? 'border-indigo-100 text-indigo-300 animate-pulse' : 'text-purple-900 border-purple-200 focus:border-purple-400 focus:ring-4 focus:ring-purple-100'}`}
                                             value={selectedActivityId}
@@ -409,7 +484,7 @@ export const CreateAssignmentModal = ({
                                             )}
                                         </div>
                                     </div>
-                                    <p className="text-[10px] text-purple-500/80 mt-2 ml-1 font-medium flex items-center gap-1.5">
+                                    <p className="text-[11px] text-purple-500/80 mt-2 ml-1 font-medium flex items-center gap-1.5">
                                         <Sparkles className="w-3 h-3" />
                                         La IA ha resumido los párrafos de tu planeación para facilitar tu selección.
                                     </p>
@@ -419,7 +494,7 @@ export const CreateAssignmentModal = ({
                                         <div className="mt-4 p-5 bg-purple-50/50 border-2 border-purple-100 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-500">
                                             <div className="flex items-center gap-2 mb-3">
                                                 <ActivitySquare className="w-4 h-4 text-purple-500" />
-                                                <span className="text-[10px] font-black uppercase tracking-widest text-purple-700">Detalle de la Sesión</span>
+                                                <span className="text-[11px] font-black uppercase tracking-widest text-purple-700">Detalle de la Sesión</span>
                                             </div>
                                             <div className="space-y-3">
                                                 {(() => {
@@ -429,7 +504,7 @@ export const CreateAssignmentModal = ({
                                                     return act.rawContext.phases.map((phase: any, pIdx: number) => (
                                                         <div key={pIdx} className="flex gap-3">
                                                             <div className="pt-0.5">
-                                                                <div className="px-2 py-0.5 bg-white border border-purple-200 rounded text-[8px] font-black text-purple-400 uppercase tracking-tighter">
+                                                                <div className="px-2 py-0.5 bg-white border border-purple-200 rounded text-[11px] font-black text-purple-400 uppercase tracking-tighter">
                                                                     {phase.name}
                                                                 </div>
                                                             </div>
@@ -450,15 +525,33 @@ export const CreateAssignmentModal = ({
                         <div className="squishy-card p-8 bg-white border border-indigo-50/50 space-y-6">
                             <div className="flex items-center gap-2 mb-2">
                                 <div className="w-1.5 h-6 bg-indigo-500 rounded-full" />
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400">Identificación</span>
+                                <span className="text-[11px] font-black uppercase tracking-[0.2em] text-indigo-400">Identificación</span>
                             </div>
 
                             <div className="space-y-4">
+                                {(isMultiSubjectTeacher || !subjectId) && (
+                                    <div className="animate-in fade-in slide-in-from-top-2 duration-500">
+                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">
+                                            Asignar a Materia <span className="text-rose-500">*</span>
+                                        </label>
+                                        <select aria-label="Asignar a Materia"
+                                            required
+                                            className="input-squishy w-full px-6 py-4 text-indigo-950 font-black text-sm uppercase bg-indigo-50/30 border-2 border-indigo-100 focus:border-indigo-300"
+                                            value={formData.subject_id}
+                                            onChange={e => setFormData(prev => ({ ...prev, subject_id: e.target.value }))}
+                                        >
+                                            <option value="">Seleccionar Materia...</option>
+                                            {groupSubjects.map(s => (
+                                                <option key={s.id} value={s.id}>{(s.name || 'Sin Nombre').toUpperCase()}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
                                 <div>
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">
+                                    <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">
                                         Nombre del Desafío <span className="text-rose-500">*</span>
                                     </label>
-                                    <input
+                                    <input aria-label="Nombre del Desafío"
                                         type="text"
                                         required
                                         placeholder="EJ. MAPA CONCEPTUAL: LA COLONIA"
@@ -470,13 +563,13 @@ export const CreateAssignmentModal = ({
 
                                 <div>
                                     <div className="flex justify-between items-center mb-2 ml-1">
-                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest">
                                             Hoja de Ruta / Instrucciones <span className="text-rose-500">*</span>
                                         </label>
                                         <button
                                             type="button"
                                             onClick={() => setIsDictationModeOpen(true)}
-                                            className="flex items-center gap-1.5 px-3 py-1 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-all text-[9px] font-black uppercase tracking-widest group"
+                                            className="flex items-center gap-1.5 px-3 py-1 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-all text-[11px] font-black uppercase tracking-widest group"
                                         >
                                             <Mic className="w-3 h-3 group-hover:scale-110 transition-transform" />
                                             Dictado
@@ -500,13 +593,13 @@ export const CreateAssignmentModal = ({
                             <div className="squishy-card p-8 bg-white border border-indigo-50/50 space-y-6">
                                 <div className="flex items-center gap-2 mb-2">
                                     <div className="w-1.5 h-6 bg-purple-500 rounded-full" />
-                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-400">Logística</span>
+                                    <span className="text-[11px] font-black uppercase tracking-[0.2em] text-purple-400">Logística</span>
                                 </div>
 
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Formato</label>
-                                        <select
+                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Formato</label>
+                                        <select aria-label="Formato"
                                             className="input-squishy w-full px-6 py-4 text-xs font-black text-indigo-900 bg-slate-50 appearance-none cursor-pointer"
                                             value={formData.type}
                                             onChange={e => setFormData(prev => ({ ...prev, type: e.target.value }))}
@@ -520,19 +613,19 @@ export const CreateAssignmentModal = ({
                                     </div>
 
                                     <div>
-                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Terreno de Acción</label>
+                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Terreno de Acción</label>
                                         <div className="flex bg-slate-100/50 p-2 rounded-[1.5rem] border-2 border-slate-50">
                                             <button
                                                 type="button"
                                                 onClick={() => setLocation('SCHOOL')}
-                                                className={`flex-1 py-3 px-4 text-[10px] font-black uppercase tracking-tighter rounded-2xl transition-all duration-300 ${location === 'SCHOOL' ? 'bg-indigo-600 text-white shadow-lg scale-105' : 'text-slate-400 hover:text-indigo-600'}`}
+                                                className={`flex-1 py-3 px-4 text-[11px] font-black uppercase tracking-tighter rounded-2xl transition-all duration-300 ${location === 'SCHOOL' ? 'bg-indigo-600 text-white shadow-lg scale-105' : 'text-slate-500 hover:text-indigo-600'}`}
                                             >
                                                 Aula/Escuela
                                             </button>
                                             <button
                                                 type="button"
                                                 onClick={() => setLocation('HOME')}
-                                                className={`flex-1 py-3 px-4 text-[10px] font-black uppercase tracking-tighter rounded-2xl transition-all duration-300 ${location === 'HOME' ? 'bg-indigo-600 text-white shadow-lg scale-105' : 'text-slate-400 hover:text-indigo-600'}`}
+                                                className={`flex-1 py-3 px-4 text-[11px] font-black uppercase tracking-tighter rounded-2xl transition-all duration-300 ${location === 'HOME' ? 'bg-indigo-600 text-white shadow-lg scale-105' : 'text-slate-500 hover:text-indigo-600'}`}
                                             >
                                                 Casa/Remoto
                                             </button>
@@ -545,18 +638,18 @@ export const CreateAssignmentModal = ({
                             <div className="squishy-card p-8 bg-white border border-indigo-50/50 space-y-6">
                                 <div className="flex items-center gap-2 mb-2">
                                     <div className="w-1.5 h-6 bg-amber-500 rounded-full" />
-                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500">Puntaje</span>
+                                    <span className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-700">Puntaje</span>
                                 </div>
 
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">
+                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">
                                             Criterio Aplicable <span className="text-rose-500">*</span>
                                         </label>
                                         {loadingCriteria ? (
                                             <div className="animate-pulse h-12 bg-slate-50 rounded-2xl"></div>
                                         ) : criteria.length > 0 ? (
-                                            <select
+                                            <select aria-label="Criterio Aplicable"
                                                 className="input-squishy w-full px-6 py-4 text-xs font-black text-amber-700 bg-amber-50/30 cursor-pointer"
                                                 value={formData.criterion_id}
                                                 onChange={e => setFormData(prev => ({ ...prev, criterion_id: e.target.value }))}
@@ -577,7 +670,7 @@ export const CreateAssignmentModal = ({
                                                         onClose()
                                                         navigate(`/evaluation/setup?groupId=${groupId}&periodId=${periodId}`)
                                                     }}
-                                                    className="w-full text-[10px] font-black text-rose-600 uppercase tracking-widest hover:underline text-left"
+                                                    className="w-full text-[11px] font-black text-rose-600 uppercase tracking-widest hover:underline text-left"
                                                 >
                                                     ⚠️ SIN CRITERIOS. CONFIGURAR AQUÍ.
                                                 </button>
@@ -586,8 +679,8 @@ export const CreateAssignmentModal = ({
                                     </div>
 
                                     <div>
-                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Instrumento</label>
-                                        <select
+                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Instrumento</label>
+                                        <select aria-label="Instrumento"
                                             className="input-squishy w-full px-6 py-4 text-xs font-black text-slate-600 bg-slate-50 appearance-none"
                                             value={formData.instrument_id}
                                             onChange={e => setFormData(prev => ({ ...prev, instrument_id: e.target.value }))}
@@ -611,7 +704,7 @@ export const CreateAssignmentModal = ({
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
                                 {formData.type === 'PROJECT' && (
                                     <div className="space-y-4">
-                                        <label className="flex items-center gap-2 text-[10px] font-black text-indigo-300 uppercase tracking-[0.2em]">
+                                        <label className="flex items-center gap-2 text-[11px] font-black text-indigo-300 uppercase tracking-[0.2em]">
                                             <Calendar className="w-4 h-4" /> Lanzamiento
                                         </label>
                                         <input
@@ -624,7 +717,7 @@ export const CreateAssignmentModal = ({
                                 )}
 
                                 <div className={formData.type === 'PROJECT' ? 'space-y-4' : 'col-span-2 space-y-4'}>
-                                    <label className="flex items-center gap-2 text-[10px] font-black text-indigo-300 uppercase tracking-[0.2em]">
+                                    <label className="flex items-center gap-2 text-[11px] font-black text-indigo-300 uppercase tracking-[0.2em]">
                                         <Clock className="w-4 h-4" /> {formData.type === 'PROJECT' ? 'Fecha Límite Final' : 'Plazo de Entrega'} <span className="text-rose-400">*</span>
                                     </label>
                                     <input
@@ -656,7 +749,7 @@ export const CreateAssignmentModal = ({
                                 <button
                                     type="button"
                                     onClick={onClose}
-                                    className="flex-1 md:flex-none px-8 py-4 text-slate-400 font-black uppercase text-xs tracking-widest hover:text-slate-600 transition-colors"
+                                    className="flex-1 md:flex-none px-8 py-4 text-slate-500 font-black uppercase text-xs tracking-widest hover:text-slate-600 transition-colors"
                                 >
                                     Descartar
                                 </button>

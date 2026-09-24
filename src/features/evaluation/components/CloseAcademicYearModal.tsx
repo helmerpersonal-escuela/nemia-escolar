@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { X, Award, CheckCircle, Download, AlertCircle } from 'lucide-react'
+import { X, Award, Download, AlertCircle } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { calculateAcademicYearGrade } from '../utils/gradingUtils'
 
@@ -134,15 +134,15 @@ export const CloseAcademicYearModal = ({
                 <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                     <div>
                         <h2 className="text-2xl font-black text-gray-900 flex items-center">
-                            <Award className="w-8 h-8 mr-3 text-amber-500" />
+                            <Award className="w-8 h-8 mr-3 text-amber-700" />
                             Cierre de Ciclo Escolar
                         </h2>
                         <p className="text-gray-500 mt-1 font-medium">
                             Grupo {group.grade}° "{group.section}" — Promedios Finales (Ciclo Escolar)
                         </p>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                        <X className="w-6 h-6 text-gray-400" />
+                    <button aria-label="Cerrar" onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                        <X className="w-6 h-6 text-gray-500" />
                     </button>
                 </div>
 
@@ -155,7 +155,7 @@ export const CloseAcademicYearModal = ({
                     ) : step === 'REVIEW' ? (
                         <div className="space-y-8">
                             <div className="bg-amber-50 p-6 rounded-2xl border border-amber-100 flex items-start">
-                                <AlertCircle className="w-6 h-6 text-amber-600 mr-4 mt-1 flex-shrink-0" />
+                                <AlertCircle className="w-6 h-6 text-amber-700 mr-4 mt-1 flex-shrink-0" />
                                 <div>
                                     <h3 className="font-bold text-amber-900 text-lg">Confirmación de Promedios Anuales</h3>
                                     <p className="text-amber-800 mt-2 leading-relaxed">
@@ -207,7 +207,7 @@ export const CloseAcademicYearModal = ({
                     ) : (
                         <div className="flex flex-col items-center justify-center text-center py-16 space-y-8 animate-in fade-in zoom-in duration-300">
                             <div className="w-24 h-24 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-full flex items-center justify-center shadow-lg border-4 border-white">
-                                <Award className="w-12 h-12 text-emerald-600" />
+                                <Award className="w-12 h-12 text-emerald-700" />
                             </div>
                             <div>
                                 <h3 className="text-3xl font-black text-gray-900 tracking-tight">¡Ciclo Escolar Cerrado!</h3>
