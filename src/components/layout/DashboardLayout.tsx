@@ -1,6 +1,6 @@
 import { PageLoader } from '../common/PageLoader'
 import { useState, useEffect, Suspense } from 'react'
-import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
+import { Outlet, Link, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import {
     LayoutDashboard,
     Shield,
@@ -369,6 +369,12 @@ export const DashboardLayout = () => {
     // Race Condition Handling:
     // If we have a profile but NO tenant, it means the trigger is still running
     // or failed. We show a "Setting up" state instead of blank screen.
+    // Un super administrador no pertenece a ninguna escuela: su lugar es el panel /admin.
+    // Sin esto se quedaba para siempre en "Preparando tu Espacio".
+    if (!tenant && (isSuperAdmin || (profile as any)?.role === 'SUPER_ADMIN')) {
+        return <Navigate to="/admin" replace />
+    }
+
     if (!tenant) {
         return (
             <div className="min-h-screen bg-slate-50 flex items-center justify-center p-8">
