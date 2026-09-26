@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { Capacitor } from '@capacitor/core'
 import { Loader2 } from 'lucide-react'
 import { signInWithGoogle, type SignupIntent } from '../lib/googleAuth'
 
@@ -22,6 +23,26 @@ const GoogleLogo = () => (
 export const GoogleButton = ({ label = 'Continuar con Google', intent, disabled, beforeStart }: Props) => {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+
+    // En el celular Google se abre en el navegador del sistema. Si la persona lo cierra,
+    // regresa sin terminar o el regreso a la app falla, el botón se quedaba girando para
+    // siempre. Al volver a la app (o cerrarse el navegador) se reactiva el botón.
+    useEffect(() => {
+        if (!Capacitor.isNativePlatform()) return
+        const handles: Array<{ remove: () => Promise<void> }> = []
+        let cancelled = false
+        const reset = () => setLoading(false)
+        void (async () => {
+            const [{ App }, { Browser }] = await Promise.all([import('@capacitor/app'), import('@capacitor/browser')])
+            const list = await Promise.all([
+                App.addListener('resume', reset),
+                Browser.addListener('browserFinished', reset),
+            ])
+            if (cancelled) list.forEach(h => void h.remove())
+            else handles.push(...list)
+        })()
+        return () => { cancelled = true; handles.forEach(h => void h.remove()) }
+    }, [])
 
     const start = async () => {
         const problem = beforeStart?.()
