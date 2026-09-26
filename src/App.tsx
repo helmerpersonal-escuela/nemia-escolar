@@ -11,7 +11,7 @@ const OnboardingWizard = lazyNamed(() => import('./features/onboarding/component
 const SettingsPage = lazyNamed(() => import('./features/settings/pages/SettingsPage'), 'SettingsPage')
 const SchedulePage = lazyNamed(() => import('./features/schedule/pages/SchedulePage'), 'SchedulePage')
 const AgendaPage = lazyNamed(() => import('./features/agenda/pages/AgendaPage'), 'AgendaPage')
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { lazyNamed } from './lib/lazyNamed'
 import { SignupGate } from './features/auth/components/SignupGate'
 import { NotFoundPage } from './components/common/NotFoundPage'
@@ -76,10 +76,15 @@ function App() {
   const [session, setSession] = useState<Session | null>(null)
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
+  // Usuario con el que se cargaron los datos en caché. Supabase vuelve a emitir SIGNED_IN
+  // cada vez que la pestaña/ventana regresa de estar oculta (minimizar y maximizar);
+  // solo hay que limpiar la caché si de verdad cambió la cuenta.
+  const currentUserIdRef = useRef<string | null>(null)
 
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
+      currentUserIdRef.current = session?.user?.id ?? null
       setSession(session)
       setLoading(false)
       // Hide SplashScreen once app is ready
@@ -91,7 +96,16 @@ function App() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      setSession(session)
+      const previousUserId = currentUserIdRef.current
+      const nextUserId = session?.user?.id ?? null
+      currentUserIdRef.current = nextUserId
+      // Misma cuenta y mismo token: no re-renderizar toda la app (evita que se desmonten
+      // formularios y se pierda lo capturado al volver a la ventana).
+      setSession(prev =>
+        prev && session && prev.user?.id === session.user?.id && prev.access_token === session.access_token
+          ? prev
+          : session
+      )
       if (event === 'SIGNED_OUT') {
         queryClient.clear()
         // No dejar en el dispositivo datos de alumnos del docente que cerró sesión.
@@ -100,7 +114,10 @@ function App() {
         void clearCache('rq:')
         sessionStorage.removeItem('vunlek_impersonate_id')
       }
-      if (event === 'SIGNED_IN') {
+      if (event === 'SIGNED_IN' && previousUserId !== nextUserId) {
+        // Solo al entrar con otra cuenta. Antes se borraba toda la caché cada vez que la
+        // ventana volvía a primer plano: la app mostraba "cargando", desmontaba la pantalla
+        // actual y se perdía lo que el usuario llevaba escrito.
         queryClient.clear()
         // If we have payment params, stay on current URL or go home preserving them
         const search = window.location.search
