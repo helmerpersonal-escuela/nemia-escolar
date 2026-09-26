@@ -670,9 +670,9 @@ export const GradebookPage = () => {
 
             {
                 activeTab === 'ATTENDANCE' && (
-                    <div className="flex items-center space-x-4 bg-gray-50 p-3 rounded-2xl border border-gray-200 w-fit">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 bg-gray-50 p-3 rounded-2xl border border-gray-200 w-fit max-w-full">
                         <p className="text-xs font-black text-gray-500 uppercase tracking-widest px-2">Método:</p>
-                        <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-100">
+                        <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-100 max-w-full overflow-x-auto">
                             {[
                                 { id: 'MANUAL', label: 'Manual', icon: Users },
                                 { id: 'QR', label: 'Lector QR', icon: QrCode },

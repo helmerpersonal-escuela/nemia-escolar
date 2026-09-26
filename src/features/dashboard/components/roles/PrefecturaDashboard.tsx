@@ -284,12 +284,12 @@ export const PrefecturaDashboard = () => {
                     </div>
 
                     {/* RECIENTES E INCIDENCIAS */}
-                    <div className="bg-white p-8 rounded-[2rem] shadow-xl shadow-slate-100 border border-slate-50">
-                        <div className="flex justify-between items-center mb-6">
+                    <div className="bg-white p-5 sm:p-8 rounded-[2rem] shadow-xl shadow-slate-100 border border-slate-50">
+                        <div className="flex flex-wrap gap-3 justify-between items-center mb-6">
                             <h3 className="text-xl font-black text-slate-900">Bitácora de Incidencias</h3>
-                            <div className="relative">
+                            <div className="relative w-full sm:w-auto">
                                 <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
-                                <input placeholder="Buscar alumno..." className="pl-10 pr-4 py-2 bg-slate-50 border-none rounded-xl text-sm outline-none focus:ring-2 ring-blue-100" />
+                                <input placeholder="Buscar alumno..." className="w-full pl-10 pr-4 py-2 bg-slate-50 border-none rounded-xl text-sm outline-none focus:ring-2 ring-blue-100" />
                             </div>
                         </div>
                         <div className="space-y-4">
@@ -346,7 +346,7 @@ export const PrefecturaDashboard = () => {
                         </button>
                     </div>
 
-                    <div className="bg-white p-8 rounded-[2rem] shadow-xl shadow-slate-100 border border-slate-50">
+                    <div className="bg-white p-5 sm:p-8 rounded-[2rem] shadow-xl shadow-slate-100 border border-slate-50">
                         <h4 className="text-lg font-black mb-4 flex items-center">
                             <UserCheck className="w-5 h-5 mr-2 text-indigo-500" /> Control de Personal
                         </h4>
@@ -362,7 +362,7 @@ export const PrefecturaDashboard = () => {
                         </div>
                     </div>
 
-                    <div className="bg-white p-8 rounded-[2rem] shadow-xl shadow-slate-100 border border-slate-50">
+                    <div className="bg-white p-5 sm:p-8 rounded-[2rem] shadow-xl shadow-slate-100 border border-slate-50">
                         <h4 className="text-lg font-black mb-4 flex items-center">
                             <ShieldAlert className="w-5 h-5 mr-2 text-red-500" /> Pendientes
                         </h4>

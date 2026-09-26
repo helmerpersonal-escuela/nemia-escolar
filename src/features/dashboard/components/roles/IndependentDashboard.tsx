@@ -158,7 +158,7 @@ export const IndependentDashboard = () => {
             </header >
 
             {/* 2. Professional Stats Row */}
-            < div className="grid grid-cols-2 lg:grid-cols-4 gap-6" >
+            < div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6" >
                 {
                     [
                         { label: 'Grupos Activos', value: loading ? '...' : stats.groups.toString(), icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
@@ -166,8 +166,8 @@ export const IndependentDashboard = () => {
                         { label: 'Clases Hoy', value: loading ? '...' : upcomingClasses.length.toString(), icon: Presentation, color: 'text-purple-600', bg: 'bg-purple-50' },
                         { label: 'Materias s/Plan', value: loading ? '...' : stats.pending.toString(), icon: Clock, color: 'text-amber-700', bg: 'bg-amber-50' },
                     ].map((stat, i) => (
-                        <div key={i} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-indigo-100/50 transition-all flex items-center gap-5 group">
-                            <div className={`p-4 ${stat.bg} ${stat.color} rounded-2xl group-hover:scale-110 transition-transform`}>
+                        <div key={i} className="bg-white p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-indigo-100/50 transition-all flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-5 group min-w-0">
+                            <div className={`p-3 sm:p-4 ${stat.bg} ${stat.color} rounded-2xl group-hover:scale-110 transition-transform`}>
                                 <stat.icon className="w-6 h-6" />
                             </div>
                             <div>
@@ -178,7 +178,7 @@ export const IndependentDashboard = () => {
                                         stat.value
                                     )}
                                 </div>
-                                <div className="text-[11px] font-black text-slate-500 uppercase tracking-widest mt-0.5">{stat.label}</div>
+                                <div className="text-[11px] font-black text-slate-500 uppercase tracking-wider sm:tracking-widest mt-0.5">{stat.label}</div>
                             </div>
                         </div>
                     ))

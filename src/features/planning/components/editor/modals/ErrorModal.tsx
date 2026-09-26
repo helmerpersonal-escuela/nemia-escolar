@@ -22,7 +22,7 @@ export const ErrorModal: React.FC<ErrorModalProps> = ({
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl animate-in fade-in zoom-in duration-300">
+            <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full max-h-[90dvh] overflow-y-auto shadow-2xl animate-in fade-in zoom-in duration-300">
                 <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mb-6 mx-auto">
                     <Briefcase className="w-8 h-8 text-amber-700" />
                 </div>

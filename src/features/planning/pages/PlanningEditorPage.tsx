@@ -1799,12 +1799,12 @@ export const PlanningEditorPage = () => {
                         {/* Navigation Footer */}
                         {
                             !isPreviewMode && (
-                                <div className="flex justify-between items-center bg-gray-50 p-6 rounded-2xl border border-gray-100 mt-8 mb-8">
-                                    <div className="flex items-center gap-4">
+                                <div className="flex flex-wrap justify-between items-center gap-2 bg-gray-50 p-3 sm:p-6 rounded-2xl border border-gray-100 mt-8 mb-8">
+                                    <div className="flex items-center gap-1 sm:gap-4">
                                         <button
                                             onClick={() => setStep(Math.max(1, step - 1))}
                                             disabled={step === 1}
-                                            className={`flex items-center px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-white hover:text-indigo-600 transition-all ${step === 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            className={`flex items-center px-3 sm:px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-white hover:text-indigo-600 transition-all ${step === 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
                                         >
                                             <ChevronLeft className="w-5 h-5 mr-2" />
                                             Anterior
@@ -1817,13 +1817,14 @@ export const PlanningEditorPage = () => {
                                                     navigate('/planning')
                                                 }
                                             }}
-                                            className="flex items-center px-4 py-3 rounded-xl font-bold text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-all text-xs uppercase tracking-widest"
+                                            className="flex items-center px-2 sm:px-4 py-3 rounded-xl font-bold text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-all text-xs uppercase tracking-widest"
+                                            aria-label="Cancelar"
                                         >
-                                            <X className="w-4 h-4 mr-2" />
-                                            Cancelar
+                                            <X className="w-4 h-4 sm:mr-2" />
+                                            <span className="hidden sm:inline">Cancelar</span>
                                         </button>
                                     </div>
-                                    <div className="text-xs font-black text-gray-300 uppercase tracking-widest">
+                                    <div className="hidden sm:block text-xs font-black text-gray-300 uppercase tracking-widest">
                                         Paso {step} de 4
                                     </div>
                                     <button
@@ -1833,7 +1834,7 @@ export const PlanningEditorPage = () => {
                                                 else setIsPreviewMode(true) // Final step goes to preview
                                             }
                                         }}
-                                        className="flex items-center bg-indigo-600 text-white px-8 py-3 rounded-xl font-black shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:scale-105 transition-all group"
+                                        className="flex items-center bg-indigo-600 text-white px-5 sm:px-8 py-3 rounded-xl font-black shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:scale-105 transition-all group whitespace-nowrap"
                                     >
                                         {step === 4 ? 'Finalizar y Ver' : 'Siguiente Paso'}
                                         <ChevronRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
@@ -1906,14 +1907,14 @@ export const PlanningEditorPage = () => {
                             )}
 
                         {/* Footer Validation */}
-                        <div className="bg-gray-50 border-t border-gray-100 p-8 flex justify-between items-center text-[11px] font-black uppercase text-gray-500 print:bg-white print:border-t-2">
+                        <div className="bg-gray-50 border-t border-gray-100 p-4 sm:p-8 flex flex-col sm:flex-row gap-3 justify-between sm:items-center text-[11px] font-black uppercase text-gray-500 print:bg-white print:border-t-2 print:flex-row">
                             <div className="flex items-center">
                                 <ClipboardCheck className="w-4 h-4 mr-2 text-green-500" />
                                 Validado para el programa sintético
                             </div>
                             <div className="flex items-center">
                                 <span className="mr-4 italic">Firma Digital del Docente</span>
-                                <div className="w-32 h-[1px] bg-gray-300 mr-4"></div>
+                                <div className="w-16 sm:w-32 h-[1px] bg-gray-300 mr-4"></div>
                                 {new Date().toLocaleDateString()}
                             </div>
                         </div>

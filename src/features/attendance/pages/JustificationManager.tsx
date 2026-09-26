@@ -215,7 +215,7 @@ export const JustificationManager = () => {
             {/* Justification Modal */}
             {editingRecord && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-                    <div className="bg-white rounded-[2.5rem] w-full max-w-lg shadow-2xl animate-in zoom-in duration-300">
+                    <div className="bg-white rounded-[2.5rem] w-full max-w-lg max-h-[90dvh] overflow-y-auto shadow-2xl animate-in zoom-in duration-300">
                         <div className="p-8">
                             <h3 className="text-2xl font-black text-slate-900 tracking-tight">Justificar Asistencia</h3>
                             <p className="text-slate-500 font-medium mt-1">{editingRecord.full_name}</p>

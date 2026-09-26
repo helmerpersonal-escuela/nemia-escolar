@@ -378,7 +378,7 @@ Esta acción NO se puede deshacer.`
             {
                 showCredential && selectedStudent && tenant && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
-                        <div className="bg-white p-6 rounded-lg max-w-lg w-full">
+                        <div className="bg-white p-6 rounded-lg max-w-lg w-full max-h-[90dvh] overflow-y-auto">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="text-lg font-bold">Vista Previa de Credencial</h3>
                                 <button onClick={() => setShowCredential(false)}><XIcon /></button>

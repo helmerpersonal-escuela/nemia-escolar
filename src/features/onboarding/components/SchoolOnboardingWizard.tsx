@@ -220,11 +220,11 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
     }
 
     return (
-        <div className="max-w-5xl mx-auto py-8 px-4">
+        <div className="max-w-5xl mx-auto py-6 sm:py-8 px-3 sm:px-4">
             {/* Header */}
-            <div className="flex justify-between items-center mb-12">
+            <div className="flex justify-between items-center gap-4 mb-6 sm:mb-12">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">
+                    <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
                         Configuración Institucional
                     </h1>
                     <p className="text-slate-500 font-medium">
@@ -243,7 +243,7 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                 </div>
             </div>
 
-            <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-blue-100/50 border border-slate-100 overflow-hidden relative min-h-[600px]">
+            <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-blue-100/50 border border-slate-100 overflow-hidden relative sm:min-h-[600px]">
                 {loading && (
                     <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
                         <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
@@ -259,7 +259,7 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                     />
                 </div>
 
-                <div className="p-8 md:p-12">
+                <div className="p-5 sm:p-8 md:p-12">
                     {/* STEP INDICATOR AND EMERGENCY BAR */}
                     <div className="mb-10">
 
@@ -478,7 +478,7 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                                         />
                                         <div className="space-y-4">
                                             <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Ciclo Escolar Actual</label>
-                                            <div className="grid grid-cols-2 gap-4">
+                                            <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-4">
                                                 <div className="space-y-1">
                                                     <span className="text-[11px] font-bold text-slate-500 ml-1">INICIO</span>
                                                     <input aria-label="Ciclo Escolar Actual" type="date" value={formData.current_cycle_start} onChange={e => setFormData({ ...formData, current_cycle_start: e.target.value })} className="w-full p-4 rounded-2xl border-2 border-slate-100 font-bold text-slate-700" />
@@ -497,7 +497,7 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                                                     onChange={e => setNewWorkshop(e.target.value)}
                                                     onKeyPress={e => e.key === 'Enter' && handleAddWorkshop()}
                                                     placeholder="Añadir Taller (Ej: Carpintería)"
-                                                    className="flex-grow p-4 rounded-2xl border-2 border-slate-100 font-bold outline-none focus:border-orange-400 text-sm"
+                                                    className="flex-grow min-w-0 p-4 rounded-2xl border-2 border-slate-100 font-bold outline-none focus:border-orange-400 text-sm"
                                                 />
                                                 <button aria-label="Confirmar" onClick={handleAddWorkshop} className="p-4 bg-orange-600 text-white rounded-2xl shadow-lg shadow-orange-100 active:scale-95 transition-all">
                                                     <Check className="w-6 h-6" />
@@ -566,25 +566,25 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                             )}
 
                             {/* Navigation */}
-                            <div className="mt-16 flex justify-between items-center bg-slate-50/80 -mx-12 -mb-12 p-8 border-t border-slate-100">
+                            <div className="mt-10 sm:mt-16 flex justify-between items-center gap-3 bg-slate-50/80 -mx-5 -mb-5 sm:-mx-8 sm:-mb-8 md:-mx-12 md:-mb-12 p-4 sm:p-8 border-t border-slate-100">
                                 {step === 0 ? (
                                     <button
                                         onClick={handleCancelRegistration}
-                                        className="flex items-center font-black text-sm uppercase tracking-widest px-8 py-4 rounded-2xl text-red-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                                        className="flex items-center font-black text-xs sm:text-sm uppercase tracking-widest px-3 sm:px-8 py-4 rounded-2xl text-red-400 hover:text-red-500 hover:bg-red-50 transition-all"
                                     >
                                         <ArrowLeft className="w-5 h-5 mr-3" /> Cancelar
                                     </button>
                                 ) : (
                                     <button
                                         onClick={() => setStep(step - 1)}
-                                        className="flex items-center font-black text-sm uppercase tracking-widest px-8 py-4 rounded-2xl text-slate-500 hover:text-slate-600 hover:bg-white transition-all"
+                                        className="flex items-center font-black text-xs sm:text-sm uppercase tracking-widest px-3 sm:px-8 py-4 rounded-2xl text-slate-500 hover:text-slate-600 hover:bg-white transition-all"
                                     >
                                         <ArrowLeft className="w-5 h-5 mr-3" /> Atrás
                                     </button>
                                 )}
                                 <button
                                     onClick={handleSaveStep}
-                                    className="bg-blue-600 hover:bg-blue-500 text-white font-black text-sm uppercase tracking-widest px-12 py-5 rounded-[2rem] shadow-2xl shadow-blue-200 transition-all active:scale-95 flex items-center"
+                                    className="bg-blue-600 hover:bg-blue-500 text-white font-black text-xs sm:text-sm uppercase tracking-widest px-5 sm:px-12 py-4 sm:py-5 rounded-[2rem] text-center shadow-2xl shadow-blue-200 transition-all active:scale-95 flex items-center"
                                 >
                                     {step === steps.length - 1 ? '🎉 Finalizar Registro' : 'Siguiente Paso'}
                                     <ArrowRight className="w-5 h-5 ml-3" />
@@ -617,12 +617,12 @@ const SectionHeader = ({ title, description, icon: Icon, color }: SectionHeaderP
     }
 
     return (
-        <div className="mb-10 flex items-start space-x-6">
-            <div className={`p-5 rounded-[1.75rem] border-2 ${colorClasses[color]}`}>
-                <Icon className="w-10 h-10" />
+        <div className="mb-6 sm:mb-10 flex items-start gap-4 sm:gap-6">
+            <div className={`p-3 sm:p-5 rounded-2xl sm:rounded-[1.75rem] border-2 shrink-0 ${colorClasses[color]}`}>
+                <Icon className="w-7 h-7 sm:w-10 sm:h-10" />
             </div>
-            <div>
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">{title}</h3>
+            <div className="min-w-0">
+                <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">{title}</h3>
                 <p className="text-slate-500 font-medium max-w-md">{description}</p>
             </div>
         </div>

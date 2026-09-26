@@ -188,7 +188,7 @@ export const StaffControlCenter = () => {
 
             {/* Main Tabs and Search */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center space-x-1 bg-gray-50 p-1 rounded-2xl w-fit">
+                <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-2xl w-fit max-w-full overflow-x-auto scrollbar-hide">
                     {[
                         { id: 'roster', label: 'Personal y Comisiones', icon: Users },
                         { id: 'attendance', label: 'Bitácora de Asistencia', icon: ClipboardCheck },
@@ -197,7 +197,7 @@ export const StaffControlCenter = () => {
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as any)}
-                            className={`flex items-center px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-white text-blue-600 shadow-sm border border-gray-100' : 'text-gray-500 hover:text-gray-600'}`}
+                            className={`flex items-center shrink-0 whitespace-nowrap px-4 sm:px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-white text-blue-600 shadow-sm border border-gray-100' : 'text-gray-500 hover:text-gray-600'}`}
                         >
                             <tab.icon className="w-4 h-4 mr-2" />
                             {tab.label}

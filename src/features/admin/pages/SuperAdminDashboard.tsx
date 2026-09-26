@@ -314,10 +314,10 @@ export const SuperAdminDashboard = () => {
     console.log('DEBUG allUsers in Dashboard:', allUsers)
 
     return (
-        <div className="min-h-screen bg-[#F0F2F5] text-slate-900 flex font-sans selection:bg-indigo-100 selection:text-indigo-700">
-            <aside className="w-80 glass-panel m-4 rounded-[2.5rem] flex flex-col sticky top-4 h-[calc(100vh-2rem)] z-20 shadow-2xl">
-                <div className="p-8 border-b border-indigo-50/50">
-                    <div className="flex items-center space-x-4 mb-2">
+        <div className="min-h-screen bg-[#F0F2F5] text-slate-900 flex flex-col lg:flex-row font-sans selection:bg-indigo-100 selection:text-indigo-700">
+            <aside className="glass-panel m-3 lg:m-4 lg:w-80 lg:shrink-0 rounded-[1.75rem] lg:rounded-[2.5rem] flex flex-col lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)] z-20 shadow-2xl min-w-0">
+                <div className="p-4 lg:p-8 border-b border-indigo-50/50">
+                    <div className="flex items-center space-x-4 lg:mb-2">
                         <div className="bg-indigo-600 p-3 rounded-2xl shadow-lg rotate-[-5deg]">
                             <Shield className="w-6 h-6 text-white" />
                         </div>
@@ -327,9 +327,9 @@ export const SuperAdminDashboard = () => {
                         </div>
                     </div>
                 </div>
-                <nav className="flex-grow p-4 space-y-2 mt-2 overflow-y-auto custom-scrollbar">
+                <nav className="flex-grow p-3 lg:p-4 flex lg:flex-col gap-2 lg:mt-2 overflow-x-auto lg:overflow-x-visible lg:overflow-y-auto custom-scrollbar">
                     {['tenants', 'admins', 'users', 'rescue', 'ai', 'backups', 'billing', 'subscriptions', 'licenses', 'sounds', 'settings', 'landing', 'textbooks', 'synthetic'].map((tab: any) => (
-                        <button key={tab} onClick={() => setActiveTab(tab)} className={`w-full flex items-center space-x-3 px-4 py-4 rounded-2xl font-bold capitalize transition-all ${activeTab === tab ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-500 hover:bg-white'}`}>
+                        <button key={tab} onClick={() => setActiveTab(tab)} className={`shrink-0 lg:w-full flex items-center space-x-3 px-4 py-3 lg:py-4 rounded-2xl font-bold capitalize whitespace-nowrap transition-all ${activeTab === tab ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-500 hover:bg-white'}`}>
                             {tab === 'tenants' && <Building2 className="w-5 h-5" />}
                             {tab === 'admins' && <Shield className="w-5 h-5" />}
                             {tab === 'users' && <Users className="w-5 h-5" />}
@@ -348,69 +348,69 @@ export const SuperAdminDashboard = () => {
                         </button>
                     ))}
                 </nav>
-                <div className="p-4 mt-auto border-t border-indigo-50/50 space-y-2">
-                    <button onClick={handleReturnToClassroom} className="w-full flex items-center space-x-3 px-4 py-4 rounded-2xl font-black text-indigo-600 bg-white border-2 border-indigo-100 hover:border-indigo-600 transition-all shadow-md">
+                <div className="p-3 lg:p-4 mt-auto border-t border-indigo-50/50 flex lg:flex-col gap-2">
+                    <button onClick={handleReturnToClassroom} className="flex-1 lg:w-full flex items-center space-x-3 px-4 py-3 lg:py-4 rounded-2xl font-black text-indigo-600 bg-white border-2 border-indigo-100 hover:border-indigo-600 transition-all shadow-md">
                         <ArrowLeftCircle className="w-6 h-6" />
                         <span className="uppercase text-xs italic tracking-tighter">Mi Aula Docente</span>
                     </button>
-                    <button onClick={handleSignOut} className="w-full flex items-center space-x-3 px-4 py-4 rounded-2xl font-black text-rose-600 hover:bg-rose-50 transition-all">
+                    <button onClick={handleSignOut} className="lg:w-full flex items-center space-x-3 px-4 py-3 lg:py-4 rounded-2xl font-black text-rose-600 hover:bg-rose-50 transition-all">
                         <LogOut className="w-6 h-6" />
                         <span className="uppercase text-xs italic tracking-tighter">Salir</span>
                     </button>
                 </div>
             </aside>
 
-            <main className="flex-grow overflow-y-auto px-8 py-8 relative z-10 transition-all">
-                <header className="glass-panel rounded-[2rem] p-8 mb-8 flex justify-between items-center shadow-xl border-white/80">
+            <main className="flex-grow min-w-0 overflow-y-auto px-3 pb-6 lg:px-8 lg:py-8 relative z-10 transition-all">
+                <header className="glass-panel rounded-[1.75rem] lg:rounded-[2rem] p-5 lg:p-8 mb-6 lg:mb-8 flex flex-col sm:flex-row gap-4 justify-between sm:items-center shadow-xl border-white/80">
                     <div>
-                        <h2 className="text-3xl font-black text-indigo-950 italic uppercase tracking-tighter flex items-center gap-4">
+                        <h2 className="text-2xl lg:text-3xl font-black text-indigo-950 italic uppercase tracking-tighter flex items-center gap-4 break-words">
                             {activeTab}
                         </h2>
                         <p className="text-slate-500 font-bold mt-1 uppercase text-xs tracking-wider opacity-60">Control Maestro</p>
                     </div>
-                    <div className="flex items-center space-x-4">
-                        <div className="relative">
+                    <div className="flex items-center space-x-4 w-full sm:w-auto">
+                        <div className="relative w-full">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                             <input
                                 type="text"
                                 placeholder="Buscar..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-12 pr-4 py-3 rounded-2xl border-2 border-slate-100 focus:border-indigo-400 transition-all w-80 font-bold text-sm"
+                                className="pl-12 pr-4 py-3 rounded-2xl border-2 border-slate-100 focus:border-indigo-400 transition-all w-full sm:w-80 font-bold text-sm"
                             />
                         </div>
                     </div>
                 </header>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8 animate-in slide-in-from-bottom-4 duration-500 delay-150">
-                    <div className="squishy-card p-4 bg-white border border-indigo-50 shadow-sm flex flex-col items-center justify-center text-center">
+                <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4 mb-6 sm:mb-8 animate-in slide-in-from-bottom-4 duration-500 delay-150">
+                    <div className="squishy-card p-3 sm:p-4 bg-white border border-indigo-50 shadow-sm flex flex-col items-center justify-center text-center min-w-0">
                         <Building2 className="w-6 h-6 text-indigo-500 mb-2" />
-                        <span className="text-2xl font-black text-slate-800">{stats.totalTenants}</span>
+                        <span className="text-lg sm:text-2xl font-black text-slate-800 leading-tight">{stats.totalTenants}</span>
                         <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full text-slate-400 font-bold uppercase tracking-widest mt-1">Tenants</span>
                     </div>
-                    <div className="squishy-card p-4 bg-white border border-indigo-50 shadow-sm flex flex-col items-center justify-center text-center">
+                    <div className="squishy-card p-3 sm:p-4 bg-white border border-indigo-50 shadow-sm flex flex-col items-center justify-center text-center min-w-0">
                         <Users className="w-6 h-6 text-indigo-500 mb-2" />
-                        <span className="text-2xl font-black text-slate-800">{stats.totalUsers}</span>
+                        <span className="text-lg sm:text-2xl font-black text-slate-800 leading-tight">{stats.totalUsers}</span>
                         <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full text-slate-400 font-bold uppercase tracking-widest mt-1">Usuarios</span>
                     </div>
-                    <div className="squishy-card p-4 bg-white border border-indigo-50 shadow-sm flex flex-col items-center justify-center text-center">
+                    <div className="squishy-card p-3 sm:p-4 bg-white border border-indigo-50 shadow-sm flex flex-col items-center justify-center text-center min-w-0">
                         <Shield className="w-6 h-6 text-indigo-500 mb-2" />
-                        <span className="text-2xl font-black text-slate-800">{stats.schoolCount}</span>
+                        <span className="text-lg sm:text-2xl font-black text-slate-800 leading-tight">{stats.schoolCount}</span>
                         <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full text-slate-400 font-bold uppercase tracking-widest mt-1">Escuelas</span>
                     </div>
-                    <div className="squishy-card p-4 bg-white border border-indigo-50 shadow-sm flex flex-col items-center justify-center text-center">
+                    <div className="squishy-card p-3 sm:p-4 bg-white border border-indigo-50 shadow-sm flex flex-col items-center justify-center text-center min-w-0">
                         <UserCheck className="w-6 h-6 text-indigo-500 mb-2" />
-                        <span className="text-2xl font-black text-slate-800">{stats.independentCount}</span>
+                        <span className="text-lg sm:text-2xl font-black text-slate-800 leading-tight">{stats.independentCount}</span>
                         <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full text-slate-400 font-bold uppercase tracking-widest mt-1">Indep.</span>
                     </div>
-                    <div className="squishy-card p-4 bg-white border border-indigo-50 shadow-sm flex flex-col items-center justify-center text-center">
+                    <div className="squishy-card p-3 sm:p-4 bg-white border border-indigo-50 shadow-sm flex flex-col items-center justify-center text-center min-w-0">
                         <Activity className="w-6 h-6 text-emerald-500 mb-2" />
-                        <span className="text-2xl font-black text-slate-800">{stats.serverHealth}</span>
+                        <span className="text-lg sm:text-2xl font-black text-slate-800 leading-tight">{stats.serverHealth}</span>
                         <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full text-slate-400 font-bold uppercase tracking-widest mt-1">Estado</span>
                     </div>
-                    <div className="squishy-card p-4 bg-white border border-indigo-50 shadow-sm flex flex-col items-center justify-center text-center">
+                    <div className="squishy-card p-3 sm:p-4 bg-white border border-indigo-50 shadow-sm flex flex-col items-center justify-center text-center min-w-0">
                         <Database className="w-6 h-6 text-indigo-500 mb-2" />
-                        <span className="text-2xl font-black text-slate-800">{stats.dbSize} MB</span>
+                        <span className="text-lg sm:text-2xl font-black text-slate-800 leading-tight">{stats.dbSize} MB</span>
                         <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full text-slate-400 font-bold uppercase tracking-widest mt-1">Storage</span>
                     </div>
                 </div>
@@ -461,9 +461,9 @@ export const SuperAdminDashboard = () => {
                                 </h4>
                                 <div className="space-y-4">
                                     {deletedAccounts.map(acc => (
-                                        <div key={acc.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                            <div>
-                                                <p className="font-black text-slate-950 uppercase text-sm">{acc.email}</p>
+                                        <div key={acc.id} className="flex flex-wrap items-center justify-between gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                            <div className="min-w-0">
+                                                <p className="font-black text-slate-950 uppercase text-sm break-all">{acc.email}</p>
                                                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
                                                     Eliminado: {new Date(acc.deleted_at).toLocaleDateString()}
                                                 </p>

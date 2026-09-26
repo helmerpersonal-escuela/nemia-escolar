@@ -115,8 +115,8 @@ export const SessionsPanel = ({ sessions, loading, selectedId, onSelect, onChang
                     </button>
                 ))}
                 <div className="pt-3 border-t border-slate-100 flex gap-2">
-                    <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} className="flex-1 border border-slate-200 rounded-xl px-2 py-1.5 text-xs" aria-label="Fecha de sesión extraordinaria" />
-                    <button onClick={addExtraordinary} disabled={!newDate} className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold disabled:opacity-40">
+                    <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} className="flex-1 min-w-0 border border-slate-200 rounded-xl px-2 py-1.5 text-xs" aria-label="Fecha de sesión extraordinaria" />
+                    <button onClick={addExtraordinary} disabled={!newDate} className="flex items-center gap-1 shrink-0 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold disabled:opacity-40">
                         <CalendarPlus className="w-3.5 h-3.5" /> Extraordinaria
                     </button>
                 </div>

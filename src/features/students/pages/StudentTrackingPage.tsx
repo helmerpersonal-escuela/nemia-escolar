@@ -142,19 +142,19 @@ export const StudentTrackingPage = () => {
     return (
         <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 pb-24">
             {/* Header */}
-            <div className="flex justify-between items-end">
-                <div>
+            <div className="flex flex-wrap justify-between items-end gap-3">
+                <div className="min-w-0">
                     <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tighter uppercase">Bitácora Escolar</h1>
                     <p className="text-gray-500 font-bold text-xs sm:text-sm uppercase tracking-widest mt-1">
                         Seguimiento Rápido {selectedStudent ? `• ${selectedStudent.first_name} ${selectedStudent.last_name_paternal}` : ''}
                     </p>
                 </div>
-                <div className="flex space-x-4">
+                <div className="flex flex-wrap gap-2 sm:gap-4">
                     {/* Role-based restriction: Only staff can register incidents */}
                     {tenant?.role !== 'STUDENT' && tenant?.role !== 'TUTOR' && selectedStudent && (
                         <button
                             onClick={() => setShowIncidentModal(true)}
-                            className="bg-indigo-600 text-white px-8 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all btn-tactile flex items-center lg:hidden"
+                            className="bg-indigo-600 text-white px-4 sm:px-8 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all btn-tactile flex items-center whitespace-nowrap lg:hidden"
                         >
                             <Plus className="w-4 h-4 mr-2" /> Nueva Acción
                         </button>

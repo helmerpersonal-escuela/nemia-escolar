@@ -164,15 +164,15 @@ export const AnecdotalRecordForm = () => {
     return (
         <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-indigo-100/50 border border-gray-100 overflow-hidden transition-all duration-500 hover:shadow-indigo-200/50">
             {/* Custom Header */}
-            <div className="p-10 bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 text-white relative overflow-hidden">
+            <div className="p-5 sm:p-10 bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 text-white relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32 animate-pulse" />
                 <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="flex items-center space-x-5">
-                        <div className="p-4 bg-white/20 backdrop-blur-md rounded-[1.5rem] border border-white/30 shadow-xl">
+                    <div className="flex items-center gap-3 sm:gap-5 min-w-0">
+                        <div className="p-3 sm:p-4 shrink-0 bg-white/20 backdrop-blur-md rounded-[1.5rem] border border-white/30 shadow-xl">
                             <ClipboardList className="w-8 h-8 text-white" />
                         </div>
-                        <div>
-                            <h2 className="text-3xl font-black tracking-tighter uppercase leading-none">Registro Anecdótico</h2>
+                        <div className="min-w-0">
+                            <h2 className="text-2xl sm:text-3xl font-black tracking-tighter uppercase leading-none">Registro Anecdótico</h2>
                             <p className="text-indigo-100/80 font-bold text-xs uppercase tracking-widest mt-2 flex items-center">
                                 <Sparkles className="w-3.5 h-3.5 mr-2 text-yellow-300" /> Seguimiento Formativo (NEM)
                             </p>
@@ -191,7 +191,7 @@ export const AnecdotalRecordForm = () => {
                 </div>
             </div>
 
-            <form onSubmit={handleSave} className="p-10 space-y-12">
+            <form onSubmit={handleSave} className="p-5 sm:p-10 space-y-8 sm:space-y-12">
                 {/* Step 1: Group Selection */}
                 <section>
                     <div className="flex items-center justify-between mb-6">

@@ -273,12 +273,12 @@ export const RegisterPage = () => {
             </div>
 
             {/* Right Side - Form */}
-            <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-gradient-to-b from-purple-50 to-white relative overflow-hidden">
+            <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 bg-gradient-to-b from-purple-50 to-white relative overflow-hidden">
                 {/* Mobile Background Elements */}
                 <div className="absolute top-[-10%] right-[-10%] w-72 h-72 bg-purple-300/40 rounded-full blur-3xl lg:hidden pointer-events-none mix-blend-multiply"></div>
                 <div className="absolute bottom-[-10%] left-[-10%] w-72 h-72 bg-indigo-300/40 rounded-full blur-3xl lg:hidden pointer-events-none mix-blend-multiply"></div>
 
-                <div className="squishy-card max-w-xl w-full animate-in fade-in slide-in-from-right-8 duration-500 p-8 md:p-10 relative z-10">
+                <div className="squishy-card max-w-xl w-full animate-in fade-in slide-in-from-right-8 duration-500 p-5 sm:p-8 md:p-10 relative z-10">
                     {registrationSuccess ? (
                         <div className="text-center space-y-8 py-10">
                             <div className="w-24 h-24 bg-emerald-50 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-inner">
@@ -339,36 +339,36 @@ export const RegisterPage = () => {
                             <div className="grid grid-cols-1 gap-6">
                                 <button
                                     onClick={() => setMode('INDEPENDENT')}
-                                    className="relative group p-8 bg-white border-2 border-gray-100 rounded-[2rem] hover:border-indigo-500 hover:shadow-2xl hover:shadow-indigo-100 hover:-translate-y-1 transition-all text-left flex items-start"
+                                    className="relative group p-5 sm:p-8 pr-10 sm:pr-14 bg-white border-2 border-gray-100 rounded-[2rem] hover:border-indigo-500 hover:shadow-2xl hover:shadow-indigo-100 hover:-translate-y-1 transition-all text-left flex items-start"
                                 >
-                                    <div className="p-4 bg-indigo-50 rounded-2xl text-indigo-600 mr-6 group-hover:scale-110 transition-transform shadow-inner">
+                                    <div className="p-3 sm:p-4 bg-indigo-50 rounded-2xl text-indigo-600 mr-4 sm:mr-6 shrink-0 group-hover:scale-110 transition-transform shadow-inner">
                                         <User className="w-8 h-8 inflatable-icon" />
                                     </div>
                                     <div>
-                                        <h3 className="text-xl font-black text-slate-900 mb-1">Docente Independiente</h3>
+                                        <h3 className="text-lg sm:text-xl font-black text-slate-900 mb-1">Docente Independiente</h3>
                                         <p className="text-sm text-slate-500 font-medium leading-relaxed">
                                             Gestiona tus propios grupos, calificaciones y planeaciones de forma privada. Ideal para profesores frente a grupo.
                                         </p>
                                     </div>
-                                    <div className="absolute top-8 right-8 text-gray-300 group-hover:text-indigo-500 transition-colors">
+                                    <div className="absolute top-5 right-4 sm:top-8 sm:right-8 text-gray-300 group-hover:text-indigo-500 transition-colors">
                                         <ArrowLeft className="w-6 h-6 rotate-180" />
                                     </div>
                                 </button>
 
                                 <button
                                     onClick={() => setMode('SCHOOL')}
-                                    className="relative group p-8 bg-white border-2 border-gray-100 rounded-[2rem] hover:border-purple-500 hover:shadow-2xl hover:shadow-purple-100 hover:-translate-y-1 transition-all text-left flex items-start"
+                                    className="relative group p-5 sm:p-8 pr-10 sm:pr-14 bg-white border-2 border-gray-100 rounded-[2rem] hover:border-purple-500 hover:shadow-2xl hover:shadow-purple-100 hover:-translate-y-1 transition-all text-left flex items-start"
                                 >
-                                    <div className="p-4 bg-purple-50 rounded-2xl text-purple-600 mr-6 group-hover:scale-110 transition-transform shadow-inner">
+                                    <div className="p-3 sm:p-4 bg-purple-50 rounded-2xl text-purple-600 mr-4 sm:mr-6 shrink-0 group-hover:scale-110 transition-transform shadow-inner">
                                         <School className="w-8 h-8 inflatable-icon" />
                                     </div>
                                     <div>
-                                        <h3 className="text-xl font-black text-slate-900 mb-1">Institución Educativa</h3>
+                                        <h3 className="text-lg sm:text-xl font-black text-slate-900 mb-1">Institución Educativa</h3>
                                         <p className="text-sm text-slate-500 font-medium leading-relaxed">
                                             Administra múltiples docentes, grupos y personal. Panel directivo centralizado para toda la escuela.
                                         </p>
                                     </div>
-                                    <div className="absolute top-8 right-8 text-gray-300 group-hover:text-purple-500 transition-colors">
+                                    <div className="absolute top-5 right-4 sm:top-8 sm:right-8 text-gray-300 group-hover:text-purple-500 transition-colors">
                                         <ArrowLeft className="w-6 h-6 rotate-180" />
                                     </div>
                                 </button>

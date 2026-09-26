@@ -839,7 +839,7 @@ export const DashboardLayout = () => {
                         ? 'bg-indigo-900/5 backdrop-blur-md border border-indigo-100/50'
                         : 'glass-panel'}
                 `}>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 min-w-0">
                         <button
                             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                             className="p-3 rounded-2xl hover:bg-white/50 text-slate-500 lg:hidden btn-tactile shadow-sm hidden"
@@ -866,7 +866,7 @@ export const DashboardLayout = () => {
                         <NotificationsMenu />
                         {/* Only show WorkspaceSwitcher for SUPER_ADMINs to allow switching to God Mode */}
                         {(isSuperAdmin || (profile as any)?.isSuperAdmin) && (
-                            <div className="w-64">
+                            <div className="w-36 sm:w-64">
                                 <WorkspaceSwitcher />
                             </div>
                         )}

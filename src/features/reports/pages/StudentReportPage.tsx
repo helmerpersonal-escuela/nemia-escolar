@@ -117,16 +117,16 @@ export const StudentReportPage = () => {
     if (loading) return <div className="p-10 text-center font-bold text-gray-500">Generando reporte...</div>
 
     return (
-        <div className="bg-gray-100 min-h-screen p-8 print:bg-white print:p-0">
+        <div className="bg-gray-100 min-h-screen p-0 sm:p-8 print:bg-white print:p-0">
             {/* Action Bar (Hidden in Print) */}
-            <div className="max-w-4xl mx-auto mb-8 flex justify-between items-center print:hidden">
+            <div className="max-w-4xl mx-auto mb-6 sm:mb-8 flex flex-wrap gap-3 justify-between items-center print:hidden">
                 <button onClick={() => navigate(-1)} className="flex items-center text-gray-600 font-bold hover:text-gray-900">
                     <ArrowLeft className="w-5 h-5 mr-2" />
                     Volver
                 </button>
                 <button
                     onClick={() => window.print()}
-                    className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold flex items-center shadow-lg hover:bg-blue-700 transition-all"
+                    className="bg-blue-600 text-white px-4 sm:px-6 py-3 rounded-xl font-bold flex items-center shadow-lg hover:bg-blue-700 transition-all whitespace-nowrap"
                 >
                     <Printer className="w-5 h-5 mr-3" />
                     Imprimir Reporte
@@ -136,12 +136,12 @@ export const StudentReportPage = () => {
             {/* Report Paper */}
             <div className="max-w-4xl mx-auto bg-white shadow-2xl rounded-[2rem] overflow-hidden print:shadow-none print:rounded-none">
                 {/* Header */}
-                <div className="bg-blue-900 text-white p-12 print:bg-white print:text-black print:p-0 print:border-b-2 print:border-black print:mb-8 text-center sm:text-left print:break-inside-avoid">
+                <div className="bg-blue-900 text-white p-6 sm:p-12 print:bg-white print:text-black print:p-0 print:border-b-2 print:border-black print:mb-8 text-center sm:text-left print:break-inside-avoid">
                     <div className="flex flex-col sm:flex-row justify-between items-start">
                         <div className="mb-6 sm:mb-0">
                             <div className="flex items-center justify-center sm:justify-start space-x-3 mb-2">
                                 <School className="w-8 h-8 text-blue-300 print:text-black" />
-                                <h1 className="text-3xl font-black uppercase tracking-widest">{tenant?.name || 'Escuela'}</h1>
+                                <h1 className="text-xl sm:text-3xl font-black uppercase tracking-wider sm:tracking-widest break-words min-w-0">{tenant?.name || 'Escuela'}</h1>
                             </div>
                             <p className="text-blue-200 print:text-black font-medium text-sm">Reporte de Desempeño Escolar</p>
                             <p className="text-blue-200 print:text-black font-medium text-xs opacity-70 mt-1">
@@ -149,7 +149,7 @@ export const StudentReportPage = () => {
                             </p>
                         </div>
                         <div className="text-center sm:text-right w-full sm:w-auto">
-                            <h2 className="text-4xl font-black tracking-tight mb-1">
+                            <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-1 break-words">
                                 {student?.first_name} {student?.last_name_paternal}
                             </h2>
                             <p className="text-xl font-bold text-blue-200 print:text-black">
@@ -163,10 +163,10 @@ export const StudentReportPage = () => {
                     </div>
                 </div>
 
-                <div className="p-12 space-y-12 print:p-0">
+                <div className="p-5 sm:p-12 space-y-8 sm:space-y-12 print:p-0">
 
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6 print:grid-cols-4 print:gap-4 print:break-inside-avoid">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 print:grid-cols-4 print:gap-4 print:break-inside-avoid">
                         <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 print:border-black text-center">
                             <span className="block text-3xl font-black text-gray-900">{stats.submitted}</span>
                             <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Tareas Entregadas</span>
@@ -291,13 +291,13 @@ export const StudentReportPage = () => {
                     </div>
 
                     {/* Footer for Signature */}
-                    <div className="pt-24 print:pt-32 flex justify-between px-12 print:break-inside-avoid">
+                    <div className="pt-16 sm:pt-24 print:pt-32 flex flex-col sm:flex-row items-center gap-12 sm:gap-4 justify-between px-0 sm:px-12 print:flex-row print:px-12 print:break-inside-avoid">
                         <div className="text-center">
-                            <div className="w-64 border-t-2 border-black mb-2"></div>
+                            <div className="w-56 sm:w-64 border-t-2 border-black mb-2"></div>
                             <p className="text-sm font-bold uppercase">Firma del Maestro(a)</p>
                         </div>
                         <div className="text-center">
-                            <div className="w-64 border-t-2 border-black mb-2"></div>
+                            <div className="w-56 sm:w-64 border-t-2 border-black mb-2"></div>
                             <p className="text-sm font-bold uppercase">Firma Padre o Tutor</p>
                         </div>
                     </div>

@@ -81,7 +81,7 @@ export const ProfileSetupWizard = ({ onComplete }: { onComplete: () => void }) =
 
     return (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-            <div className="bg-white rounded-[3rem] w-full max-w-2xl shadow-2xl overflow-hidden animate-in zoom-in duration-300">
+            <div className="bg-white rounded-[2rem] sm:rounded-[3rem] w-full max-w-2xl max-h-[92dvh] overflow-y-auto shadow-2xl animate-in zoom-in duration-300">
                 {/* Progress Header */}
                 <div className="bg-slate-50 px-8 py-6 flex items-center justify-between border-b border-slate-100">
                     <div className="flex gap-2">

@@ -80,7 +80,7 @@ export const RubricAIModal = ({ isOpen, onClose, onGenerate }: RubricAIModalProp
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full overflow-hidden border border-purple-100">
+            <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90dvh] overflow-y-auto border border-purple-100">
 
                 {/* Header */}
                 <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-white relative">

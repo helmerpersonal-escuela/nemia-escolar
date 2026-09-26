@@ -95,7 +95,7 @@ export const AIAssistantModal = ({
 
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90dvh] overflow-y-auto shadow-2xl animate-in fade-in zoom-in duration-200">
                 {/* Header */}
                 <div className="bg-gray-900 p-6 text-white relative">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl -mr-16 -mt-16"></div>

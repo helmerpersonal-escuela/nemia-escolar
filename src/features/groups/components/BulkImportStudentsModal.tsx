@@ -159,7 +159,7 @@ export const BulkImportStudentsModal = ({ isOpen, onClose, groupId, tenantId, on
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="squishy-card max-w-lg w-full p-6 relative">
+            <div className="squishy-card max-w-lg w-full max-h-[90dvh] overflow-y-auto p-6 relative">
                 <button aria-label="Cerrar" onClick={onClose} className="absolute right-4 top-4 text-gray-500 hover:text-gray-600">
                     <X className="h-6 w-6" />
                 </button>

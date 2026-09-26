@@ -798,7 +798,7 @@ export const AnalyticalProgramEditorPage = () => {
                     <input
                         id="custom-problem-input"
                         placeholder="O escribe otra problemática personalizada..."
-                        className="flex-1 text-center bg-gray-50 border-transparent rounded-2xl py-4 font-bold text-gray-600 focus:bg-white focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-all"
+                        className="flex-1 min-w-0 px-3 text-center bg-gray-50 border-transparent rounded-2xl py-4 font-bold text-gray-600 focus:bg-white focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-all"
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                                 toggleProblem((e.target as HTMLInputElement).value)
@@ -815,7 +815,7 @@ export const AnalyticalProgramEditorPage = () => {
                                 input.value = ''
                             }
                         }}
-                        className="bg-rose-500 text-white px-6 rounded-2xl font-bold uppercase text-xs"
+                        className="bg-rose-500 text-white px-4 sm:px-6 shrink-0 rounded-2xl font-bold uppercase text-xs"
                     >
                         Agregar
                     </button>
@@ -1565,18 +1565,18 @@ export const AnalyticalProgramEditorPage = () => {
         <div className="min-h-screen bg-gray-50/50 pb-20">
             {/* Header */}
             <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 sm:gap-4 min-w-0">
                         <button aria-label="Regresar" onClick={() => navigate('/analytical-program')} className="p-2 hover:bg-gray-100 rounded-full transition-all">
                             <ArrowLeft className="w-6 h-6 text-gray-500" />
                         </button>
-                        <div>
-                            <h1 className="text-xl font-black text-gray-900 tracking-tight">Constructor de Programa Analítico</h1>
+                        <div className="min-w-0">
+                            <h1 className="text-base sm:text-xl font-black text-gray-900 tracking-tight leading-tight">Constructor de Programa Analítico</h1>
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider hidden sm:block">Nueva Escuela Mexicana • Fase 6</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
+                        <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100 whitespace-nowrap">
                             Paso {currentStep} de {STEPS.length}
                         </span>
                     </div>
@@ -1590,9 +1590,9 @@ export const AnalyticalProgramEditorPage = () => {
                 </div>
             </div>
 
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-10">
                 {/* Step Title */}
-                <div className="mb-10 text-center">
+                <div className="mb-6 sm:mb-10 text-center">
                     <div className="w-16 h-16 bg-white rounded-2xl shadow-lg border border-gray-100 flex items-center justify-center mx-auto mb-4">
                         {(() => {
                             const step = STEPS[currentStep - 1]
@@ -1601,7 +1601,7 @@ export const AnalyticalProgramEditorPage = () => {
                             return <Icon className="w-8 h-8 text-indigo-600" />
                         })()}
                     </div>
-                    <h2 className="text-3xl font-black text-gray-900 mb-2">{STEPS[currentStep - 1]?.title || 'Paso'}</h2>
+                    <h2 className="text-2xl sm:text-3xl font-black text-gray-900 mb-2">{STEPS[currentStep - 1]?.title || 'Paso'}</h2>
                     <p className="text-gray-500 font-medium">{STEPS[currentStep - 1]?.description || ''}</p>
                 </div>
 
@@ -1617,13 +1617,13 @@ export const AnalyticalProgramEditorPage = () => {
                 </div>
 
                 {/* Footer Navigation */}
-                <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50">
-                    <div className="max-w-5xl mx-auto flex justify-between items-center">
-                        <div className="flex items-center gap-3">
+                <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 sm:p-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] z-50">
+                    <div className="max-w-5xl mx-auto flex justify-between items-center gap-2">
+                        <div className="flex items-center gap-1 sm:gap-3 min-w-0">
                             <button
                                 onClick={handleBack}
                                 disabled={currentStep === 1}
-                                className="bg-white border border-gray-200 text-gray-600 px-6 py-3 rounded-xl font-bold text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center"
+                                className="bg-white border border-gray-200 text-gray-600 px-3 sm:px-6 py-3 rounded-xl font-bold text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center"
                             >
                                 <ChevronLeft className="w-4 h-4 mr-2" />
                                 Anterior
@@ -1635,16 +1635,17 @@ export const AnalyticalProgramEditorPage = () => {
                                         window.location.reload()
                                     }
                                 }}
-                                className="text-gray-500 hover:text-rose-600 px-4 py-2 text-[11px] font-black uppercase tracking-widest flex items-center transition-colors"
+                                className="text-gray-500 hover:text-rose-600 px-2 sm:px-4 py-2 text-[11px] font-black uppercase tracking-widest flex items-center transition-colors"
+                                aria-label="Reiniciar"
                             >
-                                <RotateCcw className="w-3 h-3 mr-2" />
-                                Reiniciar
+                                <RotateCcw className="w-4 h-4 sm:w-3 sm:h-3 sm:mr-2" />
+                                <span className="hidden sm:inline">Reiniciar</span>
                             </button>
                         </div>
                         <button
                             onClick={currentStep === STEPS.length ? handleSaveProgram : handleNext}
                             disabled={saving}
-                            className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold text-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-indigo-200 flex items-center min-w-[160px] justify-center"
+                            className="bg-indigo-600 text-white px-5 sm:px-8 py-3 rounded-xl font-bold text-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-indigo-200 flex items-center shrink-0 sm:min-w-[160px] justify-center"
                         >
                             {saving ? (
                                 <Loader2 className="w-4 h-4 animate-spin mr-2" />

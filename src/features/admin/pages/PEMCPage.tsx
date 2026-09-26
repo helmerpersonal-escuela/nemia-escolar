@@ -149,7 +149,7 @@ export const PEMCPage = () => {
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex items-center space-x-1 bg-gray-100 p-1.5 rounded-2xl w-fit">
+            <div className="flex items-center gap-1 bg-gray-100 p-1.5 rounded-2xl w-fit max-w-full overflow-x-auto scrollbar-hide">
                 {[
                     { id: 'diagnosis', label: 'Diagnóstico', icon: Search },
                     { id: 'objectives', label: 'Objetivos y Metas', icon: Target },
@@ -158,7 +158,7 @@ export const PEMCPage = () => {
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as any)}
-                        className={`flex items-center px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-600'}`}
+                        className={`flex items-center shrink-0 whitespace-nowrap px-4 sm:px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-600'}`}
                     >
                         <tab.icon className="w-4 h-4 mr-2" />
                         {tab.label}
@@ -167,7 +167,7 @@ export const PEMCPage = () => {
             </div>
 
             {/* Content Area */}
-            <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm min-h-[600px] p-10">
+            <div className="bg-white rounded-[2rem] sm:rounded-[2.5rem] border border-gray-100 shadow-sm sm:min-h-[600px] p-4 sm:p-10">
                 {activeTab === 'diagnosis' && (
                     <div className="space-y-10">
                         <div className="max-w-2xl">

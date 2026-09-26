@@ -12,7 +12,7 @@ export const FormativeToolsPage = () => {
                             <Sparkles className="w-4 h-4" />
                             <span>Herramientas Pedagógicas</span>
                         </div>
-                        <h1 className="text-5xl font-black text-gray-900 tracking-tight leading-none">
+                        <h1 className="text-4xl sm:text-5xl font-black text-gray-900 tracking-tight leading-none">
                             Evaluación <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">Formativa</span>
                         </h1>
                     </div>

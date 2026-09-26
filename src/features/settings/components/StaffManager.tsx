@@ -167,7 +167,7 @@ export const StaffManager = () => {
                 <div className="bg-white border border-gray-100 p-6 rounded-2xl shadow-sm">
 
                     {/* Method Tabs */}
-                    <div className="flex items-center space-x-1 mb-6 bg-gray-50 p-1 rounded-xl w-fit">
+                    <div className="flex flex-wrap items-center gap-1 mb-6 bg-gray-50 p-1 rounded-xl w-fit max-w-full">
                         <button
                             type="button"
                             onClick={() => setRegistrationMethod('invite')}
