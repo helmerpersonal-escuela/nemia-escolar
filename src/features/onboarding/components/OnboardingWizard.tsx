@@ -353,14 +353,14 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
     // I'll use multi_replace to do both import and body changes safely.)
 
     return (
-        <div className="max-w-4xl mx-auto py-12 px-4 relative">
+        <div className="max-w-4xl mx-auto py-6 sm:py-12 px-3 sm:px-4 relative">
             {/* ... header ... */}
-            <div className="text-center mb-10 relative z-10">
-                <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2">Configuración Inicial</h1>
+            <div className="text-center mb-6 sm:mb-10 relative z-10">
+                <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight mb-2">Configuración Inicial</h1>
                 <p className="text-slate-500 font-medium">Ayúdanos a configurar tu escuela para brindarte la mejor experiencia profesional.</p>
             </div>
 
-            <div className="flex justify-center mb-12">
+            <div className="flex justify-center mb-6 sm:mb-12">
                 {[0, 1, 2, 3, 4].map((s) => (
                     <div key={s} className="flex items-center">
                         <div className={`w-3 h-3 rounded-full transition-all duration-300 ${s === step ? 'bg-indigo-600 scale-150 ring-4 ring-indigo-100' : s < step ? 'bg-indigo-400' : 'bg-gray-200'}`} />
@@ -369,7 +369,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                 ))}
             </div>
 
-            <div className="squishy-card min-h-[500px] relative overflow-hidden bg-white mt-4 border-2 border-indigo-50/50">
+            <div className="squishy-card sm:min-h-[500px] relative overflow-hidden bg-white mt-2 sm:mt-4 border-2 border-indigo-50/50">
                 <div className="absolute top-0 left-0 right-0 h-2 bg-indigo-50">
                     <div
                         className="h-full bg-indigo-500 transition-all duration-500 ease-out rounded-r-full"
@@ -377,7 +377,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                     />
                 </div>
 
-                <div className="p-8 md:p-16">
+                <div className="p-5 sm:p-8 md:p-16">
 
                     {loading && (
                         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
@@ -388,28 +388,28 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
 
                     {step === 0 && (
                         <div className="animate-in fade-in slide-in-from-right duration-500 max-w-lg mx-auto">
-                            <div className="text-center mb-10">
-                                <div className="inline-flex items-center justify-center p-6 bg-indigo-100 rounded-[2rem] text-indigo-600 mb-6 shadow-inner ring-4 ring-white">
+                            <div className="text-center mb-6 sm:mb-10">
+                                <div className="inline-flex items-center justify-center p-4 sm:p-6 bg-indigo-100 rounded-[2rem] text-indigo-600 mb-6 shadow-inner ring-4 ring-white">
                                     <School className="w-12 h-12" />
                                 </div>
-                                <h2 className="text-3xl md:text-4xl font-black text-indigo-950 italic tracking-tight uppercase">
+                                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-indigo-950 italic tracking-tight uppercase">
                                     {tenant?.type === 'INDEPENDENT' ? 'Personaliza tu Espacio' : 'Datos de la Escuela'}
                                 </h2>
                             </div>
-                            <div className="space-y-8">
+                            <div className="space-y-5 sm:space-y-8">
                                 <div className="group/field">
                                     <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-2 transition-colors group-focus-within:text-indigo-500">Nombre</label>
-                                    <input aria-label="Nombre" value={schoolData.name} onChange={e => setSchoolData({ ...schoolData, name: e.target.value.toUpperCase() })} className="input-squishy w-full px-6 py-5 text-sm font-bold border-2 border-slate-50 focus:border-indigo-400 transition-all" placeholder="Ej. Esc. Primaria Benito Juárez" />
+                                    <input aria-label="Nombre" value={schoolData.name} onChange={e => setSchoolData({ ...schoolData, name: e.target.value.toUpperCase() })} className="input-squishy w-full px-4 py-4 sm:px-6 sm:py-5 text-sm font-bold border-2 border-slate-50 focus:border-indigo-400 transition-all" placeholder="Ej. Esc. Primaria Benito Juárez" />
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="md:col-span-2">
                                         <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 ml-2">Nivel</label>
-                                        <div className="flex flex-col sm:flex-row gap-4">
+                                        <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-row sm:gap-4">
                                             {['PRIMARY', 'SECONDARY', 'TELESECUNDARIA'].map(l => (
                                                 <button
                                                     key={l}
                                                     onClick={() => setSchoolData({ ...schoolData, educationalLevel: l as any })}
-                                                    className={`flex-1 py-5 px-6 rounded-[2rem] border-2 transition-all flex items-center justify-center gap-3 active:scale-95 ${schoolData.educationalLevel === l
+                                                    className={`flex-1 min-w-0 py-3 px-1 sm:py-5 sm:px-6 rounded-2xl sm:rounded-[2rem] border-2 transition-all flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-3 active:scale-95 ${schoolData.educationalLevel === l
                                                         ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-[inset_0_4px_12px_rgba(79,70,229,0.15)] ring-4 ring-indigo-100/50'
                                                         : 'border-slate-100 hover:border-indigo-300 hover:bg-slate-50 text-slate-500 shadow-sm'
                                                         }`}
@@ -417,7 +417,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                                                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${schoolData.educationalLevel === l ? 'border-indigo-600' : 'border-slate-300'}`}>
                                                         {schoolData.educationalLevel === l && <div className="w-2.5 h-2.5 rounded-full bg-indigo-600" />}
                                                     </div>
-                                                    <span className="font-extrabold tracking-tight text-xs uppercase">
+                                                    <span className="font-extrabold tracking-tight text-[10px] sm:text-xs uppercase leading-tight text-center">
                                                         {l === 'PRIMARY' ? 'Primaria' : l === 'SECONDARY' ? 'Secundaria' : 'Telesecundaria'}
                                                     </span>
                                                 </button>
@@ -426,11 +426,11 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                                     </div>
                                     <div className="md:col-span-2 group/field">
                                         <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-2 transition-colors group-focus-within:text-indigo-500">CCT</label>
-                                        <input aria-label="CCT" value={schoolData.cct} onChange={e => setSchoolData({ ...schoolData, cct: e.target.value.toUpperCase() })} className="input-squishy w-full px-6 py-5 text-sm font-bold border-2 border-slate-50 focus:border-indigo-400 transition-all font-mono" placeholder="Ej. 07DPR0000X" />
+                                        <input aria-label="CCT" value={schoolData.cct} onChange={e => setSchoolData({ ...schoolData, cct: e.target.value.toUpperCase() })} className="input-squishy w-full px-4 py-4 sm:px-6 sm:py-5 text-sm font-bold border-2 border-slate-50 focus:border-indigo-400 transition-all font-mono" placeholder="Ej. 07DPR0000X" />
                                     </div>
                                 </div>
                                 <div className="pt-4 space-y-4">
-                                    <button onClick={handleUpdateSchool} className="w-full py-5 bg-indigo-600 text-white rounded-[2rem] font-black text-sm hover:bg-indigo-700 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest border-b-4 border-indigo-800 hover:border-indigo-900 hover:translate-y-0.5">
+                                    <button onClick={handleUpdateSchool} className="w-full py-4 sm:py-5 bg-indigo-600 text-white rounded-[2rem] font-black text-sm hover:bg-indigo-700 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest border-b-4 border-indigo-800 hover:border-indigo-900 hover:translate-y-0.5">
                                         Continuar <ArrowRight className="w-5 h-5" />
                                     </button>
                                     <button onClick={handleCancelRegistration} className="w-full py-4 text-slate-500 font-bold text-[11px] uppercase tracking-widest hover:bg-rose-50 hover:text-rose-600 rounded-2xl transition-all flex items-center justify-center gap-2">
@@ -443,16 +443,16 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
 
                     {step === 1 && (
                         <div className="animate-in fade-in slide-in-from-right duration-500 max-w-lg mx-auto">
-                            <div className="text-center mb-10">
-                                <div className="inline-flex items-center justify-center p-6 bg-blue-100 rounded-[2rem] text-blue-600 mb-6 shadow-inner ring-4 ring-white">
+                            <div className="text-center mb-6 sm:mb-10">
+                                <div className="inline-flex items-center justify-center p-4 sm:p-6 bg-blue-100 rounded-[2rem] text-blue-600 mb-6 shadow-inner ring-4 ring-white">
                                     <Calendar className="w-12 h-12" />
                                 </div>
-                                <h2 className="text-3xl md:text-4xl font-black text-slate-900 italic tracking-tight uppercase">Ciclo Escolar</h2>
+                                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 italic tracking-tight uppercase">Ciclo Escolar</h2>
                             </div>
-                            <div className="space-y-8">
+                            <div className="space-y-5 sm:space-y-8">
                                 <div className="group/field">
                                     <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-2 transition-colors group-focus-within:text-blue-500">Nombre del Ciclo</label>
-                                    <input aria-label="Nombre del Ciclo" value={yearData.name} onChange={e => setYearData({ ...yearData, name: e.target.value.toUpperCase() })} className="input-squishy w-full px-6 py-5 text-sm font-bold border-2 border-slate-50 focus:border-blue-400 transition-all font-mono" placeholder="Ej. 2024-2025" />
+                                    <input aria-label="Nombre del Ciclo" value={yearData.name} onChange={e => setYearData({ ...yearData, name: e.target.value.toUpperCase() })} className="input-squishy w-full px-4 py-4 sm:px-6 sm:py-5 text-sm font-bold border-2 border-slate-50 focus:border-blue-400 transition-all font-mono" placeholder="Ej. 2024-2025" />
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="group/field">
@@ -461,7 +461,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                                             const val = e.target.value;
                                             if (val && val.split('-')[0].length > 4) return;
                                             setYearData({ ...yearData, startDate: val });
-                                        }} className="input-squishy w-full px-6 py-5 text-sm font-bold border-2 border-slate-50 focus:border-blue-400 transition-all text-slate-600" />
+                                        }} className="input-squishy w-full px-4 py-4 sm:px-6 sm:py-5 text-sm font-bold border-2 border-slate-50 focus:border-blue-400 transition-all text-slate-600" />
                                     </div>
                                     <div className="group/field">
                                         <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-2 transition-colors group-focus-within:text-blue-500">Fin de Clases</label>
@@ -469,11 +469,11 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                                             const val = e.target.value;
                                             if (val && val.split('-')[0].length > 4) return;
                                             setYearData({ ...yearData, endDate: val });
-                                        }} className="input-squishy w-full px-6 py-5 text-sm font-bold border-2 border-slate-50 focus:border-blue-400 transition-all text-slate-600" />
+                                        }} className="input-squishy w-full px-4 py-4 sm:px-6 sm:py-5 text-sm font-bold border-2 border-slate-50 focus:border-blue-400 transition-all text-slate-600" />
                                     </div>
                                 </div>
                                 <div className="pt-4">
-                                    <button onClick={handleCreateYear} className="w-full py-5 bg-blue-600 text-white rounded-[2rem] font-black text-sm hover:bg-blue-700 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest border-b-4 border-blue-800 hover:border-blue-900 hover:translate-y-0.5">
+                                    <button onClick={handleCreateYear} className="w-full py-4 sm:py-5 bg-blue-600 text-white rounded-[2rem] font-black text-sm hover:bg-blue-700 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest border-b-4 border-blue-800 hover:border-blue-900 hover:translate-y-0.5">
                                         Generar Calendario <ArrowRight className="w-5 h-5" />
                                     </button>
                                 </div>
@@ -483,32 +483,32 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
 
                     {step === 2 && (
                         <div className="animate-in fade-in slide-in-from-right duration-500">
-                            <div className="text-center mb-10">
-                                <div className="inline-flex items-center justify-center p-6 bg-orange-100 rounded-[2rem] text-orange-600 mb-6 shadow-inner ring-4 ring-white">
+                            <div className="text-center mb-6 sm:mb-10">
+                                <div className="inline-flex items-center justify-center p-4 sm:p-6 bg-orange-100 rounded-[2rem] text-orange-600 mb-6 shadow-inner ring-4 ring-white">
                                     <Clock className="w-12 h-12" />
                                 </div>
-                                <h2 className="text-3xl md:text-4xl font-black text-slate-900 italic tracking-tight uppercase">Jornada y Grado</h2>
+                                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 italic tracking-tight uppercase">Jornada y Grado</h2>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-                                <div className="squishy-card p-8 bg-slate-50 border-2 border-slate-100 space-y-6 md:p-10 h-fit">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8 max-w-5xl mx-auto">
+                                <div className="squishy-card p-5 sm:p-8 bg-slate-50 border-2 border-slate-100 space-y-6 md:p-10 h-fit">
                                     <div className="group/field">
                                         <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-2 transition-colors group-focus-within:text-orange-500">Hora de Entrada</label>
-                                        <input aria-label="Hora de Entrada" type="time" value={scheduleSettings.startTime} onChange={e => setScheduleSettings({ ...scheduleSettings, startTime: e.target.value })} className="input-squishy w-full px-6 py-5 text-sm font-bold text-center border-2 border-white focus:border-orange-400 transition-all" />
+                                        <input aria-label="Hora de Entrada" type="time" value={scheduleSettings.startTime} onChange={e => setScheduleSettings({ ...scheduleSettings, startTime: e.target.value })} className="input-squishy w-full px-4 py-4 sm:px-6 sm:py-5 text-sm font-bold text-center border-2 border-white focus:border-orange-400 transition-all" />
                                     </div>
                                     <div className="group/field">
                                         <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-2 transition-colors group-focus-within:text-orange-500">Hora de Salida</label>
-                                        <input aria-label="Hora de Salida" type="time" value={scheduleSettings.endTime} onChange={e => setScheduleSettings({ ...scheduleSettings, endTime: e.target.value })} className="input-squishy w-full px-6 py-5 text-sm font-bold text-center border-2 border-white focus:border-orange-400 transition-all" />
+                                        <input aria-label="Hora de Salida" type="time" value={scheduleSettings.endTime} onChange={e => setScheduleSettings({ ...scheduleSettings, endTime: e.target.value })} className="input-squishy w-full px-4 py-4 sm:px-6 sm:py-5 text-sm font-bold text-center border-2 border-white focus:border-orange-400 transition-all" />
                                     </div>
                                     {schoolData.educationalLevel !== 'PRIMARY' && (
                                         <div className="group/field">
                                             <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-2 transition-colors group-focus-within:text-orange-500">Duración Módulo (min)</label>
-                                            <input aria-label="Duración Módulo (min)" type="number" value={scheduleSettings.moduleDuration} onChange={e => setScheduleSettings({ ...scheduleSettings, moduleDuration: Number(e.target.value) })} className="input-squishy w-full px-6 py-5 text-sm font-bold text-center border-2 border-white focus:border-orange-400 transition-all" />
+                                            <input aria-label="Duración Módulo (min)" type="number" value={scheduleSettings.moduleDuration} onChange={e => setScheduleSettings({ ...scheduleSettings, moduleDuration: Number(e.target.value) })} className="input-squishy w-full px-4 py-4 sm:px-6 sm:py-5 text-sm font-bold text-center border-2 border-white focus:border-orange-400 transition-all" />
                                         </div>
                                     )}
                                 </div>
                                 <div className="space-y-6">
                                     {(schoolData.educationalLevel === 'PRIMARY' || schoolData.educationalLevel === 'TELESECUNDARIA') && (
-                                        <div className="squishy-card p-8 bg-indigo-50/30 border-2 border-indigo-100/50 space-y-6 md:p-10">
+                                        <div className="squishy-card p-5 sm:p-8 bg-indigo-50/30 border-2 border-indigo-100/50 space-y-6 md:p-10">
                                             <div className="p-5 bg-white/60 rounded-[2rem] border-2 border-indigo-100/50 text-center shadow-sm">
                                                 <p className="text-[12px] font-black text-indigo-700 uppercase tracking-widest mb-1 italic">Jornada Completa</p>
                                                 <p className="text-[11px] font-bold text-indigo-500/80 uppercase">En Primaria y Telesecundaria el horario es por jornada.</p>
@@ -577,7 +577,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                                 </div>
                             </div>
                             <div className="max-w-4xl mx-auto mt-12">
-                                <button onClick={handleSaveSchedule} className="w-full py-5 bg-orange-600 text-white rounded-[2rem] font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-orange-700 transition-all shadow-xl shadow-orange-600/20 active:scale-95 border-b-4 border-orange-800 hover:-translate-y-0.5">
+                                <button onClick={handleSaveSchedule} className="w-full py-4 sm:py-5 bg-orange-600 text-white rounded-[2rem] font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-orange-700 transition-all shadow-xl shadow-orange-600/20 active:scale-95 border-b-4 border-orange-800 hover:-translate-y-0.5">
                                     Confirmar Estructura <ArrowRight className="w-5 h-5" />
                                 </button>
                             </div>
@@ -586,16 +586,16 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
 
                     {step === 3 && (
                         <div className="animate-in fade-in slide-in-from-right duration-500 max-w-4xl mx-auto flex flex-col h-full">
-                            <div className="text-center mb-10">
-                                <div className="inline-flex items-center justify-center p-6 bg-emerald-100 rounded-[2rem] text-emerald-700 mb-6 shadow-inner ring-4 ring-white">
+                            <div className="text-center mb-6 sm:mb-10">
+                                <div className="inline-flex items-center justify-center p-4 sm:p-6 bg-emerald-100 rounded-[2rem] text-emerald-700 mb-6 shadow-inner ring-4 ring-white">
                                     <BookOpen className="w-12 h-12" />
                                 </div>
-                                <h2 className="text-3xl md:text-4xl font-black text-slate-900 italic tracking-tight uppercase">Tus Materias</h2>
+                                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 italic tracking-tight uppercase">Tus Materias</h2>
                                 <p className="text-slate-500 mt-3 font-medium">Selecciona las asignaturas que impartirás este ciclo escolar.</p>
                             </div>
 
                             <div className="squishy-card bg-emerald-50/30 rounded-[2.5rem] border-4 border-emerald-50 flex flex-col shadow-inner overflow-hidden mb-8 ring-4 ring-white">
-                                <div className="bg-white/80 backdrop-blur-md py-5 px-8 border-b-2 border-emerald-100 flex flex-col sm:flex-row gap-4 justify-between items-center relative z-10 shadow-sm">
+                                <div className="bg-white/80 backdrop-blur-md py-4 px-4 sm:py-5 sm:px-8 border-b-2 border-emerald-100 flex flex-col sm:flex-row gap-4 justify-between items-center relative z-10 shadow-sm">
                                     <span className="text-xs font-black text-emerald-800 uppercase tracking-widest flex items-center gap-3">
                                         <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse shadow-lg shadow-emerald-500/50" />
                                         Catálogo Disponible
@@ -619,7 +619,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                             <div className="max-w-2xl mx-auto w-full">
                                 <button
                                     onClick={handleSaveSubjects}
-                                    className="w-full py-5 bg-emerald-500 text-white rounded-[2rem] font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-emerald-600 transition-all shadow-xl shadow-emerald-500/30 active:scale-95 border-b-4 border-emerald-700 hover:-translate-y-0.5"
+                                    className="w-full py-4 sm:py-5 bg-emerald-500 text-white rounded-[2rem] font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-emerald-600 transition-all shadow-xl shadow-emerald-500/30 active:scale-95 border-b-4 border-emerald-700 hover:-translate-y-0.5"
                                 >
                                     Guardar Materias <ArrowRight className="w-5 h-5" />
                                 </button>
@@ -630,23 +630,23 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                     {step === 4 && (
                         <div className="w-full animate-in fade-in duration-500">
                             <div className="animate-in fade-in slide-in-from-right duration-500 max-w-4xl mx-auto">
-                                <div className="text-center mb-12">
-                                    <div className="inline-flex items-center justify-center p-6 bg-indigo-100 rounded-[2rem] text-indigo-600 mb-6 shadow-inner ring-4 ring-white">
+                                <div className="text-center mb-6 sm:mb-12">
+                                    <div className="inline-flex items-center justify-center p-4 sm:p-6 bg-indigo-100 rounded-[2rem] text-indigo-600 mb-6 shadow-inner ring-4 ring-white">
                                         <CreditCard className="w-12 h-12" />
                                     </div>
-                                    <h2 className="text-3xl md:text-5xl font-black text-indigo-950 italic tracking-tight uppercase">¡Ya casi terminamos!</h2>
+                                    <h2 className="text-2xl sm:text-3xl md:text-5xl font-black text-indigo-950 italic tracking-tight uppercase">¡Ya casi terminamos!</h2>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                    <div className="squishy-card bg-white p-10 lg:p-12 rounded-[3rem] border-4 border-blue-50 flex flex-col items-center text-center shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8">
+                                    <div className="squishy-card bg-white p-6 sm:p-10 lg:p-12 rounded-[3rem] border-4 border-blue-50 flex flex-col items-center text-center shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">
                                         <div className="p-5 bg-blue-100 rounded-full mb-6">
                                             <Gift className="w-12 h-12 text-blue-600" />
                                         </div>
                                         <h3 className="text-2xl font-black mb-3 text-slate-800 uppercase tracking-tight">Prueba Gratis</h3>
                                         <p className="text-sm text-slate-500 mb-8 font-medium leading-relaxed">Disfruta 30 días sin costo para probar todas las herramientas PRO. Luego, $399/año.</p>
-                                        <button onClick={handleStartFreeTrial} className="w-full py-5 bg-slate-100 text-slate-700 rounded-[2rem] font-black uppercase tracking-widest border-2 border-slate-200 hover:bg-slate-200 hover:text-slate-900 transition-all active:scale-95">Iniciar Prueba</button>
+                                        <button onClick={handleStartFreeTrial} className="w-full py-4 sm:py-5 bg-slate-100 text-slate-700 rounded-[2rem] font-black uppercase tracking-widest border-2 border-slate-200 hover:bg-slate-200 hover:text-slate-900 transition-all active:scale-95">Iniciar Prueba</button>
                                     </div>
 
-                                    <div className="squishy-card bg-indigo-600 p-10 lg:p-12 rounded-[3rem] border-4 border-indigo-400 flex flex-col items-center text-center shadow-2xl shadow-indigo-600/30 ring-8 ring-indigo-50 hover:-translate-y-1 transition-all relative overflow-hidden">
+                                    <div className="squishy-card bg-indigo-600 p-6 sm:p-10 lg:p-12 rounded-[3rem] border-4 border-indigo-400 flex flex-col items-center text-center shadow-2xl shadow-indigo-600/30 ring-8 ring-indigo-50 hover:-translate-y-1 transition-all relative overflow-hidden">
                                         <div className="absolute -top-12 -right-12 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
                                         <div className="absolute -bottom-12 -left-12 w-40 h-40 bg-black/10 rounded-full blur-2xl" />
 
@@ -655,11 +655,11 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                                         </div>
                                         <h3 className="text-2xl font-black mb-3 text-white uppercase tracking-tight relative z-10">Suscripción PRO</h3>
                                         <div className="mb-8 relative z-10">
-                                            <span className="text-5xl font-black text-white">$599</span>
+                                            <span className="text-4xl sm:text-5xl font-black text-white">$599</span>
                                             <span className="text-indigo-200 font-bold ml-1 text-lg">/año</span>
                                         </div>
                                         {!Capacitor.isNativePlatform() ? (
-                                            <button onClick={handleActivateSubscription} className="w-full py-5 bg-white text-indigo-700 rounded-[2rem] font-black uppercase tracking-widest hover:bg-indigo-50 transition-all shadow-xl active:scale-95 border-b-4 border-indigo-200 relative z-10">Activar Ahora</button>
+                                            <button onClick={handleActivateSubscription} className="w-full py-4 sm:py-5 bg-white text-indigo-700 rounded-[2rem] font-black uppercase tracking-widest hover:bg-indigo-50 transition-all shadow-xl active:scale-95 border-b-4 border-indigo-200 relative z-10">Activar Ahora</button>
                                         ) : (
                                             <button
                                                 onClick={() => window.open('https://vunlek.com', '_system')}

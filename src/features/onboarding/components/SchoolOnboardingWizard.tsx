@@ -281,7 +281,7 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                                         icon={School}
                                         color="blue"
                                     />
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8">
                                         <InputField
                                             label="Nombre Oficial del Plantel"
                                             value={formData.official_name}
@@ -340,7 +340,7 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                                         icon={MapPin}
                                         color="emerald"
                                     />
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8">
                                         <div className="md:col-span-2">
                                             <InputField
                                                 label="Calle y Número (Exterior/Interior)"
@@ -386,7 +386,7 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                                         icon={PhoneCall}
                                         color="purple"
                                     />
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8">
                                         <InputField
                                             label="Teléfono Institucional"
                                             value={formData.phone}
@@ -455,7 +455,7 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                                         icon={BookOpen}
                                         color="orange"
                                     />
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8">
                                         <SelectField
                                             label="Nivel Educativo"
                                             value={formData.educational_level}
@@ -525,7 +525,7 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                                         icon={ShieldCheck}
                                         color="indigo"
                                     />
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8">
                                         <InputField
                                             label="Nombre del Director(a)"
                                             value={formData.director_name}
