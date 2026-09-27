@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
-import { useSubscription } from '../../hooks/useSubscription'
+import { useSpaceAccess } from '../../hooks/useSpaceAccess'
 import { useProfile } from '../../hooks/useProfile'
 import { useTenant } from '../../hooks/useTenant'
 import { supabase } from '../../lib/supabase'
@@ -10,12 +10,15 @@ interface SubscriptionGuardProps {
 }
 
 export const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
-    const { isActive, loading: subLoading, subscription, error: subError } = useSubscription()
+    // Suscripción por ESPACIO: la escuela o el docente independiente (todos sus miembros heredan el acceso)
+    const { data: access, isPending: subLoading, error: subError } = useSpaceAccess()
+    const subscription = access
+    const isActive = () => access?.has_access !== false
     const { profile, isLoading: profileLoading, isSuperAdmin } = useProfile()
     const { data: tenant, isLoading: tenantLoading } = useTenant()
     const location = useLocation()
 
-    const isInitialLoading = (subLoading && !isActive()) || (profileLoading && !profile) || (tenantLoading && !tenant)
+    const isInitialLoading = (subLoading && !!tenant && !access) || (profileLoading && !profile) || (tenantLoading && !tenant)
 
     if (isInitialLoading) {
         return (
@@ -50,7 +53,7 @@ export const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
     const params = new URLSearchParams(location.search)
     const isApproved = params.get('status') === 'approved'
     const isSyncPersistent = sessionStorage.getItem('vunlek_payment_syncing') === 'true'
-    const exemptPaths = ['/onboarding', '/settings', '/paywall']
+    const exemptPaths = ['/onboarding', '/settings', '/paywall', '/suscripcion']
 
     if (exemptPaths.includes(location.pathname) || isApproved || isSyncPersistent || tenant?.onboardingCompleted === false) {
         return children ? <>{children}</> : <Outlet />
@@ -84,7 +87,7 @@ export const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
 
     if (!isActive()) {
         const search = location.search ? location.search : ''
-        return <Navigate to={`/paywall${search}`} state={{ from: location, trialExpired: true }} replace />
+        return <Navigate to={`/suscripcion${search}`} state={{ from: location, trialExpired: true }} replace />
     }
 
     return children ? <>{children}</> : <Outlet />

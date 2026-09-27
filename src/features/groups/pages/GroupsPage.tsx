@@ -261,10 +261,7 @@ export const GroupsPage = () => {
                         {!limits.isLoading && (
                             <div className="mt-3 flex items-center gap-2">
                                 <span className="text-sm font-bold text-slate-500">
-                                    {limits.currentGroups} / {limits.maxGroups} grupos usados
-                                </span>
-                                <span className="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs font-black rounded-full uppercase">
-                                    {limits.planType === 'basic' ? 'Básico' : 'Pro'}
+                                    {limits.currentGroups} {limits.currentGroups === 1 ? 'grupo' : 'grupos'}
                                 </span>
                             </div>
                         )}

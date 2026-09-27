@@ -1,104 +1,61 @@
-import { useState, useEffect } from 'react'
-import { useTrialStatus } from '../../../hooks/useTrialStatus'
-import { Clock, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAppMode } from '../../../hooks/useAppMode'
-import { useProfile } from '../../../hooks/useProfile'
+import { Capacitor } from '@capacitor/core'
+import { CalendarClock, X } from 'lucide-react'
+import { useSpaceAccess } from '../../../hooks/useSpaceAccess'
 
+/**
+ * Aviso dentro de la app (una vez al día) cuando la prueba o el periodo pagado está por terminar.
+ * Solo para quien administra la suscripción del espacio. Si hay cobro automático no se avisa.
+ * En la app nativa no se muestran precios ni enlaces de pago (políticas de las tiendas).
+ */
 export const TrialNotificationSystem = () => {
-    const { daysRemaining, isTrial, isExpired } = useTrialStatus()
-    const { isAppMode } = useAppMode()
-    const { profile } = useProfile()
-    const [isVisible, setIsVisible] = useState(false)
-    const [message, setMessage] = useState('')
+    const { data: access } = useSpaceAccess()
     const navigate = useNavigate()
+    const [visible, setVisible] = useState(false)
+    const native = Capacitor.isNativePlatform()
+
+    const days = access?.days_left ?? null
+    const kind: 'trial' | 'renew' | 'failed' | null = !access?.can_manage || !access.has_access ? null
+        : access.status === 'PAST_DUE' ? 'failed'
+            : access.status === 'TRIAL' && days != null && days <= 7 ? 'trial'
+                : (access.status === 'ACTIVE' || access.status === 'CANCELED') && !access.auto_renew && days != null && days <= 7 ? 'renew'
+                    : null
 
     useEffect(() => {
-        if (!isTrial || isExpired || profile?.role?.toUpperCase() === 'TUTOR') return
+        if (!kind) return
+        const key = `vunlek_billing_notice_${access?.tenant_id}_${kind}`
+        const today = new Date().toDateString()
+        try {
+            if (localStorage.getItem(key) === today) return
+            localStorage.setItem(key, today)
+        } catch { /* sin almacenamiento: se muestra igual */ }
+        setVisible(true)
+    }, [kind, access?.tenant_id])
 
-        const checkNotification = () => {
-            const today = new Date().toLocaleDateString()
-            const lastShown = localStorage.getItem('vunlek_trial_last_shown')
+    if (!visible || !kind) return null
 
-            // Logic:
-            // 1. If 10 days remaining: Show once
-            // 2. If <= 5 days remaining: Show once per day
-
-            let shouldShow = false
-            let msg = ''
-
-            if (daysRemaining === 10) {
-                if (lastShown !== `10_days_${today}`) {
-                    shouldShow = true
-                    msg = 'Quedan 10 días de prueba. ¡Aprovecha al máximo todas las funciones!'
-                    localStorage.setItem('vunlek_trial_last_shown', `10_days_${today}`)
-                }
-            } else if (daysRemaining <= 5 && daysRemaining > 0) {
-                if (lastShown !== `daily_${today}`) {
-                    shouldShow = true
-                    msg = `Tu periodo de prueba termina en ${daysRemaining} ${daysRemaining === 1 ? 'día' : 'días'}.`
-                    localStorage.setItem('vunlek_trial_last_shown', `daily_${today}`)
-                }
-            }
-
-            if (shouldShow) {
-                setMessage(msg)
-                setIsVisible(true)
-            }
-        }
-
-        checkNotification()
-    }, [daysRemaining, isTrial, isExpired])
-
-    if (!isVisible) return null
+    const title = kind === 'trial' ? 'Tu mes de prueba está por terminar' : kind === 'renew' ? 'Tu suscripción vence pronto' : 'No pudimos realizar el cobro'
+    const when = days === 1 ? 'mañana' : days != null && days <= 0 ? 'hoy' : `en ${days} días`
+    const text = kind === 'trial'
+        ? `Tu prueba gratuita termina ${when}. Tu información se conserva; solo elige tu plan para seguir usando todas las herramientas.`
+        : kind === 'renew'
+            ? `Tu periodo termina ${when} y no tiene cobro automático.`
+            : 'Mercado Pago no pudo cobrar tu suscripción. Tienes unos días de gracia para actualizar tu forma de pago.'
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-[#0A0A1F] border border-amber-500/30 rounded-2xl p-6 max-w-md w-full max-h-[90dvh] overflow-y-auto shadow-2xl animate-in zoom-in-95 relative">
-                <button aria-label="Cerrar"
-                    onClick={() => setIsVisible(false)}
-                    className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
-                >
-                    <X className="w-5 h-5" />
-                </button>
-
-                <div className="flex flex-col items-center text-center">
-                    <div className="w-16 h-16 bg-amber-500/20 rounded-full flex items-center justify-center mb-6 animate-pulse">
-                        <Clock className="w-8 h-8 text-amber-500" />
-                    </div>
-
-                    <h3 className="text-xl font-black text-white uppercase italic tracking-tight mb-2">
-                        Tu prueba está por terminar
-                    </h3>
-
-                    <p className="text-slate-300 text-sm font-medium mb-8 leading-relaxed">
-                        {message} <br />
-                        Asegura tu acceso continuado a Vunlek hoy mismo.
-                    </p>
-
-                    {isAppMode ? (
-                        <div className="w-full py-4 bg-white/5 text-slate-400 rounded-xl text-[10px] font-black uppercase tracking-widest border border-dashed border-white/10">
-                            Gestionar suscripción desde Web
-                        </div>
-                    ) : (
-                        <div className="flex gap-4 w-full">
-                            <button
-                                onClick={() => setIsVisible(false)}
-                                className="flex-1 py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold uppercase tracking-widest transition-all"
-                            >
-                                Entendido
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setIsVisible(false)
-                                    navigate('/paywall')
-                                }}
-                                className="flex-1 py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-black text-xs font-black uppercase tracking-widest shadow-lg shadow-amber-500/20 transition-all"
-                            >
-                                Ver Planes
-                            </button>
-                        </div>
-                    )}
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/40" role="dialog" aria-modal="true" aria-label={title}>
+            <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] relative">
+                <button aria-label="Cerrar" onClick={() => setVisible(false)} className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:bg-slate-100"><X className="w-5 h-5" /></button>
+                <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4"><CalendarClock className="w-6 h-6" /></div>
+                <h3 className="text-xl font-black text-slate-900 pr-8">{title}</h3>
+                <p className="text-sm text-slate-600 mt-2">{text}</p>
+                {native && <p className="text-sm text-slate-600 mt-2">Te enviamos a tu correo cómo continuar.</p>}
+                <div className="flex gap-2 mt-6">
+                    <button onClick={() => setVisible(false)} className="flex-1 py-3 rounded-2xl text-sm font-black text-slate-600 hover:bg-slate-100">Entendido</button>
+                    <button onClick={() => { setVisible(false); navigate('/suscripcion') }} className="flex-1 py-3 rounded-2xl bg-indigo-600 text-white text-sm font-black hover:bg-indigo-700">
+                        {native ? 'Ver mi suscripción' : kind === 'failed' ? 'Actualizar pago' : 'Ver planes'}
+                    </button>
                 </div>
             </div>
         </div>

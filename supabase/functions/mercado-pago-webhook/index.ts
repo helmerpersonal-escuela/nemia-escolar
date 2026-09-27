@@ -1,10 +1,15 @@
 import { corsHeaders } from "../_shared/cors.ts"
 import { getAdminClient } from "../_shared/auth.ts"
+import { getSettings, mp, parseSubRef, quote } from "../_shared/billing.ts"
 
-// Webhook de Mercado Pago.
+// Webhook de Mercado Pago para las suscripciones por espacio.
 // 1) Verifica la firma x-signature (si hay secreto configurado).
-// 2) Nunca confía en el cuerpo: consulta el pago directo a la API de MP.
-// 3) Solo activa el plan si el monto pagado cubre el precio oficial.
+// 2) Nunca confía en el cuerpo: consulta el recurso directo a la API de MP.
+// 3) Solo extiende el acceso si el monto cubre el precio vigente (con su código promocional).
+// Temas:
+//   payment                          → pago único (Checkout Pro) de un periodo
+//   subscription_preapproval         → alta, pausa o cancelación del cobro automático
+//   subscription_authorized_payment  → cada cobro del cobro automático (aprobado o rechazado)
 
 const json = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status })
@@ -30,19 +35,17 @@ async function verifySignature(req: Request, dataId: string, secret: string): Pr
     const ts = parts['ts']
     const v1 = parts['v1']
     if (!ts || !v1) return false
-
-    // Rechazar notificaciones viejas (repetición), tolerancia 10 min
     const tsMs = ts.length > 10 ? Number(ts) : Number(ts) * 1000
     if (!Number.isFinite(tsMs) || Math.abs(Date.now() - tsMs) > 10 * 60 * 1000) return false
-
     const id = /^[a-z0-9]+$/i.test(dataId) ? dataId.toLowerCase() : dataId
     let manifest = ''
     if (id) manifest += `id:${id};`
     if (requestId) manifest += `request-id:${requestId};`
     manifest += `ts:${ts};`
-    const expected = await hmacSha256Hex(secret, manifest)
-    return timingSafeEqual(expected, v1)
+    return timingSafeEqual(await hmacSha256Hex(secret, manifest), v1)
 }
+
+const MONTHS: Record<string, number> = { MONTHLY: 1, ANNUAL: 12 }
 
 Deno.serve(async (req) => {
     if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders, status: 200 })
@@ -50,108 +53,129 @@ Deno.serve(async (req) => {
     try {
         const url = new URL(req.url)
         const body = await req.clone().json().catch(() => ({}))
-        const topic = url.searchParams.get('type') || url.searchParams.get('topic') || body.type || body.topic
-        const id = url.searchParams.get('data.id') || url.searchParams.get('id') || body?.data?.id
-
+        const topic = String(url.searchParams.get('type') || url.searchParams.get('topic') || body.type || body.topic || '')
+        const id = String(url.searchParams.get('data.id') || url.searchParams.get('id') || body?.data?.id || '')
         if (!id) return json({ message: 'Sin id' })
-        if (topic && !['payment', 'payment.created', 'payment.updated'].includes(String(topic))) {
-            return json({ message: `Tema ignorado: ${topic}` })
-        }
 
         const admin = getAdminClient()
-        const { data: rows } = await admin
-            .from('system_settings')
-            .select('key, value')
-            .in('key', ['mercadopago_access_token', 'mercadopago_webhook_secret'])
-        const settings: Record<string, string> = {}
-        for (const r of rows ?? []) settings[r.key] = r.value
-
-        const accessToken = Deno.env.get('MP_ACCESS_TOKEN') || settings.mercadopago_access_token
+        const settings = await getSettings(admin, ['mercadopago_access_token', 'mercadopago_webhook_secret'])
+        const token = Deno.env.get('MP_ACCESS_TOKEN') || settings.mercadopago_access_token
         const webhookSecret = Deno.env.get('MP_WEBHOOK_SECRET') || settings.mercadopago_webhook_secret
 
         if (webhookSecret) {
-            const ok = await verifySignature(req, String(url.searchParams.get('data.id') || id), webhookSecret)
-            if (!ok) {
+            if (!(await verifySignature(req, id, webhookSecret))) {
                 console.warn('Firma de webhook inválida para id', id)
                 return json({ error: 'Firma inválida' }, 401)
             }
         } else {
             console.warn('MP_WEBHOOK_SECRET no configurado: webhook sin verificación de firma')
         }
+        if (!token) return json({ error: 'Configuración incompleta' }, 500)
 
-        if (!accessToken) {
-            console.error('Falta el Access Token de Mercado Pago')
-            return json({ error: 'Configuración incompleta' }, 500)
+        // ---------------------------------------------------------------- cobro automático
+        if (topic.startsWith('subscription_preapproval') || topic === 'preapproval') {
+            const pre = await mp<any>(token, `/preapproval/${encodeURIComponent(id)}`)
+            const ref = parseSubRef(pre.external_reference)
+            if (!ref) return json({ message: 'Referencia desconocida' })
+            const status = String(pre.status)
+            if (status === 'authorized') {
+                const { data: before } = await admin.from('space_subscriptions').select('mp_preapproval_id').eq('tenant_id', ref.tenantId).maybeSingle()
+                // El código cuenta una sola vez por suscripción
+                if (ref.code && before?.mp_preapproval_id !== pre.id) await admin.rpc('billing_count_promo_use', { p_code: ref.code }).then(() => {}, () => {})
+                await admin.from('space_subscriptions').update({
+                    mp_preapproval_id: pre.id, auto_renew: true, payer_email: pre.payer_email ?? undefined,
+                    promo_code: ref.code, price: pre.auto_recurring?.transaction_amount ?? null,
+                    updated_at: new Date().toISOString(),
+                }).eq('tenant_id', ref.tenantId)
+            } else if (status === 'cancelled' || status === 'paused') {
+                const { data: sub } = await admin.from('space_subscriptions').select('status, mp_preapproval_id').eq('tenant_id', ref.tenantId).maybeSingle()
+                if (!sub?.mp_preapproval_id || sub.mp_preapproval_id === pre.id) {
+                    await admin.from('space_subscriptions').update({
+                        auto_renew: false, status: sub?.status === 'ACTIVE' ? 'CANCELED' : sub?.status, notices: {},
+                        updated_at: new Date().toISOString(),
+                    }).eq('tenant_id', ref.tenantId)
+                }
+            }
+            await admin.from('billing_events').insert({ tenant_id: ref.tenantId, kind: 'PREAPPROVAL', detail: { id: pre.id, status } })
+            return json({ message: 'Suscripción actualizada', status })
         }
 
-        const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(String(id))}`, {
-            headers: { 'Authorization': `Bearer ${accessToken}` },
-        })
-        if (!mpRes.ok) {
-            console.error(`MP API error al consultar pago ${id}: ${mpRes.status}`)
-            return json({ error: 'No se pudo consultar el pago' }, 502) // MP reintentará
-        }
-        const payment = await mpRes.json()
+        if (topic.startsWith('subscription_authorized_payment') || topic === 'authorized_payment') {
+            const ap = await mp<any>(token, `/authorized_payments/${encodeURIComponent(id)}`)
+            const pre = await mp<any>(token, `/preapproval/${encodeURIComponent(ap.preapproval_id)}`)
+            const ref = parseSubRef(pre.external_reference)
+            if (!ref) return json({ message: 'Referencia desconocida' })
+            const payStatus = String(ap.payment?.status ?? ap.status ?? '')
+            const providerId = `ap_${ap.id}`
+            const amount = Number(ap.transaction_amount ?? pre.auto_recurring?.transaction_amount ?? 0)
+            const txBase = { tenant_id: ref.tenantId, amount, currency: ap.currency_id ?? 'MXN', provider: 'MERCADO_PAGO', provider_payment_id: providerId, meta: ap }
 
-        let ref: { userId?: string, tenantId?: string | null, planType?: string } = {}
-        try { ref = JSON.parse(payment.external_reference || '{}') } catch { /* formato viejo */ }
-        const userId = ref.userId
-        const tenantId = ref.tenantId && ref.tenantId !== 'unknown' ? ref.tenantId : null
-        const planType = ['basic', 'pro'].includes(String(ref.planType)) ? String(ref.planType) : 'pro'
-        if (!userId) return json({ message: 'Sin usuario en la referencia' })
+            if (payStatus !== 'approved') {
+                await admin.from('payment_transactions').upsert({ ...txBase, status: payStatus || 'unknown' }, { onConflict: 'provider_payment_id' })
+                if (['rejected', 'cancelled'].includes(payStatus)) {
+                    await admin.from('space_subscriptions').update({ status: 'PAST_DUE', updated_at: new Date().toISOString() }).eq('tenant_id', ref.tenantId).in('status', ['ACTIVE', 'CANCELED'])
+                    await admin.rpc('billing_queue_notice', { p_tenant: ref.tenantId, p_kind: 'PAYMENT_FAILED', p_payload: { amount } })
+                }
+                return json({ message: 'Registrado', status: payStatus })
+            }
+
+            const { data: prev } = await admin.from('payment_transactions').select('status').eq('provider_payment_id', providerId).maybeSingle()
+            if (prev?.status === 'approved') return json({ message: 'Ya procesado' })
+
+            // El monto esperado es el que nuestro servidor fijó al crear la suscripción en MP
+            const expected = Number(pre.auto_recurring?.transaction_amount ?? NaN)
+            if (!Number.isFinite(expected) || amount + 0.01 < expected) {
+                console.error(`Monto insuficiente ${amount} < ${expected} (${ref.plan} ${ref.code ?? ''})`)
+                await admin.from('payment_transactions').upsert({ ...txBase, status: 'amount_mismatch' }, { onConflict: 'provider_payment_id' })
+                return json({ message: 'Monto no coincide' })
+            }
+            await admin.from('payment_transactions').upsert({ ...txBase, status: 'approved' }, { onConflict: 'provider_payment_id' })
+            await admin.rpc('billing_extend', {
+                p_tenant: ref.tenantId, p_months: MONTHS[ref.plan], p_plan: ref.plan, p_kind: 'RENEWAL',
+                p_amount: amount, p_detail: { preapproval_id: pre.id, authorized_payment_id: ap.id }, p_auto_renew: true,
+            })
+            await admin.from('space_subscriptions').update({ mp_preapproval_id: pre.id, price: amount, promo_code: ref.code }).eq('tenant_id', ref.tenantId)
+            return json({ message: 'Cobro aplicado' })
+        }
+
+        // ---------------------------------------------------------------- pago único
+        if (topic && !topic.startsWith('payment')) return json({ message: `Tema ignorado: ${topic}` })
+
+        const payment = await mp<any>(token, `/v1/payments/${encodeURIComponent(id)}`)
+        let ref: { kind?: string, t?: string, p?: string, c?: string | null, u?: string, a?: number } = {}
+        try { ref = JSON.parse(payment.external_reference || '{}') } catch { /* cobros del cobro automático u otros */ }
+        if (ref.kind !== 'once' || !ref.t || !MONTHS[String(ref.p)]) {
+            // Los cobros del cobro automático llegan por subscription_authorized_payment
+            return json({ message: 'Pago sin referencia de pago único' })
+        }
 
         const txBase = {
-            user_id: userId,
-            tenant_id: tenantId,
-            amount: payment.transaction_amount,
-            currency: payment.currency_id,
-            provider: 'MERCADO_PAGO',
-            provider_payment_id: String(payment.id),
-            meta: payment,
+            user_id: ref.u ?? null, tenant_id: ref.t, amount: payment.transaction_amount, currency: payment.currency_id,
+            provider: 'MERCADO_PAGO', provider_payment_id: String(payment.id), meta: payment,
         }
-
         if (payment.status !== 'approved') {
             await admin.from('payment_transactions').upsert({ ...txBase, status: payment.status }, { onConflict: 'provider_payment_id' })
             return json({ message: 'Registrado', status: payment.status })
         }
+        const { data: prev } = await admin.from('payment_transactions').select('status').eq('provider_payment_id', String(payment.id)).maybeSingle()
+        if (prev?.status === 'approved') return json({ message: 'Ya procesado' })
 
-        // Validar monto contra el precio oficial
-        const { data: plan } = await admin.from('license_limits').select('price_annual').eq('plan_type', planType).maybeSingle()
-        const expected = Number(plan?.price_annual ?? NaN)
-        if (payment.currency_id !== 'MXN' || !Number.isFinite(expected) || Number(payment.transaction_amount) + 0.01 < expected) {
-            console.error(`Monto inválido para ${payment.id}: ${payment.transaction_amount} ${payment.currency_id}, esperado ${expected} MXN`)
+        // Monto esperado: el que el servidor puso en la preferencia (referencia firmada por nosotros);
+        // si no viene, el precio vigente del plan.
+        const expected = Number.isFinite(Number(ref.a)) && ref.a != null ? Number(ref.a) : Number((await quote(admin, String(ref.p), null)).final)
+        if (payment.currency_id !== 'MXN' || Number(payment.transaction_amount) + 0.01 < expected) {
+            console.error(`Monto inválido ${payment.transaction_amount} ${payment.currency_id}, esperado ${expected}`)
             await admin.from('payment_transactions').upsert({ ...txBase, status: 'amount_mismatch' }, { onConflict: 'provider_payment_id' })
             return json({ message: 'Monto no coincide con el plan' })
         }
 
-        // Idempotencia: si este pago ya se procesó, no volver a extender
-        const { data: existingTx } = await admin
-            .from('payment_transactions')
-            .select('status')
-            .eq('provider_payment_id', String(payment.id))
-            .maybeSingle()
-        if (existingTx?.status === 'approved') return json({ message: 'Ya procesado' })
-
-        const now = new Date()
-        const periodEnd = new Date(now)
-        periodEnd.setFullYear(now.getFullYear() + 1)
-
-        const { data: sub, error: subError } = await admin.from('subscriptions').upsert({
-            user_id: userId,
-            status: 'active',
-            plan_type: planType,
-            current_period_start: now.toISOString(),
-            current_period_end: periodEnd.toISOString(),
-            mercadopago_customer_id: payment.payer?.id?.toString(),
-            updated_at: now.toISOString(),
-        }, { onConflict: 'user_id' }).select().single()
-        if (subError) console.error('Error de suscripción:', subError.message)
-
-        const { error: txError } = await admin.from('payment_transactions').upsert(
-            { ...txBase, subscription_id: sub?.id, status: 'approved' },
-            { onConflict: 'provider_payment_id' })
-        if (txError) console.error('Error de transacción:', txError.message)
-
+        await admin.from('payment_transactions').upsert({ ...txBase, status: 'approved' }, { onConflict: 'provider_payment_id' })
+        await admin.rpc('billing_extend', {
+            p_tenant: ref.t, p_months: MONTHS[String(ref.p)], p_plan: ref.p, p_kind: 'PAYMENT',
+            p_amount: payment.transaction_amount, p_detail: { payment_id: payment.id }, p_auto_renew: false,
+        })
+        await admin.from('space_subscriptions').update({ price: payment.transaction_amount, promo_code: ref.c ?? null }).eq('tenant_id', ref.t)
+        if (ref.c) await admin.rpc('billing_count_promo_use', { p_code: ref.c }).then(() => {}, () => {})
         return json({ message: 'Procesado' })
     } catch (error) {
         console.error('Webhook error:', error instanceof Error ? error.message : error)

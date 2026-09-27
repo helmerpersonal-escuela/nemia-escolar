@@ -45,7 +45,7 @@ const CitationsPage = lazyNamed(() => import('./features/attendance/pages/Citati
 const JustificationManager = lazyNamed(() => import('./features/attendance/pages/JustificationManager'), 'JustificationManager')
 const LatesPage = lazyNamed(() => import('./features/attendance/pages/LatesPage'), 'LatesPage')
 const AbsenceManagerPage = lazyNamed(() => import('./features/absences/pages/AbsenceManagerPage'), 'AbsenceManagerPage')
-const PaywallPage = lazyNamed(() => import('./features/subscription/pages/PaywallPage'), 'PaywallPage')
+const SubscriptionPage = lazyNamed(() => import('./features/subscription/pages/SubscriptionPage'), 'SubscriptionPage')
 const LandingPage = lazyNamed(() => import('./features/marketing/pages/LandingPage'), 'LandingPage')
 
 const SuperAdminDashboard = lazyNamed(() => import('./features/admin/pages/SuperAdminDashboard'), 'SuperAdminDashboard')
@@ -223,7 +223,8 @@ function App() {
             )
           }
         >
-          <Route path="paywall" element={<PaywallPage />} />
+          <Route path="paywall" element={<Navigate to={`/suscripcion${window.location.search}`} replace />} />
+          <Route path="suscripcion" element={<SubscriptionPage />} />
           <Route index element={<DashboardPage />} />
           <Route path="teacher-dashboard" element={<TeacherDashboard />} />
           <Route path="groups" element={<GroupsPage />} />

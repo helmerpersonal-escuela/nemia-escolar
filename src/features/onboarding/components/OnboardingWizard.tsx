@@ -2,13 +2,11 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
-import { Calendar, BookOpen, Trash2, Plus, School, Clock, CreditCard, Zap, Gift } from 'lucide-react'
+import { Calendar, BookOpen, Trash2, Plus, School, Clock, Rocket, Gift } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { WizardLayout, WizardFooter, WizardStepHeader, WizardField, WizardAlert, WizardSaving, wizardInput, wizardChoice, Radio } from '../../../components/wizard/Wizard'
 import { CooperativeFields, emptyCooperative, saveCooperativeSetup, type CooperativeSetup } from '../../cooperative/components/CooperativeFields'
 import { SubjectSelector } from '../../../components/academic/SubjectSelector'
-import { Browser } from '@capacitor/browser'
-import { Capacitor } from '@capacitor/core'
 import { DateInput } from '../../../components/ui/DateInput'
 import { OfficialCycleNote } from '../../../components/academic/OfficialCycleNote'
 import { useOfficialCycle } from '../../../lib/officialCalendar'
@@ -19,7 +17,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
 
     const [step, setStep] = useState(() => {
         const saved = sessionStorage.getItem('vunlek_onboarding_step')
-        return saved ? parseInt(saved, 10) : 0
+        return saved ? Math.min(parseInt(saved, 10) || 0, 3) : 0
     })
 
     const [loading, setLoading] = useState(false)
@@ -237,59 +235,13 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
         }
     }
 
-    const handleStartFreeTrial = async () => {
-        setLoading(true)
-        try {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) throw new Error('No usuario autenticado')
-
-            // Call the new RPC for Free Trial (No Payment)
-            const { data, error } = await supabase.rpc('start_free_trial', {
-                p_plan_type: 'basic'
-            })
-
-            if (error) throw error
-            if (data && !data.success) throw new Error(data.error || 'Error al iniciar prueba')
-
-            // Success! Redirect to success page or Dashboard
-            // We simulate the "approved" status so the dashboard knows to refresh
-            await Browser.open({ url: '/?status=approved' })
-            // Or just navigate internal: navigate('/dashboard')
-            // But preserving the query param flow:
-            window.location.href = '/?status=approved'
-
-        } catch (err: any) {
-            console.error('Free Trial Error:', err)
-            setError(err.message)
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    const handleActivateSubscription = async () => {
-        setLoading(true)
-        try {
-            const { data: { user } } = await supabase.auth.getUser()
-            const { data, error } = await supabase.functions.invoke('create-payment-preference', {
-                body: {
-                    title: 'Suscripción Anual - Vunlek',
-                    price: 599,
-                    quantity: 1,
-                    tenantId: tenant?.id,
-                    userId: user?.id,
-                    email: user?.email,
-                    planType: 'pro',
-                    isTrial: false,
-                    platform: Capacitor.getPlatform()
-                }
-            })
-            if (error) throw error
-            if (data?.init_point) await Browser.open({ url: data.init_point })
-        } catch (err: any) {
-            setError(err.message)
-        } finally {
-            setLoading(false)
-        }
+    /** Termina la configuración. Sin pago: el espacio ya tiene su mes de prueba desde que se creó. */
+    const finishOnboarding = async () => {
+        if (!tenant?.id) return
+        const { error: e } = await supabase.from('tenants').update({ onboarding_completed: true }).eq('id', tenant.id)
+        if (e) throw e
+        clearPersistence()
+        onComplete()
     }
 
     const [newBreak, setNewBreak] = useState({ name: 'RECESO', start: '10:00', end: '10:30' })
@@ -396,7 +348,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                 await saveCooperativeSetup(tenant.id, user.id, coop)
             }
 
-            setStep(4)
+            await finishOnboarding()
         } catch (err: any) {
             console.error('Error saving subjects:', err)
             setError('Error al guardar materias: ' + err.message)
@@ -410,7 +362,6 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
         { label: 'Ciclo escolar', icon: Calendar },
         { label: 'Jornada', icon: Clock },
         { label: 'Materias', icon: BookOpen },
-        { label: 'Plan', icon: CreditCard },
     ]
     const isPrimaryLike = schoolData.educationalLevel === 'PRIMARY' || schoolData.educationalLevel === 'TELESECUNDARIA'
     const isIndependent = tenant?.type === 'INDEPENDENT' || (tenant?.type as string)?.toLowerCase() === 'independent'
@@ -423,13 +374,12 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
             steps={STEPS}
             current={step}
             onStepClick={i => i < step && setStep(i)}
-            width={step === 3 || step === 4 ? 'lg' : 'md'}
+            width={step === 3 ? 'lg' : 'md'}
             footer={
                 step === 0 ? <WizardFooter onNext={handleUpdateSchool} loading={loading} nextDisabled={!schoolData.name || (schoolData.educationalLevel === 'SECONDARY' && !schoolData.secondaryType)} />
                     : step === 1 ? <WizardFooter onBack={() => setStep(0)} onNext={handleCreateYear} loading={loading} nextDisabled={!yearData.name || !yearData.startDate || !yearData.endDate} />
                         : step === 2 ? <WizardFooter onBack={() => setStep(1)} onNext={handleSaveSchedule} loading={loading} />
-                            : step === 3 ? <WizardFooter onBack={() => setStep(2)} onNext={handleSaveSubjects} loading={loading} nextDisabled={!subjectsValid} />
-                                : <WizardFooter onBack={() => setStep(3)} />
+                            : <WizardFooter onBack={() => setStep(2)} onNext={handleSaveSubjects} loading={loading} nextDisabled={!subjectsValid} nextLabel="Empezar a usar VUNLEK" nextIcon={Rocket} tone="success" />
             }
         >
             {loading && <WizardSaving label="Guardando…" />}
@@ -543,6 +493,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
             {step === 3 && (
                 <div className="space-y-5">
                     <WizardStepHeader icon={BookOpen} title="Tus materias" description="Selecciona las asignaturas que impartirás este ciclo escolar." />
+                    <WizardAlert tone="success"><span className="inline-flex items-start gap-2"><Gift className="w-4 h-4 mt-0.5 shrink-0" /><span>Tu espacio incluye <b>30 días gratis con todas las herramientas</b>. No necesitas tarjeta; te avisaremos una semana antes de que termine.</span></span></WizardAlert>
                     <div className="flex items-center justify-between text-xs font-bold text-slate-500">
                         <span>Catálogo del programa de estudios</span>
                         <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-700">{Object.values(selectedSubjects).filter(s => s.selected).length} seleccionadas</span>
@@ -557,32 +508,6 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                 </div>
             )}
 
-            {step === 4 && (
-                <div className="space-y-5">
-                    <WizardStepHeader icon={CreditCard} title="Elige cómo empezar" description="Prueba todas las herramientas sin costo o activa tu suscripción." />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="rounded-[1.5rem] border border-slate-200 p-6 flex flex-col">
-                            <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4"><Gift className="w-6 h-6" /></div>
-                            <h3 className="text-lg font-black text-slate-900">Prueba gratis</h3>
-                            <p className="text-sm text-slate-500 mt-1 mb-6 flex-1">30 días sin costo con todas las herramientas PRO. Después, $399 al año.</p>
-                            <button onClick={handleStartFreeTrial} disabled={loading} className="w-full py-3 rounded-2xl bg-indigo-600 text-white font-black text-sm disabled:opacity-50">Iniciar prueba</button>
-                        </div>
-                        <div className="rounded-[1.5rem] border-2 border-indigo-600 p-6 flex flex-col bg-indigo-50/40">
-                            <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center mb-4"><Zap className="w-6 h-6" /></div>
-                            <h3 className="text-lg font-black text-slate-900">Suscripción PRO</h3>
-                            <p className="text-sm text-slate-500 mt-1 mb-6 flex-1"><span className="text-2xl font-black text-slate-900">$599</span> al año</p>
-                            {!Capacitor.isNativePlatform() ? (
-                                <button onClick={handleActivateSubscription} disabled={loading} className="w-full py-3 rounded-2xl bg-white border border-indigo-200 text-indigo-700 font-black text-sm disabled:opacity-50">Activar ahora</button>
-                            ) : (
-                                <button onClick={() => window.open('https://vunlek.com', '_system')} className="w-full py-3 rounded-2xl bg-white border border-indigo-200 text-indigo-700 font-black text-sm">Gestionar en la web</button>
-                            )}
-                        </div>
-                    </div>
-                    <button type="button" onClick={handleCancelRegistration} className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-rose-600">
-                        <Trash2 className="w-4 h-4" /> Cancelar registro
-                    </button>
-                </div>
-            )}
         </WizardLayout>
     )
 }

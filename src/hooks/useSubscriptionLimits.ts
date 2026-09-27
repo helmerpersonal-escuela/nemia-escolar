@@ -11,6 +11,8 @@ export interface SubscriptionLimits {
     isLoading: boolean
 }
 
+const UNLIMITED = 9999
+
 export const useSubscriptionLimits = () => {
     const [limits, setLimits] = useState<SubscriptionLimits>({
         maxGroups: 5,
@@ -90,10 +92,6 @@ export const useSubscriptionLimits = () => {
         fetchLimits()
     }, [])
 
-    const canAddStudent = (currentStudents: number): boolean => {
-        return currentStudents < limits.maxStudentsPerGroup
-    }
-
     const refreshLimits = async () => {
         setLimits(prev => ({ ...prev, isLoading: true }))
         try {
@@ -147,9 +145,15 @@ export const useSubscriptionLimits = () => {
         }
     }
 
+    // Modelo actual: suscripción por espacio SIN límites de grupos ni alumnos
+    // (prueba de 30 días y planes mensual/anual con todas las herramientas).
     return {
         ...limits,
-        canAddStudent,
+        maxGroups: UNLIMITED,
+        maxStudentsPerGroup: UNLIMITED,
+        canAddGroup: true,
+        planType: 'pro' as 'basic' | 'pro',
+        canAddStudent: (_n: number) => true,
         refreshLimits
     }
 }

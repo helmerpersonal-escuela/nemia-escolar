@@ -197,6 +197,8 @@ export const DashboardLayout = () => {
 
     useEffect(() => {
         const checkPaymentStatus = async () => {
+            // Los pagos de suscripción regresan a /suscripcion y ahí se confirman (ya no dependen del registro)
+            if (window.location.pathname.startsWith('/suscripcion')) return
             const params = new URLSearchParams(window.location.search)
             const status = params.get('status')
 
@@ -715,7 +717,7 @@ export const DashboardLayout = () => {
     const EXTRA_TITLES: Record<string, string> = {
         '/settings': 'Configuración', '/gradebook': 'Libreta', '/planning/new': 'Nueva planeación', '/planning': 'Planeaciones',
         '/messages': 'Mensajes', '/agenda': 'Calendario', '/cte': 'Consejo Técnico', '/libros': 'Libros de texto',
-        '/paywall': 'Planes y licencia', '/students': 'Alumnos', '/groups': 'Grupos', '/nem-assistant': 'Asistente NEM',
+        '/paywall': 'Planes y licencia', '/suscripcion': 'Suscripción', '/students': 'Alumnos', '/groups': 'Grupos', '/nem-assistant': 'Asistente NEM',
         '/rubrics': 'Instrumentos', '/schedule': 'Horario', '/admin/pemc': 'PEMC', '/admin/staff': 'Personal',
     }
     const path = location.pathname

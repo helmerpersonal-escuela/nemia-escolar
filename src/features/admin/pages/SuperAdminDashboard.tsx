@@ -1,3 +1,4 @@
+import { SpaceSubscriptionsPanel, PromoAndLicensesPanel } from '../components/BillingAdminPanel'
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
@@ -130,7 +131,6 @@ export const SuperAdminDashboard = () => {
         setLandingSettingsState(settings)
     }
     const [uploadingKey, setUploadingKey] = useState<string | null>(null)
-    const [genLicenseConfig, setGenLicenseConfig] = useState({ amount: 1, planType: 'basic', durationDays: 30 })
 
     useEffect(() => {
         const fetchData = async () => {
@@ -140,7 +140,6 @@ export const SuperAdminDashboard = () => {
                 const { data: profilesList, count: totalUsers } = await supabase.from('profiles').select('*', { count: 'exact' }).order('created_at', { ascending: false })
                 const { data: deletedCols } = await supabase.from('profiles').select('*').not('deleted_at', 'is', null)
                 const { data: txList } = await supabase.from('view_god_mode_transactions').select('*').order('created_at', { ascending: false }).limit(20)
-                const { data: licList } = await supabase.from('view_god_mode_license_keys').select('*').order('created_at', { ascending: false }).limit(50)
                 const { data: subData } = await supabase.from('view_god_mode_subscriptions').select('*').order('created_at', { ascending: false })
 
                 setStats({
@@ -155,7 +154,6 @@ export const SuperAdminDashboard = () => {
                 setAllUsers(profilesList || [])
                 setDeletedAccounts(deletedCols || [])
                 setTransactions(txList || [])
-                setLicenses(licList || [])
                 setSubscriptionsData(subData || [])
             } catch (err) { console.error('Error fetching admin data:', err) } finally { setLoading(false) }
         }
@@ -275,20 +273,6 @@ export const SuperAdminDashboard = () => {
             window.location.reload()
         }
     }
-    const handleGenerateLicenses = async () => {
-        try {
-            const { data, error } = await supabase.rpc('generate_license_keys', {
-                p_count: genLicenseConfig.amount,
-                p_plan_type: genLicenseConfig.planType,
-                p_duration_days: genLicenseConfig.durationDays
-            })
-            if (error) throw error
-            alert(`${genLicenseConfig.amount} licencias generadas exitosamente`)
-            window.location.reload()
-        } catch (err: any) {
-            alert('Error: ' + err.message)
-        }
-    }
     const handleVerifyEmail = async (userId: string, email: string) => {
         if (confirm(`¿Marcar el correo ${email} como verificado manualmente?`)) {
             try {
@@ -347,7 +331,7 @@ export const SuperAdminDashboard = () => {
                             {tab === 'landing' && <LayoutGrid className="w-5 h-5" />}
                             {tab === 'textbooks' && <Book className="w-5 h-5" />}
                             {tab === 'synthetic' && <BookOpen className="w-5 h-5" />}
-                            <span>{tab === 'synthetic' ? 'Prog. Sintéticos' : tab === 'errors' ? 'Errores' : tab}</span>
+                            <span>{tab === 'synthetic' ? 'Prog. Sintéticos' : tab === 'errors' ? 'Errores' : tab === 'subscriptions' ? 'Suscripciones' : tab === 'licenses' ? 'Claves y códigos' : tab}</span>
                         </button>
                     ))}
                 </nav>
@@ -367,7 +351,7 @@ export const SuperAdminDashboard = () => {
                 <header className="glass-panel rounded-[1.75rem] lg:rounded-[2rem] p-5 lg:p-8 mb-6 lg:mb-8 flex flex-col sm:flex-row gap-4 justify-between sm:items-center shadow-xl border-white/80">
                     <div>
                         <h2 className="text-2xl lg:text-3xl font-black text-indigo-950 italic uppercase tracking-tighter flex items-center gap-4 break-words">
-                            {activeTab === 'errors' ? 'Errores y mejoras' : activeTab}
+                            {activeTab === 'errors' ? 'Errores y mejoras' : activeTab === 'subscriptions' ? 'Suscripciones' : activeTab === 'licenses' ? 'Claves y códigos promocionales' : activeTab}
                         </h2>
                         <p className="text-slate-500 font-bold mt-1 uppercase text-xs tracking-wider opacity-60">Control Maestro</p>
                     </div>
@@ -578,67 +562,9 @@ export const SuperAdminDashboard = () => {
                         </div>
                     )}
 
-                    {activeTab === 'subscriptions' && (
-                        <div className="space-y-4">
-                            {subscriptionsData.map(sub => (
-                                <div key={sub.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                    <div>
-                                        <p className="font-black text-indigo-950 uppercase text-sm">{sub.email || sub.user_id}</p>
-                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{sub.plan_type} - Vence: {new Date(sub.current_period_end).toLocaleDateString()}</p>
-                                    </div>
-                                    <button aria-label="Eliminar" onClick={() => handleDeleteSubscription(sub.user_id)} className="text-rose-500 hover:text-rose-700"><Trash2 className="w-5 h-5" /></button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                    {activeTab === 'subscriptions' && <SpaceSubscriptionsPanel search={searchTerm} />}
 
-                    {activeTab === 'licenses' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="squishy-card p-8 bg-white rounded-3xl shadow-lg border border-indigo-50">
-                                <h4 className="font-black text-indigo-950 uppercase mb-6 flex items-center gap-2">
-                                    <Key className="w-5 h-5 text-indigo-500" /> Generar Licencias
-                                </h4>
-                                <div className="space-y-4">
-                                    <input
-                                        type="number"
-                                        placeholder="Cantidad"
-                                        value={genLicenseConfig.amount}
-                                        onChange={e => setGenLicenseConfig({ ...genLicenseConfig, amount: parseInt(e.target.value) })}
-                                        className="input-squishy w-full px-4 py-3 text-sm border-2 border-slate-50"
-                                    />
-                                    <select
-                                        value={genLicenseConfig.planType}
-                                        onChange={e => setGenLicenseConfig({ ...genLicenseConfig, planType: e.target.value })}
-                                        className="input-squishy w-full px-4 py-3 text-sm border-2 border-slate-50"
-                                    >
-                                        <option value="basic">Basic</option>
-                                        <option value="pro">Pro</option>
-                                    </select>
-                                    <input
-                                        type="number"
-                                        placeholder="Duración (días)"
-                                        value={genLicenseConfig.durationDays}
-                                        onChange={e => setGenLicenseConfig({ ...genLicenseConfig, durationDays: parseInt(e.target.value) })}
-                                        className="input-squishy w-full px-4 py-3 text-sm border-2 border-slate-50"
-                                    />
-                                    <button onClick={handleGenerateLicenses} className="w-full py-3 bg-indigo-600 text-white rounded-xl font-black uppercase text-xs tracking-widest hover:bg-indigo-700 transition-all shadow-lg active:scale-95">
-                                        Generar Licencias
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="squishy-card p-8 bg-white rounded-3xl shadow-lg border border-indigo-50">
-                                <h4 className="font-black text-indigo-950 uppercase mb-6">Licencias Generadas</h4>
-                                <div className="space-y-3 max-h-96 overflow-y-auto">
-                                    {licenses.map(lic => (
-                                        <div key={lic.id} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                            <p className="font-mono text-xs text-slate-900">{lic.license_key}</p>
-                                            <p className="text-[10px] text-slate-400">{lic.plan_type} - {lic.is_active ? 'Activa' : 'Usada'}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    {activeTab === 'licenses' && <PromoAndLicensesPanel />}
 
                     {activeTab === 'sounds' && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
