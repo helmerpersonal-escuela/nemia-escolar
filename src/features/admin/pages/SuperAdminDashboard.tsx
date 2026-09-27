@@ -28,12 +28,14 @@ import {
     LogOut,
     ArrowLeftCircle,
     Trash2,
-    LayoutGrid
+    LayoutGrid,
+    Bug
 } from 'lucide-react'
 import { AdminUserTable } from '../components/AdminUserTable'
 import { RegularUserTable } from '../components/RegularUserTable'
 import { TextbookManager } from '../components/TextbookManager'
 import { SyntheticProgramsManager } from '../components/SyntheticProgramsManager'
+import { ClientIssuesPanel } from '../components/ClientIssuesPanel'
 
 export const SuperAdminDashboard = () => {
     const [stats, setStats] = useState({
@@ -44,13 +46,13 @@ export const SuperAdminDashboard = () => {
         serverHealth: '100% stable',
         dbSize: 0
     })
-    const [activeTab, setActiveTabState] = useState<'tenants' | 'admins' | 'users' | 'rescue' | 'ai' | 'backups' | 'billing' | 'settings' | 'sounds' | 'licenses' | 'subscriptions' | 'textbooks' | 'synthetic' | 'landing'>(() => {
+    const [activeTab, setActiveTabState] = useState<'tenants' | 'admins' | 'users' | 'rescue' | 'ai' | 'backups' | 'billing' | 'settings' | 'sounds' | 'licenses' | 'subscriptions' | 'textbooks' | 'synthetic' | 'landing' | 'errors'>(() => {
         const saved = localStorage.getItem('godmode_active_tab')
         return (saved as any) || 'tenants'
     })
     const navigate = useNavigate()
 
-    const setActiveTab = (tab: 'tenants' | 'admins' | 'users' | 'rescue' | 'ai' | 'backups' | 'billing' | 'settings' | 'sounds' | 'licenses' | 'subscriptions' | 'textbooks' | 'synthetic' | 'landing') => {
+    const setActiveTab = (tab: 'tenants' | 'admins' | 'users' | 'rescue' | 'ai' | 'backups' | 'billing' | 'settings' | 'sounds' | 'licenses' | 'subscriptions' | 'textbooks' | 'synthetic' | 'landing' | 'errors') => {
         localStorage.setItem('godmode_active_tab', tab)
         setActiveTabState(tab)
     }
@@ -328,8 +330,9 @@ export const SuperAdminDashboard = () => {
                     </div>
                 </div>
                 <nav className="flex-grow p-3 lg:p-4 flex lg:flex-col gap-2 lg:mt-2 overflow-x-auto lg:overflow-x-visible lg:overflow-y-auto custom-scrollbar">
-                    {['tenants', 'admins', 'users', 'rescue', 'ai', 'backups', 'billing', 'subscriptions', 'licenses', 'sounds', 'settings', 'landing', 'textbooks', 'synthetic'].map((tab: any) => (
+                    {['errors', 'tenants', 'admins', 'users', 'rescue', 'ai', 'backups', 'billing', 'subscriptions', 'licenses', 'sounds', 'settings', 'landing', 'textbooks', 'synthetic'].map((tab: any) => (
                         <button key={tab} onClick={() => setActiveTab(tab)} className={`shrink-0 lg:w-full flex items-center space-x-3 px-4 py-3 lg:py-4 rounded-2xl font-bold capitalize whitespace-nowrap transition-all ${activeTab === tab ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-500 hover:bg-white'}`}>
+                            {tab === 'errors' && <Bug className="w-5 h-5" />}
                             {tab === 'tenants' && <Building2 className="w-5 h-5" />}
                             {tab === 'admins' && <Shield className="w-5 h-5" />}
                             {tab === 'users' && <Users className="w-5 h-5" />}
@@ -344,7 +347,7 @@ export const SuperAdminDashboard = () => {
                             {tab === 'landing' && <LayoutGrid className="w-5 h-5" />}
                             {tab === 'textbooks' && <Book className="w-5 h-5" />}
                             {tab === 'synthetic' && <BookOpen className="w-5 h-5" />}
-                            <span>{tab === 'synthetic' ? 'Prog. Sintéticos' : tab}</span>
+                            <span>{tab === 'synthetic' ? 'Prog. Sintéticos' : tab === 'errors' ? 'Errores' : tab}</span>
                         </button>
                     ))}
                 </nav>
@@ -364,7 +367,7 @@ export const SuperAdminDashboard = () => {
                 <header className="glass-panel rounded-[1.75rem] lg:rounded-[2rem] p-5 lg:p-8 mb-6 lg:mb-8 flex flex-col sm:flex-row gap-4 justify-between sm:items-center shadow-xl border-white/80">
                     <div>
                         <h2 className="text-2xl lg:text-3xl font-black text-indigo-950 italic uppercase tracking-tighter flex items-center gap-4 break-words">
-                            {activeTab}
+                            {activeTab === 'errors' ? 'Errores y mejoras' : activeTab}
                         </h2>
                         <p className="text-slate-500 font-bold mt-1 uppercase text-xs tracking-wider opacity-60">Control Maestro</p>
                     </div>
@@ -416,6 +419,8 @@ export const SuperAdminDashboard = () => {
                 </div>
 
                 <div className="space-y-8 animate-in fade-in duration-500">
+                    {activeTab === 'errors' && <ClientIssuesPanel search={searchTerm} />}
+
                     {activeTab === 'tenants' && (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {tenants.map(t => (

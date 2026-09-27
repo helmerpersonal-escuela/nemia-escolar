@@ -1,3 +1,4 @@
+import { reportError, reportFriction } from '../../lib/errorReporting'
 import React, { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
 import { X, CheckCircle2, AlertCircle, Info, AlertTriangle } from 'lucide-react'
 
@@ -28,6 +29,14 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
         // Tiempo suficiente para leer: 4 s mínimo, +60 ms por carácter, máximo 12 s.
         duration = Math.max(duration ?? 0, Math.min(12000, 4000 + message.length * 60))
         setToasts(prev => [...prev, { id, message, type, duration }])
+        // Registro silencioso: los avisos de error se guardan para revisarlos en God Mode.
+        if (type === 'error') {
+            if (/no tienes|debes|requiere|obligatori|selecciona|completa/i.test(message) && !/error|no se pudo|fall[óo]/i.test(message)) {
+                reportFriction(`Aviso de validación: ${message.slice(0, 200)}`)
+            } else {
+                reportError('alert', message.slice(0, 500))
+            }
+        }
 
         setTimeout(() => {
             removeToast(id)

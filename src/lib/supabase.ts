@@ -11,7 +11,33 @@ export type { Database }
 
 // Si faltan las variables, main.tsx muestra un aviso claro; aquí solo se evita que
 // la importación truene antes de poder mostrarlo.
+// ---------------------------------------------------------------------------
+// Registro silencioso de respuestas con error o muy lentas (ver errorReporting.ts).
+// ---------------------------------------------------------------------------
+export interface ApiResult { method: string; url: string; status: number; ok: boolean; ms: number; body: unknown }
+let apiListener: ((r: ApiResult) => void) | null = null
+export function onApiResult(fn: (r: ApiResult) => void) { apiListener = fn }
+
+const trackedFetch: typeof fetch = async (input, init) => {
+    const started = performance.now()
+    const res = await fetch(input, init)
+    try {
+        const listener = apiListener
+        const ms = performance.now() - started
+        if (listener && (!res.ok || ms > 8000)) {
+            const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+            if (!url.includes('/client_errors')) {
+                const method = (init?.method || (input instanceof Request ? input.method : 'GET')).toUpperCase()
+                const body = res.ok ? null : await res.clone().json().catch(() => null)
+                listener({ method, url, status: res.status, ok: res.ok, ms, body })
+            }
+        }
+    } catch { /* el registro nunca debe afectar la respuesta */ }
+    return res
+}
+
 export const supabase = createClient(supabaseUrl || 'https://config-faltante.invalid', supabaseAnonKey || 'config-faltante', {
+    global: { fetch: trackedFetch },
     auth: {
         storage: window.localStorage,
         autoRefreshToken: true,

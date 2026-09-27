@@ -1,9 +1,14 @@
-import { QueryClient } from '@tanstack/react-query'
+import { QueryClient, QueryCache, MutationCache } from '@tanstack/react-query'
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister'
 import { idbDelete, idbGet, idbSet } from './offline/idb'
 import { isNetworkError } from './offline/network'
+import { reportQueryError } from './errorReporting'
 
 export const queryClient = new QueryClient({
+    // Registro silencioso de fallas al cargar o guardar datos (errores de código;
+    // los de Supabase los registra la capa de red).
+    queryCache: new QueryCache({ onError: (error, query) => reportQueryError(error, query.queryKey) }),
+    mutationCache: new MutationCache({ onError: (error, _v, _c, mutation) => reportQueryError(error, mutation.options.mutationKey, true) }),
     defaultOptions: {
         queries: {
             staleTime: 1000 * 60 * 5, // 5 minutos

@@ -42,6 +42,7 @@ import { WorkspaceSwitcher } from './WorkspaceSwitcher'
 import { useAttendanceReminder } from '../../hooks/useAttendanceReminder'
 import { NotificationManager } from '../ui/NotificationManager'
 import { ErrorBoundary } from '../common/ErrorBoundary'
+import { setErrorContext } from '../../lib/errorReporting'
 import { OfflineCenter } from '../offline/OfflineCenter'
 import { TrialNotificationSystem } from '../../features/subscription/components/TrialNotificationSystem'
 
@@ -154,6 +155,11 @@ export const DashboardLayout = () => {
     const [syncError, setSyncError] = useState<string | null>(null)
     const { data: tenant, isLoading: isTenantLoading } = useTenant()
     const { profile, isLoading: isProfileLoading, isSuperAdmin = false } = useProfile()
+
+    // Contexto para el registro automático de errores (escuela y rol activos).
+    useEffect(() => {
+        setErrorContext({ tenantId: tenant?.id ?? null, role: (tenant as any)?.role ?? profile?.role ?? null })
+    }, [tenant?.id, (tenant as any)?.role, profile?.role])
 
     // Derived states
     // Use window.location.search directly to be absolute even across re-renders
