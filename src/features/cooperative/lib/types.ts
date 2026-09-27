@@ -277,6 +277,9 @@ export function returnTotals(d: ReturnData) {
     return { lines, certificates: rows.reduce((s, r) => s + num(r.certificates), 0), total: round2(lines.reduce((s, x) => s + x, 0)) }
 }
 
+/** Docente independiente: marca personal de entrega (no hay revisión dentro de la app). */
+export const deliveredAt = (doc: Pick<CoopDocument, 'data'>): string | null => doc.data?._deliveredAt ?? null
+
 /** Resumen corto para listas (utilidad, avance…). */
 export function docHeadline(doc: Pick<CoopDocument, 'doc_type' | 'data'>): string {
     const d = doc.data ?? {}

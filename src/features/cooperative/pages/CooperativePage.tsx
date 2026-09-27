@@ -48,7 +48,7 @@ export const CooperativePage = () => {
         ...(isTeacher ? [{ id: 'formatos', label: 'Formatos', icon: FileText, badge: observed }] : []),
         { id: 'socios', label: 'Socios', icon: Users },
         { id: 'calendario', label: 'Calendario', icon: CalendarClock },
-        ...(isReviewer ? [{ id: 'revision', label: independent ? 'Entregas' : 'Revisión', icon: ClipboardCheck, badge: pending }] : []),
+        ...(isReviewer ? [{ id: 'revision', label: 'Revisión', icon: ClipboardCheck, badge: pending }] : []),
         { id: 'configuracion', label: 'Configuración', icon: Settings },
     ]
     const doc = docId ? bundle.documents.find(d => d.id === docId) : null
@@ -89,11 +89,11 @@ export const CooperativePage = () => {
                         ))}
                     </nav>
                     {docId && !doc && <div className="mb-4"><WizardAlert tone="warning">No se encontró el formato solicitado.</WizardAlert></div>}
-                    {tab === 'resumen' && <SummaryTab bundle={bundle} isReviewer={isReviewer} isTeacher={isTeacher} onGo={t => go({ tab: t })} />}
-                    {tab === 'formatos' && isTeacher && <DocumentsTab bundle={bundle} onOpen={id => go({ doc: id })} onChanged={changed} />}
+                    {tab === 'resumen' && <SummaryTab bundle={bundle} isReviewer={isReviewer} isTeacher={isTeacher} independent={independent} onGo={t => go({ tab: t })} />}
+                    {tab === 'formatos' && isTeacher && <DocumentsTab bundle={bundle} independent={independent} onOpen={id => go({ doc: id })} onChanged={changed} />}
                     {tab === 'socios' && <PartnersTab bundle={bundle} onChanged={changed} />}
                     {tab === 'calendario' && <CalendarTab bundle={bundle} isReviewer={isReviewer && !isTeacher} onChanged={changed} />}
-                    {tab === 'revision' && isReviewer && <ReviewTab bundle={bundle} independent={independent} onOpen={id => go({ doc: id })} />}
+                    {tab === 'revision' && isReviewer && <ReviewTab bundle={bundle} onOpen={id => go({ doc: id })} />}
                     {tab === 'configuracion' && <SettingsTab bundle={bundle} onChanged={changed} />}
                 </>
             )}

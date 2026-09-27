@@ -17,8 +17,9 @@ $$;
 -- Quién revisa y valida la documentación de la cooperativa
 CREATE OR REPLACE FUNCTION public.coop_is_reviewer()
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public' AS $$
+    -- Solo en espacios de escuela: el docente independiente no escala su revisión.
     SELECT public.current_tenant_role() IN ('TECH_COORD', 'DIRECTOR', 'ADMIN', 'ACADEMIC_COORD')
-        OR EXISTS (SELECT 1 FROM tenants t WHERE t.id = public.get_current_tenant_id() AND t.type = 'INDEPENDENT')
+        AND NOT EXISTS (SELECT 1 FROM tenants t WHERE t.id = public.get_current_tenant_id() AND t.type = 'INDEPENDENT')
 $$;
 
 -- 1) Cooperativa (una por escuela)

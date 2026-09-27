@@ -13,7 +13,7 @@ const DOT: Record<DocStatus | 'NONE', string> = {
 }
 const SHORT: Record<DocStatus | 'NONE', string> = { NONE: '—', BORRADOR: 'B', ENVIADO: 'E', CON_OBSERVACIONES: 'O', APROBADO: '✓' }
 
-export const ReviewTab = ({ bundle, independent, onOpen }: { bundle: CoopBundleCtx; independent: boolean; onOpen: (id: string) => void }) => {
+export const ReviewTab = ({ bundle, onOpen }: { bundle: CoopBundleCtx; onOpen: (id: string) => void }) => {
     const { documents, units } = bundle
     const [status, setStatus] = useState<DocStatus | 'TODOS'>('ENVIADO')
     const list = documents.filter(d => d.status !== 'BORRADOR' && (status === 'TODOS' || d.status === status))
@@ -44,7 +44,7 @@ export const ReviewTab = ({ bundle, independent, onOpen }: { bundle: CoopBundleC
 
     return (
         <div className="space-y-4">
-            <Card title={independent ? 'Entregas al Área de Producción' : 'Bandeja de revisión'} icon={ClipboardCheck}>
+            <Card title="Bandeja de revisión" icon={ClipboardCheck}>
                 <div className="flex gap-1 overflow-x-auto mb-3">
                     {([['ENVIADO', `Por revisar (${counts.ENVIADO})`], ['CON_OBSERVACIONES', `Con observaciones (${counts.CON_OBSERVACIONES})`], ['APROBADO', `Aprobados (${counts.APROBADO})`], ['TODOS', 'Todos']] as const).map(([k, l]) => (
                         <button key={k} onClick={() => setStatus(k)} className={`shrink-0 px-3 py-2 rounded-xl text-xs font-black ${status === k ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}`}>{l}</button>

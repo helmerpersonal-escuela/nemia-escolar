@@ -5,11 +5,11 @@ import { useToast } from '../../../components/ui/Toast'
 import { DOC_TYPES, docHeadline, initialData, type CoopDocument, type DocType } from '../lib/types'
 import { deadlineStates, LEVEL_STYLE, levelText } from '../lib/deadlines'
 import type { CoopBundleCtx } from './shared'
-import { Btn, Card, StatusBadge } from './ui'
+import { Btn, Card, DocBadge } from './ui'
 
 const db = supabase as any
 
-export const DocumentsTab = ({ bundle, onOpen, onChanged }: { bundle: CoopBundleCtx; onOpen: (id: string) => void; onChanged: () => void }) => {
+export const DocumentsTab = ({ bundle, independent, onOpen, onChanged }: { bundle: CoopBundleCtx; independent: boolean; onOpen: (id: string) => void; onChanged: () => void }) => {
     const { ctx, documents, deadlines, myUnit } = bundle
     const { showToast } = useToast()
     const [creating, setCreating] = useState<DocType | null>(null)
@@ -59,7 +59,7 @@ export const DocumentsTab = ({ bundle, onOpen, onChanged }: { bundle: CoopBundle
                                                 <p className="text-sm font-bold text-slate-800 truncate">{docHeadline(d)}</p>
                                                 <p className="text-[11px] text-slate-400">Actualizado {new Date(d.updated_at).toLocaleDateString('es-MX')}</p>
                                             </div>
-                                            <StatusBadge status={d.status} />
+                                            <DocBadge doc={d} independent={independent} />
                                             <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
                                         </button>
                                     </li>

@@ -13,7 +13,7 @@ import {
     type AnnualData, type BudgetData, type CoopContext, type CoopDocument, type FundData, type FundRow, type MoneyRow, type PlanData, type PlanRow,
     type ProgressRow, type ReturnData, type ReturnRow, type SemesterData, type FinalRow,
 } from '../lib/types'
-import { Btn, Card, RowsEditor, StatusBadge, inputSm } from './ui'
+import { Btn, Card, DocBadge, RowsEditor, StatusBadge, inputSm } from './ui'
 
 const db = supabase as any
 const FIN = ['COOP ESC', 'ING. PROP.', 'OTRO']
@@ -31,7 +31,9 @@ interface Props {
 export const DocumentEditor = ({ doc, ctx, related, canReview, independent, onClose, onChanged }: Props) => {
     const { showToast } = useToast()
     const isOwner = doc.teacher_id === ctx.teacher.id
+    // Docente independiente: el formato es personal, siempre editable y sin revisión dentro de la app.
     const editable = isOwner && (doc.status === 'BORRADOR' || doc.status === 'CON_OBSERVACIONES')
+    const delivered = independent ? (doc.data?._deliveredAt as string | undefined) ?? null : null
     const [data, setData] = useState<any>(doc.data ?? {})
     const [dirty, setDirty] = useState(false)
     const [busy, setBusy] = useState<string | null>(null)
@@ -77,7 +79,20 @@ export const DocumentEditor = ({ doc, ctx, related, canReview, independent, onCl
         const { error } = await db.from('coop_documents').update({ status: 'ENVIADO', submitted_at: new Date().toISOString() }).eq('id', doc.id)
         setBusy(null)
         if (error) { showToast('No se pudo enviar: ' + error.message, 'error'); return }
-        showToast(independent ? 'Marcado como entregado al Área de Producción' : 'Enviado a revisión del Área de Producción', 'success')
+        showToast('Enviado a revisión del Área de Producción', 'success')
+        onChanged()
+    }
+
+    /** Independiente: marca personal de entrega (para el calendario), sin bloquear la edición. */
+    const toggleDelivered = async () => {
+        if (!delivered && validation) { showToast(validation, 'warning'); return }
+        const next = { ...data, _deliveredAt: delivered ? null : new Date().toISOString() }
+        setBusy('send')
+        const { error } = await db.from('coop_documents').update({ data: next, updated_at: new Date().toISOString() }).eq('id', doc.id)
+        setBusy(null)
+        if (error) { showToast('No se pudo guardar: ' + error.message, 'error'); return }
+        setData(next); setDirty(false)
+        showToast(delivered ? 'Marcado como en preparación' : 'Marcado como entregado', 'success')
         onChanged()
     }
 
@@ -101,7 +116,7 @@ export const DocumentEditor = ({ doc, ctx, related, canReview, independent, onCl
 
     const doExport = async (kind: 'pdf' | 'xlsx') => {
         setBusy(kind)
-        try { await exportModels([buildDocumentModel({ ...doc, data }, ctx)], kind) }
+        try { await exportModels([{ ...buildDocumentModel({ ...doc, data }, ctx), ...(independent ? { status: undefined } : {}) }], kind) }
         catch (e: any) { showToast('No se pudo generar el archivo: ' + (e?.message ?? e), 'error') }
         finally { setBusy(null) }
     }
@@ -122,7 +137,7 @@ export const DocumentEditor = ({ doc, ctx, related, canReview, independent, onCl
                     <button onClick={onClose} className="inline-flex items-center gap-1 text-sm font-bold text-slate-500 hover:text-slate-800 mb-2"><ArrowLeft className="w-4 h-4" /> Formatos</button>
                     <h2 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">{docLabel(doc.doc_type)}</h2>
                     <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-slate-500">
-                        <StatusBadge status={doc.status} />
+                        {independent ? <DocBadge doc={{ ...doc, data }} independent /> : <StatusBadge status={doc.status} />}
                         {doc.teacher?.full_name && <span>· {doc.teacher.full_name}</span>}
                         {dirty && <span className="text-amber-600 font-bold">· Cambios sin guardar</span>}
                     </div>
@@ -140,7 +155,14 @@ export const DocumentEditor = ({ doc, ctx, related, canReview, independent, onCl
                     {isOwner && <p className="mt-2 text-xs">Corrige lo indicado y vuelve a enviarlo.</p>}
                 </WizardAlert>
             )}
-            {doc.status === 'ENVIADO' && isOwner && <WizardAlert tone="info">{independent ? 'Entregado al Área de Producción. Registra el resultado cuando te lo devuelvan.' : 'En revisión por la Coordinación de Actividades Tecnológicas / Área de Producción. No se puede editar mientras tanto.'}</WizardAlert>}
+            {doc.status === 'ENVIADO' && isOwner && <WizardAlert tone="info">En revisión por la Coordinación de Actividades Tecnológicas / Área de Producción. No se puede editar mientras tanto.</WizardAlert>}
+            {independent && isOwner && (
+                <WizardAlert tone={delivered ? 'success' : 'info'}>
+                    {delivered
+                        ? `Marcado como entregado el ${new Date(delivered).toLocaleDateString('es-MX')}. Puedes seguir editándolo si te piden cambios.`
+                        : 'Espacio de docente independiente: este formato es tuyo. Descárgalo en PDF o Excel para entregarlo; la revisión no pasa por la app.'}
+                </WizardAlert>
+            )}
             {doc.status === 'APROBADO' && <WizardAlert tone="success">Formato aprobado{doc.reviewed_at ? ` el ${new Date(doc.reviewed_at).toLocaleDateString('es-MX')}` : ''}{reviewerName ? ` por ${reviewerName}` : ''}.</WizardAlert>}
 
             {/* Encabezado autocompletado */}
@@ -163,7 +185,7 @@ export const DocumentEditor = ({ doc, ctx, related, canReview, independent, onCl
 
             {/* Revisión */}
             {reviewPending && (
-                <Card title={independent ? 'Resultado del Área de Producción' : 'Revisión y validación'} icon={CheckCircle2}>
+                <Card title="Revisión y validación" icon={CheckCircle2}>
                     <WizardField label="Observaciones" hint="Obligatorias si lo devuelves con observaciones.">
                         <textarea className={`${wizardInput} min-h-[90px]`} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Ej. Ajustar el precio unitario del fertilizante; falta el cronograma de marzo." />
                     </WizardField>
@@ -174,7 +196,7 @@ export const DocumentEditor = ({ doc, ctx, related, canReview, independent, onCl
                 </Card>
             )}
 
-            {events.length > 0 && (
+            {!independent && events.length > 0 && (
                 <Card title="Historial" icon={History}>
                     <ol className="space-y-2">
                         {events.map((e, i) => (
@@ -196,7 +218,9 @@ export const DocumentEditor = ({ doc, ctx, related, canReview, independent, onCl
                         <Btn tone="danger" icon={Trash2} onClick={remove} className="px-3">{''}<span className="hidden sm:inline">Eliminar</span></Btn>
                         <div className="flex gap-2">
                             <Btn icon={Save} onClick={() => save()} disabled={!!busy || !dirty}>Guardar</Btn>
-                            <Btn tone="primary" icon={Send} onClick={submit} disabled={!!busy}>{independent ? 'Marcar entregado' : 'Enviar a revisión'}</Btn>
+                            {independent
+                                ? <Btn tone={delivered ? 'secondary' : 'success'} icon={CheckCircle2} onClick={toggleDelivered} disabled={!!busy}>{delivered ? 'Quitar entregado' : 'Marcar entregado'}</Btn>
+                                : <Btn tone="primary" icon={Send} onClick={submit} disabled={!!busy}>Enviar a revisión</Btn>}
                         </div>
                     </div>
                 </div>

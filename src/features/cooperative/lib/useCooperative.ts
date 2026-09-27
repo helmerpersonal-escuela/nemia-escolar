@@ -15,8 +15,9 @@ export function useCoopRole() {
         tenant,
         role,
         independent,
-        /** Revisa y valida (Coordinación de Actividades Tecnológicas / dirección). En modo independiente, el docente registra el resultado. */
-        isReviewer: REVIEWER_ROLES.includes(role) || independent,
+        /** Revisa y valida (Coordinación de Actividades Tecnológicas / dirección). Solo existe en espacios de escuela:
+         *  el docente independiente no escala su revisión, trabaja sus formatos como documentos personales. */
+        isReviewer: REVIEWER_ROLES.includes(role) && !independent,
         /** Llena formatos de su unidad de producción. */
         isTeacher: ['TEACHER', 'INDEPENDENT_TEACHER'].includes(role) || independent,
     }

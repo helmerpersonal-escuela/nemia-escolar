@@ -1,4 +1,4 @@
-import { daysUntil, type CoopDocument, type Deadline, type DocType } from './types'
+import { daysUntil, deliveredAt, type CoopDocument, type Deadline, type DocType } from './types'
 
 export interface DeadlineState {
     deadline: Deadline
@@ -12,7 +12,7 @@ export interface DeadlineState {
 export function deadlineStates(deadlines: Deadline[], documents: CoopDocument[], teacherId?: string): DeadlineState[] {
     return deadlines.map(d => {
         const docs = documents.filter(x => x.doc_type === d.doc_type && (!teacherId || x.teacher_id === teacherId))
-        const delivered = docs.some(x => x.status === 'ENVIADO' || x.status === 'APROBADO')
+        const delivered = docs.some(x => x.status === 'ENVIADO' || x.status === 'APROBADO' || !!deliveredAt(x))
         const days = daysUntil(d.due_date)
         const level: DeadlineState['level'] = delivered ? 'done' : days < 0 ? 'overdue' : days <= 15 ? 'soon' : 'ok'
         return { deadline: d, days, delivered, level }

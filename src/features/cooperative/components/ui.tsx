@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { wizardInput } from '../../../components/wizard/Wizard'
 import { DateInput } from '../../../components/ui/DateInput'
-import { STATUS_META, type DocStatus } from '../lib/types'
+import { STATUS_META, deliveredAt, type CoopDocument, type DocStatus } from '../lib/types'
 
 export const inputSm = wizardInput.replace('px-4 py-3', 'px-3 py-2.5')
 
@@ -11,6 +11,17 @@ export const StatusBadge = ({ status }: { status: DocStatus }) => (
         {STATUS_META[status]?.label ?? status}
     </span>
 )
+
+/** Estado para mostrar: en espacio independiente no hay revisión, solo "En preparación" / "Entregado". */
+export const DocBadge = ({ doc, independent }: { doc: CoopDocument; independent: boolean }) => {
+    if (!independent) return <StatusBadge status={doc.status} />
+    const done = !!deliveredAt(doc)
+    return (
+        <span className={`inline-flex items-center px-2.5 py-1 rounded-full border text-[11px] font-black whitespace-nowrap ${done ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+            {done ? 'Entregado' : 'En preparación'}
+        </span>
+    )
+}
 
 export const Card = ({ title, icon: Icon, action, children, className = '' }: { title?: ReactNode; icon?: any; action?: ReactNode; children: ReactNode; className?: string }) => (
     <section className={`bg-white rounded-3xl border border-slate-100 shadow-sm p-4 sm:p-6 ${className}`}>
