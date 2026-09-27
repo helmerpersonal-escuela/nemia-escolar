@@ -1,3 +1,4 @@
+import { AiUsagePanel } from '../components/AiUsagePanel'
 import { SpaceSubscriptionsPanel, PromoAndLicensesPanel } from '../components/BillingAdminPanel'
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -507,6 +508,7 @@ export const SuperAdminDashboard = () => {
                                     <button onClick={() => handleSaveGroup('ai')} disabled={isSaving} className="w-full py-3 bg-indigo-600 text-white rounded-xl font-black uppercase text-xs tracking-widest hover:bg-indigo-700 transition-all shadow-lg active:scale-95">Guardar Llaves de IA</button>
                                 </div>
                             </div>
+                            <AiUsagePanel />
                         </div>
                     )}
 

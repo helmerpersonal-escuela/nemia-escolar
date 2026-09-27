@@ -7,7 +7,9 @@ import { errorResponse, getAdminClient, HttpError, isSuperAdmin, requireUser } f
 const MAX_PROMPT_CHARS = 60_000
 const MAX_EMBED_INPUTS = 20
 const MAX_EMBED_CHARS = 30_000
-const DEFAULT_DAILY_LIMIT = 200
+// Un docente usa en promedio 5–12 solicitudes al día y hasta ~25 en días de planeación.
+const DEFAULT_DAILY_LIMIT = 30
+const DEFAULT_DAILY_CHARS = 250_000   // ~62 mil tokens de entrada al día
 
 const SYSTEM_PROMPT = 'Eres un experto pedagogo de la Nueva Escuela Mexicana (NEM). Responde en español.'
 
@@ -18,7 +20,7 @@ async function loadSettings(admin: ReturnType<typeof getAdminClient>): Promise<S
         .from('system_settings')
         .select('key, value')
         .in('key', ['gemini_key', 'groq_key', 'openai_key', 'preferred_provider',
-                    'gemini_model', 'groq_model', 'openai_model', 'ai_daily_limit'])
+                    'gemini_model', 'groq_model', 'openai_model', 'ai_daily_limit', 'ai_daily_char_limit'])
     const s: Settings = {}
     for (const row of data ?? []) s[row.key] = String(row.value ?? '').trim()
     // Los secretos de la función tienen prioridad sobre la base de datos
@@ -30,7 +32,8 @@ async function loadSettings(admin: ReturnType<typeof getAdminClient>): Promise<S
 
 async function callGemini(s: Settings, prompt: string, json: boolean): Promise<string> {
     if (!s.gemini_key) throw new Error('Gemini: llave no configurada')
-    const models = [s.gemini_model || 'gemini-2.5-flash', 'gemini-2.0-flash']
+    // gemini-2.0-flash se apagó el 1 de junio de 2026; el respaldo es 2.5 Flash-Lite (más barato)
+    const models = [s.gemini_model || 'gemini-2.5-flash', 'gemini-2.5-flash-lite']
     let lastErr = ''
     for (const model of [...new Set(models)]) {
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
@@ -123,14 +126,18 @@ Deno.serve(async (req) => {
         // --- Límite diario por usuario (controla costos) ---
         if (!(await isSuperAdmin(admin, user))) {
             const limit = parseInt(settings.ai_daily_limit || '') || DEFAULT_DAILY_LIMIT
+            const charLimit = parseInt(settings.ai_daily_char_limit || '') || DEFAULT_DAILY_CHARS
             const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-            const { count } = await admin
+            const { data: used } = await admin
                 .from('ai_usage')
-                .select('id', { count: 'exact', head: true })
+                .select('chars')
                 .eq('user_id', user.id)
                 .gte('created_at', since)
-            if ((count ?? 0) >= limit) {
-                throw new HttpError(429, `Llegaste al límite de ${limit} solicitudes de IA en 24 horas. Intenta más tarde.`)
+                .limit(1000)
+            const count = used?.length ?? 0
+            const chars = (used ?? []).reduce((n: number, r: { chars: number | null }) => n + (r.chars ?? 0), 0)
+            if (count >= limit || chars >= charLimit) {
+                throw new HttpError(429, `Llegaste al límite diario del asistente de IA (${limit} solicitudes). Se libera en unas horas; mientras tanto puedes seguir trabajando sin IA.`)
             }
         }
 
@@ -160,7 +167,8 @@ Deno.serve(async (req) => {
         }
 
         // Registro de uso (no bloquea la respuesta si falla)
-        await admin.from('ai_usage').insert({ user_id: user.id, action, provider, chars }).then(() => {}, () => {})
+        const outChars = typeof (payload as { text?: string }).text === 'string' ? (payload as { text: string }).text.length : 0
+        await admin.from('ai_usage').insert({ user_id: user.id, action, provider, chars, out_chars: outChars }).then(() => {}, () => {})
 
         return new Response(JSON.stringify(payload), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
