@@ -34,7 +34,7 @@ export const SettingsTab = ({ bundle, onChanged }: { bundle: CoopBundleCtx; onCh
         setSaving(true)
         const { error } = await db.from('cooperatives').update({
             name: form.name.trim(), registration_key: form.registration_key.trim().toUpperCase(), kind: form.kind,
-            membership_fee: num(form.membership_fee) || 5, certificate_value: num(form.certificate_value) || 5,
+            membership_fee: num(form.membership_fee), certificate_value: num(form.certificate_value),
             board: form.board, distribution: { social: num(form.distribution.social), repartible: num(form.distribution.repartible), reserva: num(form.distribution.reserva) },
             header_lines: headers.split('\n').map(l => l.trim()).filter(Boolean), updated_at: new Date().toISOString(),
         }).eq('id', c.id)
@@ -65,8 +65,8 @@ export const SettingsTab = ({ bundle, onChanged }: { bundle: CoopBundleCtx; onCh
                             <option value="PRODUCCION">Producción</option><option value="CONSUMO">Consumo</option><option value="PRODUCCION_CONSUMO">Producción y consumo</option>
                         </select>
                     </WizardField>
-                    <WizardField label="Aportación de nuevo socio ($)"><input className={inputSm} type="number" min="0" step="0.5" value={form.membership_fee} onChange={e => setForm({ ...form, membership_fee: Number(e.target.value) })} /></WizardField>
-                    <WizardField label="Valor del certificado ($)" hint="Se devuelve al egresar de 3er grado."><input className={inputSm} type="number" min="0" step="0.5" value={form.certificate_value} onChange={e => setForm({ ...form, certificate_value: Number(e.target.value) })} /></WizardField>
+                    <WizardField label="Aportación sugerida por socio ($)" hint="La decide el docente; también se puede cambiar al registrar a cada alumno."><input className={inputSm} type="number" min="0" step="0.5" value={form.membership_fee} onChange={e => setForm({ ...form, membership_fee: Number(e.target.value) })} /></WizardField>
+                    <WizardField label="Valor del certificado ($)" hint="Referencia. Al egresar se devuelve lo que aportó cada socio."><input className={inputSm} type="number" min="0" step="0.5" value={form.certificate_value} onChange={e => setForm({ ...form, certificate_value: Number(e.target.value) })} /></WizardField>
                 </div>
             </Card>
 

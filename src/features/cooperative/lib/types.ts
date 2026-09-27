@@ -198,7 +198,7 @@ export function initialData(type: DocType, ctx: CoopContext, related: CoopDocume
             return {
                 date: today(),
                 rows: ctx.partners.filter(p => p.status !== 'BAJA' && isThirdGrade(p.group_label)).map(p => ({
-                    partnerId: p.id, name: partnerName(p), group: p.group_label ?? '', certificates: p.certificates, value: Number(ctx.coop.certificate_value) || 5,
+                    partnerId: p.id, name: partnerName(p), group: p.group_label ?? '', certificates: p.certificates, value: round2(num(p.amount) / Math.max(1, p.certificates)),
                 })),
             } satisfies ReturnData
     }

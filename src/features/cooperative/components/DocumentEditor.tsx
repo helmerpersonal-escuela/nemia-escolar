@@ -402,7 +402,7 @@ function FormBody({ type, data, change, readOnly, ctx, onRefill }: { type: strin
             return (
                 <Card title="Socios de 3er grado que egresan" action={refillBtn}>
                     <Top>{date('date', 'Fecha')}</Top>
-                    <RowsEditor<ReturnRow> rows={d.rows ?? []} onChange={rows => change({ rows })} newRow={() => ({ name: '', group: '3°', certificates: 1, value: Number(ctx.coop.certificate_value) || 5 })} readOnly={readOnly} addLabel="Agregar socio"
+                    <RowsEditor<ReturnRow> rows={d.rows ?? []} onChange={rows => change({ rows })} newRow={() => ({ name: '', group: '3°', certificates: 1, value: ctx.coop.membership_fee == null ? 5 : num(ctx.coop.membership_fee) })} readOnly={readOnly} addLabel="Agregar socio"
                         title={(r, i) => `${i + 1}. ${r.name || 'Socio'}`}
                         fields={[{ key: 'name', label: 'Nombre', span: 3 }, { key: 'group', label: 'Grupo', span: 1 }, { key: 'certificates', label: 'Certificados', type: 'number', span: 1 }, { key: 'value', label: 'Valor ($)', type: 'number', span: 1 }]}
                         footer={(_, i) => <>Importe {money(t.lines[i] ?? 0)}</>} />

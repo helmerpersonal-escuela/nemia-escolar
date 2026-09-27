@@ -7,9 +7,11 @@ export interface CooperativeSetup {
     name: string
     registrationKey: string
     unitName: string
+    /** Aportación por socio que fija el docente (por defecto $5.00). */
+    fee: number | ''
 }
 
-export const emptyCooperative: CooperativeSetup = { hasCooperative: null, name: '', registrationKey: '', unitName: '' }
+export const emptyCooperative: CooperativeSetup = { hasCooperative: null, name: '', registrationKey: '', unitName: '', fee: 5 }
 
 export const cooperativeIsValid = (c: CooperativeSetup) =>
     c.hasCooperative === false || (c.hasCooperative === true && c.name.trim().length > 1 && c.registrationKey.trim().length > 1)
@@ -46,6 +48,10 @@ export const CooperativeFields = ({ value, onChange, showUnit = true }: { value:
                         <input className={wizardInput} value={value.registrationKey} onChange={e => set({ registrationKey: e.target.value.toUpperCase() })}
                             placeholder="Ej. CE-07-123" />
                     </WizardField>
+                    <WizardField label="Aportación por socio ($)" hint="Tú decides el monto; puedes cambiarlo después.">
+                        <input className={wizardInput} type="number" min="0" step="0.5" inputMode="decimal" value={value.fee ?? ''}
+                            onChange={e => set({ fee: e.target.value === '' ? '' : Number(e.target.value) })} />
+                    </WizardField>
                     {showUnit && <WizardField label="Tu taller / énfasis" hint="Opcional. Ej. Agricultura, Electricidad.">
                         <input className={wizardInput} value={value.unitName} onChange={e => set({ unitName: e.target.value })}
                             placeholder="Ej. Agricultura" />
@@ -64,7 +70,10 @@ export async function saveCooperativeSetup(tenantId: string, userId: string | nu
     if (!coop.hasCooperative) return null
     const { data: row, error } = await supabase
         .from('cooperatives' as any)
-        .upsert({ tenant_id: tenantId, name: coop.name.trim(), registration_key: coop.registrationKey.trim(), updated_at: new Date().toISOString() }, { onConflict: 'tenant_id' })
+        .upsert({
+            tenant_id: tenantId, name: coop.name.trim(), registration_key: coop.registrationKey.trim(), updated_at: new Date().toISOString(),
+            ...(coop.fee !== '' && coop.fee != null && Number(coop.fee) >= 0 ? { membership_fee: Number(coop.fee), certificate_value: Number(coop.fee) } : {}),
+        }, { onConflict: 'tenant_id' })
         .select('id')
         .single()
     if (error) throw error

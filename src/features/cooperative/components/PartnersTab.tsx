@@ -19,8 +19,9 @@ export const PartnersTab = ({ bundle, onChanged }: { bundle: CoopBundleCtx; onCh
     const [filter, setFilter] = useState<'NUEVOS' | 'ACTIVO' | 'DEVUELTO' | 'TODOS'>('NUEVOS')
     const [adding, setAdding] = useState(false)
     const [busy, setBusy] = useState(false)
+    const [editing, setEditing] = useState<{ id: string; value: string } | null>(null)
 
-    const fee = num(ctx.coop.membership_fee) || 5
+    const fee = ctx.coop.membership_fee == null ? 5 : num(ctx.coop.membership_fee)
     const current = partners.filter(p => p.academic_year_id === ctx.cycle.id)
     const active = partners.filter(p => p.status === 'ACTIVO')
     const capital = active.reduce((s, p) => s + num(p.amount), 0)
@@ -49,10 +50,17 @@ export const PartnersTab = ({ bundle, onChanged }: { bundle: CoopBundleCtx; onCh
         return buildConstanciaModel(current, active.length, ctx, [...byUnit.values()])
     }
 
-    const markReturned = async (id: string, certificates: number) => {
-        const { error } = await db.from('coop_partners').update({ status: 'DEVUELTO', returned_at: new Date().toISOString().slice(0, 10), returned_amount: certificates * (num(ctx.coop.certificate_value) || 5) }).eq('id', id)
+    const markReturned = async (id: string, amount: number) => {
+        const { error } = await db.from('coop_partners').update({ status: 'DEVUELTO', returned_at: new Date().toISOString().slice(0, 10), returned_amount: amount }).eq('id', id)
         if (error) return showToast('No se pudo actualizar: ' + error.message, 'error')
         showToast('Certificado marcado como devuelto', 'success'); onChanged()
+    }
+    const editAmount = async (id: string, value: string) => {
+        const v = Number(value)
+        if (value === '' || !Number.isFinite(v) || v < 0) return showToast('Escribe un monto válido.', 'warning')
+        const { error } = await db.from('coop_partners').update({ amount: v }).eq('id', id)
+        if (error) return showToast('No se pudo actualizar: ' + error.message, 'error')
+        setEditing(null); showToast('Aportación actualizada', 'success'); onChanged()
     }
     const undo = async (id: string) => {
         const { error } = await db.from('coop_partners').update({ status: 'ACTIVO', returned_at: null, returned_amount: null }).eq('id', id)
@@ -63,7 +71,7 @@ export const PartnersTab = ({ bundle, onChanged }: { bundle: CoopBundleCtx; onCh
         const ids = active.filter(p => isThirdGrade(p.group_label))
         if (!ids.length) return showToast('No hay socios activos de 3er grado.', 'info')
         if (!confirm(`¿Marcar como devueltos los certificados de ${ids.length} socio(s) de 3er grado?`)) return
-        for (const p of ids) await markReturned(p.id, p.certificates)
+        for (const p of ids) await markReturned(p.id, num(p.amount))
     }
 
     return (
@@ -71,7 +79,7 @@ export const PartnersTab = ({ bundle, onChanged }: { bundle: CoopBundleCtx; onCh
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 <Kpi label="Socios activos" value={active.length} tone="indigo" />
                 <Kpi label={`Nuevos en ${ctx.cycle.name || 'el ciclo'}`} value={current.length} />
-                <Kpi label="Capital social" value={money(capital)} tone="emerald" hint={`Aportación: ${money(fee)} por socio`} />
+                <Kpi label="Capital social" value={money(capital)} tone="emerald" hint={`Aportación sugerida: ${money(fee)} (ajustable)`} />
                 <Kpi label="Certificados devueltos" value={returned.length} tone="amber" />
             </div>
 
@@ -89,15 +97,18 @@ export const PartnersTab = ({ bundle, onChanged }: { bundle: CoopBundleCtx; onCh
                 </div>
 
                 {list.length === 0 ? (
-                    <Empty icon={Users} title="Sin socios en esta vista" text={`Registra a los alumnos de nuevo ingreso con su aportación de ${money(fee)}. Cada registro genera su recibo digital.`} />
+                    <Empty icon={Users} title="Sin socios en esta vista" text="Registra a los alumnos de nuevo ingreso con la aportación que tú definas. Cada registro genera su recibo digital." />
                 ) : (
                     <ul className="divide-y divide-slate-100">
                         {list.map(p => (
-                            <li key={p.id} className="py-2.5 flex items-center gap-3">
+                            <li key={p.id} className="py-2.5 flex flex-wrap items-center gap-x-3 gap-y-2">
                                 <span className="w-12 shrink-0 text-xs font-black text-slate-400">#{String(p.folio).padStart(4, '0')}</span>
                                 <div className="min-w-0 flex-1">
                                     <p className="text-sm font-bold text-slate-800 truncate">{partnerName(p)}</p>
-                                    <p className="text-xs text-slate-500">{p.group_label || 'Sin grupo'} · {money(num(p.amount))} · {new Date(`${p.joined_at}T00:00:00`).toLocaleDateString('es-MX')}
+                                    <p className="text-xs text-slate-500">{p.group_label || 'Sin grupo'} · {editing?.id === p.id ? <b className="text-indigo-700">Editando…</b> : (
+                                        <button title="Cambiar aportación" disabled={p.status !== 'ACTIVO'} onClick={() => setEditing({ id: p.id, value: String(num(p.amount)) })}
+                                            className="underline decoration-dotted underline-offset-2 hover:text-indigo-700 disabled:no-underline">{money(num(p.amount))}</button>
+                                    )} · {new Date(`${p.joined_at}T00:00:00`).toLocaleDateString('es-MX')}
                                         {p.status === 'DEVUELTO' && <span className="text-amber-700 font-bold"> · Devuelto {p.returned_amount != null ? money(num(p.returned_amount)) : ''}</span>}
                                         {p.status === 'BAJA' && <span className="text-rose-600 font-bold"> · Baja</span>}
                                     </p>
@@ -105,9 +116,20 @@ export const PartnersTab = ({ bundle, onChanged }: { bundle: CoopBundleCtx; onCh
                                 <div className="flex items-center gap-1 shrink-0">
                                     <button title="Recibo digital" aria-label="Recibo digital" disabled={busy} onClick={() => run(() => exportModels([buildReceiptModel(p, ctx)], 'pdf'))} className="p-2 rounded-xl text-indigo-600 hover:bg-indigo-50"><Receipt className="w-4 h-4" /></button>
                                     {p.status === 'ACTIVO'
-                                        ? <button title="Devolver certificado" aria-label="Devolver certificado" onClick={() => markReturned(p.id, p.certificates)} className="p-2 rounded-xl text-amber-600 hover:bg-amber-50"><Undo2 className="w-4 h-4" /></button>
+                                        ? <button title="Devolver certificado" aria-label="Devolver certificado" onClick={() => markReturned(p.id, num(p.amount))} className="p-2 rounded-xl text-amber-600 hover:bg-amber-50"><Undo2 className="w-4 h-4" /></button>
                                         : <button title="Reactivar" aria-label="Reactivar" onClick={() => undo(p.id)} className="p-2 rounded-xl text-slate-400 hover:bg-slate-100"><Undo2 className="w-4 h-4 -scale-x-100" /></button>}
                                 </div>
+                                {editing?.id === p.id && (
+                                    <div className="w-full pl-[3.75rem] flex flex-wrap items-center gap-2">
+                                        <label className="text-xs font-black text-slate-500" htmlFor={`fee-${p.id}`}>Aportación ($)</label>
+                                        <input id={`fee-${p.id}`} autoFocus type="number" min="0" step="0.5" inputMode="decimal" value={editing.value}
+                                            onChange={e => setEditing({ id: p.id, value: e.target.value })}
+                                            onKeyDown={e => { if (e.key === 'Enter') editAmount(p.id, editing.value); if (e.key === 'Escape') setEditing(null) }}
+                                            className="w-24 px-3 py-2 rounded-xl border border-indigo-300 text-sm font-bold text-slate-800" />
+                                        <Btn tone="primary" className="px-3 py-2" onClick={() => editAmount(p.id, editing.value)}>Guardar</Btn>
+                                        <Btn tone="ghost" className="px-3 py-2" onClick={() => setEditing(null)}>Cancelar</Btn>
+                                    </div>
+                                )}
                             </li>
                         ))}
                     </ul>
@@ -164,7 +186,7 @@ const AddPartners = ({ bundle, fee, onClose, onSaved }: { bundle: CoopBundleCtx;
         setSaving(true)
         const rows = students.filter((s: any) => selected.has(s.id)).map((s: any) => ({
             tenant_id: ctx.coop.tenant_id, cooperative_id: ctx.coop.id, student_id: s.id, academic_year_id: ctx.cycle.id,
-            group_label: s.group_label || null, amount: num(amount) || fee, certificates: 1, joined_at: date,
+            group_label: s.group_label || null, amount: amount === '' ? fee : num(amount), certificates: 1, joined_at: date,
         }))
         const { data, error } = await db.from('coop_partners').insert(rows).select('*, student:students(first_name, last_name_paternal, last_name_maternal, group_id)')
         setSaving(false)
@@ -184,14 +206,14 @@ const AddPartners = ({ bundle, fee, onClose, onSaved }: { bundle: CoopBundleCtx;
                 <div className="p-4 sm:p-6 border-b border-slate-100 flex items-start justify-between gap-3">
                     <div>
                         <h3 className="text-lg font-black text-slate-900">Registrar nuevos socios</h3>
-                        <p className="text-sm text-slate-500">Cada alumno aporta {money(fee)}. Se asigna folio y recibo digital automáticamente.</p>
+                        <p className="text-sm text-slate-500">Tú defines la aportación (sugerida: {money(fee)}). Se asigna folio y recibo digital automáticamente.</p>
                     </div>
                     <button onClick={onClose} aria-label="Cerrar" className="p-2 rounded-xl hover:bg-slate-100"><X className="w-5 h-5" /></button>
                 </div>
                 <div className="p-4 sm:p-6 space-y-3 overflow-y-auto">
                     <div className="grid grid-cols-1 min-[420px]:grid-cols-3 gap-3">
                         <WizardField label="Fecha de aportación"><DateInput className={inputSm} value={date} onChange={e => setDate(e.target.value)} /></WizardField>
-                        <WizardField label="Aportación ($)"><input className={inputSm} type="number" min="0" step="0.5" value={amount} onChange={e => setAmount(e.target.value === '' ? '' : Number(e.target.value))} /></WizardField>
+                        <WizardField label="Aportación por alumno ($)"><input className={inputSm} type="number" min="0" step="0.5" value={amount} onChange={e => setAmount(e.target.value === '' ? '' : Number(e.target.value))} /></WizardField>
                         <WizardField label="Grupo">
                             <select className={inputSm} value={group} onChange={e => setGroup(e.target.value)}>
                                 <option value="">Todos</option>{groups.map(g => <option key={g}>{g}</option>)}
@@ -225,7 +247,7 @@ const AddPartners = ({ bundle, fee, onClose, onSaved }: { bundle: CoopBundleCtx;
                     </label>
                 </div>
                 <div className="p-4 sm:p-6 border-t border-slate-100 flex items-center justify-between gap-2 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-                    <span className="text-sm font-black text-slate-700">Total: {money(selected.size * (num(amount) || fee))}</span>
+                    <span className="text-sm font-black text-slate-700">Total: {money(selected.size * (amount === '' ? fee : num(amount)))}</span>
                     <Btn tone="primary" icon={UserPlus} disabled={!selected.size || saving} onClick={save}>{saving ? 'Guardando…' : `Registrar ${selected.size || ''}`}</Btn>
                 </div>
             </div>
