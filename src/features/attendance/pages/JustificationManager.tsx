@@ -13,6 +13,7 @@ import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
 import { useProfile } from '../../../hooks/useProfile'
 import { todayISO } from '../../../lib/dates'
+import { DateInput } from '../../../components/ui/DateInput'
 
 interface StaffRecord {
     id: string
@@ -120,8 +121,7 @@ export const JustificationManager = () => {
                 </div>
                 <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
                     <Calendar className="w-5 h-5 text-slate-500 ml-2" />
-                    <input
-                        type="date"
+                    <DateInput hideIcon
                         value={selectedDate}
                         onChange={(e) => setSelectedDate(e.target.value)}
                         className="border-none focus:ring-0 text-sm font-bold text-slate-700 outline-none pr-4"

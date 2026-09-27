@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { X, Save, Calendar, Clock, Bell, Users } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { todayISO } from '../../../lib/dates'
+import { DateInput } from '../../../components/ui/DateInput'
 
 type EventModalProps = {
     isOpen: boolean
@@ -184,8 +185,7 @@ export const EventModal = ({
                                 <label className="block text-[11px] font-black uppercase tracking-widest text-gray-500 mb-2">Fecha</label>
                                 <div className="relative">
                                     <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                                    <input aria-label="Fecha"
-                                        type="date"
+                                    <DateInput hideIcon aria-label="Fecha"
                                         required
                                         value={formData.date}
                                         onChange={e => setFormData({ ...formData, date: e.target.value })}

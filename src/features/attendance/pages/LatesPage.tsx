@@ -12,6 +12,7 @@ import {
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
 import { todayISO } from '../../../lib/dates'
+import { DateInput } from '../../../components/ui/DateInput'
 
 interface LateRecord {
     id: string
@@ -77,8 +78,7 @@ export const LatesPage = () => {
                     <p className="text-slate-500 font-bold text-sm uppercase tracking-widest mt-1">Monitoreo de Puntualidad Estudiantil</p>
                 </div>
                 <div className="flex gap-3 w-full sm:w-auto">
-                    <input
-                        type="date"
+                    <DateInput
                         value={filterDate}
                         onChange={(e) => setFilterDate(e.target.value)}
                         className="flex-1 sm:flex-none px-4 py-2 bg-white border-2 border-slate-100 rounded-xl font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"

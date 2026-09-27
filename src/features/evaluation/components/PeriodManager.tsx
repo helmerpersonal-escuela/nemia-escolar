@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { Plus, Trash2, Calendar, AlertCircle, Edit2 } from 'lucide-react'
 import { useTenant } from '../../../hooks/useTenant'
+import { DateInput } from '../../../components/ui/DateInput'
 
 interface Period {
     id: string
@@ -173,8 +174,7 @@ export const PeriodManager = ({ onSelectPeriod, selectedPeriodId, readOnly = fal
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Inicio</label>
-                            <input aria-label="Inicio"
-                                type="date"
+                            <DateInput aria-label="Inicio"
                                 className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 value={editingPeriod ? editingPeriod.start_date : newPeriod.start_date}
                                 onChange={e => {
@@ -187,8 +187,7 @@ export const PeriodManager = ({ onSelectPeriod, selectedPeriodId, readOnly = fal
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Fin</label>
-                            <input aria-label="Fin"
-                                type="date"
+                            <DateInput aria-label="Fin"
                                 className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 value={editingPeriod ? editingPeriod.end_date : newPeriod.end_date}
                                 onChange={e => {

@@ -6,6 +6,7 @@ import {
 import { geminiService } from '../../../lib/gemini'
 import { supabase } from '../../../lib/supabase'
 import { todayISO } from '../../../lib/dates'
+import { DateInput } from '../../../components/ui/DateInput'
 
 interface ClassPlanGeneratorModalProps {
     isOpen: boolean
@@ -343,8 +344,7 @@ export const ClassPlanGeneratorModal: React.FC<ClassPlanGeneratorModalProps> = (
                                         <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Fecha de la Clase</label>
                                         <div className="relative">
                                             <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                                            <input aria-label="Fecha de la Clase"
-                                                type="date"
+                                            <DateInput aria-label="Fecha de la Clase"
                                                 value={classDate}
                                                 onChange={(e) => setClassDate(e.target.value)}
                                                 className="input-squishy pl-12 py-4 w-full"

@@ -48,6 +48,7 @@ import { GeminiService } from '../../../lib/gemini'
 import { useMemo } from 'react'
 import { ClassPlanGeneratorModal } from '../components/ClassPlanGeneratorModal'
 import { ClassPlanList } from '../components/ClassPlanList'
+import { DateInput } from '../../../components/ui/DateInput'
 
 /** Fecha de hoy (AAAA-MM-DD) en la hora local del dispositivo, no en UTC. */
 const localDateISO = () => {
@@ -524,8 +525,7 @@ export const GradebookPage = () => {
                                         <span className="text-xs font-black text-indigo-700 uppercase tracking-tight">
                                             {new Date(`${attendanceDate}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}
                                         </span>
-                                        <input
-                                            type="date"
+                                        <DateInput
                                             aria-label="Fecha de la asistencia"
                                             value={attendanceDate}
                                             onChange={(e) => setAttendanceDate(e.target.value)}

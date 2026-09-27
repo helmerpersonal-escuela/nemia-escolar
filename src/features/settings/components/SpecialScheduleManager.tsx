@@ -3,6 +3,7 @@ import { supabase } from '../../../lib/supabase'
 import { Trash2, Calendar as CalendarIcon, Sparkles, Clock } from 'lucide-react'
 import { useTenant } from '../../../hooks/useTenant'
 import { todayISO } from '../../../lib/dates'
+import { DateInput } from '../../../components/ui/DateInput'
 
 export const SpecialScheduleManager = () => {
     const { data: tenant } = useTenant()
@@ -165,8 +166,7 @@ export const SpecialScheduleManager = () => {
                         </div>
                         <div>
                             <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-2 ml-1">Fecha</label>
-                            <input aria-label="Fecha"
-                                type="date"
+                            <DateInput aria-label="Fecha"
                                 value={formData.target_date}
                                 onChange={e => setFormData({ ...formData, target_date: e.target.value })}
                                 className="w-full px-5 py-4 bg-white border border-transparent rounded-[1.25rem] text-sm font-bold text-gray-900 focus:ring-4 focus:ring-indigo-100 outline-none shadow-sm transition-all"

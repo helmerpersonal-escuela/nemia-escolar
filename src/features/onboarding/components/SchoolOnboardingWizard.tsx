@@ -18,6 +18,9 @@ import {
     Facebook,
     Twitter
 } from 'lucide-react'
+import { DateInput } from '../../../components/ui/DateInput'
+import { OfficialCycleNote, type CycleSource } from '../../../components/academic/OfficialCycleNote'
+import { useOfficialCycle, cycleNameFromDates } from '../../../lib/officialCalendar'
 
 export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void }) => {
     const navigate = useNavigate()
@@ -65,8 +68,10 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
             educational_level: 'SECONDARY',
             curriculum_plan: 'PLAN 2022 (NEM)',
             workshops: [] as string[],
-            current_cycle_start: '2025-08-25',
-            current_cycle_end: '2026-07-15',
+            current_cycle_name: cycleNameFromDates('2026-08-31', '2027-07-09'),
+            current_cycle_start: '2026-08-31',
+            current_cycle_end: '2027-07-09',
+            cycle_source: 'estimado' as CycleSource,
 
             // 5. Auth & Logos
             director_name: '',
@@ -78,6 +83,18 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
     })
 
     const [newWorkshop, setNewWorkshop] = useState('')
+
+    // Con conexión: nombre, inicio y fin del ciclo desde el calendario oficial de la SEP
+    // (si el usuario no los ha cambiado). Se pueden editar.
+    const { data: officialCycle, isLoading: officialLoading } = useOfficialCycle()
+    const applyOfficialCycle = () => {
+        if (!officialCycle) return
+        setFormData((prev: any) => ({ ...prev, current_cycle_name: officialCycle.name, current_cycle_start: officialCycle.startDate, current_cycle_end: officialCycle.endDate, cycle_source: 'oficial' }))
+    }
+    useEffect(() => {
+        if (officialCycle && (formData.cycle_source ?? 'estimado') === 'estimado') applyOfficialCycle()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [officialCycle])
     const [searchParams] = useSearchParams()
 
     // NEW: Sync persistence
@@ -158,8 +175,9 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
         setError(null)
         try {
             // 1. Save to school_details
-            // Exclude current_cycle_start and current_cycle_end as they are not in the schema yet
-            const { current_cycle_start, current_cycle_end, ...schoolData } = formData
+            // El ciclo no va en school_details: se guarda como ciclo escolar activo (academic_years).
+            const { current_cycle_start, current_cycle_end, current_cycle_name, cycle_source, ...schoolData } = formData
+            void cycle_source
 
             const { error: schoolError } = await supabase
                 .from('school_details')
@@ -172,6 +190,27 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                 })
 
             if (schoolError) throw schoolError
+
+            // 1b. Ciclo escolar activo (antes las fechas de este paso se descartaban)
+            if (current_cycle_start && current_cycle_end && tenant?.id) {
+                const { data: activeYear } = await supabase
+                    .from('academic_years')
+                    .select('id')
+                    .eq('tenant_id', tenant.id)
+                    .eq('is_active', true)
+                    .maybeSingle()
+                const yearRow = {
+                    tenant_id: tenant.id,
+                    name: (current_cycle_name || cycleNameFromDates(current_cycle_start, current_cycle_end)).toUpperCase(),
+                    start_date: current_cycle_start,
+                    end_date: current_cycle_end,
+                    is_active: true,
+                }
+                const { error: yearError } = activeYear
+                    ? await supabase.from('academic_years').update(yearRow).eq('id', activeYear.id)
+                    : await supabase.from('academic_years').insert(yearRow)
+                if (yearError) throw yearError
+            }
 
             // 2. Mark onboarding as completed in tenants
             const { error: tenantError } = await supabase
@@ -478,16 +517,18 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                                         />
                                         <div className="space-y-4">
                                             <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Ciclo Escolar Actual</label>
+                                            <input aria-label="Nombre del ciclo escolar" value={formData.current_cycle_name} onChange={e => setFormData({ ...formData, current_cycle_name: e.target.value.toUpperCase(), cycle_source: 'manual' })} placeholder="CICLO 2026-2027" className="w-full p-4 rounded-2xl border-2 border-slate-100 font-bold text-slate-700" />
                                             <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-4">
                                                 <div className="space-y-1">
                                                     <span className="text-[11px] font-bold text-slate-500 ml-1">INICIO</span>
-                                                    <input aria-label="Ciclo Escolar Actual" type="date" value={formData.current_cycle_start} onChange={e => setFormData({ ...formData, current_cycle_start: e.target.value })} className="w-full p-4 rounded-2xl border-2 border-slate-100 font-bold text-slate-700" />
+                                                    <DateInput aria-label="Inicio del ciclo escolar" value={formData.current_cycle_start} onChange={e => setFormData({ ...formData, current_cycle_start: e.target.value, cycle_source: 'manual' })} className="w-full p-4 rounded-2xl border-2 border-slate-100 font-bold text-slate-700" />
                                                 </div>
                                                 <div className="space-y-1">
                                                     <span className="text-[11px] font-bold text-slate-500 ml-1">FIN</span>
-                                                    <input type="date" value={formData.current_cycle_end} onChange={e => setFormData({ ...formData, current_cycle_end: e.target.value })} className="w-full p-4 rounded-2xl border-2 border-slate-100 font-bold text-slate-700" />
+                                                    <DateInput aria-label="Fin del ciclo escolar" value={formData.current_cycle_end} onChange={e => setFormData({ ...formData, current_cycle_end: e.target.value, cycle_source: 'manual' })} className="w-full p-4 rounded-2xl border-2 border-slate-100 font-bold text-slate-700" />
                                                 </div>
                                             </div>
+                                            <OfficialCycleNote source={formData.cycle_source ?? 'estimado'} official={officialCycle} loading={officialLoading} onUseOfficial={applyOfficialCycle} />
                                         </div>
                                         <div className="space-y-4">
                                             <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Tecnologías / Talleres</label>

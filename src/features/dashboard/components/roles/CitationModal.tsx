@@ -3,6 +3,7 @@ import { X, Search, ChevronRight, AlertCircle, Calendar, Clock, Loader2 } from '
 import { supabase } from '../../../../lib/supabase'
 import { useTenant } from '../../../../hooks/useTenant'
 import { todayISO } from '../../../../lib/dates'
+import { DateInput } from '../../../../components/ui/DateInput'
 
 interface CitationModalProps {
     isOpen: boolean
@@ -159,8 +160,7 @@ export const CitationModal = ({ isOpen, onClose, onSuccess }: CitationModalProps
                                     <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Fecha de la Cita</label>
                                     <div className="relative">
                                         <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                                        <input aria-label="Fecha de la Cita"
-                                            type="date"
+                                        <DateInput hideIcon aria-label="Fecha de la Cita"
                                             value={formData.meeting_date}
                                             onChange={(e) => setFormData({ ...formData, meeting_date: e.target.value })}
                                             className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"

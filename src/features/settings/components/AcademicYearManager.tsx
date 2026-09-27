@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { Plus, Trash2, Calendar, AlertCircle, CheckCircle2, Clock } from 'lucide-react'
 import { useTenant } from '../../../hooks/useTenant'
+import { DateInput } from '../../../components/ui/DateInput'
+import { OfficialCycleNote, type CycleSource } from '../../../components/academic/OfficialCycleNote'
+import { useOfficialCycle } from '../../../lib/officialCalendar'
 
 interface AcademicYear {
     id: string
@@ -22,6 +25,22 @@ export const AcademicYearManager = ({ readOnly = false }: { readOnly?: boolean }
         end_date: ''
     })
     const [error, setError] = useState<string | null>(null)
+
+    // Prellenado con el calendario oficial de la SEP (con conexión); se puede editar.
+    const { data: officialCycle, isLoading: officialLoading } = useOfficialCycle()
+    const [cycleSource, setCycleSource] = useState<CycleSource>('estimado')
+    const officialAlreadyRegistered = !!officialCycle && years.some(y => y.start_date === officialCycle.startDate && y.end_date === officialCycle.endDate)
+    const applyOfficialCycle = () => {
+        if (!officialCycle) return
+        setNewYear(prev => ({ ...prev, name: officialCycle.name, start_date: officialCycle.startDate, end_date: officialCycle.endDate }))
+        setCycleSource('oficial')
+    }
+    useEffect(() => {
+        if ((isCreating || years.length === 0) && officialCycle && !officialAlreadyRegistered && !newYear.name && !newYear.start_date && !newYear.end_date) {
+            applyOfficialCycle()
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isCreating, years.length, officialCycle])
 
     useEffect(() => {
         if (tenant) fetchYears()
@@ -72,6 +91,7 @@ export const AcademicYearManager = ({ readOnly = false }: { readOnly?: boolean }
             setYears([data, ...years])
             setIsCreating(false)
             setNewYear({ name: '', start_date: '', end_date: '' })
+            setCycleSource('estimado')
         } catch (err: any) {
             setError(err.message)
         }
@@ -157,32 +177,33 @@ export const AcademicYearManager = ({ readOnly = false }: { readOnly?: boolean }
                             placeholder="Ej. Ciclo Escolar 2024-2025"
                             className="w-full px-4 py-3 bg-white border border-transparent rounded-xl text-sm font-bold text-gray-900 focus:ring-4 focus:ring-blue-100 outline-none"
                             value={newYear.name}
-                            onChange={e => setNewYear(prev => ({ ...prev, name: e.target.value }))}
+                            onChange={e => { setNewYear(prev => ({ ...prev, name: e.target.value })); setCycleSource('manual') }}
                             required
                         />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Inicio</label>
-                            <input aria-label="Inicio"
-                                type="date"
+                            <DateInput aria-label="Inicio"
                                 className="w-full px-4 py-3 bg-white border border-transparent rounded-xl text-sm font-bold text-gray-900 focus:ring-4 focus:ring-blue-100 outline-none"
                                 value={newYear.start_date}
-                                onChange={e => setNewYear(prev => ({ ...prev, start_date: e.target.value }))}
+                                onChange={e => { setNewYear(prev => ({ ...prev, start_date: e.target.value })); setCycleSource('manual') }}
                                 required
                             />
                         </div>
                         <div>
                             <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Fin</label>
-                            <input aria-label="Fin"
-                                type="date"
+                            <DateInput aria-label="Fin"
                                 className="w-full px-4 py-3 bg-white border border-transparent rounded-xl text-sm font-bold text-gray-900 focus:ring-4 focus:ring-blue-100 outline-none"
                                 value={newYear.end_date}
-                                onChange={e => setNewYear(prev => ({ ...prev, end_date: e.target.value }))}
+                                onChange={e => { setNewYear(prev => ({ ...prev, end_date: e.target.value })); setCycleSource('manual') }}
                                 required
                             />
                         </div>
                     </div>
+                    {(cycleSource !== 'estimado' || !officialAlreadyRegistered) && (
+                        <OfficialCycleNote source={cycleSource} official={officialAlreadyRegistered ? null : officialCycle} loading={officialLoading} onUseOfficial={applyOfficialCycle} />
+                    )}
                     {error && (
                         <div className="text-red-500 text-xs font-bold flex items-center bg-red-50 p-3 rounded-xl">
                             <AlertCircle className="w-4 h-4 mr-2" />

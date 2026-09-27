@@ -16,6 +16,7 @@ import {
     Loader2
 } from 'lucide-react'
 import { useProfile } from '../../../hooks/useProfile'
+import { DateInput } from '../../../components/ui/DateInput'
 
 const AVATARS = [
     { id: 'av1', color: 'bg-blue-500', icon: User },
@@ -148,8 +149,7 @@ export const ProfileSetupWizard = ({ onComplete }: { onComplete: () => void }) =
                                     <label className="text-[11px] font-black text-slate-500 uppercase ml-1">Fecha de Nacimiento</label>
                                     <div className="relative">
                                         <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5 pointer-events-none" />
-                                        <input aria-label="Fecha de Nacimiento"
-                                            type="date"
+                                        <DateInput hideIcon aria-label="Fecha de Nacimiento"
                                             value={formData.birth_date}
                                             onChange={e => setFormData({ ...formData, birth_date: e.target.value })}
                                             className="w-full pl-12 pr-5 py-4 bg-slate-50 border-none rounded-2xl focus:ring-4 focus:ring-blue-100 transition-all font-bold text-slate-700"

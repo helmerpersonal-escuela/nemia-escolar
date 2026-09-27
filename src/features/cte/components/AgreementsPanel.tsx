@@ -6,6 +6,7 @@ import {
     AGREEMENT_STATUS_LABEL, sessionLabel, todayISO,
     type AgreementStatus, type CteAgreement, type CteSession, type StaffMember,
 } from '../lib/cteApi'
+import { DateInput } from '../../../components/ui/DateInput'
 
 const STATUS_CLS: Record<AgreementStatus, string> = {
     PENDIENTE: 'bg-amber-50 text-amber-700',
@@ -101,7 +102,7 @@ export const AgreementsPanel = ({ tenantId, sessions, staff, defaultSessionId }:
                     <datalist id="cte-agreement-staff">
                         {['Dirección', 'Coordinación académica', 'Colectivo docente', ...staff.map(s => s.name)].map(n => <option key={n} value={n} />)}
                     </datalist>
-                    <input type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} className="border border-slate-200 rounded-xl px-3 py-2 text-sm" aria-label="Fecha compromiso" />
+                    <DateInput value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} className="border border-slate-200 rounded-xl px-3 py-2 text-sm" aria-label="Fecha compromiso" />
                     <select value={form.session_id} onChange={e => setForm(f => ({ ...f, session_id: e.target.value }))} className="border border-slate-200 rounded-xl px-3 py-2 text-sm" aria-label="Sesión">
                         <option value="">Sin sesión</option>
                         {sessions.map(s => <option key={s.id} value={s.id}>{sessionLabel(s)}</option>)}

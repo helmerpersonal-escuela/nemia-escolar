@@ -6,6 +6,7 @@ import {
     CTE_PORTAL_URL, publishAgenda, sessionLabel,
     type AgendaItem, type CteSession, type StaffMember,
 } from '../lib/cteApi'
+import { DateInput } from '../../../components/ui/DateInput'
 
 const STATUS_BADGE: Record<CteSession['status'], { label: string; cls: string }> = {
     PLANNED: { label: 'Por preparar', cls: 'bg-amber-50 text-amber-700' },
@@ -115,7 +116,7 @@ export const SessionsPanel = ({ sessions, loading, selectedId, onSelect, onChang
                     </button>
                 ))}
                 <div className="pt-3 border-t border-slate-100 flex gap-2">
-                    <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} className="flex-1 min-w-0 border border-slate-200 rounded-xl px-2 py-1.5 text-xs" aria-label="Fecha de sesión extraordinaria" />
+                    <DateInput value={newDate} onChange={e => setNewDate(e.target.value)} className="flex-1 min-w-0 border border-slate-200 rounded-xl px-2 py-1.5 text-xs" aria-label="Fecha de sesión extraordinaria" />
                     <button onClick={addExtraordinary} disabled={!newDate} className="flex items-center gap-1 shrink-0 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold disabled:opacity-40">
                         <CalendarPlus className="w-3.5 h-3.5" /> Extraordinaria
                     </button>
@@ -132,7 +133,7 @@ export const SessionsPanel = ({ sessions, loading, selectedId, onSelect, onChang
                             aria-label="Título de la sesión"
                         />
                         <div className="flex items-center gap-2">
-                            <input type="date" value={draft.date} onChange={e => patch({ date: e.target.value })} className="border border-slate-200 rounded-xl px-2 py-1.5 text-sm" aria-label="Fecha" />
+                            <DateInput value={draft.date} onChange={e => patch({ date: e.target.value })} className="border border-slate-200 rounded-xl px-2 py-1.5 text-sm" aria-label="Fecha" />
                             <a href={draft.official_url || CTE_PORTAL_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs font-bold text-indigo-600">
                                 <ExternalLink className="w-3.5 h-3.5" /> Guía SEP
                             </a>

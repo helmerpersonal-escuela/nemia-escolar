@@ -6,6 +6,9 @@ import { Calendar, BookOpen, Trash2, Plus, ArrowRight, School, Clock, Loader2, C
 import { SubjectSelector } from '../../../components/academic/SubjectSelector'
 import { Browser } from '@capacitor/browser'
 import { Capacitor } from '@capacitor/core'
+import { DateInput } from '../../../components/ui/DateInput'
+import { OfficialCycleNote } from '../../../components/academic/OfficialCycleNote'
+import { useOfficialCycle } from '../../../lib/officialCalendar'
 
 export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => {
     const navigate = useNavigate()
@@ -36,9 +39,22 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
         return saved ? JSON.parse(saved) : {
             name: new Date().getMonth() > 6 ? `CICLO ${new Date().getFullYear()}-${new Date().getFullYear() + 1}` : `CICLO ${new Date().getFullYear() - 1}-${new Date().getFullYear()}`,
             startDate: new Date().getMonth() > 6 ? `${new Date().getFullYear()}-08-26` : `${new Date().getFullYear() - 1}-08-26`,
-            endDate: new Date().getMonth() > 6 ? `${new Date().getFullYear() + 1}-07-16` : `${new Date().getFullYear()}-07-16`
+            endDate: new Date().getMonth() > 6 ? `${new Date().getFullYear() + 1}-07-16` : `${new Date().getFullYear()}-07-16`,
+            source: 'estimado'
         }
     })
+
+    // Con conexión se toman nombre, inicio y fin del calendario escolar oficial de la SEP
+    // (solo si el usuario no ha cambiado las fechas). Se pueden editar.
+    const { data: officialCycle, isLoading: officialLoading } = useOfficialCycle()
+    const applyOfficialCycle = () => {
+        if (!officialCycle) return
+        setYearData((prev: any) => ({ ...prev, name: officialCycle.name, startDate: officialCycle.startDate, endDate: officialCycle.endDate, source: 'oficial' }))
+    }
+    useEffect(() => {
+        if (officialCycle && (yearData.source ?? 'estimado') === 'estimado') applyOfficialCycle()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [officialCycle])
 
     const [scheduleSettings, setScheduleSettings] = useState(() => {
         const saved = sessionStorage.getItem('vunlek_onboarding_schedule_data')
@@ -161,13 +177,14 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
     const handleCreateYear = async () => {
         setLoading(true)
         try {
-            const { data } = await supabase.from('academic_years').upsert({
+            const { data, error: yearError } = await supabase.from('academic_years').upsert({
                 tenant_id: tenant?.id,
                 name: yearData.name,
                 start_date: yearData.startDate,
                 end_date: yearData.endDate,
                 is_active: true
             }).select().single()
+            if (yearError) throw yearError
             if (data) setStep(2)
         } catch (err: any) {
             setError(err.message)
@@ -452,26 +469,32 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                             <div className="space-y-5 sm:space-y-8">
                                 <div className="group/field">
                                     <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-2 transition-colors group-focus-within:text-blue-500">Nombre del Ciclo</label>
-                                    <input aria-label="Nombre del Ciclo" value={yearData.name} onChange={e => setYearData({ ...yearData, name: e.target.value.toUpperCase() })} className="input-squishy w-full px-4 py-4 sm:px-6 sm:py-5 text-sm font-bold border-2 border-slate-50 focus:border-blue-400 transition-all font-mono" placeholder="Ej. 2024-2025" />
+                                    <input aria-label="Nombre del Ciclo" value={yearData.name} onChange={e => setYearData({ ...yearData, name: e.target.value.toUpperCase(), source: 'manual' })} className="input-squishy w-full px-4 py-4 sm:px-6 sm:py-5 text-sm font-bold border-2 border-slate-50 focus:border-blue-400 transition-all font-mono" placeholder="Ej. 2024-2025" />
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="group/field">
                                         <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-2 transition-colors group-focus-within:text-blue-500">Inicio de Clases</label>
-                                        <input aria-label="Inicio de Clases" type="date" value={yearData.startDate} onChange={e => {
+                                        <DateInput aria-label="Inicio de Clases" value={yearData.startDate} onChange={e => {
                                             const val = e.target.value;
                                             if (val && val.split('-')[0].length > 4) return;
-                                            setYearData({ ...yearData, startDate: val });
+                                            setYearData({ ...yearData, startDate: val, source: 'manual' });
                                         }} className="input-squishy w-full px-4 py-4 sm:px-6 sm:py-5 text-sm font-bold border-2 border-slate-50 focus:border-blue-400 transition-all text-slate-600" />
                                     </div>
                                     <div className="group/field">
                                         <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-2 transition-colors group-focus-within:text-blue-500">Fin de Clases</label>
-                                        <input aria-label="Fin de Clases" type="date" value={yearData.endDate} onChange={e => {
+                                        <DateInput aria-label="Fin de Clases" value={yearData.endDate} onChange={e => {
                                             const val = e.target.value;
                                             if (val && val.split('-')[0].length > 4) return;
-                                            setYearData({ ...yearData, endDate: val });
+                                            setYearData({ ...yearData, endDate: val, source: 'manual' });
                                         }} className="input-squishy w-full px-4 py-4 sm:px-6 sm:py-5 text-sm font-bold border-2 border-slate-50 focus:border-blue-400 transition-all text-slate-600" />
                                     </div>
                                 </div>
+                                <OfficialCycleNote
+                                    source={yearData.source ?? 'estimado'}
+                                    official={officialCycle}
+                                    loading={officialLoading}
+                                    onUseOfficial={applyOfficialCycle}
+                                />
                                 <div className="pt-4">
                                     <button onClick={handleCreateYear} className="w-full py-4 sm:py-5 bg-blue-600 text-white rounded-[2rem] font-black text-sm hover:bg-blue-700 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest border-b-4 border-blue-800 hover:border-blue-900 hover:translate-y-0.5">
                                         Generar Calendario <ArrowRight className="w-5 h-5" />

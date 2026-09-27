@@ -8,6 +8,7 @@ import { AIInstrumentGenerator } from './AIInstrumentGenerator'
 import { DictationModeModal } from './DictationModeModal'
 import { createAssignmentAlerts } from '../../../utils/notificationUtils'
 import { todayISO } from '../../../lib/dates'
+import { DateInput } from '../../../components/ui/DateInput'
 
 type CreateAssignmentModalProps = {
     isOpen: boolean
@@ -707,8 +708,7 @@ export const CreateAssignmentModal = ({
                                         <label className="flex items-center gap-2 text-[11px] font-black text-indigo-300 uppercase tracking-[0.2em]">
                                             <Calendar className="w-4 h-4" /> Lanzamiento
                                         </label>
-                                        <input
-                                            type="date"
+                                        <DateInput
                                             className="w-full bg-indigo-900/50 border-2 border-indigo-800 rounded-2xl px-6 py-4 text-white font-black text-sm outline-none focus:border-indigo-400 transition-all shadow-inner"
                                             value={formData.start_date || ''}
                                             onChange={e => setFormData(prev => ({ ...prev, start_date: e.target.value }))}
@@ -720,8 +720,7 @@ export const CreateAssignmentModal = ({
                                     <label className="flex items-center gap-2 text-[11px] font-black text-indigo-300 uppercase tracking-[0.2em]">
                                         <Clock className="w-4 h-4" /> {formData.type === 'PROJECT' ? 'Fecha Límite Final' : 'Plazo de Entrega'} <span className="text-rose-400">*</span>
                                     </label>
-                                    <input
-                                        type="date"
+                                    <DateInput
                                         required
                                         className="w-full bg-indigo-900/50 border-2 border-indigo-800 rounded-2xl px-6 py-4 text-white font-black text-sm outline-none focus:border-indigo-400 transition-all shadow-inner"
                                         value={formData.due_date}

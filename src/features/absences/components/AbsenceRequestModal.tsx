@@ -10,6 +10,7 @@ import { GeminiService } from '../../../lib/gemini'
 
 import { eachDayOfInterval, format, parseISO, getDay } from 'date-fns'
 import { createPortal } from 'react-dom'
+import { DateInput } from '../../../components/ui/DateInput'
 
 interface AbsenceRequestModalProps {
     isOpen: boolean
@@ -475,8 +476,7 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
                                     <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Fecha de Inicio</label>
                                     <div className="relative">
                                         <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                                        <input aria-label="Fecha de Inicio"
-                                            type="date"
+                                        <DateInput hideIcon aria-label="Fecha de Inicio"
                                             value={startDate}
                                             onChange={(e) => setStartDate(e.target.value)}
                                             className="w-full pl-12 pr-4 py-4 bg-slate-50 border-none rounded-2xl font-bold text-slate-700 focus:ring-2 focus:ring-indigo-600 transition-all cursor-pointer"
@@ -487,8 +487,7 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
                                     <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Fecha de Fin</label>
                                     <div className="relative">
                                         <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                                        <input aria-label="Fecha de Fin"
-                                            type="date"
+                                        <DateInput hideIcon aria-label="Fecha de Fin"
                                             value={endDate}
                                             onChange={(e) => setEndDate(e.target.value)}
                                             className="w-full pl-12 pr-4 py-4 bg-slate-50 border-none rounded-2xl font-bold text-slate-700 focus:ring-2 focus:ring-indigo-600 transition-all cursor-pointer"

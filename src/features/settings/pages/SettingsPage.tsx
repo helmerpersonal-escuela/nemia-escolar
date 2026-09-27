@@ -20,6 +20,7 @@ import { SubjectSelector } from '../../../components/academic/SubjectSelector'
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+import { DateInput } from '../../../components/ui/DateInput'
 
 // @ts-expect-error -- pendiente de tipar
 delete L.Icon.Default.prototype._getIconUrl;
@@ -1130,8 +1131,7 @@ export const SettingsPage = () => {
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div>
                                                 <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Próxima Fecha</label>
-                                                <input aria-label="Próxima Fecha"
-                                                    type="date"
+                                                <DateInput aria-label="Próxima Fecha"
                                                     value={tenant.cte_config?.next_date || ''}
                                                     onChange={(e) => setTenant({
                                                         ...tenant,
