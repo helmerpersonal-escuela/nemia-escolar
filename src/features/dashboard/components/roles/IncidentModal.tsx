@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { X, Search, CheckCircle2 } from 'lucide-react'
+import { Search, CheckCircle2, AlertTriangle } from 'lucide-react'
+import { WizardModalHeader } from '../../../../components/wizard/Wizard'
 import { supabase } from '../../../../lib/supabase'
 import { useTenant } from '../../../../hooks/useTenant'
 
@@ -125,20 +126,9 @@ export const IncidentModal = ({ isOpen, onClose, onSuccess }: IncidentModalProps
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-                {/* Header */}
-                <div className="bg-red-600 p-6 flex justify-between items-center text-white shrink-0">
-                    <div>
-                        <h3 className="text-xl font-black uppercase tracking-tight">Reportar Incidencia</h3>
-                        {selectedStudent && (
-                            <p className="text-red-100 text-xs font-bold uppercase tracking-widest mt-1">
-                                Para: {selectedStudent.first_name} {selectedStudent.last_name_paternal} ({selectedGroup.grade}° "{selectedGroup.section}")
-                            </p>
-                        )}
-                    </div>
-                    <button aria-label="Cerrar" onClick={onClose} className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors">
-                        <X className="w-5 h-5" />
-                    </button>
-                </div>
+                <WizardModalHeader title="Reportar incidencia" icon={AlertTriangle} onClose={onClose}
+                    subtitle={selectedStudent ? `Para ${selectedStudent.first_name} ${selectedStudent.last_name_paternal} (${selectedGroup?.grade}° "${selectedGroup?.section}")` : 'Selecciona al alumno y describe lo ocurrido.'}
+                    steps={[{ label: 'Alumno' }, { label: 'Detalles' }]} current={step === 'STUDENT' ? 0 : 1} />
 
                 <div className="flex-1 overflow-y-auto p-8 min-h-[300px]">
                     {step === 'STUDENT' ? (

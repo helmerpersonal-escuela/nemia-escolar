@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../../../lib/supabase'
 import { useTenant } from '../../../../hooks/useTenant'
-import { X, Save, Search, User, CheckCircle2 } from 'lucide-react'
+import { Save, Search, User, CheckCircle2, ClipboardList } from 'lucide-react'
+import { WizardModalHeader } from '../../../../components/wizard/Wizard'
 
 interface TrackingEntryModalProps {
     onClose: () => void
@@ -88,18 +89,9 @@ export const TrackingEntryModal = ({ onClose, onSuccess }: TrackingEntryModalPro
     return (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
             <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
-                {/* Header */}
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-2xl">
-                    <div>
-                        <h2 className="text-xl font-black text-slate-800">Nuevo Registro de Seguimiento</h2>
-                        <p className="text-sm text-slate-500 font-medium">
-                            {step === 1 ? 'Paso 1: Seleccionar Alumno' : `Paso 2: Detalles del Registro (${selectedStudent?.first_name})`}
-                        </p>
-                    </div>
-                    <button aria-label="Cerrar" onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
-                        <X className="w-5 h-5 text-gray-500" />
-                    </button>
-                </div>
+                <WizardModalHeader title="Nuevo registro de seguimiento" icon={ClipboardList} onClose={onClose}
+                    subtitle={step === 2 && selectedStudent ? `Para ${selectedStudent.first_name}` : undefined}
+                    steps={[{ label: 'Alumno' }, { label: 'Detalles del registro' }]} current={step - 1} />
 
                 {/* Content */}
                 <div className="p-6 overflow-y-auto flex-1">

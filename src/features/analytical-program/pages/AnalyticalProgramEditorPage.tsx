@@ -14,15 +14,15 @@ import {
     BookOpen,
     Target,
     Users,
-    ChevronLeft,
-    ChevronRight,
     Loader2,
     Check,
     RotateCcw,
     Layers,
-    GraduationCap
+    GraduationCap,
+    Save
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
+import { WizardFooter, WizardProgress, WizardStepHeader } from '../../../components/wizard/Wizard'
 
 // Wizard Steps Configuration
 const STEPS = [
@@ -1610,101 +1610,55 @@ export const AnalyticalProgramEditorPage = () => {
         }
     }
 
+    const stepInfo = STEPS[currentStep - 1]
     return (
-        <div className="min-h-screen bg-gray-50/50 pb-20">
-            {/* Header */}
-            <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-                        <button aria-label="Regresar" onClick={() => navigate('/analytical-program')} className="p-2 hover:bg-gray-100 rounded-full transition-all">
-                            <ArrowLeft className="w-6 h-6 text-gray-500" />
-                        </button>
-                        <div className="min-w-0">
-                            <h1 className="text-base sm:text-xl font-black text-gray-900 tracking-tight leading-tight">Constructor de Programa Analítico</h1>
-                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider hidden sm:block">Nueva Escuela Mexicana • Fase 6</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100 whitespace-nowrap">
-                            Paso {currentStep} de {STEPS.length}
-                        </span>
-                    </div>
+        <div className="max-w-5xl mx-auto px-3 sm:px-6 py-6 sm:py-10 pb-32 sm:pb-10">
+            <header className="mb-6 flex items-start gap-3">
+                <button aria-label="Regresar" onClick={() => navigate('/analytical-program')} className="p-2 -ml-2 rounded-xl hover:bg-slate-100 text-slate-500 shrink-0">
+                    <ArrowLeft className="w-5 h-5" />
+                </button>
+                <div className="min-w-0">
+                    <p className="text-[11px] font-black uppercase tracking-widest text-indigo-600 mb-1">Nueva Escuela Mexicana · Fase 6</p>
+                    <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Programa analítico</h1>
                 </div>
-                {/* Progress Bar */}
-                <div className="h-1 bg-gray-100 w-full">
-                    <div
-                        className="h-full bg-indigo-600 transition-all duration-500 ease-out"
-                        style={{ width: `${(currentStep / STEPS.length) * 100}%` }}
-                    />
-                </div>
-            </div>
+            </header>
 
-            <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-10">
-                {/* Step Title */}
-                <div className="mb-6 sm:mb-10 text-center">
-                    <div className="w-16 h-16 bg-white rounded-2xl shadow-lg border border-gray-100 flex items-center justify-center mx-auto mb-4">
-                        {(() => {
-                            const step = STEPS[currentStep - 1]
-                            if (!step) return <School className="w-8 h-8 text-indigo-600" />
-                            const Icon = step.icon
-                            return <Icon className="w-8 h-8 text-indigo-600" />
-                        })()}
-                    </div>
-                    <h2 className="text-2xl sm:text-3xl font-black text-gray-900 mb-2">{STEPS[currentStep - 1]?.title || 'Paso'}</h2>
-                    <p className="text-gray-500 font-medium">{STEPS[currentStep - 1]?.description || ''}</p>
-                </div>
+            <WizardProgress steps={STEPS.map(s => ({ label: s.title }))} current={currentStep - 1} onStepClick={i => setCurrentStep(i + 1)} />
 
-                {/* Step Content */}
-                <div className="mb-12">
-                    {currentStep === 1 && renderStep1()}
-                    {currentStep === 2 && renderStep2()}
-                    {currentStep === 3 && renderStep3()}
-                    {currentStep === 4 && renderStep4()}
-                    {currentStep === 5 && renderStep5_Process()}
-                    {currentStep === 6 && renderStep6_Didactic()}
-                    {currentStep === 7 && renderStep7_Review()}
-                </div>
+            <section className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-4 sm:p-8">
+                <WizardStepHeader icon={stepInfo?.icon ?? School} title={stepInfo?.title || 'Paso'} description={stepInfo?.description} />
+                {currentStep === 1 && renderStep1()}
+                {currentStep === 2 && renderStep2()}
+                {currentStep === 3 && renderStep3()}
+                {currentStep === 4 && renderStep4()}
+                {currentStep === 5 && renderStep5_Process()}
+                {currentStep === 6 && renderStep6_Didactic()}
+                {currentStep === 7 && renderStep7_Review()}
+            </section>
 
-                {/* Footer Navigation */}
-                <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 sm:p-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] z-50">
-                    <div className="max-w-5xl mx-auto flex justify-between items-center gap-2">
-                        <div className="flex items-center gap-1 sm:gap-3 min-w-0">
-                            <button
-                                onClick={handleBack}
-                                disabled={currentStep === 1}
-                                className="bg-white border border-gray-200 text-gray-600 px-3 sm:px-6 py-3 rounded-xl font-bold text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center"
-                            >
-                                <ChevronLeft className="w-4 h-4 mr-2" />
-                                Anterior
-                            </button>
-                            <button
-                                onClick={() => {
-                                    if (confirm('¿Estás seguro de que deseas reiniciar la construcción? Se borrará todo el progreso actual de esta sesión.')) {
-                                        localStorage.removeItem(`analytical_program_draft_${id || 'new'}`)
-                                        window.location.reload()
-                                    }
-                                }}
-                                className="text-gray-500 hover:text-rose-600 px-2 sm:px-4 py-2 text-[11px] font-black uppercase tracking-widest flex items-center transition-colors"
-                                aria-label="Reiniciar"
-                            >
-                                <RotateCcw className="w-4 h-4 sm:w-3 sm:h-3 sm:mr-2" />
-                                <span className="hidden sm:inline">Reiniciar</span>
-                            </button>
-                        </div>
-                        <button
-                            onClick={currentStep === STEPS.length ? handleSaveProgram : handleNext}
-                            disabled={saving}
-                            className="bg-indigo-600 text-white px-5 sm:px-8 py-3 rounded-xl font-bold text-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-indigo-200 flex items-center shrink-0 sm:min-w-[160px] justify-center"
-                        >
-                            {saving ? (
-                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                            ) : null}
-                            {saving ? 'Guardando...' : currentStep === STEPS.length ? 'Guardar Programa' : 'Siguiente'}
-                            {!saving && <ChevronRight className="w-4 h-4 ml-2" />}
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <WizardFooter
+                onBack={currentStep > 1 ? handleBack : undefined}
+                onNext={currentStep === STEPS.length ? handleSaveProgram : handleNext}
+                nextLabel={currentStep === STEPS.length ? 'Guardar programa' : 'Siguiente'}
+                nextIcon={currentStep === STEPS.length ? Save : undefined}
+                tone={currentStep === STEPS.length ? 'success' : 'primary'}
+                loading={saving}
+                extra={
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (confirm('¿Estás seguro de que deseas reiniciar la construcción? Se borrará todo el progreso actual de esta sesión.')) {
+                                localStorage.removeItem(`analytical_program_draft_${id || 'new'}`)
+                                window.location.reload()
+                            }
+                        }}
+                        className="p-3 sm:px-4 rounded-2xl text-sm font-black text-slate-500 hover:text-rose-600 hover:bg-rose-50 inline-flex items-center gap-2"
+                        aria-label="Reiniciar"
+                    >
+                        <RotateCcw className="w-4 h-4" /><span className="hidden sm:inline">Reiniciar</span>
+                    </button>
+                }
+            />
         </div>
     )
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { X, Award, Download, AlertCircle } from 'lucide-react'
+import { useTenant } from '../../../hooks/useTenant'
 import { supabase } from '../../../lib/supabase'
 import { calculateAcademicYearGrade } from '../utils/gradingUtils'
 
@@ -27,6 +28,8 @@ export const CloseAcademicYearModal = ({
     const navigate = useNavigate()
     const [loading, setLoading] = useState(false)
     const [step, setStep] = useState<'REVIEW' | 'SUCCESS'>('REVIEW')
+    const { data: tenant } = useTenant()
+    const canStartCycle = ['ADMIN', 'DIRECTOR', 'SCHOOL_CONTROL', 'INDEPENDENT_TEACHER'].includes((tenant as any)?.role) || (tenant as any)?.type === 'INDEPENDENT'
     const [yearSummary, setYearSummary] = useState<any[]>([])
     const [fetchingData, setFetchingData] = useState(true)
 
@@ -246,12 +249,20 @@ export const CloseAcademicYearModal = ({
                         </>
                     )}
                     {step === 'SUCCESS' && (
-                        <button
-                            onClick={onSuccess}
-                            className="px-8 py-3 bg-white border-2 border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-colors"
-                        >
-                            Volver al Inicio
-                        </button>
+                        <>
+                            <button
+                                onClick={onSuccess}
+                                className="px-6 py-3 bg-white border border-slate-200 text-slate-700 font-black text-sm rounded-2xl hover:bg-slate-50 transition-colors"
+                            >
+                                Volver
+                            </button>
+                            {canStartCycle && <button
+                                onClick={() => { onSuccess(); window.location.assign('/nuevo-ciclo') }}
+                                className="px-6 py-3 bg-indigo-600 text-white font-black text-sm rounded-2xl hover:bg-indigo-700 transition-colors"
+                            >
+                                Iniciar el nuevo ciclo
+                            </button>}
+                        </>
                     )}
                 </div>
             </div>

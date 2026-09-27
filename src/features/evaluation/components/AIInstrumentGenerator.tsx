@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
-import { X, Wand2, Loader2, Sparkles, Printer } from 'lucide-react'
+import { X, Wand2, Sparkles, Printer } from 'lucide-react'
+import { WizardFooter, WizardProgress } from '../../../components/wizard/Wizard'
 import { supabase } from '../../../lib/supabase'
 import { GeminiService } from '../../../lib/gemini'
 
@@ -318,18 +319,14 @@ export const AIInstrumentGenerator = ({
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
                 {/* Header */}
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-indigo-50/50">
+                <div className="p-5 sm:p-6 border-b border-slate-100 flex justify-between items-center gap-3">
                     <div className="flex items-center space-x-3">
                         <div className="bg-indigo-100 p-2 rounded-lg text-indigo-600">
                             <Wand2 className="w-6 h-6" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-gray-900">Asistente IA de Actividades</h2>
-                            <div className="flex items-center space-x-2 mt-1">
-                                <span className={`h-1.5 w-6 rounded-full ${step >= 1 ? 'bg-indigo-600' : 'bg-gray-200'}`}></span>
-                                <span className={`h-1.5 w-6 rounded-full ${step >= 2 ? 'bg-indigo-600' : 'bg-gray-200'}`}></span>
-                                <span className={`h-1.5 w-6 rounded-full ${step >= 3 ? 'bg-indigo-600' : 'bg-gray-200'}`}></span>
-                                <span className="text-[11px] text-gray-500 font-bold uppercase ml-2">Paso {step} de 3</span>
+                            <h2 className="text-xl font-black text-slate-900">Asistente IA de actividades</h2>
+                            <div className="flex items-center gap-2 mt-1">
                                 {aiService.isFallingBack && (
                                     <span className="text-[11px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full ml-2 animate-pulse">
                                         Modo Alta Disponibilidad (Groq)
@@ -341,6 +338,9 @@ export const AIInstrumentGenerator = ({
                     <button aria-label="Cerrar" onClick={onClose} className="text-gray-500 hover:text-gray-600 rounded-full hover:bg-gray-100 p-2">
                         <X className="w-5 h-5" />
                     </button>
+                </div>
+                <div className="px-5 sm:px-6 pt-5">
+                    <WizardProgress steps={[{ label: 'Contexto' }, { label: 'Propuestas' }, { label: 'Confirmar' }]} current={step - 1} />
                 </div>
 
                 {/* Content */}
@@ -586,37 +586,10 @@ export const AIInstrumentGenerator = ({
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-gray-100 bg-white flex justify-end space-x-3">
-                    {step === 1 && (
-                        <button
-                            onClick={handleGenerateProposals}
-                            disabled={!selectedContext || loading}
-                            className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-50 flex items-center shadow-lg shadow-indigo-200"
-                        >
-                            {loading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Wand2 className="w-5 h-5 mr-2" />}
-                            Generar Propuestas
-                        </button>
-                    )}
-                    {step === 2 && (
-                        <button onClick={() => setStep(1)} className="px-5 py-3 rounded-lg text-gray-600 font-bold hover:bg-gray-100">Atrás</button>
-                    )}
-                    {step === 3 && (
-                        <>
-                            <button onClick={() => setStep(2)} className="px-5 py-3 rounded-lg text-gray-600 font-bold hover:bg-gray-100">Atrás</button>
-                            <button
-                                onClick={handleSave}
-                                disabled={loading}
-                                className="bg-green-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-green-700 shadow-lg shadow-green-200 flex items-center"
-                            >
-                                {loading ? 'Guardando...' : (
-                                    <>
-                                        <Sparkles className="w-5 h-5 mr-2" />
-                                        Confirmar y Aplicar
-                                    </>
-                                )}
-                            </button>
-                        </>
-                    )}
+                <div className="px-5 py-4 sm:px-6 border-t border-slate-100 bg-white">
+                    {step === 1 && <WizardFooter sticky={false} onBack={onClose} backLabel="Cancelar" onNext={handleGenerateProposals} nextDisabled={!selectedContext} loading={loading} nextLabel="Generar propuestas" nextIcon={Wand2} />}
+                    {step === 2 && <WizardFooter sticky={false} onBack={() => setStep(1)} extra={<span className="text-xs font-bold text-slate-500">Elige una propuesta para continuar</span>} />}
+                    {step === 3 && <WizardFooter sticky={false} onBack={() => setStep(2)} onNext={handleSave} loading={loading} tone="success" nextLabel="Confirmar y aplicar" nextIcon={Sparkles} />}
                 </div>
             </div>
         </div>

@@ -29,7 +29,8 @@ import {
     Zap,
     Loader2,
     MessageSquare,
-    Home
+    Home,
+    Store
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { queryClient } from '../../lib/queryClient'
@@ -46,6 +47,7 @@ import { setErrorContext } from '../../lib/errorReporting'
 import { OfflineCenter } from '../offline/OfflineCenter'
 import { TrialNotificationSystem } from '../../features/subscription/components/TrialNotificationSystem'
 import { NewCycleBanner } from '../../features/school-year/components/NewCycleBanner'
+import { useCooperativeRecord } from '../../features/cooperative/lib/useCooperative'
 
 const DocumentTitle = ({ title }: { title: string }) => {
     useEffect(() => { document.title = `${title} · Vunlek` }, [title])
@@ -155,6 +157,7 @@ export const DashboardLayout = () => {
     const [isSynchronizing, setIsSynchronizing] = useState(false)
     const [syncError, setSyncError] = useState<string | null>(null)
     const { data: tenant, isLoading: isTenantLoading } = useTenant()
+    const { data: coopRecord } = useCooperativeRecord()
     const { profile, isLoading: isProfileLoading, isSuperAdmin = false } = useProfile()
 
     // Contexto para el registro automático de errores (escuela y rol activos).
@@ -694,9 +697,16 @@ export const DashboardLayout = () => {
     }
 
     const menuItems = menuByRole[currentRole] || menuByRole.TEACHER
+    // Cooperativa escolar (Secundarias Técnicas): visible si la escuela la registró,
+    // o para la coordinación/dirección de una Técnica para que puedan darla de alta.
+    const coopRoles = ['TEACHER', 'INDEPENDENT_TEACHER', 'TECH_COORD', 'DIRECTOR', 'ADMIN', 'ACADEMIC_COORD']
+    const showCoop = coopRoles.includes(currentRole) && (!!coopRecord || ((tenant as any)?.secondaryType === 'TECNICA' && ['TECH_COORD', 'DIRECTOR', 'ADMIN'].includes(currentRole)))
+    const menuWithCoop = showCoop
+        ? [...menuItems.slice(0, 3), { icon: Store, label: 'Cooperativa Escolar', path: '/cooperativa' }, ...menuItems.slice(3)]
+        : menuItems
 
     // Mobile App Restrictions (Capacitor) - REMOVED per user request to see full menu
-    const finalMenuItems = menuItems
+    const finalMenuItems = menuWithCoop
 
     // Título de la pantalla actual (antes siempre decía "Panel de Control").
     type MenuEntry = { label: unknown; path: string; subItems?: MenuEntry[] }

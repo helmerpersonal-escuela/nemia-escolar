@@ -2,7 +2,10 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
-import { Calendar, BookOpen, Trash2, Plus, ArrowRight, School, Clock, Loader2, CreditCard, Zap, Gift } from 'lucide-react'
+import { Calendar, BookOpen, Trash2, Plus, School, Clock, CreditCard, Zap, Gift } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { WizardLayout, WizardFooter, WizardStepHeader, WizardField, WizardAlert, WizardSaving, wizardInput, wizardChoice, Radio } from '../../../components/wizard/Wizard'
+import { CooperativeFields, emptyCooperative, saveCooperativeSetup, type CooperativeSetup } from '../../cooperative/components/CooperativeFields'
 import { SubjectSelector } from '../../../components/academic/SubjectSelector'
 import { Browser } from '@capacitor/browser'
 import { Capacitor } from '@capacitor/core'
@@ -27,6 +30,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
         return saved ? JSON.parse(saved) : {
             name: '',
             educationalLevel: 'SECONDARY' as 'PRIMARY' | 'SECONDARY' | 'TELESECUNDARIA',
+            secondaryType: null as null | 'GENERAL' | 'TECNICA',
             cct: '',
             shift: 'MORNING',
             grade: 1,
@@ -98,6 +102,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                 ...prev,
                 name: tenant.name?.toUpperCase() || '',
                 educationalLevel: (tenant.educationalLevel as any) || 'SECONDARY',
+                secondaryType: (tenant as any).secondaryType ?? null,
                 cct: tenant.cct || ''
             }))
         }
@@ -126,6 +131,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
         sessionStorage.removeItem('vunlek_onboarding_year_data')
         sessionStorage.removeItem('vunlek_onboarding_schedule_data')
         sessionStorage.removeItem('vunlek_payment_syncing')
+        sessionStorage.removeItem('vunlek_onboarding_coop')
     }
 
     const handleCancelRegistration = async () => {
@@ -158,12 +164,18 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
             setError('Por favor completa los datos obligatorios.')
             return
         }
+        if (schoolData.educationalLevel === 'SECONDARY' && !schoolData.secondaryType) {
+            setError('Indica si es Secundaria General o Secundaria Técnica.')
+            return
+        }
+        setError(null)
         setLoading(true)
         try {
             const { error } = await supabase.from('tenants').update({
                 name: schoolData.name.toUpperCase(),
                 educational_level: schoolData.educationalLevel,
                 cct: schoolData.cct.toUpperCase(),
+                secondary_type: schoolData.educationalLevel === 'SECONDARY' ? schoolData.secondaryType : null,
             }).eq('id', tenant?.id)
             if (error) throw error
             setStep(1)
@@ -329,7 +341,33 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
         loadExistingSubjects()
     }, [step])
 
+    // Secundaria Técnica + Tecnología → Cooperativa Escolar de Producción
+    const { data: technologyIds = [] } = useQuery({
+        queryKey: ['technology-subject-ids'],
+        staleTime: 1000 * 60 * 60,
+        queryFn: async () => {
+            const { data } = await supabase.from('subject_catalog').select('id').ilike('name', 'tecnolog%')
+            return (data ?? []).map((r: any) => r.id as string)
+        },
+    })
+    const teachesTechnology = schoolData.educationalLevel === 'SECONDARY' && schoolData.secondaryType === 'TECNICA'
+        && Object.entries(selectedSubjects).some(([id, v]) => v.selected && technologyIds.includes(id))
+    const [coop, setCoop] = useState<CooperativeSetup>(() => {
+        try { return { ...emptyCooperative, ...JSON.parse(sessionStorage.getItem('vunlek_onboarding_coop') || '{}') } } catch { return emptyCooperative }
+    })
+    useEffect(() => { try { sessionStorage.setItem('vunlek_onboarding_coop', JSON.stringify(coop)) } catch { /* nada */ } }, [coop])
+    const subjectsValid = !teachesTechnology || coop.hasCooperative === false || (coop.hasCooperative === true && !!coop.name.trim() && !!coop.registrationKey.trim())
+
     const handleSaveSubjects = async () => {
+        if (teachesTechnology && coop.hasCooperative === null) {
+            setError('Indica si la escuela cuenta con Cooperativa de Producción.')
+            return
+        }
+        if (!subjectsValid) {
+            setError('Escribe el nombre y la clave de la cooperativa.')
+            return
+        }
+        setError(null)
         setLoading(true)
         try {
             const { data: { user } } = await supabase.auth.getUser()
@@ -354,6 +392,10 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                 if (error) throw error
             }
 
+            if (teachesTechnology && coop.hasCooperative && tenant?.id) {
+                await saveCooperativeSetup(tenant.id, user.id, coop)
+            }
+
             setStep(4)
         } catch (err: any) {
             console.error('Error saving subjects:', err)
@@ -363,346 +405,184 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
         }
     }
 
-    // Import SubjectSelector dynamically or at top if not already (Checked: it is not imported yet in prompt, adding import in next block call would be better but I can't do multiple unrelated edits easily. 
-    // Wait, I need to add the import first or ensure it's there. I'll assume I can add it or I'll use a separate tool call for imports if needed, but replace_file_content targets a block. 
-    // I will add the import in a separate call or try to include it if I target the top of the file, but here I am targeting the body.
-    // I will stick to modifying the body steps here and add the import in a preceding call? No, I must do one call per file usually or use multi_replace.
-    // I'll use multi_replace to do both import and body changes safely.)
+    const STEPS = [
+        { label: 'Escuela', icon: School },
+        { label: 'Ciclo escolar', icon: Calendar },
+        { label: 'Jornada', icon: Clock },
+        { label: 'Materias', icon: BookOpen },
+        { label: 'Plan', icon: CreditCard },
+    ]
+    const isPrimaryLike = schoolData.educationalLevel === 'PRIMARY' || schoolData.educationalLevel === 'TELESECUNDARIA'
+    const isIndependent = tenant?.type === 'INDEPENDENT' || (tenant?.type as string)?.toLowerCase() === 'independent'
 
     return (
-        <div className="max-w-4xl mx-auto py-6 sm:py-12 px-3 sm:px-4 relative">
-            {/* ... header ... */}
-            <div className="text-center mb-6 sm:mb-10 relative z-10">
-                <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight mb-2">Configuración Inicial</h1>
-                <p className="text-slate-500 font-medium">Ayúdanos a configurar tu escuela para brindarte la mejor experiencia profesional.</p>
-            </div>
+        <WizardLayout
+            eyebrow="Configuración inicial"
+            title={tenant?.type === 'INDEPENDENT' ? 'Personaliza tu espacio' : 'Datos de tu escuela'}
+            subtitle="Te tomará unos minutos. Puedes cambiar estos datos después en Ajustes."
+            steps={STEPS}
+            current={step}
+            onStepClick={i => i < step && setStep(i)}
+            width={step === 3 || step === 4 ? 'lg' : 'md'}
+            footer={
+                step === 0 ? <WizardFooter onNext={handleUpdateSchool} loading={loading} nextDisabled={!schoolData.name || (schoolData.educationalLevel === 'SECONDARY' && !schoolData.secondaryType)} />
+                    : step === 1 ? <WizardFooter onBack={() => setStep(0)} onNext={handleCreateYear} loading={loading} nextDisabled={!yearData.name || !yearData.startDate || !yearData.endDate} />
+                        : step === 2 ? <WizardFooter onBack={() => setStep(1)} onNext={handleSaveSchedule} loading={loading} />
+                            : step === 3 ? <WizardFooter onBack={() => setStep(2)} onNext={handleSaveSubjects} loading={loading} nextDisabled={!subjectsValid} />
+                                : <WizardFooter onBack={() => setStep(3)} />
+            }
+        >
+            {loading && <WizardSaving label="Guardando…" />}
+            {error && <div className="mb-5"><WizardAlert>{error}</WizardAlert></div>}
 
-            <div className="flex justify-center mb-6 sm:mb-12">
-                {[0, 1, 2, 3, 4].map((s) => (
-                    <div key={s} className="flex items-center">
-                        <div className={`w-3 h-3 rounded-full transition-all duration-300 ${s === step ? 'bg-indigo-600 scale-150 ring-4 ring-indigo-100' : s < step ? 'bg-indigo-400' : 'bg-gray-200'}`} />
-                        {s < 4 && <div className={`w-8 h-0.5 rounded-full mx-1 ${s < step ? 'bg-indigo-200' : 'bg-gray-100'}`} />}
+            {step === 0 && (
+                <div className="space-y-5">
+                    <WizardStepHeader icon={School} title="Tu escuela" description="Nombre, nivel educativo y clave del centro de trabajo." />
+                    <WizardField label="Nombre" required>
+                        <input aria-label="Nombre" value={schoolData.name} onChange={e => setSchoolData({ ...schoolData, name: e.target.value.toUpperCase() })} className={wizardInput} placeholder="Ej. ESC. SEC. TÉCNICA No. 37" />
+                    </WizardField>
+                    <div>
+                        <span className="block text-xs font-black text-slate-600 mb-1.5">Nivel educativo <span className="text-rose-500">*</span></span>
+                        <div className="grid grid-cols-1 min-[420px]:grid-cols-3 gap-2">
+                            {(['PRIMARY', 'SECONDARY', 'TELESECUNDARIA'] as const).map(l => (
+                                <button key={l} type="button" onClick={() => setSchoolData({ ...schoolData, educationalLevel: l, secondaryType: l === 'SECONDARY' ? schoolData.secondaryType : null })} className={wizardChoice(schoolData.educationalLevel === l)}>
+                                    <Radio checked={schoolData.educationalLevel === l} />
+                                    {l === 'PRIMARY' ? 'Primaria' : l === 'SECONDARY' ? 'Secundaria' : 'Telesecundaria'}
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                ))}
-            </div>
-
-            <div className="squishy-card sm:min-h-[500px] relative overflow-hidden bg-white mt-2 sm:mt-4 border-2 border-indigo-50/50">
-                <div className="absolute top-0 left-0 right-0 h-2 bg-indigo-50">
-                    <div
-                        className="h-full bg-indigo-500 transition-all duration-500 ease-out rounded-r-full"
-                        style={{ width: `${((step + 1) / 5) * 100}%` }}
-                    />
+                    {schoolData.educationalLevel === 'SECONDARY' && (
+                        <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4">
+                            <span className="block text-xs font-black text-slate-600 mb-2">Tipo de secundaria <span className="text-rose-500">*</span></span>
+                            <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-2">
+                                {([['GENERAL', 'Secundaria General'], ['TECNICA', 'Secundaria Técnica']] as const).map(([v, label]) => (
+                                    <button key={v} type="button" onClick={() => setSchoolData({ ...schoolData, secondaryType: v })} className={wizardChoice(schoolData.secondaryType === v)}>
+                                        <Radio checked={schoolData.secondaryType === v} /> {label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    <WizardField label="CCT (Clave del Centro de Trabajo)" required={!isIndependent} hint={isIndependent ? 'Opcional si trabajas por tu cuenta.' : undefined}>
+                        <input aria-label="CCT" value={schoolData.cct} onChange={e => setSchoolData({ ...schoolData, cct: e.target.value.toUpperCase() })} className={`${wizardInput} font-mono`} placeholder="Ej. 07DST0037X" />
+                    </WizardField>
+                    <button type="button" onClick={handleCancelRegistration} className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-rose-600">
+                        <Trash2 className="w-4 h-4" /> Cancelar registro y eliminar mi cuenta
+                    </button>
                 </div>
+            )}
 
-                <div className="p-5 sm:p-8 md:p-16">
+            {step === 1 && (
+                <div className="space-y-5">
+                    <WizardStepHeader icon={Calendar} title="Ciclo escolar" description="Se toma del calendario oficial de la SEP cuando hay conexión." />
+                    <WizardField label="Nombre del ciclo" required>
+                        <input aria-label="Nombre del Ciclo" value={yearData.name} onChange={e => setYearData({ ...yearData, name: e.target.value.toUpperCase(), source: 'manual' })} className={wizardInput} placeholder="CICLO 2026-2027" />
+                    </WizardField>
+                    <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-4">
+                        <WizardField label="Inicio de clases" required>
+                            <DateInput aria-label="Inicio de Clases" value={yearData.startDate} onChange={e => setYearData({ ...yearData, startDate: e.target.value, source: 'manual' })} className={wizardInput} />
+                        </WizardField>
+                        <WizardField label="Fin de clases" required>
+                            <DateInput aria-label="Fin de Clases" value={yearData.endDate} onChange={e => setYearData({ ...yearData, endDate: e.target.value, source: 'manual' })} className={wizardInput} />
+                        </WizardField>
+                    </div>
+                    <OfficialCycleNote source={yearData.source ?? 'estimado'} official={officialCycle} loading={officialLoading} onUseOfficial={applyOfficialCycle} />
+                </div>
+            )}
 
-                    {loading && (
-                        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
-                            <Loader2 className="w-12 h-12 text-indigo-600 animate-spin" />
-                            <p className="mt-6 text-slate-600 font-black uppercase tracking-widest text-xs">Procesando...</p>
+            {step === 2 && (
+                <div className="space-y-5">
+                    <WizardStepHeader icon={Clock} title="Jornada" description={isPrimaryLike ? 'En primaria y telesecundaria el horario es por jornada completa.' : 'Horario de entrada, salida y duración de cada módulo.'} />
+                    <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-4">
+                        <WizardField label="Hora de entrada">
+                            <input aria-label="Hora de Entrada" type="time" value={scheduleSettings.startTime} onChange={e => setScheduleSettings({ ...scheduleSettings, startTime: e.target.value })} className={wizardInput} />
+                        </WizardField>
+                        <WizardField label="Hora de salida">
+                            <input aria-label="Hora de Salida" type="time" value={scheduleSettings.endTime} onChange={e => setScheduleSettings({ ...scheduleSettings, endTime: e.target.value })} className={wizardInput} />
+                        </WizardField>
+                        {!isPrimaryLike && (
+                            <WizardField label="Duración del módulo (minutos)">
+                                <input aria-label="Duración Módulo (min)" type="number" min={20} max={120} value={scheduleSettings.moduleDuration} onChange={e => setScheduleSettings({ ...scheduleSettings, moduleDuration: Number(e.target.value) })} className={wizardInput} />
+                            </WizardField>
+                        )}
+                    </div>
+                    {isPrimaryLike && (
+                        <div>
+                            <span className="block text-xs font-black text-slate-600 mb-1.5">Grado que impartes</span>
+                            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                                {(schoolData.educationalLevel === 'TELESECUNDARIA' ? [1, 2, 3] : [1, 2, 3, 4, 5, 6]).map(g => (
+                                    <button key={g} type="button" onClick={() => {
+                                        const p = schoolData.educationalLevel === 'TELESECUNDARIA' ? 6 : g <= 2 ? 3 : g <= 4 ? 4 : 5
+                                        setSchoolData({ ...schoolData, grade: g, phase: p })
+                                    }} className={`${wizardChoice(schoolData.grade === g)} justify-center`}>{g}°</button>
+                                ))}
+                            </div>
+                            <p className="text-xs font-bold text-indigo-700 mt-2">Fase {schoolData.phase} de la NEM</p>
                         </div>
                     )}
-
-                    {step === 0 && (
-                        <div className="animate-in fade-in slide-in-from-right duration-500 max-w-lg mx-auto">
-                            <div className="text-center mb-6 sm:mb-10">
-                                <div className="inline-flex items-center justify-center p-4 sm:p-6 bg-indigo-100 rounded-[2rem] text-indigo-600 mb-6 shadow-inner ring-4 ring-white">
-                                    <School className="w-12 h-12" />
-                                </div>
-                                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-indigo-950 italic tracking-tight uppercase">
-                                    {tenant?.type === 'INDEPENDENT' ? 'Personaliza tu Espacio' : 'Datos de la Escuela'}
-                                </h2>
+                    {!isIndependent && (
+                        <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4 space-y-3">
+                            <span className="block text-xs font-black text-slate-600">Recesos</span>
+                            <div className="grid grid-cols-2 gap-3">
+                                <WizardField label="Inicio"><input aria-label="Inicio" type="time" value={newBreak.start} onChange={e => setNewBreak({ ...newBreak, start: e.target.value })} className={wizardInput} /></WizardField>
+                                <WizardField label="Fin"><input aria-label="Fin" type="time" value={newBreak.end} onChange={e => setNewBreak({ ...newBreak, end: e.target.value })} className={wizardInput} /></WizardField>
                             </div>
-                            <div className="space-y-5 sm:space-y-8">
-                                <div className="group/field">
-                                    <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-2 transition-colors group-focus-within:text-indigo-500">Nombre</label>
-                                    <input aria-label="Nombre" value={schoolData.name} onChange={e => setSchoolData({ ...schoolData, name: e.target.value.toUpperCase() })} className="input-squishy w-full px-4 py-4 sm:px-6 sm:py-5 text-sm font-bold border-2 border-slate-50 focus:border-indigo-400 transition-all" placeholder="Ej. Esc. Primaria Benito Juárez" />
+                            <button type="button" onClick={handleAddBreak} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-sm font-black text-indigo-700"><Plus className="w-4 h-4" /> Agregar receso</button>
+                            {scheduleSettings.breaks.map((b: any, i: number) => (
+                                <div key={i} className="flex items-center justify-between gap-2 bg-white rounded-xl border border-slate-100 px-3 py-2 text-sm">
+                                    <span className="font-bold text-slate-700">{b.name} <span className="font-mono text-xs text-slate-500">{b.start_time}–{b.end_time}</span></span>
+                                    <button aria-label="Eliminar" onClick={() => setScheduleSettings((prev: any) => ({ ...prev, breaks: prev.breaks.filter((_: any, idx: number) => idx !== i) }))} className="p-2 rounded-lg text-slate-400 hover:text-rose-600"><Trash2 className="w-4 h-4" /></button>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="md:col-span-2">
-                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 ml-2">Nivel</label>
-                                        <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-row sm:gap-4">
-                                            {['PRIMARY', 'SECONDARY', 'TELESECUNDARIA'].map(l => (
-                                                <button
-                                                    key={l}
-                                                    onClick={() => setSchoolData({ ...schoolData, educationalLevel: l as any })}
-                                                    className={`flex-1 min-w-0 py-3 px-1 sm:py-5 sm:px-6 rounded-2xl sm:rounded-[2rem] border-2 transition-all flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-3 active:scale-95 ${schoolData.educationalLevel === l
-                                                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-[inset_0_4px_12px_rgba(79,70,229,0.15)] ring-4 ring-indigo-100/50'
-                                                        : 'border-slate-100 hover:border-indigo-300 hover:bg-slate-50 text-slate-500 shadow-sm'
-                                                        }`}
-                                                >
-                                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${schoolData.educationalLevel === l ? 'border-indigo-600' : 'border-slate-300'}`}>
-                                                        {schoolData.educationalLevel === l && <div className="w-2.5 h-2.5 rounded-full bg-indigo-600" />}
-                                                    </div>
-                                                    <span className="font-extrabold tracking-tight text-[10px] sm:text-xs uppercase leading-tight text-center">
-                                                        {l === 'PRIMARY' ? 'Primaria' : l === 'SECONDARY' ? 'Secundaria' : 'Telesecundaria'}
-                                                    </span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div className="md:col-span-2 group/field">
-                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-2 transition-colors group-focus-within:text-indigo-500">CCT</label>
-                                        <input aria-label="CCT" value={schoolData.cct} onChange={e => setSchoolData({ ...schoolData, cct: e.target.value.toUpperCase() })} className="input-squishy w-full px-4 py-4 sm:px-6 sm:py-5 text-sm font-bold border-2 border-slate-50 focus:border-indigo-400 transition-all font-mono" placeholder="Ej. 07DPR0000X" />
-                                    </div>
-                                </div>
-                                <div className="pt-4 space-y-4">
-                                    <button onClick={handleUpdateSchool} className="w-full py-4 sm:py-5 bg-indigo-600 text-white rounded-[2rem] font-black text-sm hover:bg-indigo-700 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest border-b-4 border-indigo-800 hover:border-indigo-900 hover:translate-y-0.5">
-                                        Continuar <ArrowRight className="w-5 h-5" />
-                                    </button>
-                                    <button onClick={handleCancelRegistration} className="w-full py-4 text-slate-500 font-bold text-[11px] uppercase tracking-widest hover:bg-rose-50 hover:text-rose-600 rounded-2xl transition-all flex items-center justify-center gap-2">
-                                        <Trash2 className="w-4 h-4" /> Cancelar y Eliminar Cuenta
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {step === 1 && (
-                        <div className="animate-in fade-in slide-in-from-right duration-500 max-w-lg mx-auto">
-                            <div className="text-center mb-6 sm:mb-10">
-                                <div className="inline-flex items-center justify-center p-4 sm:p-6 bg-blue-100 rounded-[2rem] text-blue-600 mb-6 shadow-inner ring-4 ring-white">
-                                    <Calendar className="w-12 h-12" />
-                                </div>
-                                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 italic tracking-tight uppercase">Ciclo Escolar</h2>
-                            </div>
-                            <div className="space-y-5 sm:space-y-8">
-                                <div className="group/field">
-                                    <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-2 transition-colors group-focus-within:text-blue-500">Nombre del Ciclo</label>
-                                    <input aria-label="Nombre del Ciclo" value={yearData.name} onChange={e => setYearData({ ...yearData, name: e.target.value.toUpperCase(), source: 'manual' })} className="input-squishy w-full px-4 py-4 sm:px-6 sm:py-5 text-sm font-bold border-2 border-slate-50 focus:border-blue-400 transition-all font-mono" placeholder="Ej. 2024-2025" />
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="group/field">
-                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-2 transition-colors group-focus-within:text-blue-500">Inicio de Clases</label>
-                                        <DateInput aria-label="Inicio de Clases" value={yearData.startDate} onChange={e => {
-                                            const val = e.target.value;
-                                            if (val && val.split('-')[0].length > 4) return;
-                                            setYearData({ ...yearData, startDate: val, source: 'manual' });
-                                        }} className="input-squishy w-full px-4 py-4 sm:px-6 sm:py-5 text-sm font-bold border-2 border-slate-50 focus:border-blue-400 transition-all text-slate-600" />
-                                    </div>
-                                    <div className="group/field">
-                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-2 transition-colors group-focus-within:text-blue-500">Fin de Clases</label>
-                                        <DateInput aria-label="Fin de Clases" value={yearData.endDate} onChange={e => {
-                                            const val = e.target.value;
-                                            if (val && val.split('-')[0].length > 4) return;
-                                            setYearData({ ...yearData, endDate: val, source: 'manual' });
-                                        }} className="input-squishy w-full px-4 py-4 sm:px-6 sm:py-5 text-sm font-bold border-2 border-slate-50 focus:border-blue-400 transition-all text-slate-600" />
-                                    </div>
-                                </div>
-                                <OfficialCycleNote
-                                    source={yearData.source ?? 'estimado'}
-                                    official={officialCycle}
-                                    loading={officialLoading}
-                                    onUseOfficial={applyOfficialCycle}
-                                />
-                                <div className="pt-4">
-                                    <button onClick={handleCreateYear} className="w-full py-4 sm:py-5 bg-blue-600 text-white rounded-[2rem] font-black text-sm hover:bg-blue-700 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest border-b-4 border-blue-800 hover:border-blue-900 hover:translate-y-0.5">
-                                        Generar Calendario <ArrowRight className="w-5 h-5" />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {step === 2 && (
-                        <div className="animate-in fade-in slide-in-from-right duration-500">
-                            <div className="text-center mb-6 sm:mb-10">
-                                <div className="inline-flex items-center justify-center p-4 sm:p-6 bg-orange-100 rounded-[2rem] text-orange-600 mb-6 shadow-inner ring-4 ring-white">
-                                    <Clock className="w-12 h-12" />
-                                </div>
-                                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 italic tracking-tight uppercase">Jornada y Grado</h2>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8 max-w-5xl mx-auto">
-                                <div className="squishy-card p-5 sm:p-8 bg-slate-50 border-2 border-slate-100 space-y-6 md:p-10 h-fit">
-                                    <div className="group/field">
-                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-2 transition-colors group-focus-within:text-orange-500">Hora de Entrada</label>
-                                        <input aria-label="Hora de Entrada" type="time" value={scheduleSettings.startTime} onChange={e => setScheduleSettings({ ...scheduleSettings, startTime: e.target.value })} className="input-squishy w-full px-4 py-4 sm:px-6 sm:py-5 text-sm font-bold text-center border-2 border-white focus:border-orange-400 transition-all" />
-                                    </div>
-                                    <div className="group/field">
-                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-2 transition-colors group-focus-within:text-orange-500">Hora de Salida</label>
-                                        <input aria-label="Hora de Salida" type="time" value={scheduleSettings.endTime} onChange={e => setScheduleSettings({ ...scheduleSettings, endTime: e.target.value })} className="input-squishy w-full px-4 py-4 sm:px-6 sm:py-5 text-sm font-bold text-center border-2 border-white focus:border-orange-400 transition-all" />
-                                    </div>
-                                    {schoolData.educationalLevel !== 'PRIMARY' && (
-                                        <div className="group/field">
-                                            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-2 transition-colors group-focus-within:text-orange-500">Duración Módulo (min)</label>
-                                            <input aria-label="Duración Módulo (min)" type="number" value={scheduleSettings.moduleDuration} onChange={e => setScheduleSettings({ ...scheduleSettings, moduleDuration: Number(e.target.value) })} className="input-squishy w-full px-4 py-4 sm:px-6 sm:py-5 text-sm font-bold text-center border-2 border-white focus:border-orange-400 transition-all" />
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="space-y-6">
-                                    {(schoolData.educationalLevel === 'PRIMARY' || schoolData.educationalLevel === 'TELESECUNDARIA') && (
-                                        <div className="squishy-card p-5 sm:p-8 bg-indigo-50/30 border-2 border-indigo-100/50 space-y-6 md:p-10">
-                                            <div className="p-5 bg-white/60 rounded-[2rem] border-2 border-indigo-100/50 text-center shadow-sm">
-                                                <p className="text-[12px] font-black text-indigo-700 uppercase tracking-widest mb-1 italic">Jornada Completa</p>
-                                                <p className="text-[11px] font-bold text-indigo-500/80 uppercase">En Primaria y Telesecundaria el horario es por jornada.</p>
-                                            </div>
-
-                                            <div className="space-y-4 pt-2">
-                                                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest text-center">Grado/Grupo que Impartes</label>
-                                                <div className="grid grid-cols-3 gap-3">
-                                                    {(schoolData.educationalLevel === 'TELESECUNDARIA' ? [1, 2, 3] : [1, 2, 3, 4, 5, 6]).map(g => (
-                                                        <button
-                                                            key={g}
-                                                            onClick={() => {
-                                                                const p = schoolData.educationalLevel === 'TELESECUNDARIA' ? 6 : g <= 2 ? 3 : g <= 4 ? 4 : 5;
-                                                                setSchoolData({ ...schoolData, grade: g, phase: p });
-                                                            }}
-                                                            className={`p-4 sm:p-5 rounded-[1.5rem] border-2 font-black text-sm sm:text-base transition-all active:scale-95 ${schoolData.grade === g ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-[inset_0_4px_12px_rgba(79,70,229,0.15)] ring-4 ring-indigo-100/50' : 'border-slate-200 bg-white text-slate-500 hover:border-indigo-300 hover:bg-slate-50 shadow-sm'}`}
-                                                        >
-                                                            {g}°
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                                <div className="mt-4 text-center">
-                                                    <span className="inline-block bg-indigo-600 text-white text-[11px] font-black px-4 py-2 rounded-full uppercase tracking-widest shadow-lg shadow-indigo-600/20">
-                                                        Fase {schoolData.phase} NEM
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                    {tenant?.type !== 'INDEPENDENT' && (tenant?.type as string)?.toLowerCase() !== 'independent' && (
-                                        <div className="animate-in fade-in slide-in-from-right-8 duration-500">
-                                            <div className="squishy-card p-6 bg-orange-50 rounded-[2rem] border-2 border-orange-100 mb-6">
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                                                    <div>
-                                                        <label className="block text-[11px] font-black text-orange-400 uppercase mb-2 ml-1">Inicio</label>
-                                                        <input aria-label="Inicio" type="time" value={newBreak.start} onChange={e => setNewBreak({ ...newBreak, start: e.target.value })} className="input-squishy w-full px-4 py-3 border-2 border-white focus:border-orange-300 text-sm font-bold text-orange-800" />
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-[11px] font-black text-orange-400 uppercase mb-2 ml-1">Fin</label>
-                                                        <input aria-label="Fin" type="time" value={newBreak.end} onChange={e => setNewBreak({ ...newBreak, end: e.target.value })} className="input-squishy w-full px-4 py-3 border-2 border-white focus:border-orange-300 text-sm font-bold text-orange-800" />
-                                                    </div>
-                                                </div>
-                                                <button onClick={handleAddBreak} className="w-full py-4 bg-orange-500 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-orange-500/20 hover:bg-orange-600 transition-all hover:-translate-y-0.5 active:scale-95 border-b-4 border-orange-700">
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <Plus className="w-4 h-4" /> Agregar Receso
-                                                    </div>
-                                                </button>
-                                            </div>
-                                            {scheduleSettings.breaks.length > 0 && (
-                                                <div className="space-y-3">
-                                                    {scheduleSettings.breaks.map((b: any, i: number) => (
-                                                        <div key={i} className="squishy-card p-5 bg-white border-2 border-slate-100 rounded-2xl flex justify-between items-center capitalize font-bold text-slate-600 shadow-sm">
-                                                            <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
-                                                                <span className="text-sm">{b.name}</span>
-                                                                <span className="text-xs text-slate-500 font-mono">({b.start_time} - {b.end_time})</span>
-                                                            </div>
-                                                            <button aria-label="Eliminar" onClick={() => setScheduleSettings((prev: any) => ({ ...prev, breaks: prev.breaks.filter((_: any, idx: number) => idx !== i) }))} className="text-rose-400 bg-rose-50 p-2.5 rounded-xl hover:bg-rose-100 transition-colors shadow-inner">
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="max-w-4xl mx-auto mt-12">
-                                <button onClick={handleSaveSchedule} className="w-full py-4 sm:py-5 bg-orange-600 text-white rounded-[2rem] font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-orange-700 transition-all shadow-xl shadow-orange-600/20 active:scale-95 border-b-4 border-orange-800 hover:-translate-y-0.5">
-                                    Confirmar Estructura <ArrowRight className="w-5 h-5" />
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    {step === 3 && (
-                        <div className="animate-in fade-in slide-in-from-right duration-500 max-w-4xl mx-auto flex flex-col h-full">
-                            <div className="text-center mb-6 sm:mb-10">
-                                <div className="inline-flex items-center justify-center p-4 sm:p-6 bg-emerald-100 rounded-[2rem] text-emerald-700 mb-6 shadow-inner ring-4 ring-white">
-                                    <BookOpen className="w-12 h-12" />
-                                </div>
-                                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 italic tracking-tight uppercase">Tus Materias</h2>
-                                <p className="text-slate-500 mt-3 font-medium">Selecciona las asignaturas que impartirás este ciclo escolar.</p>
-                            </div>
-
-                            <div className="squishy-card bg-emerald-50/30 rounded-[2.5rem] border-4 border-emerald-50 flex flex-col shadow-inner overflow-hidden mb-8 ring-4 ring-white">
-                                <div className="bg-white/80 backdrop-blur-md py-4 px-4 sm:py-5 sm:px-8 border-b-2 border-emerald-100 flex flex-col sm:flex-row gap-4 justify-between items-center relative z-10 shadow-sm">
-                                    <span className="text-xs font-black text-emerald-800 uppercase tracking-widest flex items-center gap-3">
-                                        <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse shadow-lg shadow-emerald-500/50" />
-                                        Catálogo Disponible
-                                    </span>
-                                    <span className="bg-emerald-100 px-5 py-2 rounded-full text-[11px] font-black text-emerald-700 shadow-inner border border-emerald-200">
-                                        {Object.values(selectedSubjects).filter(s => s.selected).length} SELECCIONADAS
-                                    </span>
-                                </div>
-                                <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar max-h-[500px]">
-                                    <SubjectSelector
-                                        educationalLevel={schoolData.educationalLevel}
-                                        selectedSubjects={selectedSubjects}
-                                        onChange={setSelectedSubjects}
-                                    />
-                                </div>
-                                <div className="bg-emerald-800/5 backdrop-blur-sm p-4 text-center border-t-2 border-emerald-100/50">
-                                    <p className="text-[11px] text-emerald-700/60 font-black uppercase tracking-widest italic">Desplázate para ver más materias ↑↓</p>
-                                </div>
-                            </div>
-
-                            <div className="max-w-2xl mx-auto w-full">
-                                <button
-                                    onClick={handleSaveSubjects}
-                                    className="w-full py-4 sm:py-5 bg-emerald-500 text-white rounded-[2rem] font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-emerald-600 transition-all shadow-xl shadow-emerald-500/30 active:scale-95 border-b-4 border-emerald-700 hover:-translate-y-0.5"
-                                >
-                                    Guardar Materias <ArrowRight className="w-5 h-5" />
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    {step === 4 && (
-                        <div className="w-full animate-in fade-in duration-500">
-                            <div className="animate-in fade-in slide-in-from-right duration-500 max-w-4xl mx-auto">
-                                <div className="text-center mb-6 sm:mb-12">
-                                    <div className="inline-flex items-center justify-center p-4 sm:p-6 bg-indigo-100 rounded-[2rem] text-indigo-600 mb-6 shadow-inner ring-4 ring-white">
-                                        <CreditCard className="w-12 h-12" />
-                                    </div>
-                                    <h2 className="text-2xl sm:text-3xl md:text-5xl font-black text-indigo-950 italic tracking-tight uppercase">¡Ya casi terminamos!</h2>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8">
-                                    <div className="squishy-card bg-white p-6 sm:p-10 lg:p-12 rounded-[3rem] border-4 border-blue-50 flex flex-col items-center text-center shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">
-                                        <div className="p-5 bg-blue-100 rounded-full mb-6">
-                                            <Gift className="w-12 h-12 text-blue-600" />
-                                        </div>
-                                        <h3 className="text-2xl font-black mb-3 text-slate-800 uppercase tracking-tight">Prueba Gratis</h3>
-                                        <p className="text-sm text-slate-500 mb-8 font-medium leading-relaxed">Disfruta 30 días sin costo para probar todas las herramientas PRO. Luego, $399/año.</p>
-                                        <button onClick={handleStartFreeTrial} className="w-full py-4 sm:py-5 bg-slate-100 text-slate-700 rounded-[2rem] font-black uppercase tracking-widest border-2 border-slate-200 hover:bg-slate-200 hover:text-slate-900 transition-all active:scale-95">Iniciar Prueba</button>
-                                    </div>
-
-                                    <div className="squishy-card bg-indigo-600 p-6 sm:p-10 lg:p-12 rounded-[3rem] border-4 border-indigo-400 flex flex-col items-center text-center shadow-2xl shadow-indigo-600/30 ring-8 ring-indigo-50 hover:-translate-y-1 transition-all relative overflow-hidden">
-                                        <div className="absolute -top-12 -right-12 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
-                                        <div className="absolute -bottom-12 -left-12 w-40 h-40 bg-black/10 rounded-full blur-2xl" />
-
-                                        <div className="p-5 bg-white/20 rounded-full mb-6 backdrop-blur-sm relative z-10">
-                                            <Zap className="w-12 h-12 text-white" />
-                                        </div>
-                                        <h3 className="text-2xl font-black mb-3 text-white uppercase tracking-tight relative z-10">Suscripción PRO</h3>
-                                        <div className="mb-8 relative z-10">
-                                            <span className="text-4xl sm:text-5xl font-black text-white">$599</span>
-                                            <span className="text-indigo-200 font-bold ml-1 text-lg">/año</span>
-                                        </div>
-                                        {!Capacitor.isNativePlatform() ? (
-                                            <button onClick={handleActivateSubscription} className="w-full py-4 sm:py-5 bg-white text-indigo-700 rounded-[2rem] font-black uppercase tracking-widest hover:bg-indigo-50 transition-all shadow-xl active:scale-95 border-b-4 border-indigo-200 relative z-10">Activar Ahora</button>
-                                        ) : (
-                                            <button
-                                                onClick={() => window.open('https://vunlek.com', '_system')}
-                                                className="clay-button w-full py-4 bg-indigo-50 text-indigo-600 rounded-2xl font-black text-xs uppercase"
-                                            >
-                                                Gestionar en Web
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="mt-8">
-                                <button onClick={handleCancelRegistration} className="w-full py-4 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 rounded-2xl transition-all flex items-center justify-center gap-2">
-                                    <Trash2 className="w-4 h-4" /> Cancelar Registro
-                                </button>
-                            </div>
+                            ))}
                         </div>
                     )}
                 </div>
-            </div>
-        </div>
+            )}
+
+            {step === 3 && (
+                <div className="space-y-5">
+                    <WizardStepHeader icon={BookOpen} title="Tus materias" description="Selecciona las asignaturas que impartirás este ciclo escolar." />
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-500">
+                        <span>Catálogo del programa de estudios</span>
+                        <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-700">{Object.values(selectedSubjects).filter(s => s.selected).length} seleccionadas</span>
+                    </div>
+                    <div className="rounded-2xl border border-slate-100 p-3 sm:p-4 max-h-[420px] overflow-y-auto custom-scrollbar">
+                        <SubjectSelector educationalLevel={schoolData.educationalLevel} selectedSubjects={selectedSubjects} onChange={setSelectedSubjects} />
+                    </div>
+
+                    {teachesTechnology && (
+                        <CooperativeFields value={coop} onChange={setCoop} />
+                    )}
+                </div>
+            )}
+
+            {step === 4 && (
+                <div className="space-y-5">
+                    <WizardStepHeader icon={CreditCard} title="Elige cómo empezar" description="Prueba todas las herramientas sin costo o activa tu suscripción." />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="rounded-[1.5rem] border border-slate-200 p-6 flex flex-col">
+                            <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4"><Gift className="w-6 h-6" /></div>
+                            <h3 className="text-lg font-black text-slate-900">Prueba gratis</h3>
+                            <p className="text-sm text-slate-500 mt-1 mb-6 flex-1">30 días sin costo con todas las herramientas PRO. Después, $399 al año.</p>
+                            <button onClick={handleStartFreeTrial} disabled={loading} className="w-full py-3 rounded-2xl bg-indigo-600 text-white font-black text-sm disabled:opacity-50">Iniciar prueba</button>
+                        </div>
+                        <div className="rounded-[1.5rem] border-2 border-indigo-600 p-6 flex flex-col bg-indigo-50/40">
+                            <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center mb-4"><Zap className="w-6 h-6" /></div>
+                            <h3 className="text-lg font-black text-slate-900">Suscripción PRO</h3>
+                            <p className="text-sm text-slate-500 mt-1 mb-6 flex-1"><span className="text-2xl font-black text-slate-900">$599</span> al año</p>
+                            {!Capacitor.isNativePlatform() ? (
+                                <button onClick={handleActivateSubscription} disabled={loading} className="w-full py-3 rounded-2xl bg-white border border-indigo-200 text-indigo-700 font-black text-sm disabled:opacity-50">Activar ahora</button>
+                            ) : (
+                                <button onClick={() => window.open('https://vunlek.com', '_system')} className="w-full py-3 rounded-2xl bg-white border border-indigo-200 text-indigo-700 font-black text-sm">Gestionar en la web</button>
+                            )}
+                        </div>
+                    </div>
+                    <button type="button" onClick={handleCancelRegistration} className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-rose-600">
+                        <Trash2 className="w-4 h-4" /> Cancelar registro
+                    </button>
+                </div>
+            )}
+        </WizardLayout>
     )
 }

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-    ArrowLeft, ArrowRight, BookOpen, CalendarRange, CheckCircle2, ChevronDown, GraduationCap,
+    ArrowLeft, BookOpen, CalendarRange, CheckCircle2, ChevronDown, GraduationCap,
     Loader2, Plus, Sparkles, Users, X, ArrowUpRight, Archive, History,
 } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
@@ -10,6 +10,7 @@ import { useTenant } from '../../../hooks/useTenant'
 import { DateInput, formatDateEs } from '../../../components/ui/DateInput'
 import { OfficialCycleNote, type CycleSource } from '../../../components/academic/OfficialCycleNote'
 import { fetchOfficialCycle, cycleNameFromDates } from '../../../lib/officialCalendar'
+import { WizardLayout, WizardFooter, WizardField, WizardAlert, wizardInput } from '../../../components/wizard/Wizard'
 
 /**
  * Asistente "Nuevo ciclo escolar": cierra el ciclo actual y abre el siguiente.
@@ -29,12 +30,12 @@ interface GroupPlan { action: Action; newGrade: number; newSection: string; outc
 interface NewGroup { grade: number; section: string }
 
 const STEPS = [
-    { title: 'Nuevo ciclo', icon: CalendarRange },
-    { title: 'Grupos', icon: Users },
-    { title: 'Alumnos', icon: GraduationCap },
-    { title: 'Nuevo ingreso', icon: Plus },
-    { title: 'Tu trabajo', icon: BookOpen },
-    { title: 'Confirmar', icon: CheckCircle2 },
+    { label: 'Nuevo ciclo', icon: CalendarRange },
+    { label: 'Grupos', icon: Users },
+    { label: 'Alumnos', icon: GraduationCap },
+    { label: 'Nuevo ingreso', icon: Plus },
+    { label: 'Tu trabajo', icon: BookOpen },
+    { label: 'Confirmar', icon: CheckCircle2 },
 ]
 
 const maxGradeFor = (level?: string | null) => (level === 'PRIMARY' ? 6 : 3)
@@ -225,36 +226,30 @@ export const NewSchoolYearWizard = () => {
     }
 
     return (
-        <div className="max-w-3xl mx-auto pb-28 sm:pb-10">
-            <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm font-bold text-slate-500 mb-4"><ArrowLeft className="w-4 h-4" /> Volver</button>
-            <div className="mb-6">
-                <p className="text-[11px] font-black uppercase tracking-widest text-indigo-600">Cierre de ciclo {data.year?.name ? `· ${data.year.name}` : ''}</p>
-                <h1 className="text-2xl sm:text-3xl font-black text-slate-900">Iniciar el nuevo ciclo escolar</h1>
-            </div>
-
-            {/* Pasos */}
-            <div className="flex gap-1 mb-6 overflow-x-auto scrollbar-hide">
-                {STEPS.map((s, i) => (
-                    <button key={s.title} onClick={() => i < step && setStep(i)} disabled={i > step}
-                        className={`shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-black whitespace-nowrap ${i === step ? 'bg-indigo-600 text-white' : i < step ? 'bg-indigo-50 text-indigo-700' : 'bg-slate-100 text-slate-400'}`}>
-                        <s.icon className="w-4 h-4" /> {i + 1}. {s.title}
-                    </button>
-                ))}
-            </div>
-
-            <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 sm:p-8 space-y-6">
+        <WizardLayout
+            eyebrow={`Cierre de ciclo${data.year?.name ? ` · ${data.year.name}` : ''}`}
+            title="Iniciar el nuevo ciclo escolar"
+            steps={STEPS}
+            current={step}
+            onStepClick={i => setStep(i)}
+            headerAction={<button onClick={() => navigate(-1)} className="shrink-0 inline-flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-100"><ArrowLeft className="w-4 h-4" /> Volver</button>}
+            footer={step < STEPS.length - 1
+                ? <WizardFooter onBack={step > 0 ? () => setStep(s => Math.max(0, s - 1)) : undefined} onNext={() => setStep(s => s + 1)} nextDisabled={!canNext} />
+                : <WizardFooter onBack={() => setStep(s => Math.max(0, s - 1))} onNext={submit} loading={saving} tone="success" nextIcon={Sparkles} nextLabel={`Iniciar ${cycle.name || 'ciclo'}`} />}
+        >
+            <div className="space-y-6">
                 {step === 0 && (
                     <>
                         <Header title="Datos del nuevo ciclo" text="Se toman del calendario escolar oficial de la SEP cuando está disponible. Puedes cambiarlos." />
                         <Field label="Nombre del ciclo">
-                            <input value={cycle.name} onChange={e => setCycle(c => ({ ...c, name: e.target.value.toUpperCase(), source: 'manual' }))} className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-100 font-bold" placeholder="CICLO 2026-2027" />
+                            <input value={cycle.name} onChange={e => setCycle(c => ({ ...c, name: e.target.value.toUpperCase(), source: 'manual' }))} className={wizardInput} placeholder="CICLO 2026-2027" />
                         </Field>
                         <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-4">
                             <Field label="Inicio de clases">
-                                <DateInput aria-label="Inicio de clases" value={cycle.start} onChange={e => setCycle(c => ({ ...c, start: e.target.value, source: 'manual' }))} className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-100 font-bold" />
+                                <DateInput aria-label="Inicio de clases" value={cycle.start} onChange={e => setCycle(c => ({ ...c, start: e.target.value, source: 'manual' }))} className={wizardInput} />
                             </Field>
                             <Field label="Fin de clases">
-                                <DateInput aria-label="Fin de clases" value={cycle.end} onChange={e => setCycle(c => ({ ...c, end: e.target.value, source: 'manual' }))} className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-100 font-bold" />
+                                <DateInput aria-label="Fin de clases" value={cycle.end} onChange={e => setCycle(c => ({ ...c, end: e.target.value, source: 'manual' }))} className={wizardInput} />
                             </Field>
                         </div>
                         {cycle.start && cycle.end && cycle.end <= cycle.start && <p className="text-sm font-bold text-rose-600">La fecha de fin debe ser posterior al inicio.</p>}
@@ -394,41 +389,23 @@ export const NewSchoolYearWizard = () => {
                             <li>Alumnos: {summary.count.PROMOVIDO} suben · {summary.count.EGRESADO} egresan · {summary.count.REPITE} repiten · {summary.count.BAJA} baja</li>
                             <li>Programa analítico: {copyProgram ? 'se copia al nuevo ciclo' : 'no se copia'} · Planeaciones: {copyPlans ? 'se copian como borrador' : 'no se copian'}</li>
                         </ul>
-                        {error && <p className="text-sm font-bold text-rose-600 bg-rose-50 rounded-xl p-3">{error}</p>}
+                        {error && <WizardAlert>{error}</WizardAlert>}
                     </>
                 )}
             </div>
 
-            {/* Navegación */}
-            <div className="fixed sm:static bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-0 right-0 z-30 bg-white/95 sm:bg-transparent border-t sm:border-0 border-slate-100 px-4 py-3 sm:px-0 sm:mt-6 flex items-center justify-between gap-3">
-                <button onClick={() => setStep(s => Math.max(0, s - 1))} disabled={step === 0 || saving} className="px-4 py-3 rounded-2xl text-sm font-black text-slate-500 disabled:opacity-30">Anterior</button>
-                {step < STEPS.length - 1 ? (
-                    <button onClick={() => setStep(s => s + 1)} disabled={!canNext} className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-indigo-600 text-white font-black text-sm disabled:opacity-40">
-                        Siguiente <ArrowRight className="w-4 h-4" />
-                    </button>
-                ) : (
-                    <button onClick={submit} disabled={saving} className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-600 text-white font-black text-sm disabled:opacity-60">
-                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />} Iniciar {cycle.name || 'ciclo'}
-                    </button>
-                )}
-            </div>
-        </div>
+        </WizardLayout>
     )
 }
 
 const Header = ({ title, text }: { title: string; text: string }) => (
     <div>
-        <h2 className="text-xl font-black text-slate-900">{title}</h2>
+        <h2 className="text-xl font-black text-slate-900 leading-tight">{title}</h2>
         <p className="text-sm text-slate-500 mt-1">{text}</p>
     </div>
 )
 
-const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
-    <label className="block">
-        <span className="block text-[11px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">{label}</span>
-        {children}
-    </label>
-)
+const Field = ({ label, children }: { label: string; children: React.ReactNode }) => <WizardField label={label}>{children}</WizardField>
 
 const Toggle = ({ checked, onChange, title, text }: { checked: boolean; onChange: (v: boolean) => void; title: string; text: string }) => (
     <label className="flex items-start gap-3 rounded-2xl border border-slate-100 p-4 cursor-pointer">

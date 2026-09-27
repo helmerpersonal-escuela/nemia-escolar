@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { X, Search, ChevronRight } from 'lucide-react'
+import { Search, ChevronRight, FileText } from 'lucide-react'
+import { WizardModalHeader } from '../../../components/wizard/Wizard'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
@@ -78,18 +79,8 @@ export const StudentSelectorModal = ({ isOpen, onClose }: StudentSelectorModalPr
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                {/* Header */}
-                <div className="bg-indigo-600 p-6 flex justify-between items-center text-white">
-                    <div>
-                        <h3 className="text-xl font-black uppercase tracking-tight">Generar Reporte</h3>
-                        <p className="text-indigo-200 text-xs font-bold uppercase tracking-widest mt-1">
-                            {step === 'GROUP' ? 'Selecciona un Grupo' : 'Selecciona un Alumno'}
-                        </p>
-                    </div>
-                    <button aria-label="Cerrar" onClick={onClose} className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors">
-                        <X className="w-5 h-5" />
-                    </button>
-                </div>
+                <WizardModalHeader title="Generar reporte" icon={FileText} onClose={onClose}
+                    steps={[{ label: 'Grupo' }, { label: 'Alumno' }]} current={step === 'GROUP' ? 0 : 1} />
 
                 <div className="p-6 h-[400px] flex flex-col">
                     {step === 'GROUP' ? (

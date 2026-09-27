@@ -13,6 +13,7 @@ import { AdminDashboard } from '../../admin/pages/AdminDashboard'
 import { TechCoordinationDashboard } from '../components/roles/TechCoordinationDashboard'
 import { TutorDashboard } from '../components/roles/TutorDashboard'
 import { IndependentDashboard } from '../components/roles/IndependentDashboard'
+import { CoopDashboardAlerts } from '../../cooperative/components/CoopDashboardAlerts'
 
 export const DashboardPage = () => {
     const { data: tenant } = useTenant()
@@ -29,7 +30,9 @@ export const DashboardPage = () => {
 
     const isImpersonating = !!sessionStorage.getItem('vunlek_impersonate_id')
 
-    if (currentRole === 'INDEPENDENT_TEACHER') return <IndependentDashboard />
+    const withCoop = (el: React.ReactNode) => <>{<div className="max-w-7xl mx-auto px-3 sm:px-0"><CoopDashboardAlerts /></div>}{el}</>
+
+    if (currentRole === 'INDEPENDENT_TEACHER') return withCoop(<IndependentDashboard />)
 
     if (currentRole === 'SUPER_ADMIN') {
         // Only redirect to /admin if they are in the "System" tenant (God Mode) 
@@ -41,10 +44,10 @@ export const DashboardPage = () => {
         }
     }
 
-    if (currentRole === 'ADMIN') return <AdminDashboard />
-    if (currentRole === 'DIRECTOR') return <DirectorDashboard />
-    if (currentRole === 'ACADEMIC_COORD') return <CoordinationDashboard />
-    if (currentRole === 'TECH_COORD') return <TechCoordinationDashboard />
+    if (currentRole === 'ADMIN') return withCoop(<AdminDashboard />)
+    if (currentRole === 'DIRECTOR') return withCoop(<DirectorDashboard />)
+    if (currentRole === 'ACADEMIC_COORD') return withCoop(<CoordinationDashboard />)
+    if (currentRole === 'TECH_COORD') return withCoop(<TechCoordinationDashboard />)
     if (currentRole === 'SCHOOL_CONTROL') return <ControlEscolarDashboard />
     if (currentRole === 'PREFECT') return <PrefecturaDashboard />
     if (currentRole === 'SUPPORT') return <SupportDashboard />
@@ -57,6 +60,7 @@ export const DashboardPage = () => {
             {/* <div className="bg-red-50 p-4 mb-4 rounded-xl text-red-700 text-xs font-mono">
                 DEBUG: Role={currentRole} | TenantID={tenant?.id}
             </div> */}
+            <div className="max-w-7xl mx-auto px-3 sm:px-0"><CoopDashboardAlerts /></div>
             <TeacherDashboard />
         </div>
     )

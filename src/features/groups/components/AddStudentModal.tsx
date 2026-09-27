@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import Webcam from 'react-webcam'
-import { Camera, X, User, Phone, Mail, MapPin, Briefcase, HeartPulse, AlertCircle, FileText, Zap } from 'lucide-react'
+import { Camera, X, User, Phone, Mail, MapPin, Briefcase, HeartPulse, AlertCircle, FileText, Zap, Check } from 'lucide-react'
+import { WizardFooter, WizardProgress } from '../../../components/wizard/Wizard'
 import { supabase } from '../../../lib/supabase'
 import { useSubscriptionLimits } from '../../../hooks/useSubscriptionLimits'
 import { UpgradeModal } from '../../../components/UpgradeModal'
@@ -441,33 +442,13 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
             <div className="squishy-card max-w-3xl w-full flex flex-col max-h-[90vh]">
                 {/* Header */}
                 <div className="flex justify-between items-center p-6 border-b">
-                    <h2 className="text-xl font-bold text-gray-900">{studentId ? 'Editar Alumno' : 'Registrar Nuevo Alumno'}</h2>
+                    <h2 className="text-xl font-black text-slate-900">{studentId ? 'Editar Alumno' : 'Registrar Nuevo Alumno'}</h2>
                     <button aria-label="Cerrar" onClick={onClose}><X className="h-6 w-6 text-gray-500" /></button>
                 </div>
 
-                {/* Tabs / Steps */}
-                {/* Tabs / Steps */}
-                {/* Tabs / Steps */}
-                <div className="flex bg-slate-50 border-b border-slate-100 p-2 gap-2">
-                    {[
-                        { id: 1, label: 'Alumno', icon: <User className="w-4 h-4" /> },
-                        { id: 2, label: 'Tutor', icon: <Briefcase className="w-4 h-4" /> },
-                        { id: 3, label: 'Biometría', icon: <Camera className="w-4 h-4" /> }
-                    ].map(s => (
-                        <button
-                            key={s.id}
-                            onClick={() => setStep(s.id)}
-                            className={`flex-1 py-3 px-2 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex flex-col items-center justify-center gap-1.5 ${step === s.id
-                                ? 'bg-white text-indigo-600 shadow-[0_8px_20px_-4px_rgba(79,70,229,0.2)] scale-[1.02] border-b-4 border-indigo-200'
-                                : 'text-slate-500 hover:bg-white/50'
-                                }`}
-                        >
-                            <div className={`p-2 rounded-xl ${step === s.id ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
-                                {s.icon}
-                            </div>
-                            {s.label}
-                        </button>
-                    ))}
+                <div className="px-6 pt-5">
+                    <WizardProgress className="mb-1" freeNavigation onStepClick={i => setStep(i + 1)} current={step - 1}
+                        steps={[{ label: 'Alumno' }, { label: 'Tutor' }, { label: 'Biometría' }]} />
                 </div>
 
                 {/* Content */}
@@ -705,33 +686,11 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 border-t flex justify-between">
-                    <button
-                        type="button"
-                        onClick={() => setStep(s => Math.max(1, s - 1))}
-                        className={`px-6 py-2.5 text-gray-700 hover:bg-gray-100 rounded-lg font-medium transition-colors ${step === 1 ? 'invisible' : ''}`}
-                    >
-                        Anterior
-                    </button>
-
-                    {step < 3 ? (
-                        <button
-                            type="button"
-                            onClick={() => setStep(s => Math.min(3, s + 1))}
-                            className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-black shadow-lg shadow-indigo-200 btn-tactile uppercase tracking-widest text-xs"
-                        >
-                            Siguiente
-                        </button>
-                    ) : (
-                        <button
-                            type="button"
-                            onClick={handleSubmit}
-                            disabled={loading || fetching}
-                            className="px-8 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl hover:shadow-green-200 font-black shadow-lg transition-all disabled:opacity-50 btn-tactile uppercase tracking-widest text-xs"
-                        >
-                            {loading ? 'Guardando...' : (studentId ? 'Guardar Cambios' : 'Registrar Alumno')}
-                        </button>
-                    )}
+                <div className="px-5 py-4 sm:px-6 border-t border-slate-100">
+                    {step < 3
+                        ? <WizardFooter sticky={false} onBack={step > 1 ? () => setStep(s => Math.max(1, s - 1)) : onClose} backLabel={step > 1 ? 'Anterior' : 'Cancelar'} onNext={() => setStep(s => Math.min(3, s + 1))} />
+                        : <WizardFooter sticky={false} onBack={() => setStep(s => Math.max(1, s - 1))} onNext={handleSubmit} loading={loading} nextDisabled={fetching} tone="success" nextIcon={Check}
+                            nextLabel={studentId ? 'Guardar cambios' : 'Registrar alumno'} />}
                 </div>
             </div>
 

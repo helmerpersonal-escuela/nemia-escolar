@@ -64,6 +64,7 @@ import { SubscriptionGuard } from './components/routes/SubscriptionGuard'
 const CTEPage = lazyNamed(() => import('./features/cte/pages/CTEPage'), 'CTEPage')
 const NewSchoolYearWizard = lazyNamed(() => import('./features/school-year/pages/NewSchoolYearWizard'), 'NewSchoolYearWizard')
 const CustomPdasPage = lazyNamed(() => import('./features/pdas/pages/CustomPdasPage'), 'CustomPdasPage')
+const CooperativePage = lazyNamed(() => import('./features/cooperative/pages/CooperativePage'), 'CooperativePage')
 const TextbooksPage = lazyNamed(() => import('./features/textbooks/pages/TextbooksPage'), 'TextbooksPage')
 const CompleteSignupPage = lazyNamed(() => import('./features/auth/pages/CompleteSignupPage'), 'CompleteSignupPage')
 const LegalPage = lazyNamed(() => import('./features/legal/LegalPage'), 'LegalPage')
@@ -309,6 +310,11 @@ function App() {
           <Route path="mis-pdas" element={
             <ProtectedRoute allowedRoles={['ADMIN', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD', 'TEACHER', 'INDEPENDENT_TEACHER']}>
               <CustomPdasPage />
+            </ProtectedRoute>
+          } />
+          <Route path="cooperativa" element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD', 'TEACHER', 'INDEPENDENT_TEACHER']}>
+              <CooperativePage />
             </ProtectedRoute>
           } />
 

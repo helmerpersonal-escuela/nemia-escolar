@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { X, Search, ChevronRight, AlertCircle, Calendar, Clock, Loader2 } from 'lucide-react'
+import { Search, ChevronRight, AlertCircle, Calendar, Clock, Loader2, FileSignature } from 'lucide-react'
+import { WizardModalHeader } from '../../../../components/wizard/Wizard'
 import { supabase } from '../../../../lib/supabase'
 import { useTenant } from '../../../../hooks/useTenant'
 import { todayISO } from '../../../../lib/dates'
@@ -89,18 +90,9 @@ export const CitationModal = ({ isOpen, onClose, onSuccess }: CitationModalProps
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
             <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-white/20 flex flex-col max-h-[90vh]">
-                {/* Header */}
-                <div className="p-8 bg-blue-600 text-white flex justify-between items-center shrink-0">
-                    <div>
-                        <h3 className="text-2xl font-black tracking-tight uppercase leading-none">Generar Citatorio</h3>
-                        <p className="text-blue-100 text-[11px] font-bold uppercase tracking-widest mt-1">
-                            {step === 'STUDENT' ? 'Paso 1: Seleccionar Alumno' : `Paso 2: Detalles de la Cita (${selectedStudent?.first_name})`}
-                        </p>
-                    </div>
-                    <button aria-label="Cerrar" onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl transition-all">
-                        <X className="w-5 h-5" />
-                    </button>
-                </div>
+                <WizardModalHeader title="Generar citatorio" icon={FileSignature} onClose={onClose}
+                    subtitle={step === 'FORM' && selectedStudent ? `Para ${selectedStudent.first_name}` : 'Selecciona al alumno y completa los datos de la cita.'}
+                    steps={[{ label: 'Alumno' }, { label: 'Detalles de la cita' }]} current={step === 'STUDENT' ? 0 : 1} />
 
                 <div className="flex-1 overflow-y-auto p-8">
                     {step === 'STUDENT' ? (

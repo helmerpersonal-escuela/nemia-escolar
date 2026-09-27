@@ -10,16 +10,13 @@ import {
     ArrowLeft,
     Clock,
     Plus,
-    Target,
     BookOpen,
-    Layers,
     ClipboardCheck,
     Sparkles,
     Printer,
     Calendar,
-    ChevronLeft,
-    ChevronRight,
     ExternalLink,
+    Eye,
     X
 } from 'lucide-react'
 import * as pdfjsLib from 'pdfjs-dist'
@@ -28,6 +25,7 @@ import * as pdfjsLib from 'pdfjs-dist'
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
 
 import { PDA_CATALOG } from '../constants/planningConstants'
+import { WizardFooter, WizardProgress } from '../../../components/wizard/Wizard'
 import type { LessonPlanFormData, Session, AiSuggestion } from '../types/planning.types'
 import { Step1Context } from '../components/editor/Step1Context'
 import { Step2Resources } from '../components/editor/Step2Resources'
@@ -1655,45 +1653,14 @@ export const PlanningEditorPage = () => {
                 </div>
             </div>
 
-            {/* Stepper Progress (Only in Editor Mode) */}
+            {/* Progreso (sistema de diseño de asistentes) */}
             {!isPreviewMode && (
-                <div className="hidden lg:block bg-white rounded-[2.5rem] p-8 shadow-tactile border-4 border-white mb-10 overflow-x-auto print:hidden">
-                    <div className="flex justify-between items-center min-w-[700px] relative px-4">
-                        {/* Connecting Line */}
-                        <div className="absolute top-[24px] left-0 w-full h-2 bg-slate-100 rounded-full z-0"></div>
-                        <div
-                            className="absolute top-[24px] left-0 h-2 bg-indigo-500 rounded-full z-0 transition-all duration-700 ease-out"
-                            style={{ width: `${((step - 1) / 3) * 100}%` }}
-                        ></div>
-
-                        {[
-                            { n: 1, label: 'Datos', icon: BookOpen },
-                            { n: 2, label: 'Libro', icon: Target },
-                            { n: 3, label: 'Metodología', icon: Layers },
-                            { n: 4, label: 'Finalizar', icon: Sparkles }
-                        ].map((s) => (
-                            <button
-                                key={s.n}
-                                onClick={() => {
-                                    if (s.n < step) setStep(s.n)
-                                    else if (validateStep(step)) setStep(s.n)
-                                }}
-                                className={`relative z-10 flex flex-col items-center group transition-all duration-500
-                                    ${step === s.n ? 'scale-110' : 'opacity-70 hover:opacity-100'} 
-                                    ${step > s.n ? 'text-indigo-600' : 'text-slate-300'}`}
-                            >
-                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border-[3px] transition-all duration-300 btn-tactile
-                                    ${step === s.n ? 'bg-indigo-600 border-indigo-400 text-white shadow-[0_6px_0_0_#4338ca]' : step > s.n ? 'bg-indigo-50 border-indigo-200 text-indigo-600 shadow-[0_6px_0_0_#e0e7ff]' : 'bg-white border-slate-100 text-slate-300 shadow-[0_6px_0_0_#f1f5f9]'}`}
-                                >
-                                    <s.icon className={`w-6 h-6 ${step === s.n ? 'animate-bounce' : ''}`} />
-                                </div>
-                                <span className={`text-[11px] font-black uppercase mt-4 tracking-widest bg-white px-3 py-1 rounded-full shadow-sm border border-slate-50
-                                    ${step === s.n ? 'text-indigo-600 border-indigo-100' : 'text-slate-500'}`}>
-                                    {s.label}
-                                </span>
-                            </button>
-                        ))}
-                    </div>
+                <div className="print:hidden">
+                    <WizardProgress
+                        steps={[{ label: 'Datos' }, { label: 'Libro' }, { label: 'Metodología' }, { label: 'Finalizar' }]}
+                        current={Math.min(step, 4) - 1}
+                        onStepClick={i => { if (i + 1 < step || validateStep(step)) setStep(i + 1) }}
+                    />
                 </div>
             )}
 
@@ -1796,20 +1763,23 @@ export const PlanningEditorPage = () => {
                             />
                         )}
 
-                        {/* Navigation Footer */}
-                        {
-                            !isPreviewMode && (
-                                <div className="flex flex-wrap justify-between items-center gap-2 bg-gray-50 p-3 sm:p-6 rounded-2xl border border-gray-100 mt-8 mb-8">
-                                    <div className="flex items-center gap-1 sm:gap-4">
+                        {/* Navegación */}
+                        {!isPreviewMode && (
+                            <div className="print:hidden px-4 sm:px-0 mb-8">
+                                <WizardFooter
+                                    onBack={step > 1 ? () => setStep(Math.max(1, step - 1)) : undefined}
+                                    onNext={() => {
+                                        if (validateStep(step)) {
+                                            if (step < 4) setStep(step + 1)
+                                            else setIsPreviewMode(true) // El último paso abre la vista previa
+                                        }
+                                    }}
+                                    nextLabel={step === 4 ? 'Finalizar y ver' : 'Siguiente'}
+                                    nextIcon={step === 4 ? Eye : undefined}
+                                    tone={step === 4 ? 'success' : 'primary'}
+                                    extra={
                                         <button
-                                            onClick={() => setStep(Math.max(1, step - 1))}
-                                            disabled={step === 1}
-                                            className={`flex items-center px-3 sm:px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-white hover:text-indigo-600 transition-all ${step === 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                        >
-                                            <ChevronLeft className="w-5 h-5 mr-2" />
-                                            Anterior
-                                        </button>
-                                        <button
+                                            type="button"
                                             onClick={() => {
                                                 if (window.confirm('¿Estás seguro de que deseas cancelar? Se perderán todos los datos no guardados.')) {
                                                     const draftId = id || 'new'
@@ -1817,31 +1787,16 @@ export const PlanningEditorPage = () => {
                                                     navigate('/planning')
                                                 }
                                             }}
-                                            className="flex items-center px-2 sm:px-4 py-3 rounded-xl font-bold text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-all text-xs uppercase tracking-widest"
+                                            className="p-3 sm:px-4 rounded-2xl text-sm font-black text-slate-500 hover:text-rose-600 hover:bg-rose-50 inline-flex items-center gap-2"
                                             aria-label="Cancelar"
                                         >
-                                            <X className="w-4 h-4 sm:mr-2" />
-                                            <span className="hidden sm:inline">Cancelar</span>
+                                            <X className="w-4 h-4" /><span className="hidden sm:inline">Cancelar</span>
                                         </button>
-                                    </div>
-                                    <div className="hidden sm:block text-xs font-black text-gray-300 uppercase tracking-widest">
-                                        Paso {step} de 4
-                                    </div>
-                                    <button
-                                        onClick={() => {
-                                            if (validateStep(step)) {
-                                                if (step < 4) setStep(step + 1)
-                                                else setIsPreviewMode(true) // Final step goes to preview
-                                            }
-                                        }}
-                                        className="flex items-center bg-indigo-600 text-white px-5 sm:px-8 py-3 rounded-xl font-black shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:scale-105 transition-all group whitespace-nowrap"
-                                    >
-                                        {step === 4 ? 'Finalizar y Ver' : 'Siguiente Paso'}
-                                        <ChevronRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                                    </button>
-                                </div>
-                            )
-                        }
+                                    }
+                                />
+                                <div className="h-20 sm:hidden" aria-hidden />
+                            </div>
+                        )}
 
                         {
                             !isPreviewMode && step === 5 && (

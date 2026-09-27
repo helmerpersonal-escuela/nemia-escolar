@@ -1,8 +1,19 @@
 import React, { useState, useEffect } from 'react'
 import {
-    X, Sparkles, Calendar, Clock, Save, Printer, Edit3, ChevronRight, ChevronLeft,
-    CheckCircle2, AlertCircle, FileText, MessageSquare
+    Sparkles,
+    Calendar,
+    Clock,
+    Save,
+    Printer,
+    Edit3,
+    ChevronRight,
+    ChevronLeft,
+    CheckCircle2,
+    AlertCircle,
+    FileText,
+    MessageSquare
 } from 'lucide-react'
+import { WizardModalHeader } from '../../../components/wizard/Wizard'
 import { geminiService } from '../../../lib/gemini'
 import { supabase } from '../../../lib/supabase'
 import { todayISO } from '../../../lib/dates'
@@ -289,28 +300,9 @@ export const ClassPlanGeneratorModal: React.FC<ClassPlanGeneratorModalProps> = (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
             <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden border border-slate-100">
 
-                {/* Header */}
-                <div className="p-6 md:p-8 flex items-center justify-between bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-white/20 rounded-2xl">
-                            <Sparkles className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <h2 className="text-xl font-black tracking-tight">{editingPlan ? 'Editar Plan de Clase' : '✨ Construir Mi Plan de Clase'}</h2>
-                            <p className="text-xs text-indigo-100 font-medium">Nueva Escuela Mexicana • Asistente Didáctico</p>
-                        </div>
-                    </div>
-                    <button aria-label="Cerrar" onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
-                        <X className="w-6 h-6" />
-                    </button>
-                </div>
-
-                {/* Progress Bar (Only for new plans) */}
-                {!editingPlan && (
-                    <div className="flex bg-slate-100 h-1.5">
-                        <div className={`transition-all duration-500 bg-indigo-500 h-full ${step === 1 ? 'w-1/3' : step === 2 ? 'w-2/3' : 'w-full'}`} />
-                    </div>
-                )}
+                <WizardModalHeader title={editingPlan ? 'Editar plan de clase' : 'Construir mi plan de clase'} icon={Sparkles} onClose={onClose}
+                    subtitle="Nueva Escuela Mexicana · Asistente didáctico"
+                    steps={editingPlan ? undefined : [{ label: 'Configuración' }, { label: 'Plan' }, { label: 'Reflexión' }]} current={step - 1} />
 
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 bg-slate-50/30">

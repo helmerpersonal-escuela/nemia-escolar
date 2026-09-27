@@ -8,16 +8,17 @@ import {
     PhoneCall,
     BookOpen,
     ShieldCheck,
-    ArrowRight,
-    ArrowLeft,
     Check,
+    Plus,
+    X,
     Upload,
-    Loader2,
     Globe,
     Instagram,
     Facebook,
     Twitter
 } from 'lucide-react'
+import { WizardLayout, WizardFooter, WizardStepHeader, WizardField, WizardAlert, WizardSaving, wizardInput, wizardChoice, Radio } from '../../../components/wizard/Wizard'
+import { CooperativeFields, emptyCooperative, cooperativeIsValid, saveCooperativeSetup, type CooperativeSetup } from '../../cooperative/components/CooperativeFields'
 import { DateInput } from '../../../components/ui/DateInput'
 import { OfficialCycleNote, type CycleSource } from '../../../components/academic/OfficialCycleNote'
 import { useOfficialCycle, cycleNameFromDates } from '../../../lib/officialCalendar'
@@ -66,6 +67,7 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
 
             // 4. Academic
             educational_level: 'SECONDARY',
+            secondary_type: null as null | 'GENERAL' | 'TECNICA',
             curriculum_plan: 'PLAN 2022 (NEM)',
             workshops: [] as string[],
             current_cycle_name: cycleNameFromDates('2026-08-31', '2027-07-09'),
@@ -83,6 +85,13 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
     })
 
     const [newWorkshop, setNewWorkshop] = useState('')
+    const [coop, setCoop] = useState<CooperativeSetup>(() => {
+        try { return { ...emptyCooperative, ...JSON.parse(sessionStorage.getItem('vunlek_school_onboarding_coop') || '{}') } } catch { return emptyCooperative }
+    })
+    useEffect(() => { sessionStorage.setItem('vunlek_school_onboarding_coop', JSON.stringify(coop)) }, [coop])
+    const isTecnica = formData.educational_level === 'SECONDARY' && formData.secondary_type === 'TECNICA'
+    // Al corregir el campo, se quita el aviso
+    useEffect(() => { setError(null) }, [coop, formData.secondary_type, formData.educational_level, formData.official_name, formData.cct])
 
     // Con conexión: nombre, inicio y fin del ciclo desde el calendario oficial de la SEP
     // (si el usuario no los ha cambiado). Se pueden editar.
@@ -136,6 +145,7 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
         sessionStorage.removeItem('vunlek_school_onboarding_step')
         sessionStorage.removeItem('vunlek_school_onboarding_data')
         sessionStorage.removeItem('vunlek_payment_syncing')
+        sessionStorage.removeItem('vunlek_school_onboarding_coop')
     }
 
     const handleCancelRegistration = async () => {
@@ -163,7 +173,21 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
         }
     }
 
+    const stepError = (): string | null => {
+        if (step === 0 && (!formData.official_name?.trim() || !formData.cct?.trim())) return 'Escribe el nombre oficial y la CCT del plantel.'
+        if (step === 3) {
+            if (formData.educational_level === 'SECONDARY' && !formData.secondary_type) return 'Indica si la secundaria es General o Técnica.'
+            if (isTecnica && !cooperativeIsValid(coop)) return coop.hasCooperative === null
+                ? 'Indica si la escuela cuenta con Cooperativa de Producción / Escolar.'
+                : 'El nombre y la clave de la cooperativa son obligatorios.'
+        }
+        return null
+    }
+
     const handleSaveStep = async () => {
+        const invalid = stepError()
+        if (invalid) { setError(invalid); window.scrollTo({ top: 0, behavior: 'smooth' }); return }
+        setError(null)
         if (step < 4) {
             setStep(step + 1)
             window.scrollTo(0, 0)
@@ -184,6 +208,7 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                 .upsert({
                     tenant_id: tenant?.id,
                     ...schoolData,
+                    secondary_type: formData.educational_level === 'SECONDARY' ? formData.secondary_type : null,
                     official_name: formData.official_name.toUpperCase(),
                     cct: formData.cct.toUpperCase(),
                     updated_at: new Date().toISOString()
@@ -217,12 +242,16 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                 .from('tenants')
                 .update({
                     onboarding_completed: true,
+                    secondary_type: formData.educational_level === 'SECONDARY' ? formData.secondary_type : null,
                     name: formData.official_name.toUpperCase(),
                     cct: formData.cct.toUpperCase()
                 })
                 .eq('id', tenant?.id)
 
             if (tenantError) throw tenantError
+
+            // 3. Cooperativa escolar (solo Secundaria Técnica)
+            if (isTecnica && coop.hasCooperative && tenant?.id) await saveCooperativeSetup(tenant.id, null, coop)
 
             clearPersistence()
             onComplete()
@@ -258,460 +287,216 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
         }))
     }
 
+    const set = (patch: Record<string, any>) => setFormData((prev: any) => ({ ...prev, ...patch }))
+    const setSocial = (key: string, value: string) => setFormData((prev: any) => ({ ...prev, social_media: { ...prev.social_media, [key]: value } }))
+    const goBack = () => { setError(null); setStep(step - 1); window.scrollTo(0, 0) }
+
     return (
-        <div className="max-w-5xl mx-auto py-6 sm:py-8 px-3 sm:px-4">
-            {/* Header */}
-            <div className="flex justify-between items-center gap-4 mb-6 sm:mb-12">
-                <div>
-                    <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                        Configuración Institucional
-                    </h1>
-                    <p className="text-slate-500 font-medium">
-                        Configura el espacio digital oficial de tu plantel educativo.
-                    </p>
-                </div>
-                <div className="hidden md:flex items-center space-x-2">
-                    {steps.map((s, i) => (
-                        <div key={i} className="flex items-center">
-                            <div className={`p-2 rounded-xl transition-all ${step === i ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : step > i ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                                <s.icon className="w-5 h-5" />
-                            </div>
-                            {i < steps.length - 1 && <div className={`w-4 h-0.5 ${step > i ? 'bg-emerald-200' : 'bg-slate-100'}`} />}
-                        </div>
-                    ))}
-                </div>
-            </div>
+        <WizardLayout
+            eyebrow="Registro de escuela"
+            title="Configuración institucional"
+            subtitle="Configura el espacio digital oficial de tu plantel."
+            steps={steps}
+            current={step}
+            onStepClick={i => { setError(null); setStep(i) }}
+            width="lg"
+            footer={
+                <WizardFooter
+                    onBack={step === 0 ? handleCancelRegistration : goBack}
+                    backLabel={step === 0 ? 'Cancelar registro' : 'Anterior'}
+                    onNext={handleSaveStep}
+                    nextLabel={step === steps.length - 1 ? 'Finalizar registro' : 'Siguiente'}
+                    nextIcon={step === steps.length - 1 ? Check : undefined}
+                    tone={step === steps.length - 1 ? 'success' : 'primary'}
+                    loading={loading}
+                />
+            }
+        >
+            {loading && <WizardSaving label="Guardando configuración…" />}
+            {error && <div className="mb-6"><WizardAlert>{error}</WizardAlert></div>}
 
-            <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-blue-100/50 border border-slate-100 overflow-hidden relative sm:min-h-[600px]">
-                {loading && (
-                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
-                        <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-                        <p className="font-black text-slate-900 uppercase tracking-widest text-sm">Guardando configuración...</p>
+            {step === 0 && (
+                <>
+                    <WizardStepHeader icon={School} title="Identidad institucional" description="Datos legales que identifican al plantel ante las autoridades." />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                        <WizardField label="Nombre oficial del plantel" required>
+                            <input className={wizardInput} value={formData.official_name} onChange={e => set({ official_name: e.target.value })} placeholder="Ej. Escuela Secundaria Técnica No. 12" />
+                        </WizardField>
+                        <WizardField label="CCT (Clave de Centro de Trabajo)" required>
+                            <input className={wizardInput} value={formData.cct} onChange={e => set({ cct: e.target.value.toUpperCase() })} placeholder="07DST0000X" />
+                        </WizardField>
+                        <WizardField label="Turno">
+                            <select className={wizardInput} value={formData.shift} onChange={e => set({ shift: e.target.value })}>
+                                <option value="MORNING">Matutino</option>
+                                <option value="AFTERNOON">Vespertino</option>
+                                <option value="FULL_TIME">Tiempo completo</option>
+                            </select>
+                        </WizardField>
+                        <WizardField label="Régimen">
+                            <select className={wizardInput} value={formData.regime} onChange={e => set({ regime: e.target.value })}>
+                                <option value="PÚBLICO (FEDERAL)">Público (federal)</option>
+                                <option value="PÚBLICO (ESTATAL)">Público (estatal)</option>
+                                <option value="TRANSFERIDO">Transferido</option>
+                                <option value="PARTICULAR">Particular / privado</option>
+                            </select>
+                        </WizardField>
+                        <WizardField label="Zona escolar">
+                            <input className={wizardInput} value={formData.zone} onChange={e => set({ zone: e.target.value })} placeholder="Ej. 054" />
+                        </WizardField>
+                        <WizardField label="Sector">
+                            <input className={wizardInput} value={formData.sector} onChange={e => set({ sector: e.target.value })} placeholder="Ej. 01" />
+                        </WizardField>
                     </div>
-                )}
+                </>
+            )}
 
-                {/* Progress Bar */}
-                <div className="absolute top-0 left-0 right-0 h-1.5 bg-slate-50">
-                    <div
-                        className="h-full bg-blue-600 transition-all duration-500 ease-out"
-                        style={{ width: `${((step + 1) / steps.length) * 100}%` }}
-                    />
-                </div>
+            {step === 1 && (
+                <>
+                    <WizardStepHeader icon={MapPin} title="Ubicación" description="Dirección oficial para documentos administrativos." />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                        <WizardField label="Calle y número" className="md:col-span-2">
+                            <input className={wizardInput} value={formData.address_street} onChange={e => set({ address_street: e.target.value })} placeholder="Ej. Av. Reforma S/N" />
+                        </WizardField>
+                        <WizardField label="Colonia o localidad">
+                            <input className={wizardInput} value={formData.address_neighborhood} onChange={e => set({ address_neighborhood: e.target.value })} placeholder="Ej. Centro" />
+                        </WizardField>
+                        <WizardField label="Código postal">
+                            <input className={wizardInput} inputMode="numeric" value={formData.address_zip_code} onChange={e => set({ address_zip_code: e.target.value })} placeholder="00000" />
+                        </WizardField>
+                        <WizardField label="Municipio">
+                            <input className={wizardInput} value={formData.address_municipality} onChange={e => set({ address_municipality: e.target.value })} placeholder="Ej. Tuxtla Gutiérrez" />
+                        </WizardField>
+                        <WizardField label="Estado">
+                            <input className={wizardInput} value={formData.address_state} onChange={e => set({ address_state: e.target.value })} placeholder="Ej. Chiapas" />
+                        </WizardField>
+                    </div>
+                </>
+            )}
 
-                <div className="p-5 sm:p-8 md:p-12">
-                    {/* STEP INDICATOR AND EMERGENCY BAR */}
-                    <div className="mb-10">
-
-                        <div className="max-w-2xl mx-auto">
-                            {/* Error Alert */}
-                            {error && (
-                                <div className="mb-8 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 font-bold flex items-center shadow-sm">
-                                    <ArrowLeft className="w-5 h-5 mr-3" />
-                                    {error}
+            {step === 2 && (
+                <>
+                    <WizardStepHeader icon={PhoneCall} title="Contacto" description="Canales oficiales para la comunidad escolar." />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                        <WizardField label="Teléfono institucional">
+                            <input className={wizardInput} type="tel" value={formData.phone} onChange={e => set({ phone: e.target.value })} placeholder="(000) 000-0000" />
+                        </WizardField>
+                        <WizardField label="Correo electrónico oficial">
+                            <input className={wizardInput} type="email" value={formData.email} onChange={e => set({ email: e.target.value })} placeholder="correo@escuela.gob.mx" />
+                        </WizardField>
+                        {([
+                            ['website', Globe, 'Sitio web (opcional)'],
+                            ['facebook', Facebook, 'Facebook'],
+                            ['instagram', Instagram, 'Instagram'],
+                            ['twitter', Twitter, 'X / Twitter'],
+                        ] as const).map(([key, Icon, label]) => (
+                            <WizardField key={key} label={label}>
+                                <div className="relative">
+                                    <Icon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                    <input className={`${wizardInput} pl-11`} value={formData.social_media?.[key] ?? ''} onChange={e => setSocial(key, e.target.value)} />
                                 </div>
-                            )}
+                            </WizardField>
+                        ))}
+                    </div>
+                </>
+            )}
 
-                            {/* Step 0: Identity */}
-                            {step === 0 && (
-                                <div className="animate-in fade-in slide-in-from-right duration-500">
-                                    <SectionHeader
-                                        title="Identidad Institucional"
-                                        description="Datos fiscales y legales que identifican al plantel ante las autoridades."
-                                        icon={School}
-                                        color="blue"
-                                    />
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8">
-                                        <InputField
-                                            label="Nombre Oficial del Plantel"
-                                            value={formData.official_name}
-                                            onChange={v => setFormData({ ...formData, official_name: v })}
-                                            placeholder='Ej: "ESCUELA SECUNDARIA TÉCNICA NO. 12"'
-                                        />
-                                        <InputField
-                                            label="CCT (Clave Centro de Trabajo)"
-                                            value={formData.cct}
-                                            onChange={v => setFormData({ ...formData, cct: v })}
-                                            placeholder="00XXX0000X"
-                                        />
-                                        <SelectField
-                                            label="Turno"
-                                            value={formData.shift}
-                                            onChange={v => setFormData({ ...formData, shift: v as any })}
-                                            options={[
-                                                { label: 'Matutino', value: 'MORNING' },
-                                                { label: 'Vespertino', value: 'AFTERNOON' },
-                                                { label: 'Tiempo Completo', value: 'FULL_TIME' }
-                                            ]}
-                                        />
-                                        <InputField
-                                            label="Zona Escolar"
-                                            value={formData.zone}
-                                            onChange={v => setFormData({ ...formData, zone: v })}
-                                            placeholder="Ej: 054"
-                                        />
-                                        <InputField
-                                            label="Sector"
-                                            value={formData.sector}
-                                            onChange={v => setFormData({ ...formData, sector: v })}
-                                            placeholder="Ej: 01"
-                                        />
-                                        <SelectField
-                                            label="Régimen"
-                                            value={formData.regime}
-                                            onChange={v => setFormData({ ...formData, regime: v })}
-                                            options={[
-                                                { label: 'Público (Federal)', value: 'PÚBLICO (FEDERAL)' },
-                                                { label: 'Público (Estatal)', value: 'PÚBLICO (ESTATAL)' },
-                                                { label: 'Transferido', value: 'TRANSFERIDO' },
-                                                { label: 'Particular / Privado', value: 'PARTICULAR' }
-                                            ]}
-                                        />
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Step 1: Location */}
-                            {step === 1 && (
-                                <div className="animate-in fade-in slide-in-from-right duration-500">
-                                    <SectionHeader
-                                        title="Ubicación Geográfica"
-                                        description="Dirección oficial para geolocalización y documentos administrativos."
-                                        icon={MapPin}
-                                        color="emerald"
-                                    />
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8">
-                                        <div className="md:col-span-2">
-                                            <InputField
-                                                label="Calle y Número (Exterior/Interior)"
-                                                value={formData.address_street}
-                                                onChange={v => setFormData({ ...formData, address_street: v })}
-                                                placeholder="Ej: Av. Reforma S/N"
-                                            />
-                                        </div>
-                                        <InputField
-                                            label="Colonia o Localidad"
-                                            value={formData.address_neighborhood}
-                                            onChange={v => setFormData({ ...formData, address_neighborhood: v })}
-                                            placeholder="Ej: Centro"
-                                        />
-                                        <InputField
-                                            label="Código Postal"
-                                            value={formData.address_zip_code}
-                                            onChange={v => setFormData({ ...formData, address_zip_code: v })}
-                                            placeholder="00000"
-                                        />
-                                        <InputField
-                                            label="Municipio"
-                                            value={formData.address_municipality}
-                                            onChange={v => setFormData({ ...formData, address_municipality: v })}
-                                            placeholder="Ej: Guadalajara"
-                                        />
-                                        <InputField
-                                            label="Estado"
-                                            value={formData.address_state}
-                                            onChange={v => setFormData({ ...formData, address_state: v })}
-                                            placeholder="Ej: Jalisco"
-                                        />
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Step 2: Contact */}
-                            {step === 2 && (
-                                <div className="animate-in fade-in slide-in-from-right duration-500">
-                                    <SectionHeader
-                                        title="Contacto y Comunicación"
-                                        description="Canales oficiales para vinculación con la SEP y la comunidad."
-                                        icon={PhoneCall}
-                                        color="purple"
-                                    />
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8">
-                                        <InputField
-                                            label="Teléfono Institucional"
-                                            value={formData.phone}
-                                            onChange={v => setFormData({ ...formData, phone: v })}
-                                            placeholder="(000) 000-0000"
-                                        />
-                                        <InputField
-                                            label="Correo Electrónico Oficial"
-                                            value={formData.email}
-                                            onChange={v => setFormData({ ...formData, email: v })}
-                                            placeholder="correo@escuela.gob.mx"
-                                        />
-                                        <div className="md:col-span-2">
-                                            <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center">
-                                                <Globe className="w-4 h-4 mr-2" /> Redes Sociales y Sitios
-                                            </h4>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div className="relative">
-                                                    <Globe className="absolute left-4 top-4 w-5 h-5 text-slate-300" />
-                                                    <input
-                                                        value={formData.social_media.website}
-                                                        onChange={e => setFormData({ ...formData, social_media: { ...formData.social_media, website: e.target.value } })}
-                                                        className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-slate-100 focus:border-purple-400 outline-none font-bold text-slate-700"
-                                                        placeholder="Sitio Web (Opcional)"
-                                                    />
-                                                </div>
-                                                <div className="relative">
-                                                    <Facebook className="absolute left-4 top-4 w-5 h-5 text-slate-300" />
-                                                    <input
-                                                        value={formData.social_media.facebook}
-                                                        onChange={e => setFormData({ ...formData, social_media: { ...formData.social_media, facebook: e.target.value } })}
-                                                        className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-slate-100 focus:border-purple-400 outline-none font-bold text-slate-700"
-                                                        placeholder="Facebook Profile"
-                                                    />
-                                                </div>
-                                                <div className="relative">
-                                                    <Instagram className="absolute left-4 top-4 w-5 h-5 text-slate-300" />
-                                                    <input
-                                                        value={formData.social_media.instagram}
-                                                        onChange={e => setFormData({ ...formData, social_media: { ...formData.social_media, instagram: e.target.value } })}
-                                                        className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-slate-100 focus:border-purple-400 outline-none font-bold text-slate-700"
-                                                        placeholder="Instagram Handle"
-                                                    />
-                                                </div>
-                                                <div className="relative">
-                                                    <Twitter className="absolute left-4 top-4 w-5 h-5 text-slate-300" />
-                                                    <input
-                                                        value={formData.social_media.twitter}
-                                                        onChange={e => setFormData({ ...formData, social_media: { ...formData.social_media, twitter: e.target.value } })}
-                                                        className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-slate-100 focus:border-purple-400 outline-none font-bold text-slate-700"
-                                                        placeholder="Twitter / X"
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Step 3: Academic */}
-                            {step === 3 && (
-                                <div className="animate-in fade-in slide-in-from-right duration-500">
-                                    <SectionHeader
-                                        title="Configuración Académica"
-                                        description="Programas de estudio, tecnologías y fechas clave del ciclo."
-                                        icon={BookOpen}
-                                        color="orange"
-                                    />
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8">
-                                        <SelectField
-                                            label="Nivel Educativo"
-                                            value={formData.educational_level}
-                                            onChange={v => setFormData({ ...formData, educational_level: v })}
-                                            options={[
-                                                { label: 'Primaria', value: 'PRIMARY' },
-                                                { label: 'Secundaria', value: 'SECONDARY' },
-                                                { label: 'Telesecundaria', value: 'TELESECUNDARIA' }
-                                            ]}
-                                        />
-                                        <SelectField
-                                            label="Plan de Estudios"
-                                            value={formData.curriculum_plan}
-                                            onChange={v => setFormData({ ...formData, curriculum_plan: v })}
-                                            options={[
-                                                { label: 'Plan 2022 (NEM)', value: 'PLAN 2022 (NEM)' },
-                                                { label: 'Plan 2017 (Aprendizajes Clave)', value: 'PLAN 2017' },
-                                                { label: 'Plan 2011', value: 'PLAN 2011' }
-                                            ]}
-                                        />
-                                        <div className="space-y-4">
-                                            <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Ciclo Escolar Actual</label>
-                                            <input aria-label="Nombre del ciclo escolar" value={formData.current_cycle_name} onChange={e => setFormData({ ...formData, current_cycle_name: e.target.value.toUpperCase(), cycle_source: 'manual' })} placeholder="CICLO 2026-2027" className="w-full p-4 rounded-2xl border-2 border-slate-100 font-bold text-slate-700" />
-                                            <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-4">
-                                                <div className="space-y-1">
-                                                    <span className="text-[11px] font-bold text-slate-500 ml-1">INICIO</span>
-                                                    <DateInput aria-label="Inicio del ciclo escolar" value={formData.current_cycle_start} onChange={e => setFormData({ ...formData, current_cycle_start: e.target.value, cycle_source: 'manual' })} className="w-full p-4 rounded-2xl border-2 border-slate-100 font-bold text-slate-700" />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <span className="text-[11px] font-bold text-slate-500 ml-1">FIN</span>
-                                                    <DateInput aria-label="Fin del ciclo escolar" value={formData.current_cycle_end} onChange={e => setFormData({ ...formData, current_cycle_end: e.target.value, cycle_source: 'manual' })} className="w-full p-4 rounded-2xl border-2 border-slate-100 font-bold text-slate-700" />
-                                                </div>
-                                            </div>
-                                            <OfficialCycleNote source={formData.cycle_source ?? 'estimado'} official={officialCycle} loading={officialLoading} onUseOfficial={applyOfficialCycle} />
-                                        </div>
-                                        <div className="space-y-4">
-                                            <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Tecnologías / Talleres</label>
-                                            <div className="flex gap-2">
-                                                <input aria-label="Tecnologías / Talleres"
-                                                    value={newWorkshop}
-                                                    onChange={e => setNewWorkshop(e.target.value)}
-                                                    onKeyPress={e => e.key === 'Enter' && handleAddWorkshop()}
-                                                    placeholder="Añadir Taller (Ej: Carpintería)"
-                                                    className="flex-grow min-w-0 p-4 rounded-2xl border-2 border-slate-100 font-bold outline-none focus:border-orange-400 text-sm"
-                                                />
-                                                <button aria-label="Confirmar" onClick={handleAddWorkshop} className="p-4 bg-orange-600 text-white rounded-2xl shadow-lg shadow-orange-100 active:scale-95 transition-all">
-                                                    <Check className="w-6 h-6" />
-                                                </button>
-                                            </div>
-                                            <div className="flex flex-wrap gap-2">
-                                                {formData.workshops.map((w: any, i: number) => (
-                                                    <span key={i} className="px-4 py-2 bg-orange-50 text-orange-700 rounded-full text-xs font-black flex items-center border border-orange-100">
-                                                        {w}
-                                                        <button onClick={() => handleRemoveWorkshop(i)} className="ml-2 hover:text-red-500">×</button>
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Step 4: Auth & Logos */}
-                            {step === 4 && (
-                                <div className="animate-in fade-in slide-in-from-right duration-500">
-                                    <SectionHeader
-                                        title="Representación y Autorización"
-                                        description="Datos de dirección y personalización de boletas oficiales."
-                                        icon={ShieldCheck}
-                                        color="indigo"
-                                    />
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8">
-                                        <InputField
-                                            label="Nombre del Director(a)"
-                                            value={formData.director_name}
-                                            onChange={v => setFormData({ ...formData, director_name: v })}
-                                            placeholder="Ej: Profr. Juan Pérez López"
-                                        />
-                                        <InputField
-                                            label="CURP del Director"
-                                            value={formData.director_curp}
-                                            onChange={v => setFormData({ ...formData, director_curp: v })}
-                                            placeholder="XXXX000000XXXXXX00"
-                                        />
-                                        <div className="md:col-span-2">
-                                            <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1 mb-4 block">Identidad Visual y Sellos</label>
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                                <LogoUpload
-                                                    label="Logotipo del Plantel"
-                                                    hint="Formato PNG, sugerido 500x500"
-                                                    url={formData.logo_url}
-                                                    onUpload={u => setFormData({ ...formData, logo_url: u })}
-                                                />
-                                                <LogoUpload
-                                                    label="Logo Institucional (SEP)"
-                                                    hint="Imagen oficial del gobierno"
-                                                    url={formData.header_logo_url}
-                                                    onUpload={u => setFormData({ ...formData, header_logo_url: u })}
-                                                />
-                                                <LogoUpload
-                                                    label="Sello Digital Educativo"
-                                                    hint="Para validación de boletas"
-                                                    url={formData.digital_seal_url}
-                                                    onUpload={u => setFormData({ ...formData, digital_seal_url: u })}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Navigation */}
-                            <div className="mt-10 sm:mt-16 flex justify-between items-center gap-3 bg-slate-50/80 -mx-5 -mb-5 sm:-mx-8 sm:-mb-8 md:-mx-12 md:-mb-12 p-4 sm:p-8 border-t border-slate-100">
-                                {step === 0 ? (
-                                    <button
-                                        onClick={handleCancelRegistration}
-                                        className="flex items-center font-black text-xs sm:text-sm uppercase tracking-widest px-3 sm:px-8 py-4 rounded-2xl text-red-400 hover:text-red-500 hover:bg-red-50 transition-all"
-                                    >
-                                        <ArrowLeft className="w-5 h-5 mr-3" /> Cancelar
+            {step === 3 && (
+                <>
+                    <WizardStepHeader icon={BookOpen} title="Configuración académica" description="Nivel, plan de estudios, tecnologías y fechas del ciclo." />
+                    <div className="space-y-5">
+                        <WizardField label="Nivel educativo" required>
+                            <div className="grid grid-cols-1 min-[420px]:grid-cols-3 gap-3">
+                                {[['PRIMARY', 'Primaria'], ['SECONDARY', 'Secundaria'], ['TELESECUNDARIA', 'Telesecundaria']].map(([v, l]) => (
+                                    <button key={v} type="button" className={wizardChoice(formData.educational_level === v)}
+                                        onClick={() => set({ educational_level: v, secondary_type: v === 'SECONDARY' ? formData.secondary_type : null })}>
+                                        <Radio checked={formData.educational_level === v} /> {l}
                                     </button>
-                                ) : (
-                                    <button
-                                        onClick={() => setStep(step - 1)}
-                                        className="flex items-center font-black text-xs sm:text-sm uppercase tracking-widest px-3 sm:px-8 py-4 rounded-2xl text-slate-500 hover:text-slate-600 hover:bg-white transition-all"
-                                    >
-                                        <ArrowLeft className="w-5 h-5 mr-3" /> Atrás
-                                    </button>
-                                )}
-                                <button
-                                    onClick={handleSaveStep}
-                                    className="bg-blue-600 hover:bg-blue-500 text-white font-black text-xs sm:text-sm uppercase tracking-widest px-5 sm:px-12 py-4 sm:py-5 rounded-[2rem] text-center shadow-2xl shadow-blue-200 transition-all active:scale-95 flex items-center"
-                                >
-                                    {step === steps.length - 1 ? '🎉 Finalizar Registro' : 'Siguiente Paso'}
-                                    <ArrowRight className="w-5 h-5 ml-3" />
-                                </button>
+                                ))}
                             </div>
+                        </WizardField>
+                        {formData.educational_level === 'SECONDARY' && (
+                            <WizardField label="Tipo de secundaria" required>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {[['GENERAL', 'General'], ['TECNICA', 'Técnica']].map(([v, l]) => (
+                                        <button key={v} type="button" className={wizardChoice(formData.secondary_type === v)} onClick={() => set({ secondary_type: v })}>
+                                            <Radio checked={formData.secondary_type === v} /> {l}
+                                        </button>
+                                    ))}
+                                </div>
+                            </WizardField>
+                        )}
+                        {isTecnica && <CooperativeFields value={coop} onChange={setCoop} showUnit={false} />}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                            <WizardField label="Plan de estudios">
+                                <select className={wizardInput} value={formData.curriculum_plan} onChange={e => set({ curriculum_plan: e.target.value })}>
+                                    <option value="PLAN 2022 (NEM)">Plan 2022 (NEM)</option>
+                                    <option value="PLAN 2017">Plan 2017 (Aprendizajes Clave)</option>
+                                    <option value="PLAN 2011">Plan 2011</option>
+                                </select>
+                            </WizardField>
+                            <WizardField label="Tecnologías / talleres" hint="Escribe el taller y presiona Agregar.">
+                                <div className="flex gap-2">
+                                    <input aria-label="Tecnologías / Talleres" className={`${wizardInput} min-w-0`} value={newWorkshop}
+                                        onChange={e => setNewWorkshop(e.target.value)}
+                                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddWorkshop() } }}
+                                        placeholder="Ej. Carpintería" />
+                                    <button type="button" aria-label="Agregar taller" onClick={handleAddWorkshop} className="shrink-0 px-4 rounded-2xl bg-indigo-600 text-white hover:bg-indigo-700">
+                                        <Plus className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </WizardField>
+                        </div>
+                        {formData.workshops.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                                {formData.workshops.map((w: string, i: number) => (
+                                    <span key={i} className="pl-3 pr-1 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-bold flex items-center gap-1 border border-indigo-100">
+                                        {w}
+                                        <button type="button" aria-label={`Quitar ${w}`} onClick={() => handleRemoveWorkshop(i)} className="p-1 rounded-full hover:bg-indigo-100"><X className="w-3 h-3" /></button>
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+                        <div className="rounded-2xl border border-slate-100 p-4 space-y-3">
+                            <WizardField label="Ciclo escolar actual">
+                                <input aria-label="Nombre del ciclo escolar" className={wizardInput} value={formData.current_cycle_name} onChange={e => set({ current_cycle_name: e.target.value.toUpperCase(), cycle_source: 'manual' })} placeholder="CICLO 2026-2027" />
+                            </WizardField>
+                            <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3">
+                                <WizardField label="Inicio">
+                                    <DateInput aria-label="Inicio del ciclo escolar" value={formData.current_cycle_start} onChange={e => set({ current_cycle_start: e.target.value, cycle_source: 'manual' })} className={wizardInput} />
+                                </WizardField>
+                                <WizardField label="Fin">
+                                    <DateInput aria-label="Fin del ciclo escolar" value={formData.current_cycle_end} onChange={e => set({ current_cycle_end: e.target.value, cycle_source: 'manual' })} className={wizardInput} />
+                                </WizardField>
+                            </div>
+                            <OfficialCycleNote source={formData.cycle_source ?? 'estimado'} official={officialCycle} loading={officialLoading} onUseOfficial={applyOfficialCycle} />
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
+                </>
+            )}
+
+            {step === 4 && (
+                <>
+                    <WizardStepHeader icon={ShieldCheck} title="Dirección y autorización" description="Datos del director y logotipos para boletas y formatos oficiales." />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                        <WizardField label="Nombre del director(a)">
+                            <input className={wizardInput} value={formData.director_name} onChange={e => set({ director_name: e.target.value })} placeholder="Ej. Profr. Juan Pérez López" />
+                        </WizardField>
+                        <WizardField label="CURP del director">
+                            <input className={wizardInput} value={formData.director_curp} onChange={e => set({ director_curp: e.target.value.toUpperCase() })} placeholder="XXXX000000XXXXXX00" />
+                        </WizardField>
+                        <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <LogoUpload label="Logotipo del plantel" hint="PNG, sugerido 500×500" url={formData.logo_url} onUpload={u => set({ logo_url: u })} />
+                            <LogoUpload label="Logo institucional (SEP)" hint="Imagen oficial del gobierno" url={formData.header_logo_url} onUpload={u => set({ header_logo_url: u })} />
+                            <LogoUpload label="Sello digital" hint="Para validar boletas" url={formData.digital_seal_url} onUpload={u => set({ digital_seal_url: u })} />
+                        </div>
+                    </div>
+                </>
+            )}
+        </WizardLayout>
     )
 }
 
 // --- HELPER COMPONENTS ---
-
-interface SectionHeaderProps {
-    title: string;
-    description: string;
-    icon: React.ElementType;
-    color: 'blue' | 'emerald' | 'purple' | 'orange' | 'indigo';
-}
-
-const SectionHeader = ({ title, description, icon: Icon, color }: SectionHeaderProps) => {
-    const colorClasses: Record<string, string> = {
-        blue: 'bg-blue-50 text-blue-600 border-blue-100',
-        emerald: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-        purple: 'bg-purple-50 text-purple-600 border-purple-100',
-        orange: 'bg-orange-50 text-orange-600 border-orange-100',
-        indigo: 'bg-indigo-50 text-indigo-600 border-indigo-100'
-    }
-
-    return (
-        <div className="mb-6 sm:mb-10 flex items-start gap-4 sm:gap-6">
-            <div className={`p-3 sm:p-5 rounded-2xl sm:rounded-[1.75rem] border-2 shrink-0 ${colorClasses[color]}`}>
-                <Icon className="w-7 h-7 sm:w-10 sm:h-10" />
-            </div>
-            <div className="min-w-0">
-                <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">{title}</h3>
-                <p className="text-slate-500 font-medium max-w-md">{description}</p>
-            </div>
-        </div>
-    )
-}
-
-interface InputFieldProps {
-    label: string;
-    value: string;
-    onChange: (val: string) => void;
-    placeholder?: string;
-    type?: string;
-}
-
-const InputField = ({ label, value, onChange, placeholder, type = "text" }: InputFieldProps) => (
-    <div className="space-y-2 group">
-        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1 group-focus-within:text-blue-500 transition-colors">{label}</label>
-        <input
-            type={type}
-            value={value}
-            onChange={e => onChange(e.target.value)}
-            placeholder={placeholder}
-            className="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:border-blue-500 focus:bg-white focus:outline-none font-bold text-slate-700 transition-all bg-slate-50/30 placeholder:text-slate-300"
-        />
-    </div>
-)
-
-interface SelectFieldProps {
-    label: string;
-    value: string;
-    onChange: (val: string) => void;
-    options: Array<{ label: string, value: string }>;
-}
-
-const SelectField = ({ label, value, onChange, options }: SelectFieldProps) => (
-    <div className="space-y-2 group">
-        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1 group-focus-within:text-blue-500 transition-colors">{label}</label>
-        <select
-            value={value}
-            onChange={e => onChange(e.target.value)}
-            className="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:border-blue-500 focus:bg-white focus:outline-none font-bold text-slate-700 transition-all bg-slate-50/30 appearance-none"
-        >
-            {options.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-        </select>
-    </div>
-)
 
 interface LogoUploadProps {
     label: string;
@@ -721,48 +506,34 @@ interface LogoUploadProps {
 }
 
 const LogoUpload = ({ label, hint, url, onUpload }: LogoUploadProps) => {
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const id = `upload-${label.replace(/\W+/g, '-')}`
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (!file) return
-
         const reader = new FileReader()
-        reader.onload = (event) => {
-            onUpload(event.target?.result as string)
-        }
+        reader.onload = (event) => onUpload(event.target?.result as string)
         reader.readAsDataURL(file)
     }
 
     return (
-        <div className="p-6 bg-slate-50/50 border-2 border-dashed border-slate-200 rounded-3xl group hover:border-blue-400 hover:bg-blue-50/30 transition-all text-center">
+        <div className="p-4 rounded-2xl border-2 border-dashed border-slate-200 hover:border-indigo-300 transition text-center">
             {url ? (
-                <div className="relative inline-block">
-                    <img src={url} alt="Logo preview" className="h-24 mx-auto mb-4 rounded-xl shadow-md border-2 border-white" />
-                    <button aria-label="Confirmar"
-                        onClick={() => onUpload('')}
-                        className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full shadow-lg"
-                    >
-                        <Check className="w-4 h-4" />
+                <div className="relative inline-block mb-3">
+                    <img src={url} alt={label} className="h-20 mx-auto rounded-xl border border-slate-100" />
+                    <button type="button" aria-label={`Quitar ${label}`} onClick={() => onUpload('')} className="absolute -top-2 -right-2 p-1 bg-white border border-slate-200 text-slate-500 hover:text-rose-600 rounded-full shadow">
+                        <X className="w-3.5 h-3.5" />
                     </button>
                 </div>
             ) : (
-                <div className="p-4 bg-white rounded-2xl shadow-sm inline-block mb-4">
-                    <Upload className="w-8 h-8 text-slate-300 group-hover:text-blue-500 transition-colors" />
+                <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <Upload className="w-5 h-5" />
                 </div>
             )}
-            <h5 className="text-xs font-black text-slate-800 uppercase tracking-tight">{label}</h5>
-            <p className="text-[11px] text-slate-500 font-bold mb-4">{hint}</p>
-            <input
-                type="file"
-                id={`upload-${label}`}
-                className="hidden"
-                onChange={handleFileChange}
-                accept="image/*"
-            />
-            <label
-                htmlFor={`upload-${label}`}
-                className="inline-block px-4 py-2 bg-white border border-slate-200 rounded-full text-[11px] font-black uppercase text-slate-500 hover:border-blue-400 hover:text-blue-600 cursor-pointer shadow-sm transition-all active:scale-95"
-            >
-                Seleccionar Imagen
+            <p className="text-sm font-black text-slate-800">{label}</p>
+            <p className="text-xs text-slate-500 mb-3">{hint}</p>
+            <input type="file" id={id} className="hidden" onChange={handleFileChange} accept="image/*" />
+            <label htmlFor={id} className="inline-block px-4 py-2 rounded-xl border border-slate-200 text-xs font-black text-slate-600 hover:border-indigo-300 hover:text-indigo-700 cursor-pointer">
+                {url ? 'Cambiar imagen' : 'Seleccionar imagen'}
             </label>
         </div>
     )

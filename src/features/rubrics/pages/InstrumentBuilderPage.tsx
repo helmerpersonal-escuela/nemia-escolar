@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { WizardField, WizardFooter, WizardLayout, WizardStepHeader, wizardInput } from '../../../components/wizard/Wizard'
 import { useNavigate } from 'react-router-dom'
 import {
     CheckSquare, List, FileText, HelpCircle,
@@ -97,90 +98,51 @@ export const InstrumentBuilderPage = () => {
     }
 
     return (
-        <div className="max-w-5xl mx-auto px-4 py-8">
-            <button onClick={() => navigate('/rubrics')} className="text-gray-500 hover:text-gray-900 flex items-center mb-6">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Volver al Banco
-            </button>
-
+        <WizardLayout
+            eyebrow="Banco de instrumentos"
+            title={step === 1 ? 'Nuevo instrumento de evaluación' : `Crear ${selectedType.title.toLowerCase()}`}
+            subtitle={step === 1 ? 'Rúbricas, listas de cotejo, exámenes y más.' : 'La IA genera una estructura base que podrás editar.'}
+            steps={[{ label: 'Tipo de instrumento' }, { label: 'Tema' }]}
+            current={step - 1}
+            onStepClick={i => setStep(i + 1)}
+            width="lg"
+            headerAction={<button onClick={() => navigate('/rubrics')} className="shrink-0 inline-flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-100"><ArrowLeft className="w-4 h-4" /> Volver</button>}
+            footer={step === 2 ? (
+                <WizardFooter onBack={() => setStep(1)} onNext={generateInstrument} nextDisabled={!topic.trim()} loading={isGenerating}
+                    nextLabel={isGenerating ? 'Generando estructura…' : 'Generar con IA'} nextIcon={isGenerating ? Brain : Wand2} />
+            ) : undefined}
+        >
             {step === 1 && (
-                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <h1 className="text-3xl font-bold text-gray-900">Banco de Instrumentos</h1>
-                    <p className="mt-2 text-gray-600">
-                        Gestiona tus instrumentos de evaluación (Rúbricas, Listas de Cotejo, Exámenes, etc.).
-                    </p>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <>
+                    <WizardStepHeader title="¿Qué quieres crear?" description="Elige el tipo de instrumento." />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         {INSTRUMENT_TYPES.map(type => (
                             <button
                                 key={type.id}
                                 onClick={() => handleTypeSelect(type)}
-                                className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all text-left flex flex-col group h-full"
+                                className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 bg-white hover:border-indigo-300 transition text-left flex flex-col group h-full"
                             >
-                                <div className="p-3 bg-gray-50 text-gray-600 rounded-xl w-fit group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-colors mb-4">
-                                    <type.icon className="w-6 h-6" />
+                                <div className="w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3">
+                                    <type.icon className="w-5 h-5" />
                                 </div>
-                                <h3 className="font-bold text-gray-900 mb-1">{type.title}</h3>
-                                <p className="text-sm text-gray-500">{type.description}</p>
+                                <h3 className="font-black text-slate-900 mb-1">{type.title}</h3>
+                                <p className="text-sm text-slate-500">{type.description}</p>
                             </button>
                         ))}
                     </div>
-                </div>
+                </>
             )}
 
             {step === 2 && (
-                <div className="max-w-2xl mx-auto text-center animate-in fade-in zoom-in-95 duration-300">
-                    <div className="inline-block p-4 bg-indigo-50 text-indigo-600 rounded-2xl mb-6">
-                        <selectedType.icon className="w-12 h-12" />
-                    </div>
-                    <h2 className="text-3xl font-black text-gray-900 mb-4">Crear {selectedType.title}</h2>
-                    <p className="text-gray-500 mb-8 max-w-lg mx-auto">
-                        ¿Sobre qué tema es la actividad? Nuestra IA generará una estructura base que podrás editar.
-                    </p>
-
-                    <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-xl text-left relative overflow-hidden">
-                        {/* Decorative BG */}
-                        <div className="absolute top-0 right-0 p-12 -mr-10 -mt-10 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-full blur-3xl opacity-50" />
-
-                        <label className="block text-sm font-bold text-gray-900 mb-2">Tema o Actividad</label>
-                        <input aria-label="Tema o Actividad"
-                            type="text"
-                            value={topic}
-                            onChange={(e) => setTopic(e.target.value)}
-                            placeholder="Ej. La Revolución Mexicana, Ecuaciones de 2do Grado..."
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 font-medium text-lg focus:ring-2 focus:ring-indigo-500 outline-none mb-6"
-                            autoFocus
-                        />
-
-                        <button
-                            onClick={generateInstrument}
-                            disabled={!topic.trim() || isGenerating}
-                            className={`w-full py-4 rounded-xl font-bold text-lg text-white shadow-lg flex items-center justify-center transition-all
-                                ${!topic.trim() || isGenerating ? 'bg-gray-300 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:scale-[1.02]'}
-                            `}
-                        >
-                            {isGenerating ? (
-                                <>
-                                    <Brain className="w-6 h-6 mr-3 animate-pulse" />
-                                    Generando Estructura...
-                                </>
-                            ) : (
-                                <>
-                                    <Wand2 className="w-6 h-6 mr-3" />
-                                    Generar con IA Mágica
-                                </>
-                            )}
-                        </button>
-                    </div>
-
-                    <button
-                        onClick={() => setStep(1)}
-                        className="mt-8 text-gray-500 hover:text-gray-600 font-medium text-sm"
-                    >
-                        Cancelar y volver
-                    </button>
-                </div>
+                <>
+                    <WizardStepHeader icon={selectedType.icon} title="Tema o actividad" description="¿Sobre qué tema es la actividad?" />
+                    <WizardField label="Tema o actividad" required>
+                        <input aria-label="Tema o Actividad" type="text" value={topic} onChange={(e) => setTopic(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter' && topic.trim() && !isGenerating) generateInstrument() }}
+                            placeholder="Ej. La Revolución Mexicana, ecuaciones de segundo grado…" className={wizardInput} autoFocus />
+                    </WizardField>
+                </>
             )}
-        </div>
+        </WizardLayout>
     )
 }

@@ -1,6 +1,6 @@
 
 import { useState } from 'react'
-import { X, Calendar, Sparkles, Loader2, AlertCircle, CheckCircle2, FileText, Printer, User, BookOpen } from 'lucide-react'
+import { X, Calendar, Sparkles, AlertCircle, CheckCircle2, FileText, Printer, User, BookOpen } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
 import { useProfile } from '../../../hooks/useProfile'
@@ -9,6 +9,7 @@ import { GeminiService } from '../../../lib/gemini'
 
 
 import { eachDayOfInterval, format, parseISO, getDay } from 'date-fns'
+import { WizardFooter, WizardProgress } from '../../../components/wizard/Wizard'
 import { createPortal } from 'react-dom'
 import { DateInput } from '../../../components/ui/DateInput'
 
@@ -434,20 +435,14 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
             <style>{printStyles}</style>
             <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] print:shadow-none print:max-h-none print:w-full print:rounded-none print-scroll-none">
                 {/* Header */}
-                <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-indigo-50/50 to-white">
+                <div className="p-5 sm:p-8 border-b border-slate-100 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-4">
                         <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg shadow-indigo-200">
                             <Sparkles className="w-6 h-6" />
                         </div>
                         <div>
-                            <h2 className="text-2xl font-black text-slate-900">Actividades por <span className="text-indigo-600">Ausencia</span></h2>
-                            <p className="text-sm font-medium text-slate-500">
-                                Paso {step} de 3: {
-                                    step === 1 ? 'Periodo y Motivo' :
-                                        step === 2 ? 'Confirmar Clases' :
-                                            'Revisar Sugerencias'
-                                }
-                            </p>
+                            <h2 className="text-xl sm:text-2xl font-black text-slate-900">Actividades por ausencia</h2>
+                            <p className="text-sm font-medium text-slate-500">Actividades para tus grupos mientras no estás</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-3 no-print">
@@ -465,6 +460,10 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
                             <X className="w-6 h-6" />
                         </button>
                     </div>
+                </div>
+
+                <div className="px-5 sm:px-8 pt-5 no-print">
+                    <WizardProgress steps={[{ label: 'Periodo y motivo' }, { label: 'Confirmar clases' }, { label: 'Revisar sugerencias' }]} current={step - 1} />
                 </div>
 
                 {/* Content */}
@@ -836,29 +835,18 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
                 </div>
 
                 {/* Footer */}
-                <div className="p-8 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end gap-4">
-                    <button
-                        onClick={step === 1 ? onClose : () => setStep(step - 1)}
-                        className="px-8 py-4 rounded-2xl font-bold text-slate-500 hover:bg-slate-100 transition-all font-sans"
-                    >
-                        {step === 1 ? 'Cancelar' : 'Atrás'}
-                    </button>
-                    <button
-                        onClick={
-                            step === 1 ? handlePreviewClasses :
-                                step === 2 ? handleGenerateActivities :
-                                    handleSaveFinal
-                        }
-                        disabled={loading || (step === 2 && affectedClasses.length === 0)}
-                        className="flex items-center gap-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-10 py-4 rounded-2xl font-bold shadow-xl shadow-indigo-100 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                    >
-                        {loading && <Loader2 className="w-5 h-5 animate-spin" />}
-                        {
-                            step === 1 ? 'Siguiente' :
-                                step === 2 ? 'Generar Sugerencias IA' :
-                                    'Guardar y Finalizar'
-                        }
-                    </button>
+                <div className="px-5 py-4 sm:px-8 border-t border-slate-100 bg-slate-50/50 no-print">
+                    <WizardFooter
+                        sticky={false}
+                        onBack={step === 1 ? onClose : () => setStep(step - 1)}
+                        backLabel={step === 1 ? 'Cancelar' : 'Anterior'}
+                        onNext={step === 1 ? handlePreviewClasses : step === 2 ? handleGenerateActivities : handleSaveFinal}
+                        nextDisabled={step === 2 && affectedClasses.length === 0}
+                        loading={loading}
+                        nextLabel={step === 1 ? 'Siguiente' : step === 2 ? 'Generar sugerencias' : 'Guardar y finalizar'}
+                        nextIcon={step === 3 ? CheckCircle2 : step === 2 ? Sparkles : undefined}
+                        tone={step === 3 ? 'success' : 'primary'}
+                    />
                 </div>
             </div>
         </div>,
