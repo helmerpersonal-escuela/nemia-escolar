@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Ban, Copy, Download, KeyRound, Loader2, Mail, Plus, Save, Tag, Timer } from 'lucide-react'
+import { Ban, Building2, Copy, Download, KeyRound, Loader2, Mail, Plus, Save, Tag, Timer } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { wizardInput } from '../../../components/wizard/Wizard'
 
@@ -113,6 +113,8 @@ export const SpaceSubscriptionsPanel = ({ search = '' }: { search?: string }) =>
                     <p className="text-xs text-slate-500 mt-2">Avisos: 7 días y 1 día antes de terminar la prueba o el periodo (si no hay cobro automático), al vencer y si falla un cobro.</p>
                 </Card>
             </div>
+
+            <SalesLeadsCard />
 
             <Card title="Espacios" icon={Timer}>
                 {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-indigo-500" /> : list.length === 0 ? <p className="text-sm text-slate-500">Aún no hay espacios.</p> : (
@@ -308,5 +310,60 @@ export const PromoAndLicensesPanel = () => {
                 )}
             </Card>
         </div>
+    )
+}
+
+const LEAD_STATUS: Record<string, string> = { NEW: 'Nueva', CONTACTED: 'Contactada', WON: 'Ganada', LOST: 'Perdida' }
+
+/** Solicitudes de cotización de escuelas (la anualidad depende del número de usuarios). */
+const SalesLeadsCard = () => {
+    const qc = useQueryClient()
+    const [salesEmail, setSalesEmail] = useState<string | null>(null)
+    const { data: leads = [] } = useQuery({
+        queryKey: ['god', 'leads'],
+        queryFn: async () => ((await db.from('sales_leads').select('*, tenant:tenants(name)').order('created_at', { ascending: false }).limit(200)).data ?? []) as any[],
+    })
+    const { data: currentEmail = '' } = useQuery({
+        queryKey: ['god', 'sales-email'],
+        queryFn: async () => ((await db.from('system_settings').select('value').eq('key', 'sales_email').maybeSingle()).data?.value ?? '') as string,
+    })
+    const setStatus = async (id: number, status: string) => {
+        await db.from('sales_leads').update({ status }).eq('id', id)
+        qc.invalidateQueries({ queryKey: ['god', 'leads'] })
+    }
+    const saveEmail = async () => {
+        await db.from('system_settings').upsert({ key: 'sales_email', value: (salesEmail ?? '').trim(), description: 'Correo que recibe las solicitudes de cotización de escuelas' }, { onConflict: 'key' })
+        setSalesEmail(null)
+        qc.invalidateQueries({ queryKey: ['god', 'sales-email'] })
+    }
+    const nuevas = leads.filter(l => l.status === 'NEW').length
+    return (
+        <Card title={`Cotizaciones de escuelas${nuevas ? ` (${nuevas} nuevas)` : ''}`} icon={Building2}>
+            <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                <input className={`${input} sm:flex-1`} type="email" placeholder="Correo de ventas que recibe los avisos" value={salesEmail ?? currentEmail} onChange={e => setSalesEmail(e.target.value)} />
+                <button onClick={saveEmail} disabled={salesEmail === null} className="px-4 py-2.5 rounded-2xl bg-indigo-600 text-white text-sm font-black disabled:opacity-40">Guardar correo</button>
+            </div>
+            <p className="text-xs text-slate-500 mb-3">Para cerrar una venta: genera una clave de 12 meses en “Claves y códigos” y envíala a la escuela; la dirección la activa en Suscripción.</p>
+            {leads.length === 0 ? <p className="text-sm text-slate-500">Aún no hay solicitudes.</p> : (
+                <div className="overflow-x-auto"><table className="w-full text-sm min-w-[720px]">
+                    <thead><tr className="text-left text-xs text-slate-500"><th className="py-2">Escuela</th><th>Contacto</th><th>Usuarios</th><th>Fecha</th><th>Estado</th></tr></thead>
+                    <tbody className="divide-y divide-slate-100">
+                        {leads.map(l => (
+                            <tr key={l.id}>
+                                <td className="py-2 font-bold text-slate-800">{l.tenant?.name ?? '—'}{l.message && <div className="text-xs font-normal text-slate-500">{l.message}</div>}</td>
+                                <td>{l.contact_name}<div className="text-xs text-slate-500">{l.email}{l.phone ? ` · ${l.phone}` : ''}</div></td>
+                                <td>{l.users_count ?? '—'}</td>
+                                <td>{date(l.created_at)}</td>
+                                <td>
+                                    <select className="px-2 py-1.5 rounded-xl border border-slate-200 text-xs font-bold" value={l.status} onChange={e => setStatus(l.id, e.target.value)}>
+                                        {Object.entries(LEAD_STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                                    </select>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table></div>
+            )}
+        </Card>
     )
 }

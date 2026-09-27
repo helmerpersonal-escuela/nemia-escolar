@@ -34,6 +34,11 @@ Deno.serve(async (req) => {
         const canManage = !!link && (tenant?.type === 'INDEPENDENT' || ['DIRECTOR', 'ADMIN'].includes(String(link.role).toUpperCase()))
         if (!canManage) throw new HttpError(403, 'Solo la dirección o el titular del espacio puede gestionar la suscripción')
 
+        // Escuelas: la anualidad depende del número de usuarios y se cotiza con ventas
+        if (action === 'checkout' && tenant?.type !== 'INDEPENDENT') {
+            throw new HttpError(403, 'Las escuelas contratan con el equipo de ventas: el precio anual depende del número de usuarios.')
+        }
+
         const token = await mpToken(admin)
         const base = frontendUrl()
 

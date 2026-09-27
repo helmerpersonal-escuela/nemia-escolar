@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Capacitor } from '@capacitor/core'
-import { BadgeCheck, CalendarClock, CheckCircle2, CreditCard, Gift, KeyRound, Loader2, Mail, RefreshCw, ShieldCheck, Tag, XCircle } from 'lucide-react'
+import { BadgeCheck, Building2, CalendarClock, CheckCircle2, CreditCard, Gift, KeyRound, Loader2, Mail, RefreshCw, Send, ShieldCheck, Tag, XCircle } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
 import { PLAN_LABEL, SPACE_ACCESS_KEY, useSpaceAccess, type SpaceAccess } from '../../../hooks/useSpaceAccess'
@@ -67,7 +67,9 @@ export const SubscriptionPage = () => {
                 </WizardAlert>
             ) : (
                 <>
-                    {native ? (
+                    {access.tenant_type === 'SCHOOL' ? (
+                        <SalesCard spaceName={spaceName} />
+                    ) : native ? (
                         <section className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 sm:p-6">
                             <div className="flex items-start gap-3">
                                 <div className="w-11 h-11 shrink-0 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center"><Mail className="w-5 h-5" /></div>
@@ -307,6 +309,71 @@ const LicenseKeyCard = ({ onRedeemed }: { onRedeemed: () => void }) => {
                 </button>
             </div>
             {msg && <div className="mt-3"><WizardAlert tone={msg.tone}>{msg.text}</WizardAlert></div>}
+        </section>
+    )
+}
+
+/** Escuelas: la anualidad depende del número de usuarios → solicitud de cotización a ventas. */
+const SalesCard = ({ spaceName }: { spaceName: string }) => {
+    const [form, setForm] = useState({ name: '', phone: '', users: '', message: '' })
+    const [busy, setBusy] = useState(false)
+    const [done, setDone] = useState(false)
+    const [err, setErr] = useState<string | null>(null)
+
+    const { data: teachers } = useQuery({
+        queryKey: ['sales-users-count'],
+        queryFn: async () => {
+            const { data: { session } } = await supabase.auth.getSession()
+            const { data: p } = await supabase.from('profiles').select('tenant_id').eq('id', session?.user?.id ?? '').maybeSingle()
+            if (!p?.tenant_id) return null
+            const { count } = await supabase.from('profile_tenants').select('profile_id', { count: 'exact', head: true }).eq('tenant_id', p.tenant_id)
+            return count ?? null
+        },
+    })
+    useEffect(() => { if (teachers && !form.users) setForm(f => ({ ...f, users: String(teachers) })) }, [teachers]) // eslint-disable-line react-hooks/exhaustive-deps
+
+    const send = async () => {
+        setErr(null)
+        if (!form.name.trim()) return setErr('Escribe tu nombre.')
+        if (!form.phone.trim()) return setErr('Escribe un teléfono o WhatsApp para contactarte.')
+        setBusy(true)
+        const { data, error } = await supabase.rpc('request_sales_quote' as any, {
+            p_name: form.name, p_phone: form.phone, p_users: form.users ? Number(form.users) : null, p_message: form.message || null,
+        })
+        setBusy(false)
+        if (error) return setErr(error.message)
+        if ((data as any)?.success) setDone(true)
+    }
+
+    return (
+        <section className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 sm:p-6">
+            <div className="flex items-start gap-3 mb-4">
+                <div className="w-11 h-11 shrink-0 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center"><Building2 className="w-5 h-5" /></div>
+                <div>
+                    <h2 className="text-xl font-black text-slate-900">Licencia para tu escuela</h2>
+                    <p className="text-sm text-slate-500 mt-1">La anualidad para escuelas depende del número de usuarios (docentes, directivos y personal). Solicita tu cotización y el equipo de ventas te contactará. Al contratar recibirás tu clave de licencia para activarla aquí mismo.</p>
+                </div>
+            </div>
+            {done ? (
+                <WizardAlert tone="success"><b>¡Solicitud enviada!</b> Ventas se comunicará contigo para la cotización de {spaceName}.</WizardAlert>
+            ) : (
+                <>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                        <WizardField label="Tu nombre" required><input className={wizardInput} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ej. Profra. Ana López" /></WizardField>
+                        <WizardField label="Teléfono o WhatsApp" required><input className={wizardInput} type="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="961 000 0000" /></WizardField>
+                        <WizardField label="Número aproximado de usuarios" hint={teachers ? `Hoy tu espacio tiene ${teachers} usuario(s) registrados.` : undefined}>
+                            <input className={wizardInput} type="number" min="1" value={form.users} onChange={e => setForm({ ...form, users: e.target.value })} />
+                        </WizardField>
+                        <WizardField label="Comentarios"><input className={wizardInput} value={form.message} onChange={e => setForm({ ...form, message: e.target.value })} placeholder="Turnos, número de grupos, etc." /></WizardField>
+                    </div>
+                    {err && <div className="mt-3"><WizardAlert>{err}</WizardAlert></div>}
+                    <div className="flex justify-end mt-4">
+                        <button onClick={send} disabled={busy} className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm disabled:opacity-40">
+                            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} Solicitar cotización
+                        </button>
+                    </div>
+                </>
+            )}
         </section>
     )
 }

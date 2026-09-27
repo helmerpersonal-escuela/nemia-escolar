@@ -37,8 +37,11 @@ export const TrialNotificationSystem = () => {
 
     const title = kind === 'trial' ? 'Tu mes de prueba está por terminar' : kind === 'renew' ? 'Tu suscripción vence pronto' : 'No pudimos realizar el cobro'
     const when = days === 1 ? 'mañana' : days != null && days <= 0 ? 'hoy' : `en ${days} días`
+    const school = access?.tenant_type === 'SCHOOL'
     const text = kind === 'trial'
-        ? `Tu prueba gratuita termina ${when}. Tu información se conserva; solo elige tu plan para seguir usando todas las herramientas.`
+        ? school
+            ? `La prueba gratuita de tu escuela termina ${when}. Solicita la cotización de la licencia anual (depende del número de usuarios) para no perder el acceso.`
+            : `Tu prueba gratuita termina ${when}. Tu información se conserva; solo elige tu plan para seguir usando todas las herramientas.`
         : kind === 'renew'
             ? `Tu periodo termina ${when} y no tiene cobro automático.`
             : 'Mercado Pago no pudo cobrar tu suscripción. Tienes unos días de gracia para actualizar tu forma de pago.'
@@ -50,11 +53,11 @@ export const TrialNotificationSystem = () => {
                 <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4"><CalendarClock className="w-6 h-6" /></div>
                 <h3 className="text-xl font-black text-slate-900 pr-8">{title}</h3>
                 <p className="text-sm text-slate-600 mt-2">{text}</p>
-                {native && <p className="text-sm text-slate-600 mt-2">Te enviamos a tu correo cómo continuar.</p>}
+                {native && !school && <p className="text-sm text-slate-600 mt-2">Te enviamos a tu correo cómo continuar.</p>}
                 <div className="flex gap-2 mt-6">
                     <button onClick={() => setVisible(false)} className="flex-1 py-3 rounded-2xl text-sm font-black text-slate-600 hover:bg-slate-100">Entendido</button>
                     <button onClick={() => { setVisible(false); navigate('/suscripcion') }} className="flex-1 py-3 rounded-2xl bg-indigo-600 text-white text-sm font-black hover:bg-indigo-700">
-                        {native ? 'Ver mi suscripción' : kind === 'failed' ? 'Actualizar pago' : 'Ver planes'}
+                        {school ? 'Solicitar cotización' : native ? 'Ver mi suscripción' : kind === 'failed' ? 'Actualizar pago' : 'Ver planes'}
                     </button>
                 </div>
             </div>
