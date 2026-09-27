@@ -86,7 +86,7 @@ export const NotificationsMenu = () => {
                         const { data: students } = await supabase
                             .from('students')
                             .select('id, group_id')
-                            .eq('tenant_id', tenant.id)
+                            .eq('tenant_id', tenant.id).or('status.is.null,status.not.in.(GRADUATED,INACTIVE)')
                             .eq('status', 'ACTIVE')
 
                         assignments.forEach(assignment => {

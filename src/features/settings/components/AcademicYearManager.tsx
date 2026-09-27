@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { Plus, Trash2, Calendar, AlertCircle, CheckCircle2, Clock } from 'lucide-react'
 import { useTenant } from '../../../hooks/useTenant'
@@ -25,6 +26,7 @@ export const AcademicYearManager = ({ readOnly = false }: { readOnly?: boolean }
         end_date: ''
     })
     const [error, setError] = useState<string | null>(null)
+    const navigate = useNavigate()
 
     // Prellenado con el calendario oficial de la SEP (con conexión); se puede editar.
     const { data: officialCycle, isLoading: officialLoading } = useOfficialCycle()
@@ -159,7 +161,7 @@ export const AcademicYearManager = ({ readOnly = false }: { readOnly?: boolean }
                 </div>
                 {!readOnly && (
                     <button
-                        onClick={() => setIsCreating(true)}
+                        onClick={() => (years.length > 0 ? navigate('/nuevo-ciclo') : setIsCreating(true))}
                         className="px-6 py-3 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-gray-200 flex items-center"
                     >
                         <Plus className="w-4 h-4 mr-2" />

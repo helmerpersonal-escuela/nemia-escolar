@@ -75,7 +75,7 @@ export const AnecdotalRecordForm = () => {
 
     const fetchGroups = async () => {
         setLoadingGroups(true)
-        const { data } = await supabase.from('groups').select('id, grade, section').eq('tenant_id', tenant?.id)
+        const { data } = await supabase.from('groups').select('id, grade, section').eq('tenant_id', tenant?.id).is('archived_at', null)
         if (data) {
             setGroups(data)
         }

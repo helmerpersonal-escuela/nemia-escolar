@@ -55,7 +55,7 @@ export const GroupsPage = () => {
             const { data: groupsData, error: groupsError } = await supabase
                 .from('groups')
                 .select('*, subjects:group_subjects(*, teacher:profiles(full_name)), students:students(count)')
-                .eq('tenant_id', tenant?.id)
+                .eq('tenant_id', tenant?.id).is('archived_at', null)
                 .order('grade', { ascending: true })
                 .order('section', { ascending: true })
 

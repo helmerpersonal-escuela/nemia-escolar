@@ -399,7 +399,7 @@ export const PlanningEditorPage = () => {
 
                 // 2. Load basic dependencies (Groups, Periods, Year)
                 const [groupsRes, periodsRes, activeYearRes] = await Promise.all([
-                    supabase.from('groups').select('id, grade, section').eq('tenant_id', tenant.id),
+                    supabase.from('groups').select('id, grade, section').eq('tenant_id', tenant.id).is('archived_at', null),
                     supabase.from('evaluation_periods').select('id, name, is_active, start_date, end_date').eq('tenant_id', tenant.id),
                     supabase.from('academic_years').select('id').eq('tenant_id', tenant.id).eq('is_active', true).maybeSingle()
                 ])

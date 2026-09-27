@@ -22,6 +22,7 @@ import {
     Layers,
     GraduationCap
 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 
 // Wizard Steps Configuration
 const STEPS = [
@@ -87,6 +88,22 @@ export const AnalyticalProgramEditorPage = () => {
     const [isGenerating, setIsGenerating] = useState(false)
     const [syntheticCatalog, setSyntheticCatalog] = useState<any[]>([])
     const [suggestedContents, setSuggestedContents] = useState<any[]>([])
+    // PDAs propios del docente/escuela (Mis PDAs): se pueden sumar a los contenidos del programa.
+    const { data: customPdas = [] } = useQuery({
+        queryKey: ['custom-pdas', tenant?.id],
+        enabled: !!tenant?.id,
+        queryFn: async () => {
+            const { data } = await supabase.from('custom_pdas').select('*').eq('tenant_id', tenant!.id).order('field_of_study')
+            return (data ?? []) as any[]
+        },
+    })
+    const addCustomPda = (p: any) => {
+        const key = `custom:${p.id}`
+        setSuggestedContents(prev => prev.some(c => c.id === key) ? prev : [...prev, {
+            id: key, custom_pda_id: p.id, is_custom: true, selected: true,
+            content: p.content, pda: p.pda, field_of_study: p.field_of_study, subject_name: p.subject_name,
+        }])
+    }
     const [syntheticContext, setSyntheticContext] = useState<string>('') // Raw text from uploaded PDF
     const [customInputs, setCustomInputs] = useState({
         geo: '', social: '', cultural: '', infra: '', academic: ''
@@ -999,7 +1016,7 @@ export const AnalyticalProgramEditorPage = () => {
                                             />
                                             <div className="flex-1">
                                                 <p className="font-bold text-gray-800 text-sm mb-1">{content.content}</p>
-                                                <p className="text-xs text-gray-500 font-medium line-clamp-2">{content.pda_grade_1 || content.pda_grade_2 || content.pda_grade_3}</p>
+                                                <p className="text-xs text-gray-500 font-medium line-clamp-2">{content.is_custom && <span className="mr-1 text-amber-600 font-black">★ Propio ·</span>}{content.pda || content.pda_grade_1 || content.pda_grade_2 || content.pda_grade_3}</p>
                                             </div>
                                         </label>
                                     ))}
@@ -1008,6 +1025,38 @@ export const AnalyticalProgramEditorPage = () => {
                         ))}
                     </div>
                 )}
+
+                {/* Mis PDAs: contenidos y PDAs propios, contextualizados por el docente */}
+                <div className="bg-amber-50/60 rounded-[2rem] border border-amber-100 p-5 sm:p-6 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                            <h4 className="font-black text-amber-900 text-sm uppercase tracking-wide">Mis PDAs propios</h4>
+                            <p className="text-xs text-amber-800">Súmalos a tu programa. Puedes crearlos o mejorarlos en cualquier momento (por ejemplo, en el CTE).</p>
+                        </div>
+                        <button type="button" onClick={() => navigate('/mis-pdas')} className="px-3 py-2 rounded-xl bg-white border border-amber-200 text-xs font-black text-amber-800">Crear o editar PDAs</button>
+                    </div>
+                    {customPdas.length === 0 ? (
+                        <p className="text-sm text-amber-800/80">Aún no tienes PDAs propios.</p>
+                    ) : (
+                        <div className="space-y-2">
+                            {customPdas.map((p: any) => {
+                                const added = suggestedContents.some(c => c.id === `custom:${p.id}`)
+                                return (
+                                    <div key={p.id} className="flex items-start gap-3 bg-white rounded-xl border border-amber-100 p-3">
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-[10px] font-black uppercase tracking-wider text-amber-700">{p.field_of_study}{p.subject_name ? ` · ${p.subject_name}` : ''}</p>
+                                            <p className="text-sm font-bold text-gray-800">{p.content}</p>
+                                            <p className="text-xs text-gray-500 line-clamp-2">{p.pda}</p>
+                                        </div>
+                                        <button type="button" disabled={added} onClick={() => addCustomPda(p)} className="shrink-0 px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-black disabled:bg-emerald-100 disabled:text-emerald-700">
+                                            {added ? 'Agregado' : 'Agregar'}
+                                        </button>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    )}
+                </div>
             </div>
         )
     }

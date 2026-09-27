@@ -54,7 +54,7 @@ export const EditScheduleModal = ({
             const { data } = await supabase
                 .from('groups')
                 .select('id, grade, section, shift')
-                .eq('tenant_id', tenant.id)
+                .eq('tenant_id', tenant.id).is('archived_at', null)
                 .order('grade')
                 .order('section')
             if (data) setGroups(data)

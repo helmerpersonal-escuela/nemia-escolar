@@ -19,6 +19,7 @@ import {
 import { useChat } from '../../../../hooks/useChat'
 import { supabase } from '../../../../lib/supabase'
 import { StudentSelectionModal } from './StudentSelectionModal'
+import { ContinuousImprovementCard } from '../../../../components/academic/ContinuousImprovementCard'
 
 export const IndependentDashboard = () => {
     const { data: tenant } = useTenant()
@@ -79,11 +80,11 @@ export const IndependentDashboard = () => {
                 supabase
                     .from('groups')
                     .select('*', { count: 'exact', head: true })
-                    .eq('tenant_id', tenant.id),
+                    .eq('tenant_id', tenant.id).is('archived_at', null),
                 supabase
                     .from('students')
                     .select('*', { count: 'exact', head: true })
-                    .eq('tenant_id', tenant.id)
+                    .eq('tenant_id', tenant.id).or('status.is.null,status.not.in.(GRADUATED,INACTIVE)')
             ])
 
             // Calculate pending (for now: subjects without plans in this tenant)
@@ -184,6 +185,8 @@ export const IndependentDashboard = () => {
                     ))
                 }
             </div >
+
+            <ContinuousImprovementCard />
 
             {/* 3. Bento Layout Grid */}
             < div className="grid grid-cols-1 lg:grid-cols-3 gap-8" >

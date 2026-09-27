@@ -64,7 +64,7 @@ export const useSubscriptionLimits = () => {
                 const { count: groupCount } = await supabase
                     .from('groups')
                     .select('*', { count: 'exact', head: true })
-                    .eq('tenant_id', profile.tenant_id)
+                    .eq('tenant_id', profile.tenant_id).is('archived_at', null)
 
                 const currentGroups = groupCount || 0
                 const rawMaxGroups = planLimits?.max_groups || (planType === 'pro' ? 10 : 5)
@@ -127,7 +127,7 @@ export const useSubscriptionLimits = () => {
             const { count: groupCount } = await supabase
                 .from('groups')
                 .select('*', { count: 'exact', head: true })
-                .eq('tenant_id', profile.tenant_id)
+                .eq('tenant_id', profile.tenant_id).is('archived_at', null)
 
             const rawMaxGroups = planLimits?.max_groups || (planType === 'pro' ? 10 : 5)
             const resolvedMaxGroups = Math.max(rawMaxGroups, planType === 'pro' ? 10 : 5)

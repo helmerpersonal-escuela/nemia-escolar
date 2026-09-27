@@ -16,12 +16,14 @@ export interface OfficialCycle {
     sourceUrl: string | null
 }
 
-export async function fetchOfficialCycle(level: 'BASICA' | 'NORMAL' = 'BASICA', today = todayISO()): Promise<OfficialCycle | null> {
-    const { data, error } = await supabase
+/** `after`: fecha de fin del ciclo actual, para obtener el ciclo SIGUIENTE. */
+export async function fetchOfficialCycle(level: 'BASICA' | 'NORMAL' = 'BASICA', today = todayISO(), after?: string): Promise<OfficialCycle | null> {
+    let query = supabase
         .from('official_school_calendars')
         .select('school_year, name, start_date, end_date, school_days, source_url')
         .eq('level', level)
-        .gte('end_date', today)
+    query = after ? query.gt('start_date', after) : query.gte('end_date', today)
+    const { data, error } = await query
         .order('start_date', { ascending: true })
         .limit(1)
     if (error) throw error

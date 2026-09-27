@@ -45,6 +45,7 @@ import { ErrorBoundary } from '../common/ErrorBoundary'
 import { setErrorContext } from '../../lib/errorReporting'
 import { OfflineCenter } from '../offline/OfflineCenter'
 import { TrialNotificationSystem } from '../../features/subscription/components/TrialNotificationSystem'
+import { NewCycleBanner } from '../../features/school-year/components/NewCycleBanner'
 
 const DocumentTitle = ({ title }: { title: string }) => {
     useEffect(() => { document.title = `${title} · Vunlek` }, [title])
@@ -455,6 +456,7 @@ export const DashboardLayout = () => {
                     { label: 'Programa de Mejora (PEMC)', path: '/admin/pemc' },
                     { label: 'Libros de Texto', path: '/libros' },
                     { label: 'Programa Analítico', path: '/analytical-program' },
+                    { label: 'Mis PDAs', path: '/mis-pdas' },
                     { label: 'Estadísticas Globales', path: '/stats' },
                     { label: 'Validar Planeaciones', path: '/planning' }
                 ]
@@ -533,6 +535,7 @@ export const DashboardLayout = () => {
                 subItems: [
                     { label: 'Mis Planeaciones', path: '/planning' },
                     { label: 'Programa Analítico', path: '/analytical-program' },
+                    { label: 'Mis PDAs', path: '/mis-pdas' },
                     { label: 'Libros de Texto', path: '/libros' },
                     { label: 'Instrumentos', path: '/rubrics' },
                     { label: 'Guardias (Ausencias)', path: '/absences' }
@@ -642,6 +645,7 @@ export const DashboardLayout = () => {
                 subItems: [
                     { label: 'Mis Planeaciones', path: '/planning' },
                     { label: 'Programa Analítico', path: '/analytical-program' },
+                    { label: 'Mis PDAs', path: '/mis-pdas' },
                     { label: 'Libros de Texto', path: '/libros' },
                     { label: 'Rúbricas', path: '/rubrics' },
                     { label: 'Guardias (Ausencias)', path: '/absences' }
@@ -943,6 +947,7 @@ export const DashboardLayout = () => {
                         </div>
                     )}
 
+                    <NewCycleBanner />
                     <ErrorBoundary key={location.pathname} area={location.pathname}>
                         <Suspense fallback={<PageLoader />}>
                             <Outlet />

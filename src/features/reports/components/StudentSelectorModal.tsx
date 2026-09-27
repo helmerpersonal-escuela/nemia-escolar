@@ -38,7 +38,7 @@ export const StudentSelectorModal = ({ isOpen, onClose }: StudentSelectorModalPr
         const { data } = await supabase
             .from('groups')
             .select('*')
-            .eq('tenant_id', tenant.id)
+            .eq('tenant_id', tenant.id).is('archived_at', null)
             .order('grade')
             .order('section')
 

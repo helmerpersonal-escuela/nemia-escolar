@@ -57,7 +57,7 @@ export const IncidentModal = ({ isOpen, onClose, onSuccess }: IncidentModalProps
             const { data, error } = await supabase
                 .from('groups')
                 .select('*')
-                .eq('tenant_id', tenant.id)
+                .eq('tenant_id', tenant.id).is('archived_at', null)
                 .order('grade')
                 .order('section')
             if (error) throw error

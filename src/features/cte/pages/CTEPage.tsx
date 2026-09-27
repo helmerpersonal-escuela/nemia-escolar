@@ -11,6 +11,7 @@ import { SessionsPanel } from '../components/SessionsPanel'
 import { DocumentsPanel } from '../components/DocumentsPanel'
 import { AgreementsPanel } from '../components/AgreementsPanel'
 import { ProposalPanel } from '../components/ProposalPanel'
+import { ContinuousImprovementCard } from '../../../components/academic/ContinuousImprovementCard'
 
 type Tab = 'sessions' | 'documents' | 'agreements' | 'proposal'
 
@@ -111,6 +112,7 @@ export const CTEPage = () => {
                     </button>
                 </div>
             </div>
+            <ContinuousImprovementCard compact />
 
             <div role="tablist" aria-label="Secciones del CTE" className="flex gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
                 {TABS.map(t => (

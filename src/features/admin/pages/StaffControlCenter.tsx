@@ -60,7 +60,7 @@ export const StaffControlCenter = () => {
             setAttendance(attData || [])
 
             // Load groups and subjects for assignments
-            const { data: groupsData } = await supabase.from('groups').select('*').eq('tenant_id', profile.tenant_id)
+            const { data: groupsData } = await supabase.from('groups').select('*').eq('tenant_id', profile.tenant_id).is('archived_at', null)
             const { data: subjectsData } = await supabase.from('subject_catalog').select('*')
             setGroups(groupsData || [])
             setSubjects(subjectsData || [])

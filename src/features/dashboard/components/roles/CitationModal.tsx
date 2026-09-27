@@ -36,7 +36,7 @@ export const CitationModal = ({ isOpen, onClose, onSuccess }: CitationModalProps
     }, [isOpen, tenant])
 
     const fetchGroups = async () => {
-        const { data } = await supabase.from('groups').select('*').eq('tenant_id', tenant?.id)
+        const { data } = await supabase.from('groups').select('*').eq('tenant_id', tenant?.id).is('archived_at', null)
         if (data) {
             setGroups(data)
             if (data.length > 0) setSelectedGroupId(data[0].id)

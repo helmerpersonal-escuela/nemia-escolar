@@ -141,7 +141,7 @@ export const SchedulePage = () => {
             const { data } = await supabase
                 .from('groups')
                 .select('id, grade, section, shift')
-                .eq('tenant_id', tenant?.id)
+                .eq('tenant_id', tenant?.id).is('archived_at', null)
                 .order('grade', { ascending: true })
                 .order('section', { ascending: true })
             return data || []

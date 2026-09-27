@@ -34,7 +34,7 @@ export const CriteriaManager = ({ periodId, groupId }: CriteriaManagerProps) => 
             const { data } = await supabase
                 .from('groups')
                 .select('id, grade, section')
-                .eq('tenant_id', tenant.id)
+                .eq('tenant_id', tenant.id).is('archived_at', null)
                 .order('grade')
 
             setGroups(data || [])

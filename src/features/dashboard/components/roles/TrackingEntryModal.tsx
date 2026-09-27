@@ -39,7 +39,7 @@ export const TrackingEntryModal = ({ onClose, onSuccess }: TrackingEntryModalPro
                 const { data } = await supabase
                     .from('students')
                     .select('id, first_name, last_name_paternal, last_name_maternal, groups(grade, section)')
-                    .eq('tenant_id', tenant.id)
+                    .eq('tenant_id', tenant.id).or('status.is.null,status.not.in.(GRADUATED,INACTIVE)')
                     .ilike('first_name', `%${searchTerm}%`) // Simple search for demo, ideally full text search or combining fields
                     .limit(5)
 

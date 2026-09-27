@@ -46,7 +46,7 @@ export const EventModal = ({
 
     const fetchGroups = async () => {
         try {
-            const query = supabase.from('groups').select('id, grade, section').eq('tenant_id', tenantId)
+            const query = supabase.from('groups').select('id, grade, section').eq('tenant_id', tenantId).is('archived_at', null)
 
             // If teacher, maybe filter by group_subjects?
             // For now, let's show all groups if they are Director/Admin, or we can just show all groups for the teacher to choose which one to notify.
@@ -113,7 +113,7 @@ export const EventModal = ({
     const createTutorNotifications = async (eventId: string, data: any) => {
         try {
             // Find students in the target group (or all students if no group)
-            let studentQuery = supabase.from('students').select('id, first_name').eq('tenant_id', tenantId)
+            let studentQuery = supabase.from('students').select('id, first_name').eq('tenant_id', tenantId).or('status.is.null,status.not.in.(GRADUATED,INACTIVE)')
             if (data.groupId) {
                 studentQuery = studentQuery.eq('group_id', data.groupId)
             }

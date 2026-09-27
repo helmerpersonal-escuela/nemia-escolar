@@ -107,7 +107,7 @@ export async function loadGradebookBundle(tenantId: string, groupId: string) {
 
 export async function loadGroups(tenantId: string) {
     return withOfflineCache(groupsKey(tenantId), async () =>
-        must(await supabase.from('groups').select('*, academic_years(name)').eq('tenant_id', tenantId).order('grade').order('section')) as Row[])
+        must(await supabase.from('groups').select('*, academic_years(name)').eq('tenant_id', tenantId).is('archived_at', null).order('grade').order('section')) as Row[])
 }
 
 /**

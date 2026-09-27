@@ -62,6 +62,8 @@ const IncidentsRoute = lazyNamed(() => import('./components/routes/RoleRoutes'),
 import { ProtectedRoute } from './components/routes/ProtectedRoute'
 import { SubscriptionGuard } from './components/routes/SubscriptionGuard'
 const CTEPage = lazyNamed(() => import('./features/cte/pages/CTEPage'), 'CTEPage')
+const NewSchoolYearWizard = lazyNamed(() => import('./features/school-year/pages/NewSchoolYearWizard'), 'NewSchoolYearWizard')
+const CustomPdasPage = lazyNamed(() => import('./features/pdas/pages/CustomPdasPage'), 'CustomPdasPage')
 const TextbooksPage = lazyNamed(() => import('./features/textbooks/pages/TextbooksPage'), 'TextbooksPage')
 const CompleteSignupPage = lazyNamed(() => import('./features/auth/pages/CompleteSignupPage'), 'CompleteSignupPage')
 const LegalPage = lazyNamed(() => import('./features/legal/LegalPage'), 'LegalPage')
@@ -299,6 +301,16 @@ function App() {
             </ProtectedRoute>
           } />
           <Route path="libros" element={<TextbooksPage />} />
+          <Route path="nuevo-ciclo" element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'DIRECTOR', 'SCHOOL_CONTROL', 'INDEPENDENT_TEACHER']}>
+              <NewSchoolYearWizard />
+            </ProtectedRoute>
+          } />
+          <Route path="mis-pdas" element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD', 'TEACHER', 'INDEPENDENT_TEACHER']}>
+              <CustomPdasPage />
+            </ProtectedRoute>
+          } />
 
           {/* Admin Specific Routes */}
           <Route path="admin/dashboard" element={

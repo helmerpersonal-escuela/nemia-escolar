@@ -71,7 +71,7 @@ export const StudentTrackingPage = () => {
     useEffect(() => {
         if (!tenant) return
         const fetchGroups = async () => {
-            const { data } = await supabase.from('groups').select('*').eq('tenant_id', tenant.id)
+            const { data } = await supabase.from('groups').select('*').eq('tenant_id', tenant.id).is('archived_at', null)
             if (data) {
                 setGroups(data)
                 if (data.length > 0 && !selectedGroupId) setSelectedGroupId(data[0].id)

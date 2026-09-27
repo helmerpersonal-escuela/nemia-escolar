@@ -55,9 +55,9 @@ export const AdminDashboard = () => {
 
             // Load counts
             const [students, staff, groups, cycle] = await Promise.all([
-                supabase.from('students').select('*', { count: 'exact', head: true }).eq('tenant_id', profile.tenant_id),
+                supabase.from('students').select('*', { count: 'exact', head: true }).eq('tenant_id', profile.tenant_id).or('status.is.null,status.not.in.(GRADUATED,INACTIVE)'),
                 supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('tenant_id', profile.tenant_id),
-                supabase.from('groups').select('*', { count: 'exact', head: true }).eq('tenant_id', profile.tenant_id),
+                supabase.from('groups').select('*', { count: 'exact', head: true }).eq('tenant_id', profile.tenant_id).is('archived_at', null),
                 supabase.from('academic_years').select('name').eq('tenant_id', profile.tenant_id).eq('is_active', true).single()
             ])
 

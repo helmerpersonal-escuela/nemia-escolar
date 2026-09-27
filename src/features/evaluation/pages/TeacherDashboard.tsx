@@ -14,6 +14,7 @@ import { DayScheduleModal } from '../../schedule/components/DayScheduleModal'
 import { AttendanceWidget } from '../../dashboard/components/AttendanceWidget'
 import { StudentSelectionModal } from '../../dashboard/components/roles/StudentSelectionModal'
 import { CTEAgendaModal } from '../../dashboard/components/CTE/CTEAgendaModal'
+import { ContinuousImprovementCard } from '../../../components/academic/ContinuousImprovementCard'
 
 export const TeacherDashboard = () => {
     const { data: tenant } = useTenant()
@@ -73,7 +74,7 @@ export const TeacherDashboard = () => {
                 const { count, error: countError } = await supabase
                     .from('groups')
                     .select('*', { count: 'exact', head: true })
-                    .eq('tenant_id', tenant.id)
+                    .eq('tenant_id', tenant.id).is('archived_at', null)
 
                 if (countError) throw countError
 
@@ -239,6 +240,8 @@ export const TeacherDashboard = () => {
                     </div>
                 </div>
             </header>
+
+            <ContinuousImprovementCard />
 
             <CTEAgendaModal
                 isOpen={isAgendaModalOpen}
