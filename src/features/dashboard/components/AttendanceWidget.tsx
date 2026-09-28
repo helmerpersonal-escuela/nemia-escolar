@@ -1,3 +1,4 @@
+import { loadDayContext, adjustClasses } from '../../../lib/specialDays'
 import { useState, useEffect } from 'react'
 import { Clock, CheckCircle2, QrCode, LogIn, LogOut, Loader2, AlertCircle } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
@@ -66,7 +67,10 @@ export const AttendanceWidget = () => {
                 .eq('date', today)
 
             if (schedule) {
-                const modulesWithStatus = schedule.map(entry => {
+                // Día con horario especial: no se registran módulos suspendidos y se muestran con su nueva hora
+                const { special, standard } = await loadDayContext(tenant.id, today)
+                const adjusted = adjustClasses(schedule as any[], special, standard).filter(c => c.status !== 'cancelled')
+                const modulesWithStatus = adjusted.map((entry: any) => {
                     const att = moduleAtt?.find(a => a.schedule_id === entry.id)
                     return { ...entry, attenuation: att }
                 })

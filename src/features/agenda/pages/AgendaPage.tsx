@@ -1,3 +1,4 @@
+import { fetchSpecialDays, specialFor, adjustClasses, isoDate } from '../../../lib/specialDays'
 
 import { readTextFile } from "../../../lib/textImport"
 import { useState, useEffect } from 'react'
@@ -122,11 +123,18 @@ export const AgendaPage = () => {
                         1: 'MONDAY', 2: 'TUESDAY', 3: 'WEDNESDAY', 4: 'THURSDAY', 5: 'FRIDAY'
                     }
 
+                    // Días con horario especial del mes (acortan, recortan o suspenden clases)
+                    const monthSpecials = await fetchSpecialDays(tenant.id, isoDate(startOfMonth), isoDate(endOfMonth))
+                    const { data: stdRow } = await supabase.from('schedule_settings').select('start_time, end_time, module_duration, breaks').eq('tenant_id', tenant.id).maybeSingle()
+                    const standardDay = stdRow ? { start_time: stdRow.start_time.slice(0, 5), end_time: stdRow.end_time.slice(0, 5), module_duration: stdRow.module_duration, breaks: (stdRow.breaks as any) || [] } : null
+
                     for (let d = new Date(startOfMonth); d <= endOfMonth; d.setDate(d.getDate() + 1)) {
                         const dayOfWeek = dayMap[d.getDay()]
                         if (dayOfWeek) {
-                            const dayClasses = filteredSchedule.filter(s => s.day_of_week === dayOfWeek)
                             const dateStr = d.toISOString().split('T')[0]
+                            const special = specialFor(monthSpecials, isoDate(d))
+                            const dayClasses = adjustClasses(filteredSchedule.filter(s => s.day_of_week === dayOfWeek), special, standardDay)
+                                .filter(c => c.status !== 'cancelled')
                             dayClasses.forEach(item => {
                                 const subj = Array.isArray(item.subject) ? item.subject[0] : item.subject;
                                 const grp = Array.isArray(item.group) ? item.group[0] : item.group;

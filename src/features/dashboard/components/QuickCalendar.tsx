@@ -1,3 +1,4 @@
+import { loadDayContext, adjustClasses, isoDate } from '../../../lib/specialDays'
 import { useState, useEffect } from 'react'
 import { Calendar as CalendarIcon, Plus, Clock, Trash2, ChevronLeft, ChevronRight, BookOpen, FileText, GraduationCap } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
@@ -106,13 +107,15 @@ export const QuickCalendar = () => {
             .eq('tenant_id', tenant.id)
             .eq('day_of_week', currentDayKey)
 
-        // 4c. Filter & Map
-        const myClasses = (scheduleClasses || [])
+        // 4c. Filter & Map (con el ajuste de un posible día con horario especial)
+        const { special, standard } = await loadDayContext(tenant.id, isoDate(date))
+        const myClasses = adjustClasses((scheduleClasses || [])
             .filter((cls: any) => {
                 if (cls.subject_id) return teacherSubjectIds.includes(cls.subject_id)
                 if (cls.custom_subject) return teacherCustomSubjects.includes(cls.custom_subject)
                 return false
-            })
+            }) as any[], special, standard)
+            .filter(c => c.status !== 'cancelled')
             .map((c: any) => ({
                 id: `class-${c.id}-${dateStr}`,
                 title: `Clase: ${c.subject?.name || c.custom_subject}`,

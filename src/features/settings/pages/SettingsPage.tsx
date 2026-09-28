@@ -847,9 +847,8 @@ export const SettingsPage = () => {
                             {activeTab === 'horarios' && (
                                 <div className="space-y-6">
                                     <ScheduleConfig />
-                                    {['DIRECTOR', 'ADMIN', 'SUPER_ADMIN', 'ACADEMIC_COORD', 'TECH_COORD'].includes(currentRole) && tenant.type?.toUpperCase() !== 'INDEPENDENT' && (
-                                        <SpecialScheduleManager />
-                                    )}
+                                    {/* Todos lo ven; solo dirección/coordinación o el docente independiente lo modifican */}
+                                    <SpecialScheduleManager readOnly={!['DIRECTOR', 'ADMIN', 'SUPER_ADMIN', 'ACADEMIC_COORD', 'TECH_COORD', 'INDEPENDENT_TEACHER'].includes(currentRole)} />
                                 </div>
                             )}
 

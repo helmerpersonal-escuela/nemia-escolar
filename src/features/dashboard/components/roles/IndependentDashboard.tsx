@@ -1,3 +1,5 @@
+import { loadDayContext, adjustClasses, isoDate, type SpecialDay } from '../../../../lib/specialDays'
+import { SpecialDayBanner } from '../../../../components/schedule/SpecialDayBanner'
 
 import { useState, useEffect } from 'react'
 import { useTenant } from '../../../../hooks/useTenant'
@@ -31,6 +33,8 @@ export const IndependentDashboard = () => {
     const { rooms, loading: chatLoading } = useChat()
     const [announcements, setAnnouncements] = useState<any[]>([])
     const [upcomingClasses, setUpcomingClasses] = useState<any[]>([])
+    const [specialDay, setSpecialDay] = useState<SpecialDay | null>(null)
+    const [suspendedCount, setSuspendedCount] = useState(0)
     const [loading, setLoading] = useState(true)
     const [isReportModalOpen, setIsReportModalOpen] = useState(false)
 
@@ -74,7 +78,12 @@ export const IndependentDashboard = () => {
                 .eq('day_of_week', currentDay)
                 .order('start_time')
 
-            setUpcomingClasses(schedData || [])
+            // Día con horario especial: ajusta horarios y quita las clases suspendidas
+            const { special, standard } = await loadDayContext(tenant.id, isoDate(new Date()))
+            setSpecialDay(special)
+            const adjusted = adjustClasses((schedData || []) as any[], special, standard)
+            setSuspendedCount(adjusted.filter(c => c.status === 'cancelled').length)
+            setUpcomingClasses(adjusted.filter(c => c.status !== 'cancelled'))
 
             // 3. Fetch Professional Stats
             const [groupsRes, studentsRes] = await Promise.all([
@@ -111,6 +120,7 @@ export const IndependentDashboard = () => {
     return (
         <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-1000 pb-20 px-4 sm:px-6">
             <FirstSteps />
+            <SpecialDayBanner special={specialDay} suspended={suspendedCount} />
 
             {/* 1. Header & Quick Actions */}
             <header className="relative overflow-hidden bg-slate-900 rounded-[3rem] p-8 sm:p-12 text-white shadow-2xl shadow-indigo-900/20">

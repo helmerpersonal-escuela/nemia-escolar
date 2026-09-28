@@ -1,3 +1,5 @@
+import { loadDayContext, adjustClasses, isoDate, type SpecialDay } from '../../../lib/specialDays'
+import { SpecialDayBanner } from '../../../components/schedule/SpecialDayBanner'
 
 import { useState, useEffect } from 'react'
 import { useTenant } from '../../../hooks/useTenant'
@@ -38,6 +40,8 @@ export const TeacherDashboard = () => {
     const [nextClass, setNextClass] = useState<any>(null)
     const [currentBreak, setCurrentBreak] = useState<any>(null)
     const [timelineItems, setTimelineItems] = useState<any[]>([])
+    const [specialDay, setSpecialDay] = useState<SpecialDay | null>(null)
+    const [suspendedCount, setSuspendedCount] = useState(0)
     const [selectedDate] = useState(new Date())
     const [currentTime, setCurrentTime] = useState(new Date())
 
@@ -126,8 +130,18 @@ export const TeacherDashboard = () => {
                     combinedTimeline = [...scheduleWithDetails]
                 }
 
-                if (settingsData?.breaks) {
-                    const breaks: any[] = typeof settingsData.breaks === 'string' ? JSON.parse(settingsData.breaks) : settingsData.breaks
+                // Día con horario especial: acorta, recorta o suspende clases
+                const { special, standard } = await loadDayContext(tenant.id, isoDate(selectedDate))
+                setSpecialDay(special)
+                if (special) {
+                    const adjusted = adjustClasses(combinedTimeline, special, standard)
+                    setSuspendedCount(adjusted.filter(c => c.status === 'cancelled').length)
+                    combinedTimeline = adjusted.filter(c => c.status !== 'cancelled')
+                } else setSuspendedCount(0)
+                const dayBreaks = special?.mode === 'NO_CLASSES' ? [] : special?.mode === 'SHORTENED' ? (special.breaks || []) : null
+
+                if (dayBreaks || settingsData?.breaks) {
+                    const breaks: any[] = dayBreaks ?? (typeof settingsData!.breaks === 'string' ? JSON.parse(settingsData!.breaks as any) : settingsData!.breaks)
                     combinedTimeline = [
                         ...combinedTimeline,
                         ...breaks.map(b => ({ ...b, start_time: b.start_time.slice(0, 5), end_time: b.end_time.slice(0, 5), type: 'break' }))
@@ -190,6 +204,9 @@ export const TeacherDashboard = () => {
     return (
         <div className="max-w-7xl mx-auto space-y-4 sm:space-y-8 animate-in fade-in duration-1000 pb-20 px-3 sm:px-6">
             <FirstSteps />
+
+            <SpecialDayBanner special={specialDay} suspended={suspendedCount}
+                label={isoDate(selectedDate) === isoDate(new Date()) ? 'Hoy' : 'Ese día'} />
 
             {/* 1. Header & Quick Actions */}
             <header className="relative overflow-hidden bg-slate-900 rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-12 text-white shadow-2xl">
