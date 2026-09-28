@@ -136,7 +136,7 @@ export const SchoolDataSection = ({ readOnly = false }: { readOnly?: boolean }) 
     const phase = form.level === 'PRIMARY' ? phaseFor('PRIMARY', form.grade) : phaseFor(form.level, null)
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 pb-24">
             <div className="border-b border-slate-100 pb-5">
                 <h3 className="text-2xl font-black text-slate-900 tracking-tight">Datos de la escuela</h3>
                 <p className="text-sm text-slate-500 mt-1">Lo que registraste al crear tu espacio. Aparece en tus planeaciones, programa analítico y documentos.</p>
@@ -238,7 +238,7 @@ export const SchoolDataSection = ({ readOnly = false }: { readOnly?: boolean }) 
             </fieldset>
 
             {!readOnly && (
-                <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] lg:bottom-4 z-20 flex justify-end">
+                <div className="fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] lg:bottom-6 lg:right-8 z-40 flex justify-end">
                     <button type="button" onClick={save} disabled={saving}
                         className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-indigo-600 text-white text-sm font-black shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 disabled:opacity-50">
                         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Guardar cambios

@@ -1,3 +1,4 @@
+import { formatSubjectName } from '../../../lib/subjectName'
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
@@ -260,8 +261,8 @@ export const PlanningEditorPage = () => {
     const fetchSubjects = async (groupId: string, tenantId: string) => {
         if (!tenantId) return []
         const { data: { user } } = await supabase.auth.getUser()
-        const toItem = (id: string, name: string, field: string | null) => ({ id, name, field: field || null })
-        const map = new Map<string, { id: string; name: string; field: string | null }>()
+        const toItem = (id: string, name: string, field: string | null, baseName?: string) => ({ id, name, field: field || null, baseName: baseName || name })
+        const map = new Map<string, { id: string; name: string; field: string | null; baseName: string }>()
 
         if (user) {
             const { data } = await supabase
@@ -272,7 +273,7 @@ export const PlanningEditorPage = () => {
             for (const ps of (data ?? []) as any[]) {
                 const sc = Array.isArray(ps.subject_catalog) ? ps.subject_catalog[0] : ps.subject_catalog
                 const sid = ps.subject_catalog_id || ps.id
-                if (!map.has(sid)) map.set(sid, toItem(sid, sc?.name || ps.custom_detail || 'Materia personalizada', sc?.field_of_study))
+                if (!map.has(sid)) map.set(sid, toItem(sid, sc?.name ? formatSubjectName(sc.name, ps.custom_detail) : (ps.custom_detail || 'Materia personalizada'), sc?.field_of_study, sc?.name))
             }
         }
         if (map.size === 0 && groupId) {
@@ -1398,7 +1399,7 @@ export const PlanningEditorPage = () => {
             if (formData.subject_id) {
                 const subject = subjects.find(s => s.id === formData.subject_id)
                 if (subject) {
-                    query = query.ilike('subject_name', `%${subject.name}%`)
+                    query = query.ilike('subject_name', `%${(subject as any).baseName || subject.name}%`)
                 }
             }
 

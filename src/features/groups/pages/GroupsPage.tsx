@@ -1,3 +1,4 @@
+import { formatSubjectName } from '../../../lib/subjectName'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -93,7 +94,7 @@ export const GroupsPage = () => {
                     let displayName = s.custom_name || catalogName
 
                     if (s.subject_catalog_id && specialtyMap[s.subject_catalog_id] && displayName && !displayName.includes(specialtyMap[s.subject_catalog_id])) {
-                        displayName = `${catalogName}: ${specialtyMap[s.subject_catalog_id]}`
+                        displayName = formatSubjectName(catalogName, specialtyMap[s.subject_catalog_id])
                     }
 
                     return {

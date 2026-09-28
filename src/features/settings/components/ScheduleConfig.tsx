@@ -1,12 +1,17 @@
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../../../lib/supabase'
-import { Save, Plus, Trash2, Clock, Coffee, Sun, Moon } from 'lucide-react'
+import { Save, Plus, Trash2, Clock, Coffee, Sun, Moon, Loader2, CheckCircle2 } from 'lucide-react'
 import { useTenant } from '../../../hooks/useTenant'
+import { useToast } from '../../../components/ui/Toast'
 
 export const ScheduleConfig = () => {
     const { data: tenant } = useTenant()
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
+    const { showToast } = useToast()
+    // Copia de lo guardado: sirve para saber si hay cambios pendientes
+    const [savedJson, setSavedJson] = useState<string>('')
+    const [justSaved, setJustSaved] = useState(false)
     const [settings, setSettings] = useState({
         start_time: '07:00',
         end_time: '14:00',
@@ -26,19 +31,29 @@ export const ScheduleConfig = () => {
             .maybeSingle()
 
         if (data) {
-            setSettings({
+            const loaded = {
                 start_time: data.start_time.slice(0, 5),
                 end_time: data.end_time.slice(0, 5),
                 module_duration: data.module_duration,
                 breaks: data.breaks || []
-            })
+            }
+            setSettings(loaded)
+            setSavedJson(JSON.stringify(loaded))
+        } else {
+            setSavedJson('__nuevo__') // nunca se ha guardado: hay que guardar al menos una vez
         }
+        if (error) console.error(error)
         setLoading(false)
     }
 
     const handleSave = async () => {
         if (settings.start_time >= settings.end_time) {
-            alert('La hora de salida debe ser posterior a la hora de entrada.')
+            showToast('La hora de salida debe ser después de la hora de entrada.', 'error')
+            return
+        }
+        const badBreak = settings.breaks.find(b => b.start_time >= b.end_time || b.start_time < settings.start_time || b.end_time > settings.end_time)
+        if (badBreak) {
+            showToast(`Revisa el horario de "${badBreak.name || 'Receso'}": debe terminar después de empezar y quedar dentro de la jornada.`, 'error')
             return
         }
 
@@ -57,11 +72,13 @@ export const ScheduleConfig = () => {
             }, { onConflict: 'tenant_id' })
 
         if (!error) {
-            // alert('Configuración guardada correctamente') 
-            // Silent success or toast? Let's use a subtle feedback
+            setSavedJson(JSON.stringify(settings))
+            setJustSaved(true)
+            setTimeout(() => setJustSaved(false), 3000)
+            showToast('Jornada escolar guardada', 'success')
         } else {
             console.error(error)
-            alert('Error al guardar la configuración')
+            showToast('No se pudo guardar la jornada. Revisa tu conexión e intenta de nuevo.', 'error')
         }
         setSaving(false)
     }
@@ -85,6 +102,16 @@ export const ScheduleConfig = () => {
         newBreaks[index] = { ...newBreaks[index], [field]: value }
         setSettings({ ...settings, breaks: newBreaks })
     }
+
+    const dirty = !loading && savedJson !== JSON.stringify(settings)
+
+    // Avisa si intenta salir con cambios sin guardar
+    useEffect(() => {
+        if (!dirty) return
+        const h = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
+        window.addEventListener('beforeunload', h)
+        return () => window.removeEventListener('beforeunload', h)
+    }, [dirty])
 
     // Visualization Logic
     const timeline = useMemo(() => {
@@ -130,32 +157,25 @@ export const ScheduleConfig = () => {
     )
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
+        <div className="space-y-8 pb-24 animate-in fade-in duration-500">
             {/* Header */}
             <div className="flex justify-between items-start">
                 <div>
                     <h3 className="text-xl font-black text-gray-900 tracking-tight flex items-center">
                         <Clock className="w-5 h-5 mr-2 text-indigo-600" />
-                        Jornada y Horarios
+                        Jornada y horarios
                     </h3>
                     <p className="text-sm text-gray-500 font-medium mt-1">
-                        Configura la estructura de tiempo de tu escuela. Esto afectará la generación automática de planeaciones.
+                        Hora de entrada y salida, duración de cada clase y recesos. Se usa para armar tu horario y tus planeaciones.
+                        Al hacer un cambio aparecerá el botón <strong>Guardar jornada</strong> abajo de la pantalla.
                     </p>
                 </div>
-                <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-200 disabled:opacity-50 flex items-center active:scale-95"
-                >
-                    <Save className="w-4 h-4 mr-2" />
-                    {saving ? 'Guardando...' : 'Guardar Cambios'}
-                </button>
             </div>
 
             {/* Visualizer */}
             <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm relative overflow-hidden group">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-                <h4 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-6">Visualización de la Jornada</h4>
+                <h4 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-6">Así queda tu día</h4>
 
                 <div className="relative h-16 bg-gray-50 rounded-xl w-full border border-gray-100 flex items-center overflow-hidden">
                     {/* Background Pattern */}
@@ -200,7 +220,7 @@ export const ScheduleConfig = () => {
                 <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm hover:border-indigo-100 transition-colors">
                     <label className="flex items-center text-[11px] font-black text-gray-500 uppercase tracking-widest mb-3">
                         <Sun className="w-3 h-3 mr-2" />
-                        Inicio de Labores
+                        Hora de entrada
                     </label>
                     <input
                         type="time"
@@ -213,7 +233,7 @@ export const ScheduleConfig = () => {
                 <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm hover:border-indigo-100 transition-colors">
                     <label className="flex items-center text-[11px] font-black text-gray-500 uppercase tracking-widest mb-3">
                         <Moon className="w-3 h-3 mr-2" />
-                        Fin de Labores
+                        Hora de salida
                     </label>
                     <input
                         type="time"
@@ -227,7 +247,7 @@ export const ScheduleConfig = () => {
                     <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm hover:border-indigo-100 transition-colors">
                         <label className="flex items-center text-[11px] font-black text-gray-500 uppercase tracking-widest mb-3">
                             <Clock className="w-3 h-3 mr-2" />
-                            Duración Módulo
+                            Duración de cada clase
                         </label>
                         <div className="flex items-end">
                             <input
@@ -254,7 +274,7 @@ export const ScheduleConfig = () => {
                     <div>
                         <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center">
                             <Coffee className="w-4 h-4 mr-2 text-orange-500" />
-                            Recesos y Pausas
+                            Recesos
                         </h4>
                     </div>
                     <button
@@ -316,6 +336,30 @@ export const ScheduleConfig = () => {
                     )}
                 </div>
             </div>
+
+            {/* Botón al final (siempre) */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl px-4 py-3 border bg-white border-slate-200 text-slate-700">
+                <p className="text-sm font-semibold flex items-center gap-2" role="status">
+                    {dirty ? 'Tienes cambios sin guardar.' : justSaved ? <><CheckCircle2 className="w-4 h-4 text-emerald-600" /> Guardado.</> : 'Todo está guardado.'}
+                </p>
+                <button type="button" onClick={handleSave} disabled={saving || !dirty}
+                    className="inline-flex items-center justify-center gap-2 min-h-[48px] px-6 py-3 rounded-2xl bg-emerald-500 text-white text-base font-black shadow-lg hover:bg-emerald-600 disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none">
+                    {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                    {saving ? 'Guardando…' : 'Guardar jornada'}
+                </button>
+            </div>
+
+            {/* Aviso flotante: aparece en cuanto hay cambios, esté donde esté en la pantalla */}
+            {dirty && (
+                <div className="fixed left-3 right-3 bottom-[calc(5rem+env(safe-area-inset-bottom))] lg:bottom-6 lg:left-auto lg:right-8 lg:w-[26rem] z-40 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-2xl bg-slate-900 text-white px-4 py-3 shadow-2xl">
+                    <span className="text-sm font-bold">Cambios sin guardar en tu jornada</span>
+                    <button type="button" onClick={handleSave} disabled={saving}
+                        className="ml-auto inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 text-white text-sm font-black disabled:opacity-50">
+                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        {saving ? 'Guardando…' : 'Guardar jornada'}
+                    </button>
+                </div>
+            )}
         </div>
     )
 }

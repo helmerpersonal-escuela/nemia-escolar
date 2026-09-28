@@ -130,7 +130,7 @@ export const AnalyticalProgramListPage = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                         {scope.fields.map(f => {
                             const prog = programs.find(p => toCampo(p.field_of_study) === f)
-                            const subs = scope.subjects.filter(sub => sub.field === f).map(sub => sub.name)
+                            const subs = scope.subjects.filter(sub => sub.field === f).map(sub => sub.label || sub.name)
                             return (
                                 <div key={f} className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm flex flex-col">
                                     <p className="text-sm font-black text-slate-900 leading-tight">{f}</p>

@@ -1,3 +1,4 @@
+import { formatSubjectName } from '../../../lib/subjectName'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../../lib/supabase'
 import { useProfile } from '../../../hooks/useProfile'
@@ -62,7 +63,8 @@ export function sameDiscipline(teacherSubject: string, officialSubject: string, 
     return a.some(w => b.has(w))
 }
 
-export interface TeacherSubject { name: string; field: Campo | null }
+/** name = materia del catálogo (para cruzar con los PDA oficiales); label = cómo se muestra (con especialidad). */
+export interface TeacherSubject { name: string; field: Campo | null; specialty?: string; label?: string }
 
 export interface TeacherScope {
     level: string                  // PRIMARY | SECONDARY | TELESECUNDARIA | PRESCHOOL…
@@ -99,10 +101,13 @@ export function useTeacherScope() {
             const subjects: TeacherSubject[] = []
             for (const row of (ps ?? []) as any[]) {
                 const sc = Array.isArray(row.subject_catalog) ? row.subject_catalog[0] : row.subject_catalog
-                const name = (row.custom_detail?.trim() || sc?.name || '').trim()
+                const specialty = (row.custom_detail || '').trim()
+                // Con materia de catálogo, el nombre es el oficial (Tecnología) y la especialidad va aparte (Informática)
+                const name = (sc?.name || specialty).trim()
                 if (!name) continue
                 const field = toCampo(sc?.field_of_study)
-                if (!subjects.some(s => normalizeText(s.name) === normalizeText(name))) subjects.push({ name, field })
+                const label = sc?.name ? formatSubjectName(sc.name, specialty) : name
+                if (!subjects.some(s => normalizeText(s.name) === normalizeText(name))) subjects.push({ name, field, specialty: sc?.name ? specialty || undefined : undefined, label })
             }
 
             let grades = [...new Set(((gs ?? []) as any[])

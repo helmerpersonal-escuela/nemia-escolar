@@ -1,4 +1,5 @@
 import { TextSizeSetting } from '../components/TextSizeSetting';
+import { formatSubjectName } from '../../../lib/subjectName';
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
@@ -312,7 +313,7 @@ export const SettingsPage = () => {
                             if (subjectData) {
                                 const mapped = subjectData.map((curr: any) => ({
                                     catalogId: curr.subject_catalog_id,
-                                    customDetail: (curr.custom_detail || '').toUpperCase()
+                                    customDetail: (curr.custom_detail || '')
                                 }))
                                 setSelectedUserSubjects(mapped)
                             }
@@ -714,7 +715,8 @@ export const SettingsPage = () => {
 
                 {/* Content Area */}
                 <main className="flex-1 min-w-0">
-                    <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden min-h-[600px]">
+                    {/* overflow-clip (no hidden): así las barras "Guardar" fijas (sticky) siguen visibles al desplazarse */}
+                    <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-clip min-h-[600px]">
 
                         <div className="p-8 lg:p-12 animate-in fade-in slide-in-from-right-4 duration-500">
                             {/* PROFILE TAB */}
@@ -921,16 +923,18 @@ export const SettingsPage = () => {
                                                 ) : (
                                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                                         {selectedUserSubjects.map((subject, index) => {
-                                                            const subjectName = catalogNames[subject.catalogId || ''] || 'Materia Desconocida';
+                                                            const baseName = catalogNames[subject.catalogId || ''] || 'Materia';
+                                                            const subjectName = formatSubjectName(baseName, subject.customDetail);
+                                                            const needsSpecialty = /tecnolog/i.test(baseName) && !subject.customDetail;
                                                             return (
                                                                 <div key={index} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex justify-between items-start group relative overflow-hidden">
                                                                     <div className="absolute top-0 left-0 w-1 h-full bg-blue-500 rounded-l-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
                                                                     <div>
                                                                         <h4 className="font-bold text-gray-900 text-sm mb-1 line-clamp-2">{subjectName}</h4>
-                                                                        {subject.customDetail && (
-                                                                            <p className="text-[11px] uppercase font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg inline-block border border-blue-100">
-                                                                                {subject.customDetail}
-                                                                            </p>
+                                                                        {needsSpecialty && (
+                                                                            <button type="button" onClick={() => setIsEditingSubjects(true)} className="mt-1 text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg text-left">
+                                                                                Falta tu especialidad (ej. Informática). Toca para agregarla.
+                                                                            </button>
                                                                         )}
                                                                     </div>
                                                                     <button

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { BookOpen } from 'lucide-react'
+import { TECH_SPECIALTIES } from '../../lib/subjectName'
 
 type Subject = {
     id: string
@@ -50,7 +51,10 @@ export const SubjectSelector = ({ educationalLevel, selectedSubjects, onChange, 
             // If current is fully uppercase and stored is not, replace it
             const stored = acc.get(normalized)!
             if (current.name === normalized && stored.name !== normalized) {
-                acc.set(normalized, current)
+                // Conserva la marca de "requiere especialidad" de cualquiera de los duplicados
+                acc.set(normalized, { ...current, requires_specification: current.requires_specification || stored.requires_specification })
+            } else if (current.requires_specification && !stored.requires_specification) {
+                acc.set(normalized, { ...stored, requires_specification: true })
             }
         }
         return acc
@@ -99,11 +103,17 @@ export const SubjectSelector = ({ educationalLevel, selectedSubjects, onChange, 
                                         <div className="ml-3 text-sm leading-6 w-full">
                                             <label className={`font-medium ${readOnly ? 'text-gray-700' : 'text-gray-900'}`}>{subject.name}</label>
                                             {subject.requires_specification && isSelected && (
+                                                <>
+                                                <span className="mt-2 block text-xs font-semibold text-gray-600">
+                                                    {/tecnolog/i.test(subject.name) ? 'Especialidad o énfasis' : 'Especifica cuál'}
+                                                </span>
                                                 <input
                                                     type="text"
+                                                    list={/tecnolog/i.test(subject.name) ? 'tech-specialties' : undefined}
+                                                    aria-label={`Especialidad de ${subject.name}`}
                                                     disabled={readOnly}
-                                                    placeholder="Especifique (ej. Informática)"
-                                                    className="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 disabled:bg-gray-100"
+                                                    placeholder={/tecnolog/i.test(subject.name) ? 'Elige o escribe (ej. Informática)' : 'Especifica (ej. Tseltal)'}
+                                                    className="mt-1 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 disabled:bg-gray-100"
                                                     value={selectedSubjects[subject.id]?.customDetail || ''}
                                                     onChange={(e) => {
                                                         onChange({
@@ -115,6 +125,7 @@ export const SubjectSelector = ({ educationalLevel, selectedSubjects, onChange, 
                                                         })
                                                     }}
                                                 />
+                                                </>
                                             )}
                                         </div>
                                     </div>
@@ -124,6 +135,10 @@ export const SubjectSelector = ({ educationalLevel, selectedSubjects, onChange, 
                     </div>
                 </div>
             ))}
+
+            <datalist id="tech-specialties">
+                {TECH_SPECIALTIES.map(t => <option key={t} value={t} />)}
+            </datalist>
 
             {availableSubjects.length === 0 && (
                 <p className="text-gray-500 text-sm">No hay materias disponibles para este nivel educativo.</p>

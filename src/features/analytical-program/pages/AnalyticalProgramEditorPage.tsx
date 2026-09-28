@@ -1024,7 +1024,7 @@ export const AnalyticalProgramEditorPage = () => {
         }
         return `ALCANCE CURRICULAR DEL DOCENTE (OBLIGATORIO)
 - Nivel: ${scope.levelLabel}. Fase ${scope.phase ?? ''}. Grado(s) que atiende: ${grades}.
-- Disciplina(s) que imparte: ${scope.subjects.map(s => `${s.name} (campo formativo: ${s.field})`).join('; ')}.
+- Disciplina(s) que imparte: ${scope.subjects.map(s => `${s.label || s.name} (campo formativo: ${s.field}${s.specialty ? `; especialidad o énfasis: ${s.specialty}` : ''})`).join('; ')}.
 - Campo(s) formativo(s) permitido(s): ${scope.fields.join('; ')}.
 REGLAS ESTRICTAS:
 1. Trabaja EXCLUSIVAMENTE con esa(s) disciplina(s). No generes, agregues ni menciones contenidos, PDA, propósitos o actividades de otras asignaturas.
@@ -1184,7 +1184,7 @@ Responde ÚNICAMENTE JSON:
                         <div className="flex flex-wrap gap-2">
                             {scope.generalist
                                 ? scope.fields.map(f => <span key={f} className="px-3 py-1 rounded-full bg-white border border-slate-200 text-xs font-bold text-slate-700">{f}</span>)
-                                : scope.subjects.map(s => <span key={s.name} className="px-3 py-1 rounded-full bg-white border border-indigo-100 text-xs font-bold text-indigo-800">{s.name} <span className="text-slate-500 font-medium">· {s.field}</span></span>)}
+                                : scope.subjects.map(s => <span key={s.name} className="px-3 py-1 rounded-full bg-white border border-indigo-100 text-xs font-bold text-indigo-800">{s.label || s.name} <span className="text-slate-500 font-medium">· {s.field}</span></span>)}
                             <span className="px-3 py-1 rounded-full bg-white border border-slate-200 text-xs font-bold text-slate-600">{scope.grades.map(g => `${g}°`).join(', ')} grado</span>
                         </div>
                     </div>
@@ -1803,7 +1803,7 @@ Responde ÚNICAMENTE JSON:
                                     <ShieldCheck className="w-4 h-4 mr-2" /> Verificación de alcance curricular
                                 </h4>
                                 <ul className="space-y-1.5 text-sm">
-                                    <li className="text-slate-700"><strong>Disciplina(s):</strong> {scope.generalist ? 'Docente frente a grupo (todos los campos)' : scope.subjects.map(sub => sub.name).join(', ')}</li>
+                                    <li className="text-slate-700"><strong>Disciplina(s):</strong> {scope.generalist ? 'Docente frente a grupo (todos los campos)' : scope.subjects.map(sub => sub.label || sub.name).join(', ')}</li>
                                     <li className="text-slate-700"><strong>Campo(s) formativo(s):</strong> {scope.fields.join(' · ')}</li>
                                     <li className="text-slate-700"><strong>Grado(s):</strong> {scope.grades.map(g => `${g}°`).join(', ')}</li>
                                     <li className={all.length ? 'text-emerald-800' : 'text-amber-900'}>{all.length ? `✓ ${all.length} contenidos del programa sintético oficial` : '• Aún no hay contenidos en el plano didáctico (paso 6).'}</li>
