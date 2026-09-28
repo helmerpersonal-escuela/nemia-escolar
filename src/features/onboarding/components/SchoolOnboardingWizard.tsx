@@ -1,3 +1,4 @@
+import { ImageUpload, ImageSpecHint, LOGO_SPEC } from '../../../components/common/ImageUpload'
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
@@ -251,6 +252,9 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                     secondary_type: formData.educational_level === 'SECONDARY' ? formData.secondary_type : null,
                     name: formData.official_name.toUpperCase(),
                     cct: formData.cct.toUpperCase(),
+                    // Los documentos leen los logos de tenants (izquierda = oficial, derecha = escuela)
+                    ...(formData.header_logo_url ? { logo_left_url: formData.header_logo_url } : {}),
+                    ...(formData.logo_url ? { logo_right_url: formData.logo_url, logo_url: formData.logo_url } : {}),
                     location_lat: location?.lat ?? null,
                     location_lng: location?.lng ?? null,
                     address: [formData.address_street, formData.address_neighborhood && `Col. ${formData.address_neighborhood}`, formData.address_zip_code && `C.P. ${formData.address_zip_code}`, formData.address_municipality, formData.address_state].filter(Boolean).join(', ') || null,
@@ -489,10 +493,11 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                         <WizardField label="CURP del director">
                             <input className={wizardInput} value={formData.director_curp} onChange={e => set({ director_curp: e.target.value.toUpperCase() })} placeholder="XXXX000000XXXXXX00" />
                         </WizardField>
+                        <ImageSpecHint spec={LOGO_SPEC} className="md:col-span-2" />
                         <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <LogoUpload label="Logotipo del plantel" hint="PNG, sugerido 500×500" url={formData.logo_url} onUpload={u => set({ logo_url: u })} />
-                            <LogoUpload label="Logo institucional (SEP)" hint="Imagen oficial del gobierno" url={formData.header_logo_url} onUpload={u => set({ header_logo_url: u })} />
-                            <LogoUpload label="Sello digital" hint="Para validar boletas" url={formData.digital_seal_url} onUpload={u => set({ digital_seal_url: u })} />
+                            <LogoUpload label="Logotipo del plantel" hint="Va a la derecha del encabezado de tus documentos." url={formData.logo_url} onUpload={u => set({ logo_url: u })} />
+                            <LogoUpload label="Logo institucional (SEP)" hint="Escudo o logo oficial (SEP o del estado). Va a la izquierda del encabezado." url={formData.header_logo_url} onUpload={u => set({ header_logo_url: u })} />
+                            <LogoUpload label="Sello digital" hint="Opcional. Se usa para validar boletas." url={formData.digital_seal_url} onUpload={u => set({ digital_seal_url: u })} />
                         </div>
                     </div>
                 </>
@@ -510,36 +515,9 @@ interface LogoUploadProps {
     onUpload: (url: string) => void;
 }
 
-const LogoUpload = ({ label, hint, url, onUpload }: LogoUploadProps) => {
-    const id = `upload-${label.replace(/\W+/g, '-')}`
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0]
-        if (!file) return
-        const reader = new FileReader()
-        reader.onload = (event) => onUpload(event.target?.result as string)
-        reader.readAsDataURL(file)
-    }
-
-    return (
-        <div className="p-4 rounded-2xl border-2 border-dashed border-slate-200 hover:border-indigo-300 transition text-center">
-            {url ? (
-                <div className="relative inline-block mb-3">
-                    <img src={url} alt={label} className="h-20 mx-auto rounded-xl border border-slate-100" />
-                    <button type="button" aria-label={`Quitar ${label}`} onClick={() => onUpload('')} className="absolute -top-2 -right-2 p-1 bg-white border border-slate-200 text-slate-500 hover:text-rose-600 rounded-full shadow">
-                        <X className="w-3.5 h-3.5" />
-                    </button>
-                </div>
-            ) : (
-                <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                    <Upload className="w-5 h-5" />
-                </div>
-            )}
-            <p className="text-sm font-black text-slate-800">{label}</p>
-            <p className="text-xs text-slate-500 mb-3">{hint}</p>
-            <input type="file" id={id} className="hidden" onChange={handleFileChange} accept="image/*" />
-            <label htmlFor={id} className="inline-block px-4 py-2 rounded-xl border border-slate-200 text-xs font-black text-slate-600 hover:border-indigo-300 hover:text-indigo-700 cursor-pointer">
-                {url ? 'Cambiar imagen' : 'Seleccionar imagen'}
-            </label>
-        </div>
-    )
-}
+const LogoUpload = ({ label, hint, url, onUpload }: LogoUploadProps) => (
+    <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50">
+        <ImageUpload label={label} currentUrl={url} onUpload={onUpload} bucket="school-assets" spec={LOGO_SPEC} showSpec={false} />
+        {hint && <p className="mt-2 text-xs text-slate-500">{hint}</p>}
+    </div>
+)

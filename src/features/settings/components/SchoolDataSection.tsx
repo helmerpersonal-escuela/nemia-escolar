@@ -5,7 +5,7 @@ import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
 import { useToast } from '../../../components/ui/Toast'
 import { WizardField, wizardInput, wizardChoice, Radio } from '../../../components/wizard/Wizard'
-import { ImageUpload } from '../../../components/common/ImageUpload'
+import { ImageUpload, ImageSpecHint, LOGO_SPEC } from '../../../components/common/ImageUpload'
 import { SchoolLocationFields, emptyLocation, isLocationComplete, loadSchoolLocation, saveSchoolLocation, type SchoolLocation } from '../../../components/location/SchoolLocationFields'
 import { phaseFor } from '../../../lib/nemCatalog'
 
@@ -55,7 +55,7 @@ export const SchoolDataSection = ({ readOnly = false }: { readOnly?: boolean }) 
             setLoading(true)
             const [{ data: t }, { data: sd }, loc] = await Promise.all([
                 supabase.from('tenants').select('name, cct, educational_level, secondary_type, grade, phone, address, logo_left_url, logo_right_url').eq('id', tenantId).maybeSingle(),
-                supabase.from('school_details').select('official_name, cct, shift, regime, zone, sector, phone, email, director_name, secondary_type, educational_level').eq('tenant_id', tenantId).maybeSingle(),
+                supabase.from('school_details').select('official_name, cct, shift, regime, zone, sector, phone, email, director_name, secondary_type, educational_level, logo_url, header_logo_url').eq('tenant_id', tenantId).maybeSingle(),
                 loadSchoolLocation(tenantId).catch(() => null),
             ])
             if (!alive) return
@@ -73,8 +73,9 @@ export const SchoolDataSection = ({ readOnly = false }: { readOnly?: boolean }) 
                 phone: s.phone || tt.phone || '',
                 email: s.email || '',
                 director: s.director_name || '',
-                logoLeft: tt.logo_left_url || '',
-                logoRight: tt.logo_right_url || '',
+                // Si el espacio se creó con el asistente, los logos quedaron en school_details
+                logoLeft: tt.logo_left_url || s.header_logo_url || '',
+                logoRight: tt.logo_right_url || s.logo_url || '',
                 legacyAddress: loc ? '' : (tt.address || ''),
             })
             if (loc) setLocation(loc)
@@ -223,13 +224,14 @@ export const SchoolDataSection = ({ readOnly = false }: { readOnly?: boolean }) 
                     </div>
                 </Section>
 
-                <Section icon={ImageIcon} title="Logotipos para documentos" hint="Aparecen en el encabezado de planeaciones, boletas y reportes.">
+                <Section icon={ImageIcon} title="Logotipos para documentos" hint="Aparecen en el encabezado de planeaciones, boletas y reportes: el escudo a la izquierda y el logo de tu escuela a la derecha.">
+                    <ImageSpecHint spec={LOGO_SPEC} className="mb-4" />
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                            <ImageUpload label="Escudo oficial (izquierda)" currentUrl={form.logoLeft} onUpload={url => set({ logoLeft: url })} bucket="school-assets" />
+                            <ImageUpload spec={LOGO_SPEC} showSpec={false} label="Escudo oficial (izquierda)" currentUrl={form.logoLeft} onUpload={url => set({ logoLeft: url })} bucket="school-assets" />
                         </div>
                         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                            <ImageUpload label="Logo de la escuela (derecha)" currentUrl={form.logoRight} onUpload={url => set({ logoRight: url })} bucket="school-assets" />
+                            <ImageUpload spec={LOGO_SPEC} showSpec={false} label="Logo de la escuela (derecha)" currentUrl={form.logoRight} onUpload={url => set({ logoRight: url })} bucket="school-assets" />
                         </div>
                     </div>
                 </Section>

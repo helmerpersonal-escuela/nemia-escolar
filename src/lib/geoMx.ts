@@ -41,7 +41,7 @@ export async function loadStates(): Promise<GeoState[]> {
 
 export async function loadMunicipalities(stateCve: string): Promise<GeoMunicipality[]> {
     const f = await stateFile(stateCve)
-    return f.m.map(([cve, name]) => ({ cve, name }))
+    return f.m.filter(([, name]) => name && name !== 'NULL').map(([cve, name]) => ({ cve, name }))
 }
 
 export async function loadSettlements(stateCve: string, munCve: string): Promise<GeoSettlement[]> {
