@@ -125,7 +125,7 @@ Esta acción NO se puede deshacer.`
     return (
         <div className="space-y-8 pb-12 animate-in fade-in duration-500">
             {/* Header */}
-            <div className="squishy-card p-8 relative overflow-hidden">
+            <div className="squishy-card bg-white p-8 relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-indigo-50 opacity-50" />
                 <div className="relative z-10 font-sans">
                     <button onClick={() => navigate('/groups')} className="text-gray-500 hover:text-blue-600 flex items-center mb-4 transition-colors font-medium">
@@ -220,7 +220,7 @@ Esta acción NO se puede deshacer.`
 
             {/* Students List */}
             {activeTab === 'students' && (
-                <div className="squishy-card overflow-hidden">
+                <div className="squishy-card bg-white overflow-hidden">
                     <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
                         <h3 className="font-semibold text-gray-700">Lista de Alumnos ({students?.length || 0})</h3>
                         {/* <span className="text-xs text-gray-500">Máximo 50</span> */}

@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import Webcam from 'react-webcam'
-import { Camera, X, User, Phone, Mail, MapPin, Briefcase, HeartPulse, AlertCircle, FileText, Zap, Check } from 'lucide-react'
-import { WizardFooter, WizardProgress } from '../../../components/wizard/Wizard'
+import { Camera, User, UserPlus, Phone, Mail, MapPin, Briefcase, HeartPulse, AlertCircle, FileText, Zap, Check } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { WizardFooter, WizardProgress, WizardModalHeader, wizardInput } from '../../../components/wizard/Wizard'
 import { supabase } from '../../../lib/supabase'
 import { useSubscriptionLimits } from '../../../hooks/useSubscriptionLimits'
 import { UpgradeModal } from '../../../components/UpgradeModal'
@@ -437,78 +438,78 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
 
     if (!isOpen) return null
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
-            <div className="squishy-card max-w-3xl w-full flex flex-col max-h-[90vh]">
-                {/* Header */}
-                <div className="flex justify-between items-center p-6 border-b">
-                    <h2 className="text-xl font-black text-slate-900">{studentId ? 'Editar Alumno' : 'Registrar Nuevo Alumno'}</h2>
-                    <button aria-label="Cerrar" onClick={onClose}><X className="h-6 w-6 text-gray-500" /></button>
-                </div>
+    // Portal al <body>: así ningún contenedor con transform/overflow de la página lo deforma
+    return createPortal(
+        <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:p-4 bg-slate-900/60 backdrop-blur-sm">
+            <div role="dialog" aria-modal="true" aria-label={studentId ? 'Editar alumno' : 'Registrar nuevo alumno'}
+                className="bg-white w-full sm:max-w-3xl h-[100dvh] sm:h-auto sm:max-h-[90dvh] sm:rounded-[2rem] shadow-2xl flex flex-col overflow-hidden">
+                <WizardModalHeader icon={UserPlus} onClose={onClose}
+                    title={studentId ? 'Editar alumno' : 'Registrar nuevo alumno'}
+                    subtitle="Datos del alumno, su tutor y fotografía" />
 
-                <div className="px-6 pt-5">
+                <div className="px-5 sm:px-6 pt-4 shrink-0">
                     <WizardProgress className="mb-1" freeNavigation onStepClick={i => setStep(i + 1)} current={step - 1}
-                        steps={[{ label: 'Alumno' }, { label: 'Tutor' }, { label: 'Biometría' }]} />
+                        steps={[{ label: 'Alumno' }, { label: 'Tutor' }, { label: 'Foto' }]} />
                 </div>
 
                 {/* Content */}
-                <div className="p-6 overflow-y-auto flex-1">
+                <div className="px-5 py-5 sm:p-6 overflow-y-auto flex-1 overscroll-contain">
                     {step === 1 && (
-                        <div className="space-y-8">
+                        <div className="space-y-6">
                             <div>
-                                <h3 className="section-title"><User className="text-blue-600" /> Información Personal</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <div className="input-group">
-                                        <label className="label-std">Nombre(s) *</label>
-                                        <input aria-label="Nombre(s) *" name="firstName" value={student.firstName} onChange={handleStudentChange} className="input-std" placeholder="Ej. JUAN PABLO" />
+                                <h3 className="flex items-center gap-2 text-base font-black text-slate-900 mb-4"><User className="w-5 h-5 text-indigo-600" /> Información Personal</h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div className="relative">
+                                        <label className="block text-xs font-black text-slate-600 mb-1.5">Nombre(s) *</label>
+                                        <input aria-label="Nombre(s) *" name="firstName" value={student.firstName} onChange={handleStudentChange} className={`${wizardInput}`} placeholder="Ej. JUAN PABLO" />
                                     </div>
-                                    <div className="input-group">
-                                        <label className="label-std">Apellido Paterno *</label>
-                                        <input aria-label="Apellido Paterno *" name="lastNamePaternal" value={student.lastNamePaternal} onChange={handleStudentChange} className="input-std" placeholder="Ej. PÉREZ" />
+                                    <div className="relative">
+                                        <label className="block text-xs font-black text-slate-600 mb-1.5">Apellido Paterno *</label>
+                                        <input aria-label="Apellido Paterno *" name="lastNamePaternal" value={student.lastNamePaternal} onChange={handleStudentChange} className={`${wizardInput}`} placeholder="Ej. PÉREZ" />
                                     </div>
-                                    <div className="input-group">
-                                        <label className="label-std">Apellido Materno *</label>
-                                        <input aria-label="Apellido Materno *" name="lastNameMaternal" value={student.lastNameMaternal} onChange={handleStudentChange} className="input-std" placeholder="Ej. LÓPEZ" />
+                                    <div className="relative">
+                                        <label className="block text-xs font-black text-slate-600 mb-1.5">Apellido Materno *</label>
+                                        <input aria-label="Apellido Materno *" name="lastNameMaternal" value={student.lastNameMaternal} onChange={handleStudentChange} className={`${wizardInput}`} placeholder="Ej. LÓPEZ" />
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="label-std">Sexo *</label>
-                                    <select aria-label="Sexo *" name="gender" value={student.gender} onChange={handleStudentChange} className="input-std cursor-pointer">
+                                    <label className="block text-xs font-black text-slate-600 mb-1.5">Sexo *</label>
+                                    <select aria-label="Sexo *" name="gender" value={student.gender} onChange={handleStudentChange} className={`${wizardInput} cursor-pointer`}>
                                         <option value="HOMBRE">HOMBRE</option>
                                         <option value="MUJER">MUJER</option>
                                     </select>
                                 </div>
-                                <div className="input-group">
-                                    <label className="label-std">CURP</label>
-                                    <FileText className="input-icon" />
-                                    <input aria-label="CURP" name="curp" value={student.curp} onChange={handleStudentChange} className="input-std input-with-icon" placeholder="Clave Única de Registro" />
+                                <div className="relative">
+                                    <label className="block text-xs font-black text-slate-600 mb-1.5">CURP</label>
+                                    <FileText className="absolute left-4 top-[36px] w-4 h-4 text-slate-400 pointer-events-none" />
+                                    <input aria-label="CURP" name="curp" value={student.curp} onChange={handleStudentChange} className={`${wizardInput} pl-11`} placeholder="Clave Única de Registro" />
                                 </div>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="input-group">
-                                    <label className="label-std">Teléfono (Opcional)</label>
-                                    <Phone className="input-icon" />
-                                    <input aria-label="Teléfono (Opcional)" name="phone" value={student.phone} onChange={handleStudentChange} className="input-std input-with-icon" placeholder="10 dígitos" />
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="relative">
+                                    <label className="block text-xs font-black text-slate-600 mb-1.5">Teléfono (Opcional)</label>
+                                    <Phone className="absolute left-4 top-[36px] w-4 h-4 text-slate-400 pointer-events-none" />
+                                    <input aria-label="Teléfono (Opcional)" name="phone" value={student.phone} onChange={handleStudentChange} className={`${wizardInput} pl-11`} placeholder="10 dígitos" />
                                 </div>
-                                <div className="input-group">
-                                    <label className="label-std">Correo Electrónico (Opcional)</label>
-                                    <Mail className="input-icon" />
-                                    <input aria-label="Correo Electrónico (Opcional)" type="email" name="email" value={student.email} onChange={handleStudentChange} className="input-std input-with-icon" placeholder="correo@ejemplo.com" />
+                                <div className="relative">
+                                    <label className="block text-xs font-black text-slate-600 mb-1.5">Correo Electrónico (Opcional)</label>
+                                    <Mail className="absolute left-4 top-[36px] w-4 h-4 text-slate-400 pointer-events-none" />
+                                    <input aria-label="Correo Electrónico (Opcional)" type="email" name="email" value={student.email} onChange={handleStudentChange} className={`${wizardInput} pl-11`} placeholder="correo@ejemplo.com" />
                                 </div>
                             </div>
 
                             {/* Medical / Conditions */}
-                            <div className="bg-blue-50 rounded-2xl p-6 border border-blue-100 mt-8">
-                                <h4 className="font-bold text-blue-800 mb-6 flex items-center text-lg">
-                                    <HeartPulse className="mr-2 h-6 w-6" /> Información Médica y Adicional
+                            <div className="bg-slate-50 rounded-2xl p-4 sm:p-6 border border-slate-100">
+                                <h4 className="font-black text-slate-900 mb-4 flex items-center gap-2 text-base">
+                                    <HeartPulse className="w-5 h-5 text-rose-500" /> Información Médica y Adicional
                                 </h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                                     <div>
-                                        <label className="label-std text-blue-900">Tipo de Sangre</label>
-                                        <select aria-label="Tipo de Sangre" name="bloodType" value={student.bloodType} onChange={handleStudentChange} className="input-std">
+                                        <label className="block text-xs font-black text-slate-600 mb-1.5">Tipo de Sangre</label>
+                                        <select aria-label="Tipo de Sangre" name="bloodType" value={student.bloodType} onChange={handleStudentChange} className={`${wizardInput}`}>
                                             <option value="">Seleccionar...</option>
                                             <option value="A+">A+</option>
                                             <option value="A-">A-</option>
@@ -520,22 +521,22 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                                             <option value="O-">O-</option>
                                         </select>
                                     </div>
-                                    <div className="input-group">
-                                        <label className="label-std text-blue-900">Alergias</label>
-                                        <AlertCircle className="input-icon text-blue-400" />
-                                        <input aria-label="Alergias" name="allergies" value={student.allergies} onChange={handleStudentChange} className="input-std input-with-icon border-blue-200 focus:ring-blue-500" placeholder="Ej. Penicilina (Opcional)" />
+                                    <div className="relative">
+                                        <label className="block text-xs font-black text-slate-600 mb-1.5">Alergias</label>
+                                        <AlertCircle className="absolute left-4 top-[36px] w-4 h-4 text-slate-400 pointer-events-none" />
+                                        <input aria-label="Alergias" name="allergies" value={student.allergies} onChange={handleStudentChange} className={`${wizardInput} pl-11`} placeholder="Ej. Penicilina (Opcional)" />
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="label-std text-blue-900">Condición / Discapacidad</label>
-                                    <select aria-label="Condición / Discapacidad" name="condition" value={student.condition} onChange={handleStudentChange} className="input-std">
+                                    <label className="block text-xs font-black text-slate-600 mb-1.5">Condición / Discapacidad</label>
+                                    <select aria-label="Condición / Discapacidad" name="condition" value={student.condition} onChange={handleStudentChange} className={`${wizardInput}`}>
                                         {CONDITIONS_LIST.map(c => <option key={c} value={c}>{c}</option>)}
                                     </select>
                                 </div>
                                 {student.condition === 'OTRO' && (
-                                    <div className="mt-4 animate-in fade-in slide-in-from-top-2">
-                                        <label className="label-std text-blue-900">Especifique la condición</label>
-                                        <input aria-label="Especifique la condición" name="conditionDetails" value={student.conditionDetails} onChange={handleStudentChange} className="input-std border-blue-300" placeholder="Describa la condición..." autoFocus />
+                                    <div className="mt-4">
+                                        <label className="block text-xs font-black text-slate-600 mb-1.5">Especifique la condición</label>
+                                        <input aria-label="Especifique la condición" name="conditionDetails" value={student.conditionDetails} onChange={handleStudentChange} className={`${wizardInput}`} placeholder="Describa la condición..." autoFocus />
                                     </div>
                                 )}
                             </div>
@@ -543,9 +544,9 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                     )}
 
                     {step === 2 && (
-                        <div className="space-y-8">
-                            <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 text-amber-900 flex items-start shadow-sm">
-                                <AlertCircle className="h-6 w-6 text-amber-700 mr-3 flex-shrink-0" />
+                        <div className="space-y-6">
+                            <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 text-amber-900 flex items-start">
+                                <AlertCircle className="h-5 w-5 text-amber-700 mr-3 flex-shrink-0 mt-0.5" />
                                 <div>
                                     <p className="font-bold mb-1">Contacto de Emergencia</p>
                                     <p className="text-sm opacity-90">Estos datos son cruciales para contactar al tutor en caso de emergencia.</p>
@@ -553,47 +554,47 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                             </div>
 
                             <div>
-                                <h3 className="section-title"><User className="text-gray-600" /> Datos del Tutor</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <div className="input-group">
-                                        <label className="label-std">Nombre(s) *</label>
-                                        <input aria-label="Nombre(s) *" name="firstName" value={guardian.firstName} onChange={handleGuardianChange} className="input-std" placeholder="Nombres" />
+                                <h3 className="flex items-center gap-2 text-base font-black text-slate-900 mb-4"><User className="w-5 h-5 text-indigo-600" /> Datos del Tutor</h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div className="relative">
+                                        <label className="block text-xs font-black text-slate-600 mb-1.5">Nombre(s) *</label>
+                                        <input aria-label="Nombre(s) *" name="firstName" value={guardian.firstName} onChange={handleGuardianChange} className={`${wizardInput}`} placeholder="Nombres" />
                                     </div>
-                                    <div className="input-group">
-                                        <label className="label-std">Apellido Paterno *</label>
-                                        <input aria-label="Apellido Paterno *" name="lastNamePaternal" value={guardian.lastNamePaternal} onChange={handleGuardianChange} className="input-std" placeholder="Apellido P." />
+                                    <div className="relative">
+                                        <label className="block text-xs font-black text-slate-600 mb-1.5">Apellido Paterno *</label>
+                                        <input aria-label="Apellido Paterno *" name="lastNamePaternal" value={guardian.lastNamePaternal} onChange={handleGuardianChange} className={`${wizardInput}`} placeholder="Apellido P." />
                                     </div>
-                                    <div className="input-group">
-                                        <label className="label-std">Apellido Materno *</label>
-                                        <input aria-label="Apellido Materno *" name="lastNameMaternal" value={guardian.lastNameMaternal} onChange={handleGuardianChange} className="input-std" placeholder="Apellido M." />
+                                    <div className="relative">
+                                        <label className="block text-xs font-black text-slate-600 mb-1.5">Apellido Materno *</label>
+                                        <input aria-label="Apellido Materno *" name="lastNameMaternal" value={guardian.lastNameMaternal} onChange={handleGuardianChange} className={`${wizardInput}`} placeholder="Apellido M." />
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="label-std">Parentesco *</label>
-                                    <select aria-label="Parentesco *" name="relationship" value={guardian.relationship} onChange={handleGuardianChange} className="input-std">
+                                    <label className="block text-xs font-black text-slate-600 mb-1.5">Parentesco *</label>
+                                    <select aria-label="Parentesco *" name="relationship" value={guardian.relationship} onChange={handleGuardianChange} className={`${wizardInput}`}>
                                         {RELATIONSHIPS.map(r => <option key={r} value={r}>{r}</option>)}
                                     </select>
                                 </div>
-                                <div className="input-group">
-                                    <label className="label-std">Teléfono de Contacto</label>
-                                    <Phone className="input-icon" />
-                                    <input aria-label="Teléfono de Contacto" name="phone" value={guardian.phone} onChange={handleGuardianChange} className="input-std input-with-icon" placeholder="10 dígitos" />
+                                <div className="relative">
+                                    <label className="block text-xs font-black text-slate-600 mb-1.5">Teléfono de Contacto</label>
+                                    <Phone className="absolute left-4 top-[36px] w-4 h-4 text-slate-400 pointer-events-none" />
+                                    <input aria-label="Teléfono de Contacto" name="phone" value={guardian.phone} onChange={handleGuardianChange} className={`${wizardInput} pl-11`} placeholder="10 dígitos" />
                                 </div>
                             </div>
-                            <div className="input-group">
-                                <label className="label-std">Ocupación</label>
-                                <Briefcase className="input-icon" />
-                                <input aria-label="Ocupación" name="occupation" value={guardian.occupation} onChange={handleGuardianChange} className="input-std input-with-icon" placeholder="Ej. Empleado, Comerciante..." />
+                            <div className="relative">
+                                <label className="block text-xs font-black text-slate-600 mb-1.5">Ocupación</label>
+                                <Briefcase className="absolute left-4 top-[36px] w-4 h-4 text-slate-400 pointer-events-none" />
+                                <input aria-label="Ocupación" name="occupation" value={guardian.occupation} onChange={handleGuardianChange} className={`${wizardInput} pl-11`} placeholder="Ej. Empleado, Comerciante..." />
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="input-group">
-                                    <label className="label-std text-indigo-700">Correo Electrónico (Acceso)</label>
-                                    <Mail className="input-icon text-indigo-400" />
-                                    <input aria-label="Correo Electrónico (Acceso)" type="email" name="email" value={guardian.email} onChange={handleGuardianChange} className="input-std input-with-icon border-indigo-200 focus:ring-indigo-500" placeholder="tutor@ejemplo.com" />
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="relative">
+                                    <label className="block text-xs font-black text-slate-600 mb-1.5">Correo Electrónico (Acceso)</label>
+                                    <Mail className="absolute left-4 top-[36px] w-4 h-4 text-slate-400 pointer-events-none" />
+                                    <input aria-label="Correo Electrónico (Acceso)" type="email" name="email" value={guardian.email} onChange={handleGuardianChange} className={`${wizardInput} pl-11`} placeholder="tutor@ejemplo.com" />
                                 </div>
                                 <div className="flex items-end">
                                     {existingProfile ? (
@@ -611,7 +612,7 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                                             type="button"
                                             onClick={handleInviteTutor}
                                             disabled={invitingTutor || !guardian.email || invitationSent || searchingProfile}
-                                            className={`w-full py-3 rounded-xl font-bold flex items-center justify-center transition-all ${invitationSent
+                                            className={`w-full py-3 rounded-2xl text-sm font-black flex items-center justify-center transition-all ${invitationSent
                                                 ? 'bg-emerald-100 text-emerald-700 border border-emerald-200 cursor-default'
                                                 : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md hover:shadow-indigo-200 active:scale-95 disabled:opacity-50 disabled:pointer-events-none'
                                                 }`}
@@ -621,10 +622,10 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                                         </button>
                                     )}
                                 </div>
-                                <div className="md:col-span-2">
-                                    <label className="label-std">Dirección Completa</label>
-                                    <MapPin className="input-icon" />
-                                    <input aria-label="Dirección Completa" name="address" value={guardian.address} onChange={handleGuardianChange} className="input-std input-with-icon" placeholder="Calle, Número, Colonia, CP..." />
+                                <div className="sm:col-span-2 relative">
+                                    <label className="block text-xs font-black text-slate-600 mb-1.5">Dirección Completa</label>
+                                    <MapPin className="absolute left-4 top-[36px] w-4 h-4 text-slate-400 pointer-events-none" />
+                                    <input aria-label="Dirección Completa" name="address" value={guardian.address} onChange={handleGuardianChange} className={`${wizardInput} pl-11`} placeholder="Calle, Número, Colonia, CP..." />
                                 </div>
                             </div>
                         </div>
@@ -632,43 +633,43 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
 
                     {step === 3 && (
                         <div className="space-y-6 text-center">
-                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center min-h-[300px] bg-gray-50">
+                            <div className="border-2 border-dashed border-slate-200 rounded-2xl p-4 sm:p-6 flex flex-col items-center justify-center min-h-[260px] bg-slate-50">
                                 {showCamera ? (
                                     <>
                                         <Webcam
                                             audio={false}
                                             ref={webcamRef}
                                             screenshotFormat="image/jpeg"
-                                            className="rounded-lg shadow-lg mb-4 max-h-[300px]"
+                                            className="rounded-2xl shadow-lg mb-4 w-full max-w-sm max-h-[50dvh] object-cover"
                                         />
-                                        <button onClick={capture} type="button" className="px-4 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700">
+                                        <button onClick={capture} type="button" className="px-5 py-3 bg-indigo-600 text-white rounded-2xl text-sm font-black hover:bg-indigo-700">
                                             <Camera className="inline w-5 h-5 mr-2" /> Capturar Foto
                                         </button>
                                     </>
                                 ) : imgSrc ? (
                                     <>
-                                        <img src={imgSrc} alt="Preview" className="rounded-lg shadow-lg mb-4 max-h-[300px]" />
-                                        <div className="space-x-4">
-                                            <button onClick={() => setImgSrc(null)} type="button" className="px-4 py-2 text-gray-600 hover:text-gray-800">
+                                        <img src={imgSrc} alt="Preview" className="rounded-2xl shadow-lg mb-4 w-full max-w-sm max-h-[50dvh] object-cover" />
+                                        <div className="flex flex-wrap gap-2 justify-center">
+                                            <button onClick={() => setImgSrc(null)} type="button" className="px-5 py-3 rounded-2xl text-sm font-black text-slate-600 hover:bg-slate-100">
                                                 Eliminar
                                             </button>
-                                            <button onClick={() => setShowCamera(true)} type="button" className="px-4 py-2 bg-blue-600 text-white rounded-full">
+                                            <button onClick={() => setShowCamera(true)} type="button" className="px-5 py-3 bg-indigo-600 text-white rounded-2xl text-sm font-black">
                                                 Retomar
                                             </button>
                                         </div>
                                     </>
                                 ) : (
                                     <div className="text-center">
-                                        <Camera className="w-16 h-16 text-gray-300 mx-auto mb-2" />
-                                        <p className="text-gray-500 mb-4">No hay foto capturada</p>
-                                        <div className="flex space-x-3 justify-center">
-                                            <button onClick={() => setShowCamera(true)} type="button" className="px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700">
+                                        <Camera className="w-14 h-14 text-slate-300 mx-auto mb-2" />
+                                        <p className="text-sm text-slate-500 mb-4">Aún no hay foto</p>
+                                        <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                                            <button onClick={() => setShowCamera(true)} type="button" className="px-5 py-3 bg-indigo-600 text-white rounded-2xl text-sm font-black hover:bg-indigo-700">
                                                 Activar Cámara
                                             </button>
                                             <button
                                                 onClick={() => setImgSrc(`https://api.dicebear.com/7.x/avataaars/svg?seed=${student.curp || student.firstName}&gender=${student.gender === 'MUJER' ? 'female' : 'male'}`)}
                                                 type="button"
-                                                className="px-6 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-full hover:bg-gray-200"
+                                                className="px-5 py-3 bg-white text-slate-700 border border-slate-200 rounded-2xl text-sm font-black hover:bg-slate-50"
                                             >
                                                 Usar Avatar
                                             </button>
@@ -677,98 +678,22 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                                 )}
                             </div>
 
-                            <div className="border p-4 rounded-md bg-gray-50 opacity-50 cursor-not-allowed">
-                                <h3 className="font-semibold text-gray-700">Huella Digital (Próximamente)</h3>
-                                <p className="text-xs text-gray-500">Se requiere hardware compatible.</p>
+                            <div className="border border-slate-100 p-4 rounded-2xl bg-slate-50 opacity-60 cursor-not-allowed">
+                                <h3 className="text-sm font-black text-slate-700">Huella digital (próximamente)</h3>
+                                <p className="text-xs text-slate-500">Se requiere un lector compatible.</p>
                             </div>
                         </div>
                     )}
                 </div>
 
                 {/* Footer */}
-                <div className="px-5 py-4 sm:px-6 border-t border-slate-100">
+                <div className="shrink-0 px-5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-4 border-t border-slate-100 bg-white">
                     {step < 3
                         ? <WizardFooter sticky={false} onBack={step > 1 ? () => setStep(s => Math.max(1, s - 1)) : onClose} backLabel={step > 1 ? 'Anterior' : 'Cancelar'} onNext={() => setStep(s => Math.min(3, s + 1))} />
                         : <WizardFooter sticky={false} onBack={() => setStep(s => Math.max(1, s - 1))} onNext={handleSubmit} loading={loading} nextDisabled={fetching} tone="success" nextIcon={Check}
                             nextLabel={studentId ? 'Guardar cambios' : 'Registrar alumno'} />}
                 </div>
             </div>
-
-            <style>{`
-                .input-std {
-                    @apply mt-1 block w-full px-4 py-3 bg-white border-2 border-slate-100 rounded-2xl text-slate-900 placeholder-slate-400 transition-all font-bold outline-none;
-                    box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
-                }
-                .input-std:focus {
-                    @apply border-indigo-300 ring-4 ring-indigo-50 bg-indigo-50/30;
-                    box-shadow: inset 0 2px 4px rgba(79,70,229,0.05);
-                }
-                .label-std {
-                    @apply block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1;
-                }
-                .section-title {
-                    @apply text-lg font-black text-slate-800 border-b-2 border-slate-50 pb-3 mb-6 flex items-center gap-2 uppercase tracking-tight;
-                }
-                .input-group {
-                    @apply relative;
-                }
-                .input-icon {
-                    @apply absolute left-4 top-[36px] text-slate-300 h-5 w-5 pointer-events-none transition-colors;
-                }
-                .input-std:focus + .input-icon, 
-                .input-group:focus-within .input-icon {
-                    @apply text-indigo-400;
-                }
-                .input-with-icon {
-                    @apply pl-12;
-                }
-                .btn-tactile {
-                    @apply active:scale-90 transition-all duration-200 relative overflow-hidden;
-                }
-                .btn-tactile::after {
-                    content: '';
-                    @apply absolute inset-0 bg-white/20 opacity-0 transition-opacity;
-                }
-                .btn-tactile:active::after {
-                    @apply opacity-100;
-                }
-                .input-std {
-                    @apply mt-1 block w-full px-4 py-3 bg-white border-2 border-slate-100 rounded-2xl text-slate-900 placeholder-slate-400 transition-all font-bold outline-none;
-                    box-shadow: inset 0 3px 6px rgba(0,0,0,0.03);
-                }
-                .input-std:focus {
-                    @apply border-indigo-300 ring-[6px] ring-indigo-50 bg-white;
-                    box-shadow: inset 0 2px 4px rgba(79,70,229,0.08);
-                }
-                .label-std {
-                    @apply block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1;
-                }
-                .section-title {
-                    @apply text-lg font-black text-slate-800 border-b-2 border-slate-50 pb-3 mb-6 flex items-center gap-2 uppercase tracking-tight;
-                }
-                .input-group {
-                    @apply relative;
-                }
-                .input-icon {
-                    @apply absolute left-4 top-[36px] text-slate-300 h-5 w-5 pointer-events-none transition-colors;
-                }
-                .input-std:focus + .input-icon, 
-                .input-group:focus-within .input-icon {
-                    @apply text-indigo-400;
-                }
-                .input-with-icon {
-                    @apply pl-12;
-                }
-                .squishy-card {
-                    @apply bg-white rounded-[40px] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] border-b-[8px] border-slate-100;
-                }
-                .clay-btn {
-                    box-shadow: 
-                        inset 0 4px 4px rgba(255,255,255,0.4),
-                        inset 0 -4px 6px rgba(0,0,0,0.1),
-                        0 10px 20px -5px rgba(0,0,0,0.2);
-                }
-            `}</style>
 
             <UpgradeModal
                 isOpen={showUpgradeModal}
@@ -778,6 +703,7 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                 maxGroups={limits.maxGroups}
                 reason="students"
             />
-        </div>
+        </div>,
+        document.body
     )
 }

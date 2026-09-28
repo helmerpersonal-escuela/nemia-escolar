@@ -173,7 +173,7 @@ export const StudentTrackingPage = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-1 space-y-4">
-                    <div className="squishy-card overflow-hidden">
+                    <div className="squishy-card bg-white overflow-hidden">
                         <div className="p-6 border-b border-gray-50 flex flex-col space-y-4">
                             <div className="relative">
                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 w-4 h-4" />
@@ -261,7 +261,7 @@ export const StudentTrackingPage = () => {
                             {/* Key Indicators Grid */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* Inclusivity Quick Info */}
-                                <div className="squishy-card p-6 flex items-center space-x-6">
+                                <div className="squishy-card bg-white p-6 flex items-center space-x-6">
                                     <div className="p-4 bg-rose-50 text-rose-500 rounded-2xl">
                                         <Brain className="w-8 h-8" />
                                     </div>
@@ -274,7 +274,7 @@ export const StudentTrackingPage = () => {
                                 </div>
 
                                 {/* Last Movement */}
-                                <div className="squishy-card p-6 flex items-center space-x-6">
+                                <div className="squishy-card bg-white p-6 flex items-center space-x-6">
                                     <div className="p-4 bg-amber-50 text-amber-700 rounded-2xl">
                                         <History className="w-8 h-8" />
                                     </div>
@@ -288,7 +288,7 @@ export const StudentTrackingPage = () => {
                             </div>
 
                             {/* Full Timeline List */}
-                            <div className="squishy-card overflow-hidden">
+                            <div className="squishy-card bg-white overflow-hidden">
                                 <div className="p-5 sm:p-8 border-b border-gray-50 flex justify-between items-center">
                                     <div className="flex items-center space-x-3">
                                         <div className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse" />
@@ -357,7 +357,7 @@ export const StudentTrackingPage = () => {
             {/* Practical Click-to-Fill Modal */}
             {showIncidentModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/80 backdrop-blur-md">
-                    <div className="squishy-card w-full max-w-2xl border-white/20 animate-in fade-in slide-in-from-bottom-8 duration-500 max-h-[90vh] flex flex-col p-0 overflow-hidden">
+                    <div className="squishy-card bg-white w-full max-w-2xl border-white/20 animate-in fade-in slide-in-from-bottom-8 duration-500 max-h-[90vh] flex flex-col p-0 overflow-hidden">
                         {/* Modal Header */}
                         <div className="p-8 bg-indigo-600 text-white flex justify-between items-center shrink-0">
                             <div>

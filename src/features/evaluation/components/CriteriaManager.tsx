@@ -210,7 +210,7 @@ export const CriteriaManager = ({ periodId, groupId }: CriteriaManagerProps) => 
     }
 
     return (
-        <div className="squishy-card h-full flex flex-col">
+        <div className="squishy-card bg-white h-full flex flex-col">
             {/* Toolbar */}
             <div className="p-4 border-b border-indigo-50 flex justify-between items-center bg-indigo-50/30 rounded-t-[2rem]">
                 {!groupId && (
@@ -361,7 +361,7 @@ export const CriteriaManager = ({ periodId, groupId }: CriteriaManagerProps) => 
                     </div>
                 ) : (
                     criteriaList.map((criteria) => (
-                        <div key={criteria.id} className="squishy-card p-3 hover:scale-[1.01] transition-transform relative group">
+                        <div key={criteria.id} className="squishy-card bg-white p-3 hover:scale-[1.01] transition-transform relative group">
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex-1 mr-4">
                                     <input

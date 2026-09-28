@@ -88,7 +88,7 @@ export const LoginPage = () => {
 
             {/* Right Side - Form Section */}
             <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 bg-gradient-to-b from-indigo-50 to-white relative overflow-hidden">
-                <div className="squishy-card max-w-md w-full animate-in fade-in slide-in-from-right-8 duration-500 p-6 sm:p-8 md:p-10 relative z-10">
+                <div className="squishy-card bg-white max-w-md w-full animate-in fade-in slide-in-from-right-8 duration-500 p-6 sm:p-8 md:p-10 relative z-10">
                     <div className="text-center mb-10">
                         <div className="w-16 h-16 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-indigo-200 lg:hidden">
                             <Sparkles className="w-8 h-8 text-white" />

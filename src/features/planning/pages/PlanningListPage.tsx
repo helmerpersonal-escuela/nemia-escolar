@@ -114,7 +114,7 @@ export const PlanningListPage = () => {
                         </button>
                     </div>
                 ) : plans.length === 0 ? (
-                    <div className="squishy-card border-2 border-dashed border-gray-100 p-8 md:p-24 text-center shadow-sm max-w-4xl mx-auto animate-in fade-in duration-700">
+                    <div className="squishy-card bg-white border-2 border-dashed border-gray-100 p-8 md:p-24 text-center shadow-sm max-w-4xl mx-auto animate-in fade-in duration-700">
                         <div className="w-16 h-16 md:w-24 md:h-24 bg-gray-50 rounded-[1.5rem] md:rounded-[2.5rem] flex items-center justify-center mx-auto mb-6 md:mb-8">
                             <FileText className="w-8 h-8 md:w-12 md:h-12 text-gray-200" />
                         </div>
@@ -135,7 +135,7 @@ export const PlanningListPage = () => {
                             <Link
                                 key={plan.id}
                                 to={`/planning/${plan.id}`}
-                                className="group block squishy-card p-6 md:p-10 hover:border-indigo-200 shadow-xl shadow-indigo-50/30 hover:shadow-2xl hover:shadow-indigo-100 relative overflow-hidden break-inside-avoid"
+                                className="group block squishy-card bg-white p-6 md:p-10 hover:border-indigo-200 shadow-xl shadow-indigo-50/30 hover:shadow-2xl hover:shadow-indigo-100 relative overflow-hidden break-inside-avoid"
                             >
                                 <div className="absolute top-0 right-0 p-8 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity flex items-center space-x-2 z-10">
                                     <button

@@ -124,8 +124,8 @@ export const IncidentModal = ({ isOpen, onClose, onSuccess }: IncidentModalProps
     if (!isOpen) return null
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:p-4 bg-slate-900/60 backdrop-blur-sm">
+            <div className="bg-white w-full sm:max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90dvh] sm:rounded-[2rem] shadow-2xl flex flex-col overflow-hidden pb-[env(safe-area-inset-bottom)] sm:pb-0 animate-in fade-in zoom-in-95 duration-200">
                 <WizardModalHeader title="Reportar incidencia" icon={AlertTriangle} onClose={onClose}
                     subtitle={selectedStudent ? `Para ${selectedStudent.first_name} ${selectedStudent.last_name_paternal} (${selectedGroup?.grade}° "${selectedGroup?.section}")` : 'Selecciona al alumno y describe lo ocurrido.'}
                     steps={[{ label: 'Alumno' }, { label: 'Detalles' }]} current={step === 'STUDENT' ? 0 : 1} />

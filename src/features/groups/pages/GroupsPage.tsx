@@ -245,7 +245,7 @@ export const GroupsPage = () => {
 
     return (
         <div className="space-y-4 sm:space-y-8 pb-20 animate-in fade-in duration-500 px-3 sm:px-0">
-            <div className="squishy-card p-5 sm:p-8 relative overflow-hidden">
+            <div className="squishy-card bg-white p-5 sm:p-8 relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-cyan-50 opacity-50" />
                 <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div>
@@ -336,7 +336,7 @@ export const GroupsPage = () => {
                         <div
                             key={`${item.id}-${idx}`}
                             onClick={() => navigate(`/gradebook?groupId=${item.id}${item.currentSubject ? `&subjectId=${item.currentSubject.subject_catalog_id || item.currentSubject.id}` : ''}`)}
-                            className="squishy-card p-5 sm:p-6 h-full flex flex-col justify-between group relative overflow-hidden cursor-pointer"
+                            className="squishy-card bg-white p-5 sm:p-6 h-full flex flex-col justify-between group relative overflow-hidden cursor-pointer"
                         >
                             <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                                 <BookOpen className="w-24 h-24 text-blue-600 transform rotate-12" />

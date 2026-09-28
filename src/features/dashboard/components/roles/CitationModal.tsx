@@ -88,8 +88,8 @@ export const CitationModal = ({ isOpen, onClose, onSuccess }: CitationModalProps
     if (!isOpen) return null
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-white/20 flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="bg-white w-full sm:max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90dvh] sm:rounded-[2rem] shadow-2xl flex flex-col overflow-hidden pb-[env(safe-area-inset-bottom)] sm:pb-0">
                 <WizardModalHeader title="Generar citatorio" icon={FileSignature} onClose={onClose}
                     subtitle={step === 'FORM' && selectedStudent ? `Para ${selectedStudent.first_name}` : 'Selecciona al alumno y completa los datos de la cita.'}
                     steps={[{ label: 'Alumno' }, { label: 'Detalles de la cita' }]} current={step === 'STUDENT' ? 0 : 1} />

@@ -92,7 +92,7 @@ export const PlanLimitManager = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {limits.map(limit => (
-                    <div key={limit.id} className="squishy-card p-8 border-indigo-50 relative overflow-hidden group">
+                    <div key={limit.id} className="squishy-card bg-white p-8 border-indigo-50 relative overflow-hidden group">
                         {/* Decorative Background Icon */}
                         <div className={`absolute -top-10 -right-10 w-40 h-40 opacity-5 group-hover:scale-110 transition-transform duration-1000 ${limit.plan_type === 'pro' ? 'text-indigo-600' : 'text-slate-500'
                             }`}>

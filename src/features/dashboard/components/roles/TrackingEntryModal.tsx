@@ -87,8 +87,8 @@ export const TrackingEntryModal = ({ onClose, onSuccess }: TrackingEntryModalPro
     }
 
     return (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:p-4 bg-slate-900/60 backdrop-blur-sm">
+            <div className="bg-white w-full sm:max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90dvh] sm:rounded-[2rem] shadow-2xl flex flex-col overflow-hidden pb-[env(safe-area-inset-bottom)] sm:pb-0">
                 <WizardModalHeader title="Nuevo registro de seguimiento" icon={ClipboardList} onClose={onClose}
                     subtitle={step === 2 && selectedStudent ? `Para ${selectedStudent.first_name}` : undefined}
                     steps={[{ label: 'Alumno' }, { label: 'Detalles del registro' }]} current={step - 1} />

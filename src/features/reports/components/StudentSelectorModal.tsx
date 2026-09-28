@@ -77,8 +77,8 @@ export const StudentSelectorModal = ({ isOpen, onClose }: StudentSelectorModalPr
     if (!isOpen) return null
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:p-4 bg-slate-900/60 backdrop-blur-sm">
+            <div className="bg-white w-full sm:max-w-lg max-h-[92dvh] overflow-y-auto rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl pb-[env(safe-area-inset-bottom)] sm:pb-0 relative animate-in fade-in zoom-in-95 duration-200">
                 <WizardModalHeader title="Generar reporte" icon={FileText} onClose={onClose}
                     steps={[{ label: 'Grupo' }, { label: 'Alumno' }]} current={step === 'GROUP' ? 0 : 1} />
 

@@ -431,9 +431,9 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
     `
 
     return createPortal(
-        <div id="absence-print-root" className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300 print:bg-white print:p-0 print:static print:block print:inset-auto">
+        <div id="absence-print-root" className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300 print:bg-white print:p-0 print:static print:block print:inset-auto">
             <style>{printStyles}</style>
-            <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] print:shadow-none print:max-h-none print:w-full print:rounded-none print-scroll-none">
+            <div className="bg-white w-full sm:max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90dvh] sm:rounded-[2rem] shadow-2xl overflow-hidden flex flex-col pb-[env(safe-area-inset-bottom)] sm:pb-0 print:h-auto print:pb-0 print:shadow-none print:max-h-none print:w-full print:rounded-none print-scroll-none">
                 {/* Header */}
                 <div className="p-5 sm:p-8 border-b border-slate-100 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-4">

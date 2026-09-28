@@ -305,7 +305,7 @@ export const TeacherDashboard = () => {
                             </p>
                         </div>
                     ) : (
-                        <div className="squishy-card p-6 sm:p-12 text-center border-2 border-dashed border-slate-200 h-full flex flex-col items-center justify-center">
+                        <div className="squishy-card bg-white p-6 sm:p-12 text-center border-2 border-dashed border-slate-200 h-full flex flex-col items-center justify-center">
                             <div className="p-6 bg-slate-50 rounded-full mb-6">
                                 <Clock className="w-12 h-12 text-slate-300" />
                             </div>

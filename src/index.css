@@ -99,9 +99,13 @@
     box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.1);
   }
 
-  .squishy-card:hover {
-    @apply transform -translate-y-1;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+  /* Solo en equipos con mouse: en celular el "hover" se queda pegado al tocar
+     y el transform rompe las ventanas fijas (modales) que viven dentro. */
+  @media (hover: hover) {
+    .squishy-card:hover {
+      @apply transform -translate-y-1;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+    }
   }
 
   /* Interactive Elements */

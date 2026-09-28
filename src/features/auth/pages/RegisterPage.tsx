@@ -278,7 +278,7 @@ export const RegisterPage = () => {
                 <div className="absolute top-[-10%] right-[-10%] w-72 h-72 bg-purple-300/40 rounded-full blur-3xl lg:hidden pointer-events-none mix-blend-multiply"></div>
                 <div className="absolute bottom-[-10%] left-[-10%] w-72 h-72 bg-indigo-300/40 rounded-full blur-3xl lg:hidden pointer-events-none mix-blend-multiply"></div>
 
-                <div className="squishy-card max-w-xl w-full animate-in fade-in slide-in-from-right-8 duration-500 p-5 sm:p-8 md:p-10 relative z-10">
+                <div className="squishy-card bg-white max-w-xl w-full animate-in fade-in slide-in-from-right-8 duration-500 p-5 sm:p-8 md:p-10 relative z-10">
                     {registrationSuccess ? (
                         <div className="text-center space-y-8 py-10">
                             <div className="w-24 h-24 bg-emerald-50 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-inner">

@@ -316,8 +316,8 @@ export const AIInstrumentGenerator = ({
     if (!isOpen) return null
 
     return (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:p-4 bg-slate-900/60 backdrop-blur-sm">
+            <div className="bg-white sm:rounded-[2rem] shadow-2xl w-full sm:max-w-5xl h-[100dvh] sm:h-auto sm:max-h-[95dvh] flex flex-col overflow-hidden pb-[env(safe-area-inset-bottom)] sm:pb-0 animate-in fade-in zoom-in duration-200">
                 {/* Header */}
                 <div className="p-5 sm:p-6 border-b border-slate-100 flex justify-between items-center gap-3">
                     <div className="flex items-center space-x-3">

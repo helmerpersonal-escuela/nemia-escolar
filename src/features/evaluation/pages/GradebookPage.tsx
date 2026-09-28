@@ -432,7 +432,7 @@ export const GradebookPage = () => {
                             <button
                                 key={group.id}
                                 onClick={() => navigate(`/gradebook?groupId=${group.id}&tab=${pickerTab}`, { replace: true })}
-                                className="group squishy-card p-8 text-left flex flex-col items-center justify-center space-y-4 relative overflow-hidden"
+                                className="group squishy-card bg-white p-8 text-left flex flex-col items-center justify-center space-y-4 relative overflow-hidden"
                             >
                                 <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-10 transition-opacity">
                                     <BookOpen className="w-24 h-24 text-blue-600 transform -rotate-12" />
@@ -809,7 +809,7 @@ export const GradebookPage = () => {
 
             {
                 activeTab === 'ATTENDANCE' && attendanceMethod !== 'MANUAL' && (
-                    <div className="squishy-card p-8 text-center flex flex-col items-center justify-center space-y-4">
+                    <div className="squishy-card bg-white p-8 text-center flex flex-col items-center justify-center space-y-4">
                         {isScanningActive ? (
                             <div className="w-full">
                                 {attendanceMethod === 'QR' ? (

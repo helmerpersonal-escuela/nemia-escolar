@@ -297,8 +297,8 @@ export const ClassPlanGeneratorModal: React.FC<ClassPlanGeneratorModalProps> = (
     if (!isOpen) return null
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden border border-slate-100">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="bg-white w-full sm:max-w-4xl h-[100dvh] sm:h-auto sm:max-h-[90dvh] sm:rounded-[2rem] shadow-2xl flex flex-col overflow-hidden pb-[env(safe-area-inset-bottom)] sm:pb-0">
 
                 <WizardModalHeader title={editingPlan ? 'Editar plan de clase' : 'Construir mi plan de clase'} icon={Sparkles} onClose={onClose}
                     subtitle="Nueva Escuela Mexicana · Asistente didáctico"

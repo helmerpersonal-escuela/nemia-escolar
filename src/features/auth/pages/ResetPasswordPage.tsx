@@ -55,7 +55,7 @@ export const ResetPasswordPage = () => {
 
     return (
         <div className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-b from-indigo-50 to-white relative overflow-hidden">
-            <div className="squishy-card max-w-md w-full animate-in fade-in zoom-in duration-500 p-8 md:p-10 relative z-10">
+            <div className="squishy-card bg-white max-w-md w-full animate-in fade-in zoom-in duration-500 p-8 md:p-10 relative z-10">
                 <div className="text-center mb-10">
                     <div className="w-16 h-16 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-indigo-200">
                         <Lock className="w-8 h-8 text-white" />
