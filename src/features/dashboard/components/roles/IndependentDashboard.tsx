@@ -135,7 +135,7 @@ export const IndependentDashboard = () => {
 
                     <div className="flex flex-wrap gap-4">
                         <button
-                            onClick={() => navigate('/gradebook')}
+                            onClick={() => navigate('/gradebook?tab=EVALUATION')}
                             className="bg-indigo-600 text-white px-12 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center gap-3 shadow-xl shadow-indigo-500/20 group transform hover:scale-105"
                         >
                             <CheckSquare className="w-5 h-5 group-hover:scale-110 transition-transform" />
@@ -158,37 +158,8 @@ export const IndependentDashboard = () => {
                 </div>
             </header >
 
-            {/* 2. Professional Stats Row */}
-            < div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6" >
-                {
-                    [
-                        { label: 'Grupos Activos', value: loading ? '...' : stats.groups.toString(), icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-                        { label: 'Alumnos Totales', value: loading ? '...' : stats.students.toString(), icon: GraduationCap, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-                        { label: 'Clases Hoy', value: loading ? '...' : upcomingClasses.length.toString(), icon: Presentation, color: 'text-purple-600', bg: 'bg-purple-50' },
-                        { label: 'Materias s/Plan', value: loading ? '...' : stats.pending.toString(), icon: Clock, color: 'text-amber-700', bg: 'bg-amber-50' },
-                    ].map((stat, i) => (
-                        <div key={i} className="bg-white p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-indigo-100/50 transition-all flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-5 group min-w-0">
-                            <div className={`p-3 sm:p-4 ${stat.bg} ${stat.color} rounded-2xl group-hover:scale-110 transition-transform`}>
-                                <stat.icon className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <div className="text-2xl font-black text-slate-900 leading-tight">
-                                    {stat.value === '...' ? (
-                                        <div className="h-8 w-12 bg-slate-100 animate-pulse rounded-lg" />
-                                    ) : (
-                                        stat.value
-                                    )}
-                                </div>
-                                <div className="text-[11px] font-black text-slate-500 uppercase tracking-wider sm:tracking-widest mt-0.5">{stat.label}</div>
-                            </div>
-                        </div>
-                    ))
-                }
-            </div >
 
-            <ContinuousImprovementCard />
-
-            {/* 3. Bento Layout Grid */}
+            {/* 2. Lo del día: agenda y clases */}
             < div className="grid grid-cols-1 lg:grid-cols-3 gap-8" >
 
                 {/* A. Main Module: Agenda (2/3 width) */}
@@ -308,6 +279,37 @@ export const IndependentDashboard = () => {
                     </div >
                 </div >
             </div >
+
+            {/* 3. Resumen (después de lo del día) */}
+            < div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6" >
+                {
+                    [
+                        { label: 'Grupos Activos', value: loading ? '...' : stats.groups.toString(), icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
+                        { label: 'Alumnos Totales', value: loading ? '...' : stats.students.toString(), icon: GraduationCap, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+                        { label: 'Clases Hoy', value: loading ? '...' : upcomingClasses.length.toString(), icon: Presentation, color: 'text-purple-600', bg: 'bg-purple-50' },
+                        { label: 'Materias s/Plan', value: loading ? '...' : stats.pending.toString(), icon: Clock, color: 'text-amber-700', bg: 'bg-amber-50' },
+                    ].map((stat, i) => (
+                        <div key={i} className="bg-white p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-indigo-100/50 transition-all flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-5 group min-w-0">
+                            <div className={`p-3 sm:p-4 ${stat.bg} ${stat.color} rounded-2xl group-hover:scale-110 transition-transform`}>
+                                <stat.icon className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <div className="text-2xl font-black text-slate-900 leading-tight">
+                                    {stat.value === '...' ? (
+                                        <div className="h-8 w-12 bg-slate-100 animate-pulse rounded-lg" />
+                                    ) : (
+                                        stat.value
+                                    )}
+                                </div>
+                                <div className="text-[11px] font-black text-slate-500 uppercase tracking-wider sm:tracking-widest mt-0.5">{stat.label}</div>
+                            </div>
+                        </div>
+                    ))
+                }
+            </div >
+
+            {/* 4. Mejora continua: al final, no es de uso diario */}
+            <ContinuousImprovementCard />
 
             {/* Modal Components */}
             < StudentSelectionModal

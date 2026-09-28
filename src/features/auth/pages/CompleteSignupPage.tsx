@@ -67,10 +67,15 @@ export const CompleteSignupPage = () => {
     const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
         setForm(prev => ({ ...prev, [k]: e.target.value.toUpperCase() }))
 
+    // Algunas cuentas de Google Workspace escolares traen el nombre con la Ñ o los acentos dañados (\uFFFD)
+    const brokenName = [form.firstName, form.lastNamePaternal, form.lastNameMaternal].some(v => v.includes('\uFFFD'))
+    const swapOrder = () => setForm(f => ({ ...f, firstName: f.lastNameMaternal, lastNamePaternal: f.firstName, lastNameMaternal: f.lastNamePaternal }))
+
     const submit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!invitation && !mode) { setError('Elige el tipo de cuenta.'); return }
         if (!form.firstName.trim() || !form.lastNamePaternal.trim()) { setError('Escribe tu nombre y primer apellido.'); return }
+        if (brokenName) { setError('Corrige la letra marcada con \uFFFD en tu nombre (normalmente es una Ñ o una vocal con acento).'); return }
         if (!invitation && mode === 'SCHOOL' && !form.organizationName.trim()) { setError('Escribe el nombre de la escuela.'); return }
         if (!termsAccepted) { setError('Debes aceptar los Términos y la Política de Privacidad.'); return }
         setSaving(true)
@@ -147,6 +152,17 @@ export const CompleteSignupPage = () => {
                     <input value={form.lastNamePaternal} onChange={set('lastNamePaternal')} placeholder="Apellido paterno" className="border-2 border-slate-100 rounded-xl px-3 py-2.5 text-sm font-bold" aria-label="Apellido paterno" />
                     <input value={form.lastNameMaternal} onChange={set('lastNameMaternal')} placeholder="Apellido materno" className="border-2 border-slate-100 rounded-xl px-3 py-2.5 text-sm font-bold" aria-label="Apellido materno" />
                 </div>
+                {brokenName && (
+                    <p role="alert" className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                        Google nos envió tu nombre con una letra dañada (\uFFFD). Escribe la letra correcta, por ejemplo Ñ o una vocal con acento.
+                    </p>
+                )}
+                {status?.full_name && (
+                    <p className="text-xs text-slate-500">
+                        ¿Tu nombre quedó en otro orden?{' '}
+                        <button type="button" onClick={swapOrder} className="font-bold text-indigo-600 hover:underline">Mover el último dato al nombre</button>
+                    </p>
+                )}
 
                 {!invitation && mode && (
                     <input

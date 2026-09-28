@@ -1,4 +1,5 @@
 
+import { readTextFile } from "../../../lib/textImport"
 import { useState, useEffect } from 'react'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Clock, Upload, RefreshCw, BookOpen, X, ArrowRight, Trash2, Shield } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -243,7 +244,7 @@ export const AgendaPage = () => {
 
         setImporting(true)
         try {
-            const content = await file.text()
+            const content = await readTextFile(file)
             const parsedEvents = parseIcsContent(content)
 
             if (parsedEvents.length === 0) {

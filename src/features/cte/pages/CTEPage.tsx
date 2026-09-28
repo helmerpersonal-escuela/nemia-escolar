@@ -12,6 +12,7 @@ import { DocumentsPanel } from '../components/DocumentsPanel'
 import { AgreementsPanel } from '../components/AgreementsPanel'
 import { ProposalPanel } from '../components/ProposalPanel'
 import { ContinuousImprovementCard } from '../../../components/academic/ContinuousImprovementCard'
+import { TeacherCtePage } from './TeacherCtePage'
 
 type Tab = 'sessions' | 'documents' | 'agreements' | 'proposal'
 
@@ -22,7 +23,16 @@ const TABS: { id: Tab; label: string; icon: typeof CalendarDays }[] = [
     { id: 'proposal', label: 'Propuesta con IA', icon: Sparkles },
 ]
 
+/** Docentes ven "Mi CTE"; dirección y coordinación, la planeación del colectivo. */
 export const CTEPage = () => {
+    const { data: tenant } = useTenant()
+    const role = String((tenant as any)?.role ?? '').toUpperCase()
+    if (tenant?.type === 'INDEPENDENT') return <TeacherCtePage canUpload />
+    if (role === 'TEACHER') return <TeacherCtePage />
+    return <ManagerCtePage />
+}
+
+const ManagerCtePage = () => {
     const { data: tenant } = useTenant()
     const { showToast } = useToast()
     const [tab, setTab] = useState<Tab>('sessions')

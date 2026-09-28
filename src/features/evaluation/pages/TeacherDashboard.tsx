@@ -13,8 +13,8 @@ import { CreateAssignmentModal } from '../components/CreateAssignmentModal'
 import { DayScheduleModal } from '../../schedule/components/DayScheduleModal'
 import { AttendanceWidget } from '../../dashboard/components/AttendanceWidget'
 import { StudentSelectionModal } from '../../dashboard/components/roles/StudentSelectionModal'
-import { CTEAgendaModal } from '../../dashboard/components/CTE/CTEAgendaModal'
 import { ContinuousImprovementCard } from '../../../components/academic/ContinuousImprovementCard'
+import { AdvisoryGroupCard } from '../../advisory/components/AdvisoryGroupCard'
 
 export const TeacherDashboard = () => {
     const { data: tenant } = useTenant()
@@ -45,7 +45,6 @@ export const TeacherDashboard = () => {
     const [selectedClassForAssignment, setSelectedClassForAssignment] = useState<any>(null)
     const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false)
     const [isReportModalOpen, setIsReportModalOpen] = useState(false)
-    const [isAgendaModalOpen, setIsAgendaModalOpen] = useState(false)
 
     // Update time every minute
     useEffect(() => {
@@ -215,7 +214,7 @@ export const TeacherDashboard = () => {
 
                     <div className="flex flex-wrap gap-3">
                         <button
-                            onClick={() => navigate('/groups')}
+                            onClick={() => navigate('/gradebook?tab=EVALUATION')}
                             className="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-3 shadow-xl group btn-tactile"
                         >
                             <BookOpen className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -230,24 +229,16 @@ export const TeacherDashboard = () => {
                         </button>
                         {tenant?.type !== 'INDEPENDENT' && tenant?.role !== 'INDEPENDENT_TEACHER' && profile?.role !== 'INDEPENDENT_TEACHER' && (
                             <button
-                                onClick={() => setIsAgendaModalOpen(true)}
+                                onClick={() => navigate('/cte')}
                                 className="bg-indigo-600 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center gap-3 shadow-xl group btn-tactile"
                             >
                                 <ClipboardList className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                                Agenda CTE
+                                Consejo Técnico
                             </button>
                         )}
                     </div>
                 </div>
             </header>
-
-            <ContinuousImprovementCard />
-
-            <CTEAgendaModal
-                isOpen={isAgendaModalOpen}
-                onClose={() => setIsAgendaModalOpen(false)}
-                canEdit={false}
-            />
 
             {/* 2. Top Tier Widgets */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -342,6 +333,9 @@ export const TeacherDashboard = () => {
                 </div>
             </div>
 
+            {/* Grupo que asesora (si tiene) */}
+            <AdvisoryGroupCard />
+
             {/* 3. Bottom Bento Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Recent Chats */}
@@ -411,6 +405,9 @@ export const TeacherDashboard = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Mejora continua: al final, no es de uso diario */}
+            <ContinuousImprovementCard />
 
             {/* Modals */}
             <DayScheduleModal

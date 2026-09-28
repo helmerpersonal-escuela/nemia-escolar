@@ -8,9 +8,9 @@ const db = supabase as any
 const input = wizardInput.replace('px-4 py-3', 'px-3 py-2.5')
 // Precio aproximado por millón de tokens (USD), septiembre 2026. ~4 caracteres en español = 1 token.
 const PRICES: Record<string, { in: number; out: number; label: string }> = {
-    'gemini-2.5-flash': { in: 0.30, out: 2.50, label: 'Gemini 2.5 Flash (actual)' },
-    'gpt-oss-120b': { in: 0.15, out: 0.60, label: 'Groq GPT-OSS 120B (recomendado)' },
-    'gemini-3.1-flash-lite': { in: 0.25, out: 1.50, label: 'Gemini 3.1 Flash-Lite' },
+    'gemini-3.1-flash-lite': { in: 0.25, out: 1.50, label: 'Gemini 3.1 Flash-Lite (actual, el más barato de Gemini)' },
+    'gpt-oss-120b': { in: 0.15, out: 0.60, label: 'Groq GPT-OSS 120B (respaldo, más barato)' },
+    'gemini-3.8-flash': { in: 0.75, out: 3.75, label: 'Gemini 3.8 Flash (mejor calidad)' },
 }
 const usd = (n: number) => `$${n.toFixed(2)} USD`
 

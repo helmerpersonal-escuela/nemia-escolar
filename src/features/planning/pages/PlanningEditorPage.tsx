@@ -39,6 +39,7 @@ import { ProgramContentModal } from '../components/editor/modals/ProgramContentM
 import { TemplateBankModal } from '../components/editor/modals/TemplateBankModal'
 import { ErrorModal } from '../components/editor/modals/ErrorModal'
 import { PreviewModal } from '../components/editor/modals/PreviewModal'
+import { useCatalog } from '../../../lib/nemCatalog'
 import { todayISO } from '../../../lib/dates'
 
 interface Group {
@@ -147,15 +148,8 @@ export const PlanningEditorPage = () => {
         extracted_text: ''
     })
 
-    const EJES = [
-        'Inclusión',
-        'Pensamiento Crítico',
-        'Interculturalidad Crítica',
-        'Igualdad de Género',
-        'Vida Saludable',
-        'Fomento a la Lectura y Escritura',
-        'Artes y Experiencias Estéticas'
-    ]
+    // Ejes oficiales (no ocultos) + los del docente o la comunidad escolar
+    const EJES = useCatalog('EJE').map(e => e.name)
 
     const CAMPOS = [
         'Lenguajes',
@@ -164,12 +158,9 @@ export const PlanningEditorPage = () => {
         'De lo Humano y lo Comunitario'
     ]
 
-    const METODOLOGIAS = [
-        'Aprendizaje Basado en Proyectos (ABP)',
-        'Aprendizaje Basado en Indagación (STEAM)',
-        'Aprendizaje Basado en Problemas (ABP-Problemas)',
-        'Aprendizaje Servicio (AS)'
-    ]
+    // Metodologías: primero la sugerida por la SEP para el campo formativo, luego las propias
+    const metodologiasCatalog = useCatalog('METODOLOGIA', formData.campo_formativo)
+    const METODOLOGIAS = metodologiasCatalog.map(m => m.name)
 
     // Persistence: Save to localStorage (GUARDED BY LOADING)
     useEffect(() => {

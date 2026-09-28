@@ -206,7 +206,7 @@ export const PromoAndLicensesPanel = () => {
     }
     const exportCsv = (rows: any[]) => {
         const csv = ['clave,meses,estado,nota,creada,espacio,canjeada', ...rows.map(k => [fmtKey(k.key), k.months, k.status, `"${(k.note ?? '').replace(/"/g, '""')}"`, date(k.created_at), `"${(k.tenant?.name ?? '').replace(/"/g, '""')}"`, date(k.redeemed_at)].join(','))].join('\n')
-        const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }))
+        const url = URL.createObjectURL(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' }))
         const a = document.createElement('a'); a.href = url; a.download = `claves_vunlek_${new Date().toISOString().slice(0, 10)}.csv`; a.click()
         setTimeout(() => URL.revokeObjectURL(url), 2000)
     }

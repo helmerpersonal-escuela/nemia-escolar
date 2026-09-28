@@ -101,11 +101,11 @@ export const CustomPdasPage = () => {
     }
 
     return (
-        <div className="max-w-5xl mx-auto space-y-6">
+        <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                 <div>
                     <p className="text-[11px] font-black uppercase tracking-widest text-indigo-600">Codiseño · Mejora continua</p>
-                    <h1 className="text-2xl sm:text-3xl font-black text-slate-900">Mis PDAs</h1>
+                    <h2 className="text-xl font-black text-slate-900">PDAs propios</h2>
                     <p className="text-sm text-slate-500 mt-1 max-w-xl">Crea procesos de desarrollo de aprendizaje propios, de acuerdo con el contexto y las problemáticas de tus grupos. Aparecen junto a los del programa sintético en tu programa analítico y en tus planeaciones.</p>
                 </div>
                 <button onClick={() => setForm({ ...empty })} className="self-start inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-indigo-600 text-white font-black text-sm whitespace-nowrap"><Plus className="w-4 h-4" /> Nuevo PDA</button>

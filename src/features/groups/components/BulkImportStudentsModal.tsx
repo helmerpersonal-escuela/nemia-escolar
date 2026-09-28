@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { X, Upload, FileDown, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
+import { downloadCsv, readSpreadsheet } from '../../../lib/textImport'
 
 interface Props {
     isOpen: boolean
@@ -31,8 +32,8 @@ export const BulkImportStudentsModal = ({ isOpen, onClose, groupId, tenantId, on
 
         const exampleRow = [
             'JUAN PABLO',
-            'PEREZ',
-            'LOPEZ',
+            'PÉREZ',
+            'MUÑOZ',
             'HOMBRE',
             'MARIA',
             'LOPEZ',
@@ -41,31 +42,7 @@ export const BulkImportStudentsModal = ({ isOpen, onClose, groupId, tenantId, on
             '5551234567'
         ].join(',')
 
-        const csvContent = "data:text/csv;charset=utf-8," + headers + "\\n" + exampleRow
-        const encodedUri = encodeURI(csvContent)
-        const link = document.createElement("a")
-        link.setAttribute("href", encodedUri)
-        link.setAttribute("download", "Plantilla_Alumnos.csv")
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-    }
-
-    const parseCSV = (text: string) => {
-        const lines = text.split(/\\r?\\n/)
-        const headers = lines[0].split(',').map(h => h.trim().toLowerCase())
-
-        const results = []
-        for (let i = 1; i < lines.length; i++) {
-            if (!lines[i].trim()) continue
-            const currentline = lines[i].split(',')
-            const obj: any = {}
-            for (let j = 0; j < headers.length; j++) {
-                obj[headers[j]] = currentline[j] ? currentline[j].trim() : ''
-            }
-            results.push(obj)
-        }
-        return results
+        downloadCsv('Plantilla_Alumnos.csv', [headers.split(','), exampleRow.split(',')])
     }
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -77,8 +54,12 @@ export const BulkImportStudentsModal = ({ isOpen, onClose, groupId, tenantId, on
         setSuccessCount(null)
 
         try {
-            const text = await file.text()
-            const records = parseCSV(text)
+            // Acepta CSV (UTF-8 o ANSI/Windows-1252 de Excel) y .xlsx: la ñ y los acentos se conservan
+            const rows = await readSpreadsheet(file)
+            const headers = (rows[0] ?? []).map(h => String(h ?? '').trim().toLowerCase())
+            const records: Record<string, string>[] = rows.slice(1)
+                .filter(r => r.some(c => String(c ?? '').trim()))
+                .map(r => Object.fromEntries(headers.map((h, j) => [h, String(r[j] ?? '').trim()])))
 
             if (records.length === 0) {
                 throw new Error("El archivo está vacío o no tiene el formato correcto.")
@@ -91,7 +72,7 @@ export const BulkImportStudentsModal = ({ isOpen, onClose, groupId, tenantId, on
                 const studentFirstName = row['nombre_alumno'] || row['nombre alumno'] || row['nombre']
                 const studentPaternal = row['apellido_paterno_alumno'] || row['apellido paterno alumno'] || row['apellido paterno']
                 const studentMaternal = row['apellido_materno_alumno'] || row['apellido materno alumno'] || row['apellido materno'] || ''
-                const studentGender = (row['sexo_alumno'] || row['sexo alumno'] || row['sexo']).toUpperCase()
+                const studentGender = String(row['sexo_alumno'] || row['sexo alumno'] || row['sexo'] || '').toUpperCase()
 
                 if (!studentFirstName || !studentPaternal) continue // Skip invalid rows
 
@@ -199,7 +180,7 @@ export const BulkImportStudentsModal = ({ isOpen, onClose, groupId, tenantId, on
                             <div>
                                 <h3 className="font-bold text-slate-800 mb-1">Descarga la plantilla</h3>
                                 <p className="text-sm text-slate-500 mb-3">
-                                    Abre el archivo en Excel o Google Sheets, llena los datos sin modificar los encabezados, y guárdalo como CSV.
+                                    Abre el archivo en Excel o Google Sheets, llena los datos sin modificar los encabezados y guárdalo (CSV o Excel).
                                 </p>
                                 <button
                                     onClick={downloadTemplate}
@@ -219,13 +200,13 @@ export const BulkImportStudentsModal = ({ isOpen, onClose, groupId, tenantId, on
                             <div className="w-full">
                                 <h3 className="font-bold text-slate-800 mb-1">Sube el archivo lleno</h3>
                                 <p className="text-sm text-slate-500 mb-3">
-                                    Asegúrate de que el formato sea .csv y no excel regular (.xlsx).
+                                    Puede ser .csv o .xlsx. Los nombres con ñ y acentos (MUÑOZ, PÉREZ) se conservan.
                                 </p>
 
                                 <div className="mt-2">
                                     <input
                                         type="file"
-                                        accept=".csv"
+                                        accept=".csv,.xlsx,.txt"
                                         id="csvUpload"
                                         className="hidden"
                                         onChange={handleFileUpload}
@@ -239,7 +220,7 @@ export const BulkImportStudentsModal = ({ isOpen, onClose, groupId, tenantId, on
                                         {loading ? (
                                             <><Loader2 className="h-5 w-5 animate-spin" /> Procesando filas...</>
                                         ) : (
-                                            <><Upload className="h-5 w-5" /> Seleccionar Archivo CSV</>
+                                            <><Upload className="h-5 w-5" /> Seleccionar archivo</>
                                         )}
                                     </label>
                                 </div>

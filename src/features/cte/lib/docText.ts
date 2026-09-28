@@ -1,3 +1,4 @@
+import { readTextFile } from "../../../lib/textImport"
 /**
  * Extracción de texto de documentos en el navegador, sin dependencias extra:
  * - PDF  → pdf.js (PdfExtractionService)
@@ -117,7 +118,7 @@ export async function extractFileText(file: File): Promise<string> {
     } else if (kind === 'docx' || kind === 'pptx') {
         text = await extractOfficeText(await file.arrayBuffer(), kind)
     } else if (kind === 'text') {
-        text = await file.text()
+        text = await readTextFile(file)
     }
     return text.replace(/[ \t\u00a0]+/g, ' ').trim().slice(0, MAX_TEXT)
 }

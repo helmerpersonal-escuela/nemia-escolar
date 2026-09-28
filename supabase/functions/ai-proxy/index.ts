@@ -3,6 +3,7 @@
 // system_settings, que ya solo lee el Super Admin / service role).
 import { corsHeaders } from "../_shared/cors.ts"
 import { errorResponse, getAdminClient, HttpError, isSuperAdmin, requireUser } from "../_shared/auth.ts"
+import { GEMINI_MODELS, GROQ_DEFAULT_MODEL, OPENAI_DEFAULT_MODEL, geminiGenerate } from "../_shared/aiModels.ts"
 
 const MAX_PROMPT_CHARS = 60_000
 const MAX_EMBED_INPUTS = 20
@@ -31,30 +32,8 @@ async function loadSettings(admin: ReturnType<typeof getAdminClient>): Promise<S
 }
 
 async function callGemini(s: Settings, prompt: string, json: boolean): Promise<string> {
-    if (!s.gemini_key) throw new Error('Gemini: llave no configurada')
-    // gemini-2.0-flash se apagó el 1 de junio de 2026; el respaldo es 2.5 Flash-Lite (más barato)
-    const models = [s.gemini_model || 'gemini-2.5-flash', 'gemini-2.5-flash-lite']
-    let lastErr = ''
-    for (const model of [...new Set(models)]) {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-goog-api-key': s.gemini_key },
-            body: JSON.stringify({
-                systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-                contents: [{ role: 'user', parts: [{ text: prompt }] }],
-                generationConfig: { temperature: 0.7, ...(json ? { responseMimeType: 'application/json' } : {}) },
-            }),
-        })
-        if (res.ok) {
-            const data = await res.json()
-            const text = data.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('')
-            if (text) return text.trim()
-            lastErr = `Gemini ${model}: respuesta vacía`
-        } else {
-            lastErr = `Gemini ${model}: HTTP ${res.status}`
-        }
-    }
-    throw new Error(lastErr)
+    const models = [s.gemini_model, ...GEMINI_MODELS].filter(Boolean) as string[]
+    return (await geminiGenerate(s.gemini_key, models, prompt, { json, system: SYSTEM_PROMPT })).text
 }
 
 async function callOpenAICompatible(url: string, key: string, model: string, prompt: string, label: string): Promise<string> {
@@ -71,7 +50,7 @@ async function callOpenAICompatible(url: string, key: string, model: string, pro
             temperature: 0.7,
         }),
     })
-    if (!res.ok) throw new Error(`${label}: HTTP ${res.status}`)
+    if (!res.ok) throw new Error(`${label} ${model}: HTTP ${res.status} ${(await res.text().catch(() => '')).slice(0, 120)}`)
     const data = await res.json()
     const text = data.choices?.[0]?.message?.content?.trim()
     if (!text) throw new Error(`${label}: respuesta vacía`)
@@ -82,9 +61,9 @@ async function generate(s: Settings, prompt: string, json: boolean): Promise<{ t
     const providers: Record<string, () => Promise<string>> = {
         gemini: () => callGemini(s, prompt, json),
         groq: () => callOpenAICompatible('https://api.groq.com/openai/v1/chat/completions', s.groq_key,
-            s.groq_model || 'llama-3.3-70b-versatile', prompt, 'Groq'),
+            s.groq_model || GROQ_DEFAULT_MODEL, prompt, 'Groq'),
         openai: () => callOpenAICompatible('https://api.openai.com/v1/chat/completions', s.openai_key,
-            s.openai_model || 'gpt-4o-mini', prompt, 'OpenAI'),
+            s.openai_model || OPENAI_DEFAULT_MODEL, prompt, 'OpenAI'),
     }
     const preferred = (s.preferred_provider || 'gemini').toLowerCase()
     const order = [preferred, ...['gemini', 'groq', 'openai'].filter(p => p !== preferred)].filter(p => providers[p])

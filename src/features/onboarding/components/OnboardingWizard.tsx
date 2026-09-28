@@ -64,9 +64,39 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
             startTime: '08:00',
             endTime: '14:00',
             moduleDuration: 50,
-            breaks: [] as Array<{ name: string, start_time: string, end_time: string }>
+            breaks: [{ name: 'RECESO', start_time: '10:30', end_time: '11:00' }] as Array<{ name: string, start_time: string, end_time: string }>
         }
     })
+
+    // Periodos de evaluación (opcional): cuántos y de qué fecha a qué fecha
+    const [evalPeriods, setEvalPeriods] = useState<Array<{ name: string, start: string, end: string }>>(() => {
+        try { return JSON.parse(sessionStorage.getItem('vunlek_onboarding_periods') || '[]') } catch { return [] }
+    })
+    useEffect(() => { try { sessionStorage.setItem('vunlek_onboarding_periods', JSON.stringify(evalPeriods)) } catch { /* nada */ } }, [evalPeriods])
+
+    // Si se regresa al asistente (se cerró la app, se recargó), retoma lo que ya estaba guardado
+    useEffect(() => {
+        if (!tenant?.id) return
+        let cancelled = false
+        ;(async () => {
+            if (!sessionStorage.getItem('vunlek_onboarding_schedule_data')) {
+                const { data } = await supabase.from('schedule_settings').select('start_time, end_time, module_duration, breaks').eq('tenant_id', tenant.id).maybeSingle()
+                if (!cancelled && data) setScheduleSettings((prev: any) => ({
+                    ...prev,
+                    startTime: String(data.start_time ?? prev.startTime).slice(0, 5),
+                    endTime: String(data.end_time ?? prev.endTime).slice(0, 5),
+                    moduleDuration: data.module_duration && data.module_duration < 600 ? data.module_duration : prev.moduleDuration,
+                    breaks: Array.isArray(data.breaks) ? data.breaks : prev.breaks,
+                }))
+            }
+            if (!sessionStorage.getItem('vunlek_onboarding_periods')) {
+                const { data } = await supabase.from('evaluation_periods').select('name, start_date, end_date').eq('tenant_id', tenant.id).order('start_date')
+                if (!cancelled && data?.length) setEvalPeriods(data.map((d: any) => ({ name: d.name, start: d.start_date, end: d.end_date })))
+            }
+        })()
+        return () => { cancelled = true }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tenant?.id])
 
     const [searchParams] = useSearchParams()
 
@@ -130,6 +160,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
         sessionStorage.removeItem('vunlek_onboarding_schedule_data')
         sessionStorage.removeItem('vunlek_payment_syncing')
         sessionStorage.removeItem('vunlek_onboarding_coop')
+        sessionStorage.removeItem('vunlek_onboarding_periods')
     }
 
     const handleCancelRegistration = async () => {
@@ -184,18 +215,48 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
         }
     }
 
+    const periodsError = (): string | null => {
+        for (let i = 0; i < evalPeriods.length; i++) {
+            const p = evalPeriods[i]
+            if (!p.name.trim() || !p.start || !p.end) return `Completa el nombre y las fechas del periodo ${i + 1}.`
+            if (p.start > p.end) return `En "${p.name}" la fecha de inicio es posterior a la de fin.`
+            if (i > 0 && p.start <= evalPeriods[i - 1].end) return `"${p.name}" empieza antes de que termine "${evalPeriods[i - 1].name}".`
+        }
+        return null
+    }
+
     const handleCreateYear = async () => {
+        if (!tenant?.id) return
+        const pe = periodsError()
+        if (pe) { setError(pe); return }
+        setError(null)
         setLoading(true)
         try {
-            const { data, error: yearError } = await supabase.from('academic_years').upsert({
-                tenant_id: tenant?.id,
-                name: yearData.name,
-                start_date: yearData.startDate,
-                end_date: yearData.endDate,
-                is_active: true
-            }).select().single()
+            // Reutiliza el ciclo activo si ya existe (evita ciclos duplicados al volver a este paso)
+            const { data: existing } = await supabase.from('academic_years').select('id').eq('tenant_id', tenant.id).eq('is_active', true).order('created_at', { ascending: false }).limit(1).maybeSingle()
+            const payload = { tenant_id: tenant.id, name: yearData.name, start_date: yearData.startDate, end_date: yearData.endDate, is_active: true }
+            const { error: yearError } = existing
+                ? await supabase.from('academic_years').update(payload).eq('id', existing.id)
+                : await supabase.from('academic_years').insert(payload)
             if (yearError) throw yearError
-            if (data) setStep(2)
+
+            if (evalPeriods.length > 0) {
+                const { data: current } = await supabase.from('evaluation_periods').select('id, is_closed').eq('tenant_id', tenant.id).order('start_date')
+                const rows = current ?? []
+                for (let i = 0; i < evalPeriods.length; i++) {
+                    const p = evalPeriods[i]
+                    const values = { name: p.name.trim().toUpperCase(), start_date: p.start, end_date: p.end }
+                    const { error: pErr } = rows[i]
+                        ? await supabase.from('evaluation_periods').update(values).eq('id', rows[i].id)
+                        : await supabase.from('evaluation_periods').insert({ ...values, tenant_id: tenant.id, is_active: i === 0 && rows.length === 0 })
+                    if (pErr) throw pErr
+                }
+                // Los periodos sobrantes de un intento anterior se quitan (si ya tienen datos, se conservan)
+                for (const extra of rows.slice(evalPeriods.length)) {
+                    if (!extra.is_closed) await supabase.from('evaluation_periods').delete().eq('id', extra.id)
+                }
+            }
+            setStep(2)
         } catch (err: any) {
             setError(err.message)
         } finally {
@@ -203,7 +264,39 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
         }
     }
 
+    /** Reparte el ciclo en n periodos iguales (se pueden ajustar después). */
+    const splitPeriods = (n: number) => {
+        if (n === 0) { setEvalPeriods([]); return }
+        const start = new Date(yearData.startDate + 'T12:00:00')
+        const end = new Date(yearData.endDate + 'T12:00:00')
+        const total = Math.max(1, end.getTime() - start.getTime())
+        const iso = (d: Date) => d.toISOString().slice(0, 10)
+        const label = n === 3 ? 'TRIMESTRE' : n === 2 ? 'SEMESTRE' : 'PERIODO'
+        setEvalPeriods(Array.from({ length: n }, (_, i) => {
+            const a = new Date(start.getTime() + (total * i) / n)
+            const b = new Date(start.getTime() + (total * (i + 1)) / n - (i < n - 1 ? 86400000 : 0))
+            return { name: `${label} ${i + 1}`, start: iso(a), end: iso(b) }
+        }))
+    }
+
+    const breaksError = (): string | null => {
+        const { startTime, endTime, breaks } = scheduleSettings
+        if (!startTime || !endTime || startTime >= endTime) return 'La hora de salida debe ser posterior a la de entrada.'
+        const sorted = [...breaks].sort((a: any, b: any) => a.start_time.localeCompare(b.start_time))
+        for (let i = 0; i < sorted.length; i++) {
+            const b = sorted[i]
+            if (!b.start_time || !b.end_time) return `Indica la hora de inicio y fin del receso ${i + 1}.`
+            if (b.start_time >= b.end_time) return `El receso ${i + 1} termina antes de empezar.`
+            if (b.start_time < startTime || b.end_time > endTime) return `El receso ${i + 1} queda fuera de la jornada (${startTime}–${endTime}).`
+            if (i > 0 && b.start_time < sorted[i - 1].end_time) return 'Dos recesos se enciman; revisa sus horarios.'
+        }
+        return null
+    }
+
     const handleSaveSchedule = async () => {
+        const be = breaksError()
+        if (be) { setError(be); return }
+        setError(null)
         setLoading(true)
         try {
             // For PRIMARY/TELESECUNDARIA level, we use a single large module (jornada completa)
@@ -214,8 +307,10 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                 start_time: scheduleSettings.startTime,
                 end_time: scheduleSettings.endTime,
                 module_duration: moduleDuration,
-                breaks: scheduleSettings.breaks
-            })
+                breaks: [...scheduleSettings.breaks]
+                    .sort((a: any, b: any) => a.start_time.localeCompare(b.start_time))
+                    .map((b: any, i: number, all: any[]) => ({ ...b, name: all.length > 1 ? `RECESO ${i + 1}` : 'RECESO' }))
+            }, { onConflict: 'tenant_id' })
             if (error) throw error
 
             // Save Grade and Phase to TENANT if Primary or Telesecundaria
@@ -244,16 +339,23 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
         onComplete()
     }
 
-    const [newBreak, setNewBreak] = useState({ name: 'RECESO', start: '10:00', end: '10:30' })
-
-    const handleAddBreak = () => {
-        if (newBreak.start && newBreak.end) {
-            setScheduleSettings((prev: any) => ({
-                ...prev,
-                breaks: [...prev.breaks, { name: newBreak.name.toUpperCase(), start_time: newBreak.start, end_time: newBreak.end }]
-            }))
-        }
+    const addMinutes = (hhmm: string, m: number) => {
+        const [h, mi] = hhmm.split(':').map(Number)
+        const t = Math.min(23 * 60 + 59, h * 60 + mi + m)
+        return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`
     }
+    const setBreakCount = (n: number) => setScheduleSettings((prev: any) => {
+        const list = [...prev.breaks]
+        while (list.length > n) list.pop()
+        while (list.length < n) {
+            const last = list[list.length - 1]
+            const start = last ? addMinutes(last.end_time, 90) : '10:30'
+            list.push({ name: 'RECESO', start_time: start, end_time: addMinutes(start, last ? 15 : 30) })
+        }
+        return { ...prev, breaks: list }
+    })
+    const updateBreak = (i: number, k: 'start_time' | 'end_time', v: string) =>
+        setScheduleSettings((prev: any) => ({ ...prev, breaks: prev.breaks.map((b: any, idx: number) => idx === i ? { ...b, [k]: v } : b) }))
 
     const [selectedSubjects, setSelectedSubjects] = useState<Record<string, { selected: boolean, customDetail: string }>>(() => {
         const saved = sessionStorage.getItem('vunlek_onboarding_subjects')
@@ -438,6 +540,32 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                         </WizardField>
                     </div>
                     <OfficialCycleNote source={yearData.source ?? 'estimado'} official={officialCycle} loading={officialLoading} onUseOfficial={applyOfficialCycle} />
+
+                    <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4 space-y-3">
+                        <div>
+                            <span className="block text-xs font-black text-slate-600">Periodos de evaluación <span className="font-bold text-slate-400">(opcional)</span></span>
+                            <p className="text-xs text-slate-500 mt-0.5">¿En cuántos periodos evalúas el ciclo? Proponemos fechas iguales; ajústalas a las de tu escuela.</p>
+                        </div>
+                        <div className="grid grid-cols-3 min-[420px]:grid-cols-5 gap-2">
+                            {[0, 2, 3, 4, 5].map(n => (
+                                <button key={n} type="button" onClick={() => splitPeriods(n)} className={`${wizardChoice(evalPeriods.length === n)} justify-center text-xs`}>
+                                    {n === 0 ? 'Después' : n}
+                                </button>
+                            ))}
+                        </div>
+                        {evalPeriods.map((p, i) => (
+                            <div key={i} className="bg-white rounded-xl border border-slate-100 p-3 space-y-2">
+                                <input aria-label={`Nombre del periodo ${i + 1}`} value={p.name} onChange={e => setEvalPeriods(list => list.map((x, j) => j === i ? { ...x, name: e.target.value.toUpperCase() } : x))} className={`${wizardInput} text-sm`} />
+                                <div className="grid grid-cols-2 gap-2">
+                                    <WizardField label="Del"><DateInput aria-label={`Inicio del periodo ${i + 1}`} value={p.start} onChange={e => setEvalPeriods(list => list.map((x, j) => j === i ? { ...x, start: e.target.value } : x))} className={wizardInput} /></WizardField>
+                                    <WizardField label="Al"><DateInput aria-label={`Fin del periodo ${i + 1}`} value={p.end} onChange={e => setEvalPeriods(list => list.map((x, j) => j === i ? { ...x, end: e.target.value } : x))} className={wizardInput} /></WizardField>
+                                </div>
+                            </div>
+                        ))}
+                        {evalPeriods.length === 0 && (
+                            <p className="text-xs font-bold text-indigo-700">Puedes cargarlos después en <b>Ajustes → Periodos de Evaluación</b>. Los necesitarás para capturar calificaciones.</p>
+                        )}
+                    </div>
                 </div>
             )}
 
@@ -471,22 +599,26 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                             <p className="text-xs font-bold text-indigo-700 mt-2">Fase {schoolData.phase} de la NEM</p>
                         </div>
                     )}
-                    {!isIndependent && (
-                        <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4 space-y-3">
-                            <span className="block text-xs font-black text-slate-600">Recesos</span>
-                            <div className="grid grid-cols-2 gap-3">
-                                <WizardField label="Inicio"><input aria-label="Inicio" type="time" value={newBreak.start} onChange={e => setNewBreak({ ...newBreak, start: e.target.value })} className={wizardInput} /></WizardField>
-                                <WizardField label="Fin"><input aria-label="Fin" type="time" value={newBreak.end} onChange={e => setNewBreak({ ...newBreak, end: e.target.value })} className={wizardInput} /></WizardField>
+                    <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4 space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <span className="text-xs font-black text-slate-600">¿Cuántos recesos hay en la jornada?</span>
+                            <div className="flex items-center gap-2">
+                                <button type="button" aria-label="Quitar un receso" onClick={() => setBreakCount(Math.max(0, scheduleSettings.breaks.length - 1))} disabled={scheduleSettings.breaks.length === 0} className="w-9 h-9 rounded-xl bg-white border border-slate-200 font-black text-slate-700 disabled:opacity-40">−</button>
+                                <span className="w-8 text-center text-lg font-black text-slate-900" aria-live="polite">{scheduleSettings.breaks.length}</span>
+                                <button type="button" aria-label="Agregar un receso" onClick={() => setBreakCount(Math.min(4, scheduleSettings.breaks.length + 1))} disabled={scheduleSettings.breaks.length >= 4} className="w-9 h-9 rounded-xl bg-white border border-slate-200 font-black text-indigo-700 disabled:opacity-40"><Plus className="w-4 h-4 mx-auto" /></button>
                             </div>
-                            <button type="button" onClick={handleAddBreak} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-sm font-black text-indigo-700"><Plus className="w-4 h-4" /> Agregar receso</button>
-                            {scheduleSettings.breaks.map((b: any, i: number) => (
-                                <div key={i} className="flex items-center justify-between gap-2 bg-white rounded-xl border border-slate-100 px-3 py-2 text-sm">
-                                    <span className="font-bold text-slate-700">{b.name} <span className="font-mono text-xs text-slate-500">{b.start_time}–{b.end_time}</span></span>
-                                    <button aria-label="Eliminar" onClick={() => setScheduleSettings((prev: any) => ({ ...prev, breaks: prev.breaks.filter((_: any, idx: number) => idx !== i) }))} className="p-2 rounded-lg text-slate-400 hover:text-rose-600"><Trash2 className="w-4 h-4" /></button>
-                                </div>
-                            ))}
                         </div>
-                    )}
+                        {scheduleSettings.breaks.map((b: any, i: number) => (
+                            <div key={i} className="bg-white rounded-xl border border-slate-100 p-3">
+                                <span className="block text-xs font-black text-indigo-700 mb-2">Receso {scheduleSettings.breaks.length > 1 ? i + 1 : ''}</span>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <WizardField label="De"><input aria-label={`Inicio del receso ${i + 1}`} type="time" value={b.start_time} onChange={e => updateBreak(i, 'start_time', e.target.value)} className={wizardInput} /></WizardField>
+                                    <WizardField label="A"><input aria-label={`Fin del receso ${i + 1}`} type="time" value={b.end_time} onChange={e => updateBreak(i, 'end_time', e.target.value)} className={wizardInput} /></WizardField>
+                                </div>
+                            </div>
+                        ))}
+                        {scheduleSettings.breaks.length === 0 && <p className="text-xs text-slate-500">Sin recesos. Puedes agregarlos después en Ajustes → Jornada y Horarios.</p>}
+                    </div>
                 </div>
             )}
 

@@ -63,11 +63,14 @@ import { ProtectedRoute } from './components/routes/ProtectedRoute'
 import { SubscriptionGuard } from './components/routes/SubscriptionGuard'
 const CTEPage = lazyNamed(() => import('./features/cte/pages/CTEPage'), 'CTEPage')
 const NewSchoolYearWizard = lazyNamed(() => import('./features/school-year/pages/NewSchoolYearWizard'), 'NewSchoolYearWizard')
-const CustomPdasPage = lazyNamed(() => import('./features/pdas/pages/CustomPdasPage'), 'CustomPdasPage')
 const CooperativePage = lazyNamed(() => import('./features/cooperative/pages/CooperativePage'), 'CooperativePage')
 const TextbooksPage = lazyNamed(() => import('./features/textbooks/pages/TextbooksPage'), 'TextbooksPage')
 const CompleteSignupPage = lazyNamed(() => import('./features/auth/pages/CompleteSignupPage'), 'CompleteSignupPage')
 const LegalPage = lazyNamed(() => import('./features/legal/LegalPage'), 'LegalPage')
+const AdvisoryGroupPage = lazyNamed(() => import('./features/advisory/pages/AdvisoryGroupPage'), 'AdvisoryGroupPage')
+const PedagogyCatalogPage = lazyNamed(() => import('./features/pdas/pages/PedagogyCatalogPage'), 'PedagogyCatalogPage')
+const FormatsPage = lazyNamed(() => import('./features/formats/pages/FormatsPage'), 'FormatsPage')
+const InstrumentViewPage = lazyNamed(() => import('./features/rubrics/pages/InstrumentViewPage'), 'InstrumentViewPage')
 const NemAssistantPage = lazyNamed(() => import('./features/nem-assistant/pages/NemAssistantPage'), 'NemAssistantPage')
 
 // Force rebuild
@@ -233,9 +236,20 @@ function App() {
           <Route path="settings" element={<SettingsPage />} />
           <Route path="schedule" element={<SchedulePage />} />
           <Route path="agenda" element={<AgendaPage />} />
+          <Route path="formatos" element={
+            <ProtectedRoute allowedRoles={['TEACHER', 'INDEPENDENT_TEACHER', 'DIRECTOR', 'ADMIN', 'ACADEMIC_COORD', 'TECH_COORD']}>
+              <FormatsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="asesoria" element={
+            <ProtectedRoute allowedRoles={['TEACHER', 'INDEPENDENT_TEACHER', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD', 'PREFECT']}>
+              <AdvisoryGroupPage />
+            </ProtectedRoute>
+          } />
           <Route path="evaluation/setup" element={<EvaluationSetupPage />} />
           <Route path="rubrics" element={<RubricListPage />} />
           <Route path="rubrics/new" element={<InstrumentBuilderPage />} />
+          <Route path="rubrics/ver/:id" element={<InstrumentViewPage />} />
           <Route path="rubrics/:id" element={<RubricEditorPage />} />
           <Route path="evaluation/formative" element={<FormativeToolsPage />} />
           <Route path="evaluation/portfolio" element={<StudentPortfolioPage />} />
@@ -298,7 +312,7 @@ function App() {
           } />
 
           <Route path="cte" element={
-            <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD']}>
+            <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD', 'TEACHER', 'INDEPENDENT_TEACHER']}>
               <CTEPage />
             </ProtectedRoute>
           } />
@@ -310,7 +324,7 @@ function App() {
           } />
           <Route path="mis-pdas" element={
             <ProtectedRoute allowedRoles={['ADMIN', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD', 'TEACHER', 'INDEPENDENT_TEACHER']}>
-              <CustomPdasPage />
+              <PedagogyCatalogPage />
             </ProtectedRoute>
           } />
           <Route path="cooperativa" element={

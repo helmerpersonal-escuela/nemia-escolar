@@ -243,7 +243,7 @@ export const GradebookPage = () => {
 
     useEffect(() => {
         const tab = searchParams.get('tab')
-        if (tab && (tab === 'EVALUATION' || tab === 'ATTENDANCE' || tab === 'REPORTS')) {
+        if (tab && (tab === 'EVALUATION' || tab === 'ATTENDANCE' || tab === 'REPORTS' || tab === 'DAILY_PLANS')) {
             setActiveTab(tab as any)
         }
     }, [searchParams])
@@ -397,6 +397,8 @@ export const GradebookPage = () => {
 
     // FALLBACK: Group Selection
     if (!groupId) {
+        // El menú abre la libreta en "Calificaciones" o en "Conducta y reportes": se conserva al elegir grupo
+        const pickerTab = searchParams.get('tab') === 'REPORTS' ? 'REPORTS' : 'EVALUATION'
         return (
             <div className="max-w-5xl mx-auto p-8 animate-in fade-in duration-500">
                 <OfflineDataBanner fromCache={offlineInfo.fromCache} savedAt={offlineInfo.savedAt} hasData={availableGroups.length > 0} />
@@ -404,9 +406,11 @@ export const GradebookPage = () => {
                     <span className="p-3 bg-blue-100 rounded-full inline-block mb-4 shadow-sm">
                         <BookOpen className="w-8 h-8 text-blue-600" />
                     </span>
-                    <h1 className="text-4xl font-black text-gray-900 mb-3 tracking-tight">Libreta de Calificaciones</h1>
+                    <h1 className="text-4xl font-black text-gray-900 mb-3 tracking-tight">{pickerTab === 'REPORTS' ? 'Conducta y reportes' : 'Libreta de Calificaciones'}</h1>
                     <p className="text-lg text-gray-500 max-w-2xl mx-auto">
-                        Selecciona un grupo para gestionar evaluaciones, asistencias y reportes de conducta.
+                        {pickerTab === 'REPORTS'
+                            ? 'Selecciona un grupo para registrar incidencias, compromisos y reportes de conducta.'
+                            : 'Selecciona un grupo para capturar evaluaciones y calificaciones.'}
                     </p>
                 </div>
 
@@ -427,7 +431,7 @@ export const GradebookPage = () => {
                         {availableGroups.map(group => (
                             <button
                                 key={group.id}
-                                onClick={() => navigate(`/gradebook?groupId=${group.id}`, { replace: true })}
+                                onClick={() => navigate(`/gradebook?groupId=${group.id}&tab=${pickerTab}`, { replace: true })}
                                 className="group squishy-card p-8 text-left flex flex-col items-center justify-center space-y-4 relative overflow-hidden"
                             >
                                 <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-10 transition-opacity">
@@ -449,7 +453,7 @@ export const GradebookPage = () => {
 
                                 <div className="mt-4 pt-4 border-t border-gray-50 w-full text-center">
                                     <span className="text-sm font-bold text-gray-500 group-hover:text-blue-500 flex items-center justify-center transition-colors">
-                                        Abrir Libreta <ArrowRight className="w-4 h-4 ml-1" />
+                                        {pickerTab === 'REPORTS' ? 'Ver conducta' : 'Abrir Libreta'} <ArrowRight className="w-4 h-4 ml-1" />
                                     </span>
                                 </div>
                             </button>

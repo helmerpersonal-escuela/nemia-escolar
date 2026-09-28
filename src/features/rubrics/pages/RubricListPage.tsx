@@ -11,6 +11,7 @@ interface Rubric {
     description: string
     type: 'ANALYTIC' | 'HOLISTIC' | 'CHECKLIST' | 'QUIZ' | 'OBSERVATION' | 'JOURNAL' | 'TEST' | 'INTERVIEW' | 'PORTFOLIO' | 'MAP' | 'SELF_ASSESSMENT'
     updated_at: string
+    is_ai_generated?: boolean
 }
 
 export const RubricListPage = () => {
@@ -97,7 +98,7 @@ export const RubricListPage = () => {
                                     {rubric.type}
                                 </div>
                                 <div className="flex space-x-2">
-                                    <Link to={`/rubrics/${rubric.id}`} className="text-gray-500 hover:text-blue-600 p-1">
+                                    <Link to={rubric.is_ai_generated ? `/rubrics/ver/${rubric.id}` : `/rubrics/${rubric.id}`} className="text-gray-500 hover:text-blue-600 p-1">
                                         <Edit className="w-4 h-4" />
                                     </Link>
                                     <button aria-label="Eliminar"

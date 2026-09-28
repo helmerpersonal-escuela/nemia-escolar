@@ -21,6 +21,10 @@ const mockSupabaseChain = (returnData: any, returnCount: any = null) => {
     return {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
+        is: vi.fn().mockReturnThis(),
+        in: vi.fn().mockReturnThis(),
+        gte: vi.fn().mockReturnThis(),
+        lte: vi.fn().mockReturnThis(),
         order: vi.fn().mockReturnThis(),
         limit: vi.fn().mockReturnThis(),
         maybeSingle: vi.fn().mockResolvedValue({ data: returnData, error: null }),
@@ -44,14 +48,15 @@ vi.mock('../components/CreateAssignmentModal', () => ({ CreateAssignmentModal: (
 vi.mock('../../schedule/components/DayScheduleModal', () => ({ DayScheduleModal: () => <div data-testid="DayScheduleModal" /> }))
 vi.mock('../../dashboard/components/AttendanceWidget', () => ({ AttendanceWidget: () => <div data-testid="AttendanceWidget" /> }))
 vi.mock('../../dashboard/components/roles/StudentSelectionModal', () => ({ StudentSelectionModal: () => <div data-testid="StudentSelectionModal" /> }))
-vi.mock('../../dashboard/components/CTE/CTEAgendaModal', () => ({ CTEAgendaModal: () => <div data-testid="CTEAgendaModal" /> }))
+vi.mock('../../advisory/components/AdvisoryGroupCard', () => ({ AdvisoryGroupCard: () => null }))
+vi.mock('../../../components/academic/ContinuousImprovementCard', () => ({ ContinuousImprovementCard: () => null }))
 
 // 3. Import Mocks
 import { useTenant } from '../../../hooks/useTenant'
 import { supabase } from '../../../lib/supabase'
 
 describe('TeacherDashboard', () => {
-    it('hides Agenda CTE button for Independent Teachers', async () => {
+    it('hides Consejo Técnico button for Independent Teachers', async () => {
         // Setup Mocks
         (useTenant as any).mockReturnValue({
             data: { id: 'tenant-123', name: 'Escuela Demo', type: 'INDEPENDENT', role: 'INDEPENDENT_TEACHER' }
@@ -75,11 +80,11 @@ describe('TeacherDashboard', () => {
             expect(screen.getByText(/Libreta/i)).toBeInTheDocument()
         })
 
-        const agendaButton = screen.queryByText(/Agenda CTE/i)
+        const agendaButton = screen.queryByText(/Consejo Técnico/i)
         expect(agendaButton).not.toBeInTheDocument()
     })
 
-    it('shows Agenda CTE button for School Teachers', async () => {
+    it('shows Consejo Técnico button for School Teachers', async () => {
         // Setup Mocks
         (useTenant as any).mockReturnValue({
             data: { id: 'tenant-123', name: 'Escuela Demo', type: 'SCHOOL', role: 'TEACHER' }
@@ -103,7 +108,7 @@ describe('TeacherDashboard', () => {
             expect(screen.getByText(/Libreta/i)).toBeInTheDocument()
         })
 
-        const agendaButton = screen.getByText(/Agenda CTE/i)
+        const agendaButton = screen.getByText(/Consejo Técnico/i)
         expect(agendaButton).toBeInTheDocument()
     })
 })
