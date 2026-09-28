@@ -15,6 +15,8 @@ import { useLocation } from 'react-router-dom'
 import { AcademicYearManager } from '../components/AcademicYearManager'
 import { useProfile } from '../../../hooks/useProfile'
 import { SubjectSelector } from '../../../components/academic/SubjectSelector'
+import { SchoolDataSection } from '../components/SchoolDataSection'
+import { useQueryClient } from '@tanstack/react-query'
 
 // Leaflet Icons Fix
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -50,10 +52,13 @@ const AVATARS = [
 
 export const SettingsPage = () => {
     const [searchParams] = useSearchParams()
-    const initialTab = (searchParams.get('tab') as any) || 'profile'
+    // Enlaces antiguos: "periods" ahora vive junto con el ciclo escolar
+    const rawTab = searchParams.get('tab')
+    const initialTab = (rawTab === 'periods' ? 'cycle' : rawTab as any) || 'profile'
 
     const [loading, setLoading] = useState(true)
     const [updating, setUpdating] = useState(false)
+    const queryClient = useQueryClient()
     const [activeTab, setActiveTab] = useState<'profile' | 'school' | 'subjects' | 'periods' | 'cycle' | 'horarios' | 'personal' | 'security' | 'ai' | 'billing'>(initialTab)
     const location = useLocation()
     const [successMessage, setSuccessMessage] = useState('')
@@ -297,6 +302,7 @@ export const SettingsPage = () => {
                                 .from('profile_subjects')
                                 .select('subject_catalog_id, custom_detail')
                                 .eq('profile_id', user.id)
+                                .eq('tenant_id', tenantData.id)
 
                             if (subjectError) console.error('Error fetching subjects:', subjectError);
                             console.log('Fetched subjects:', subjectData);
@@ -456,26 +462,8 @@ export const SettingsPage = () => {
     const handleUpdateSubjects = async () => {
         setUpdating(true)
         try {
-            // 0. Update tenant educational level and grade
-            let newPhase = tenant.phase;
-            if (tenant.educational_level === 'PRIMARY' && tenant.grade) {
-                if (tenant.grade === 1 || tenant.grade === 2) newPhase = 3;
-                else if (tenant.grade === 3 || tenant.grade === 4) newPhase = 4;
-                else if (tenant.grade === 5 || tenant.grade === 6) newPhase = 5;
-            } else if (tenant.educational_level === 'TELESECUNDARIA') {
-                newPhase = 6;
-            }
-
-            const { error: tenantError } = await supabase.from('tenants').update({
-                educational_level: tenant.educational_level,
-                grade: (tenant.educational_level === 'PRIMARY' || tenant.educational_level === 'TELESECUNDARIA') ? tenant.grade : null,
-                phase: (tenant.educational_level === 'PRIMARY' || tenant.educational_level === 'TELESECUNDARIA') ? newPhase : null
-            }).eq('id', tenant.id)
-
-            if (tenantError) throw tenantError
-
             // 1. Delete existing subjects for this user
-            const { error: deleteError } = await supabase.from('profile_subjects').delete().eq('profile_id', profile.id)
+            const { error: deleteError } = await supabase.from('profile_subjects').delete().eq('profile_id', profile.id).eq('tenant_id', tenant.id)
             if (deleteError) throw deleteError
 
             // 2. Insert selection
@@ -491,6 +479,7 @@ export const SettingsPage = () => {
                 if (insertError) throw insertError
             }
 
+            queryClient.invalidateQueries({ queryKey: ['teacher-scope'] })
             showSuccess('Materias actualizadas correctamente')
             localStorage.removeItem(`settings_draft_${profile.id}`)
         } catch (err) {
@@ -626,8 +615,8 @@ export const SettingsPage = () => {
                                     { id: 'profile', label: 'Mi Perfil', icon: User, color: 'text-blue-600', bg: 'bg-blue-50' },
                                     // Hide subjects for roles that don't teach. 
                                     // INDEPENDENT_TEACHER sees this in Institutional section now.
-                                    ...(['TEACHER', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD', 'ADMIN'].includes(profile.role?.toUpperCase()) ? [
-                                        { id: 'subjects', label: 'Datos Escolares', icon: BookOpen, color: 'text-purple-600', bg: 'bg-purple-50' }
+                                    ...(['TEACHER', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD', 'ADMIN', 'INDEPENDENT_TEACHER'].includes(currentRole) ? [
+                                        { id: 'subjects', label: 'Mis materias', icon: BookOpen, color: 'text-purple-600', bg: 'bg-purple-50' }
                                     ] : []),
                                     { id: 'security', label: 'Seguridad', icon: Lock, color: 'text-gray-600', bg: 'bg-gray-100' },
                                     ...((profile.role?.toUpperCase() !== 'TUTOR') ? [
@@ -659,14 +648,9 @@ export const SettingsPage = () => {
                                 <h4 className="px-4 text-[11px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Institucional</h4>
                                 <nav className="space-y-1">
                                     {[
-                                        { id: 'school', label: 'Datos Escuela', icon: School, color: 'text-emerald-700', bg: 'bg-emerald-50' },
-                                        // Independent Teachers manage subjects here as part of their "Institution"
-                                        ...(profile.role?.toUpperCase() === 'INDEPENDENT_TEACHER' || tenant.type === 'INDEPENDENT' ? [
-                                            { id: 'subjects', label: 'Datos Escolares', icon: BookOpen, color: 'text-purple-600', bg: 'bg-purple-50' }
-                                        ] : []),
-                                        { id: 'horarios', label: 'Jornada y Horarios', icon: Clock, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-                                        { id: 'cycle', label: 'Ciclo Escolar', icon: Calendar, color: 'text-amber-700', bg: 'bg-amber-50' },
-                                        { id: 'periods', label: 'Periodos de Evaluación', icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50' },
+                                        { id: 'school', label: 'Datos de la escuela', icon: School, color: 'text-emerald-700', bg: 'bg-emerald-50' },
+                                        { id: 'cycle', label: 'Ciclo escolar y periodos', icon: Calendar, color: 'text-amber-700', bg: 'bg-amber-50' },
+                                        { id: 'horarios', label: 'Jornada escolar', icon: Clock, color: 'text-indigo-600', bg: 'bg-indigo-50' },
                                     ].map((item: any) => {
                                         const isActive = activeTab === item.id;
                                         const Icon = item.icon;
@@ -697,8 +681,6 @@ export const SettingsPage = () => {
                                         { id: 'personal', label: 'Plantilla Docente', icon: Users, color: 'text-rose-600', bg: 'bg-rose-50', adminOnly: true, excludeIndependent: true },
                                         { id: 'ai', label: 'Configuración IA', icon: Sparkles, color: 'text-indigo-600', bg: 'bg-indigo-50', superOnly: true },
                                     ].map((item: any) => {
-                                        // DEBUG LOGS
-                                        console.log('Settings Item:', item.id, 'Role:', profile.role, 'IsIndependent:', profile.role?.toUpperCase() === 'INDEPENDENT_TEACHER');
 
                                         if (item.adminOnly && !isDirectorOrAdmin) return null;
                                         if (item.superOnly && !isSuperAdmin) return null;
@@ -830,14 +812,14 @@ export const SettingsPage = () => {
                                                         <ArrowLeft className="w-5 h-5" />
                                                     </button>
                                                     <div>
-                                                        <h3 className="text-2xl font-black text-gray-900 tracking-tight">Editar Datos Escolares</h3>
-                                                        <p className="text-sm text-gray-500 font-medium">Selecciona/desmarca las materias de tu lista o modifica tu información.</p>
+                                                        <h3 className="text-2xl font-black text-gray-900 tracking-tight">Editar mis materias</h3>
+                                                        <p className="text-sm text-gray-500 font-medium">Marca las materias que impartes en esta escuela.</p>
                                                     </div>
                                                 </div>
                                             ) : (
                                                 <div>
-                                                    <h3 className="text-2xl font-black text-gray-900 tracking-tight">Datos Escolares</h3>
-                                                    <p className="text-sm text-gray-500 font-medium">Gestiona tu grado, fase y asignaturas actuales.</p>
+                                                    <h3 className="text-2xl font-black text-gray-900 tracking-tight">Mis materias</h3>
+                                                    <p className="text-sm text-gray-500 font-medium">Las asignaturas que impartes.</p>
                                                 </div>
                                             )}
                                         </div>
@@ -854,33 +836,10 @@ export const SettingsPage = () => {
                                         )}
                                     </div>
 
-                                    {/* Additional Info Section (Grade and Phase) */}
-                                    {!isEditingSubjects && (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div className="squishy-card p-6 bg-indigo-50 border-2 border-indigo-100 flex items-center gap-4">
-                                                <div className="p-4 bg-indigo-100 text-indigo-600 rounded-2xl">
-                                                    <GraduationCap className="h-8 w-8" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-xs font-black text-indigo-400 uppercase tracking-widest">Grado Asignado</p>
-                                                    <h4 className="text-2xl font-black text-indigo-900">
-                                                        {tenant?.grade ? `${tenant.grade}° Grado` : 'No asignado'}
-                                                    </h4>
-                                                </div>
-                                            </div>
-                                            <div className="squishy-card p-6 bg-purple-50 border-2 border-purple-100 flex items-center gap-4">
-                                                <div className="p-4 bg-purple-100 text-purple-600 rounded-2xl">
-                                                    <Layers className="h-8 w-8" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-xs font-black text-purple-400 uppercase tracking-widest">Fase NEM</p>
-                                                    <h4 className="text-2xl font-black text-purple-900">
-                                                        {tenant?.phase ? `Fase ${tenant.phase}` : 'No asignada'}
-                                                    </h4>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
+                                    <p className="text-sm text-slate-600 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3">
+                                        Tus materias definen tu programa analítico (uno por campo formativo) y las opciones de tus planeaciones.
+                                        El nivel educativo y el grado se cambian en <button type="button" onClick={() => setActiveTab('school')} className="font-black text-indigo-700 underline">Datos de la escuela</button>.
+                                    </p>
 
                                     {/* Main Content Area */}
                                     <div className="bg-gray-50 rounded-3xl border border-gray-100 min-h-[500px] flex flex-col relative overflow-hidden">
@@ -888,59 +847,6 @@ export const SettingsPage = () => {
                                             <div className="flex flex-col h-full animate-in fade-in slide-in-from-bottom-4 duration-300">
                                                 {/* Scrollable Content */}
                                                 <div className="flex-1 p-6 overflow-y-auto max-h-[60vh]">
-                                                    {/* Educational Level & Grade Options */}
-                                                    <div className="mb-8 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                                                        <h4 className="text-sm font-black text-gray-800 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                                            <School className="w-5 h-5 text-blue-500" />
-                                                            Nivel y Grado
-                                                        </h4>
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                            <div>
-                                                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Nivel Educativo</label>
-                                                                <select aria-label="Nivel Educativo"
-                                                                    value={tenant.educational_level || ''}
-                                                                    onChange={(e) => {
-                                                                        const level = e.target.value;
-                                                                        setTenant({ ...tenant, educational_level: level, grade: level === 'PRIMARY' ? tenant.grade : null, phase: level === 'PRIMARY' ? tenant.phase : null })
-                                                                    }}
-                                                                    className="w-full bg-gray-50 border-gray-200 rounded-xl px-4 py-3 font-bold text-gray-700"
-                                                                >
-                                                                    <option value="PRIMARY">Primaria</option>
-                                                                    <option value="SECONDARY">Secundaria</option>
-                                                                    <option value="TELESECUNDARIA">Telesecundaria</option>
-                                                                    <option value="HIGH_SCHOOL">Preparatoria / Bachillerato</option>
-                                                                    <option value="HIGHER_EDUCATION">Educación Superior</option>
-                                                                    <option value="OTHER">Otro</option>
-                                                                </select>
-                                                            </div>
-
-                                                            {tenant.educational_level === 'PRIMARY' && (
-                                                                <div>
-                                                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Grado Escolar</label>
-                                                                    <select aria-label="Grado Escolar"
-                                                                        value={tenant.grade || ''}
-                                                                        onChange={(e) => {
-                                                                            const grade = e.target.value ? parseInt(e.target.value) : null;
-                                                                            let phase = null;
-                                                                            if (grade) {
-                                                                                if (grade <= 2) phase = 3;
-                                                                                else if (grade <= 4) phase = 4;
-                                                                                else phase = 5;
-                                                                            }
-                                                                            setTenant({ ...tenant, grade, phase });
-                                                                        }}
-                                                                        className="w-full bg-indigo-50 border-indigo-200 rounded-xl px-4 py-3 font-bold text-indigo-700"
-                                                                    >
-                                                                        <option value="">Selecciona el Grado</option>
-                                                                        {[1, 2, 3, 4, 5, 6].map(g => (
-                                                                            <option key={g} value={g}>{g}° Grado</option>
-                                                                        ))}
-                                                                    </select>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-
                                                     <h4 className="text-sm font-black text-gray-800 uppercase tracking-widest mb-4 mt-6 flex items-center gap-2">
                                                         <BookOpen className="w-5 h-5 text-purple-500" />
                                                         Materias Asignadas
@@ -1030,7 +936,7 @@ export const SettingsPage = () => {
                                                                                 setSelectedUserSubjects(newList);
                                                                                 setUpdating(true);
                                                                                 try {
-                                                                                    const { error: deleteError } = await supabase.from('profile_subjects').delete().eq('profile_id', profile.id)
+                                                                                    const { error: deleteError } = await supabase.from('profile_subjects').delete().eq('profile_id', profile.id).eq('tenant_id', tenant.id)
                                                                                     if (deleteError) throw deleteError
 
                                                                                     const subjectsToInsert = newList.map(s => ({
@@ -1044,6 +950,7 @@ export const SettingsPage = () => {
                                                                                         const { error: insertError } = await supabase.from('profile_subjects').insert(subjectsToInsert)
                                                                                         if (insertError) throw insertError
                                                                                     }
+                                                                                    queryClient.invalidateQueries({ queryKey: ['teacher-scope'] })
                                                                                     showSuccess('Materia eliminada');
                                                                                 } catch (e) {
                                                                                     console.error(e);
@@ -1073,249 +980,7 @@ export const SettingsPage = () => {
 
 
                             {activeTab === 'school' && (
-                                <div className="space-y-12">
-                                    <div className="flex flex-col md:flex-row justify-between items-start gap-4 border-b border-gray-100 pb-6">
-                                        <div>
-                                            <h3 className="text-2xl font-black text-gray-900 tracking-tight">Datos de la Escuela</h3>
-                                            <p className="text-sm text-gray-500 font-medium">Información oficial y ubicación geográfica de tu institución.</p>
-                                        </div>
-                                        {isDirectorOrAdmin && (
-                                            <button
-                                                onClick={handleUpdateTenant}
-                                                disabled={updating}
-                                                className="px-6 py-3 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-gray-200 disabled:opacity-50 flex items-center"
-                                            >
-                                                <Save className="w-4 h-4 mr-2" />
-                                                {updating ? 'Guardando...' : 'Guardar Cambios'}
-                                            </button>
-                                        )}
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div>
-                                            <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Nombre Oficial</label>
-                                            <div className="relative group">
-                                                <School className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-blue-500 transition-colors" />
-                                                <input aria-label="Nombre Oficial"
-                                                    type="text"
-                                                    value={tenant.name}
-                                                    onChange={(e) => setTenant({ ...tenant, name: e.target.value })}
-                                                    readOnly={!isDirectorOrAdmin}
-                                                    className={`w-full pl-11 pr-4 py-3 bg-gray-50 border border-transparent rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-blue-500 transition-all outline-none ${!isDirectorOrAdmin ? 'opacity-70 cursor-not-allowed bg-gray-100' : ''}`}
-                                                    placeholder="Ej. Escuela Secundaria Técnica #45"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Clave de Centro de Trabajo (CCT)</label>
-                                            <div className="relative group">
-                                                <div className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-blue-500 transition-colors font-black text-[11px]">CCT</div>
-                                                <input aria-label="Clave de Centro de Trabajo (CCT)"
-                                                    type="text"
-                                                    value={tenant.cct || ''}
-                                                    onChange={(e) => setTenant({ ...tenant, cct: e.target.value })}
-                                                    readOnly={!isDirectorOrAdmin}
-                                                    className={`w-full pl-11 pr-4 py-3 bg-gray-50 border border-transparent rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-blue-500 transition-all outline-none uppercase ${!isDirectorOrAdmin ? 'opacity-70 cursor-not-allowed bg-gray-100' : ''}`}
-                                                    placeholder="Ej. 14DST0045J"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* CTE CONFIGURATION */}
-                                    <div className="pt-6 border-t border-gray-100 mt-6">
-                                        <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center">
-                                            <Clock className="w-4 h-4 mr-2 text-blue-500" />
-                                            Configuración de Consejo Técnico
-                                        </h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div>
-                                                <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Próxima Fecha</label>
-                                                <DateInput aria-label="Próxima Fecha"
-                                                    value={tenant.cte_config?.next_date || ''}
-                                                    onChange={(e) => setTenant({
-                                                        ...tenant,
-                                                        cte_config: { ...tenant.cte_config, next_date: e.target.value }
-                                                    })}
-                                                    readOnly={!isDirectorOrAdmin}
-                                                    className={`w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-blue-500 transition-all outline-none ${!isDirectorOrAdmin ? 'opacity-70 cursor-not-allowed bg-gray-100' : ''}`}
-                                                />
-                                                <p className="text-[11px] text-gray-500 mt-1 ml-1">Dejar vacío para cálculo automático (último viernes).</p>
-                                            </div>
-                                            <div>
-                                                <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Enlace a Orden del Día</label>
-                                                <input aria-label="Enlace a Orden del Día"
-                                                    type="url"
-                                                    value={tenant.cte_config?.link || ''}
-                                                    onChange={(e) => setTenant({
-                                                        ...tenant,
-                                                        cte_config: { ...tenant.cte_config, link: e.target.value }
-                                                    })}
-                                                    readOnly={!isDirectorOrAdmin}
-                                                    className={`w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-blue-500 transition-all outline-none ${!isDirectorOrAdmin ? 'opacity-70 cursor-not-allowed bg-gray-100' : ''}`}
-                                                    placeholder="https://drive.google.com/..."
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                                        <div>
-                                            <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Teléfono Institucional</label>
-                                            <input aria-label="Teléfono Institucional"
-                                                type="text"
-                                                disabled={isStaffReadOnly}
-                                                value={tenant.phone || ''}
-                                                onChange={(e) => setTenant({ ...tenant, phone: e.target.value.toUpperCase() })}
-                                                className={`w-full px-5 py-3.5 bg-gray-50 border border-transparent rounded-2xl text-gray-900 font-bold focus:bg-white focus:border-blue-500 transition-all outline-none ${isStaffReadOnly ? 'cursor-not-allowed text-gray-500' : ''}`}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Nivel Educativo</label>
-                                            <select aria-label="Nivel Educativo"
-                                                name="educationalLevel"
-                                                value={tenant.educational_level || ''}
-                                                onChange={(e) => {
-                                                    const level = e.target.value;
-                                                    setTenant({ ...tenant, educational_level: level, grade: level === 'PRIMARY' ? tenant.grade : null, phase: level === 'PRIMARY' ? tenant.phase : null })
-                                                }}
-                                                className={`w-full px-5 py-3.5 bg-gray-50 border border-transparent rounded-2xl text-gray-900 font-bold focus:bg-white focus:border-blue-500 transition-all outline-none ${isStaffReadOnly ? 'cursor-not-allowed text-gray-500 appearance-none' : ''}`}
-                                                disabled={isStaffReadOnly}
-                                            >
-                                                <option value="PRIMARY">Primaria</option>
-                                                <option value="SECONDARY">Secundaria</option>
-                                                <option value="TELESECUNDARIA">Telesecundaria</option>
-                                                <option value="HIGH_SCHOOL">Preparatoria / Bachillerato</option>
-                                                <option value="HIGHER_EDUCATION">Educación Superior</option>
-                                                <option value="OTHER">Otro</option>
-                                            </select>
-                                        </div>
-
-                                        {tenant.educational_level === 'PRIMARY' && (
-                                            <>
-                                                <div>
-                                                    <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Grado Escolar</label>
-                                                    <select aria-label="Grado Escolar"
-                                                        value={tenant.grade || ''}
-                                                        onChange={(e) => {
-                                                            const grade = e.target.value ? parseInt(e.target.value) : null;
-                                                            let phase = null;
-                                                            if (grade) {
-                                                                if (grade <= 2) phase = 3;
-                                                                else if (grade <= 4) phase = 4;
-                                                                else phase = 5;
-                                                            }
-                                                            setTenant({ ...tenant, grade, phase });
-                                                        }}
-                                                        disabled={isStaffReadOnly}
-                                                        className={`w-full px-5 py-3.5 bg-gray-50 border border-transparent rounded-2xl text-gray-900 font-bold focus:bg-white focus:border-blue-500 transition-all outline-none ${isStaffReadOnly ? 'cursor-not-allowed text-gray-500 appearance-none' : ''}`}
-                                                    >
-                                                        <option value="">Selecciona el Grado</option>
-                                                        {[1, 2, 3, 4, 5, 6].map(g => (
-                                                            <option key={g} value={g}>{g}° Grado</option>
-                                                        ))}
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1 flex items-center gap-1">
-                                                        <span>Fase NEM Asignada</span>
-                                                        <Sparkles className="w-3 h-3 text-emerald-700" />
-                                                    </label>
-                                                    <div className="w-full px-5 py-3.5 bg-emerald-50/50 border border-emerald-100/50 rounded-2xl text-emerald-700 font-black relative overflow-hidden flex items-center shadow-inner">
-                                                        <div className="absolute top-0 right-0 p-4 opacity-5">
-                                                            <GraduationCap className="w-12 h-12 text-emerald-700" />
-                                                        </div>
-                                                        <div className="relative z-10 flex items-center gap-4 w-full">
-                                                            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-extrabold flex-shrink-0 border border-emerald-200 shadow-sm">
-                                                                {tenant.phase || '-'}
-                                                            </div>
-                                                            <div className="flex flex-col">
-                                                                <span className="text-sm tracking-tight text-emerald-800">
-                                                                    {tenant.phase ? `Fase ${tenant.phase}` : 'Pendiente'}
-                                                                </span>
-                                                                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600/70 mt-0.5">
-                                                                    Cálculo Automático
-                                                                </span>
-                                                            </div>
-                                                            {tenant.phase && (
-                                                                <div className="ml-auto">
-                                                                    <div className="bg-emerald-500 rounded-full p-1 animate-pulse shadow-sm shadow-emerald-200">
-                                                                        <Check className="w-3 h-3 text-white" />
-                                                                    </div>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </>
-                                        )}
-
-                                        <div className="col-span-2">
-                                            <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Dirección Completa</label>
-                                            <input aria-label="Dirección Completa"
-                                                type="text"
-                                                disabled={isStaffReadOnly}
-                                                value={tenant.address || ''}
-                                                onChange={(e) => setTenant({ ...tenant, address: e.target.value.toUpperCase() })}
-                                                className={`w-full px-5 py-3.5 bg-gray-50 border border-transparent rounded-2xl text-gray-900 font-bold focus:bg-white focus:border-blue-500 transition-all outline-none ${isStaffReadOnly ? 'cursor-not-allowed text-gray-500' : ''}`}
-                                            />
-                                        </div>
-
-                                        <div className="col-span-2 space-y-4">
-                                            <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest ml-1">Geolocalización</label>
-                                            <div className="h-[350px] rounded-[2rem] overflow-hidden border border-gray-100 shadow-inner group relative">
-                                                <MapContainer
-                                                    center={[tenant.location_lat || 19.43, tenant.location_lng || -99.13]}
-                                                    zoom={13}
-                                                    style={{ height: '100%', width: '100%' }}
-                                                >
-                                                    <TileLayer
-                                                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                                                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                                    />
-                                                    <LocationMarker
-                                                        position={{ lat: tenant.location_lat, lng: tenant.location_lng }}
-                                                        setPosition={(pos) => setTenant(prev => ({ ...prev, location_lat: pos.lat, location_lng: pos.lng }))}
-                                                    />
-                                                </MapContainer>
-                                                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-4 py-2 rounded-xl text-[11px] font-black uppercase text-gray-500 border border-white/50 shadow-lg pointer-events-none">
-                                                    Haz clic para actualizar
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="col-span-2 border-t border-gray-50 pt-10">
-                                            <h4 className="text-sm font-black text-gray-900 mb-6 flex items-center uppercase tracking-widest">
-                                                <Sparkles className="w-5 h-5 mr-3 text-blue-500" />
-                                                Identidad Visual en Documentos
-                                            </h4>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                                <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100">
-                                                    <ImageUpload
-                                                        label="Escudo Oficial"
-                                                        currentUrl={tenant.logo_left_url}
-                                                        onUpload={(url) => setTenant(prev => ({ ...prev, logo_left_url: url }))}
-                                                        bucket="school-assets"
-                                                    />
-                                                    <p className="text-[11px] font-medium text-gray-500 mt-4 leading-relaxed italic">
-                                                        Se utilizará para encabezados oficiales (ej. SEP o Secretaría Estatal).
-                                                    </p>
-                                                </div>
-                                                <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100">
-                                                    <ImageUpload
-                                                        label="Logo Institucional"
-                                                        currentUrl={tenant.logo_right_url}
-                                                        onUpload={(url) => setTenant(prev => ({ ...prev, logo_right_url: url }))}
-                                                        bucket="school-assets"
-                                                    />
-                                                    <p className="text-[11px] font-medium text-gray-500 mt-4 leading-relaxed italic">
-                                                        Logotipo propio de la escuela para boletas y reportes.
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                <SchoolDataSection readOnly={!isDirectorOrAdmin} />
                             )}
 
                             {activeTab === 'horarios' && (
@@ -1336,47 +1001,13 @@ export const SettingsPage = () => {
                                     <div className="space-y-12">
                                         <div className="flex flex-col md:flex-row justify-between items-start gap-4 border-b border-gray-100 pb-6">
                                             <div>
-                                                <h3 className="text-2xl font-black text-gray-900 tracking-tight">Ciclo Escolar</h3>
-                                                <p className="text-sm text-gray-500 font-medium">Gestión del calendario escolar activo y vigencia académica.</p>
+                                                <h3 className="text-2xl font-black text-gray-900 tracking-tight">Ciclo escolar y periodos de evaluación</h3>
+                                                <p className="text-sm text-gray-500 font-medium">Las fechas del ciclo y los periodos (trimestres) que registraste al crear tu espacio. Organizan tus calificaciones, asistencia y planeaciones.</p>
                                             </div>
                                         </div>
-                                        <div className="bg-white rounded-[2rem] border border-gray-100 p-2 shadow-sm mb-8">
+                                        <div className="bg-white rounded-[2rem] border border-gray-100 p-2 shadow-sm">
                                             <AcademicYearManager readOnly={!isDirectorOrAdmin} />
                                         </div>
-                                    </div>
-                                )
-                            }
-
-                            {
-                                activeTab === 'periods' && (
-                                    <div className="space-y-12">
-                                        <div className="flex flex-col md:flex-row justify-between items-start gap-4 border-b border-gray-100 pb-6">
-                                            <div>
-                                                <h3 className="text-2xl font-black text-gray-900 tracking-tight">Periodos de Evaluación</h3>
-                                                <p className="text-sm text-gray-500 font-medium">Configura los trimestres y fechas clave para la captura de calificaciones.</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="bg-indigo-50/50 p-8 rounded-[2rem] border border-indigo-100/50 relative overflow-hidden">
-                                            <div className="absolute top-0 right-0 p-8 opacity-10">
-                                                <Calendar className="w-24 h-24 text-indigo-600" />
-                                            </div>
-                                            <div className="relative z-10">
-                                                <div className="flex items-center mb-6">
-                                                    <div className="p-3 bg-indigo-600 rounded-2xl text-white mr-5 shadow-xl shadow-indigo-100">
-                                                        <Calendar className="w-6 h-6" />
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="text-lg font-black text-gray-900 uppercase tracking-tight">Sincronización de Tiempos</h4>
-                                                        <p className="text-[11px] font-black text-indigo-500 uppercase tracking-widest mt-0.5">Gestión de Calendario</p>
-                                                    </div>
-                                                </div>
-                                                <p className="text-sm text-gray-600 leading-relaxed max-w-2xl">
-                                                    Los periodos definidos aquí organizan automáticamente tus planeaciones, reportes de asistencia y el concentrado de calificaciones.
-                                                </p>
-                                            </div>
-                                        </div>
-
                                         <div className="bg-white rounded-[2rem] border border-gray-100 p-2 shadow-sm">
                                             <PeriodManager readOnly={!isDirectorOrAdmin} />
                                         </div>

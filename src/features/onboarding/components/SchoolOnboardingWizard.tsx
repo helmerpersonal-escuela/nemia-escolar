@@ -22,6 +22,7 @@ import { CooperativeFields, emptyCooperative, cooperativeIsValid, saveCooperativ
 import { DateInput } from '../../../components/ui/DateInput'
 import { OfficialCycleNote, type CycleSource } from '../../../components/academic/OfficialCycleNote'
 import { useOfficialCycle, cycleNameFromDates } from '../../../lib/officialCalendar'
+import { SchoolLocationFields, emptyLocation, isLocationComplete, type SchoolLocation } from '../../../components/location/SchoolLocationFields'
 
 export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void }) => {
     const navigate = useNavigate()
@@ -54,6 +55,9 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
             address_zip_code: '',
             address_municipality: '',
             address_state: '',
+            address_state_code: '',
+            address_municipality_code: '',
+            location: emptyLocation as SchoolLocation,
 
             // 3. Contact
             phone: '',
@@ -175,6 +179,7 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
 
     const stepError = (): string | null => {
         if (step === 0 && (!formData.official_name?.trim() || !formData.cct?.trim())) return 'Escribe el nombre oficial y la CCT del plantel.'
+        if (step === 1 && !isLocationComplete({ ...emptyLocation, ...(formData.location || {}) })) return 'Selecciona el estado y el municipio, y escribe la colonia o localidad de la escuela.'
         if (step === 3) {
             if (formData.educational_level === 'SECONDARY' && !formData.secondary_type) return 'Indica si la secundaria es General o Técnica.'
             if (isTecnica && !cooperativeIsValid(coop)) return coop.hasCooperative === null
@@ -200,7 +205,7 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
         try {
             // 1. Save to school_details
             // El ciclo no va en school_details: se guarda como ciclo escolar activo (academic_years).
-            const { current_cycle_start, current_cycle_end, current_cycle_name, cycle_source, ...schoolData } = formData
+            const { current_cycle_start, current_cycle_end, current_cycle_name, cycle_source, location, ...schoolData } = formData
             void cycle_source
 
             const { error: schoolError } = await supabase
@@ -244,8 +249,11 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
                     onboarding_completed: true,
                     secondary_type: formData.educational_level === 'SECONDARY' ? formData.secondary_type : null,
                     name: formData.official_name.toUpperCase(),
-                    cct: formData.cct.toUpperCase()
-                })
+                    cct: formData.cct.toUpperCase(),
+                    location_lat: location?.lat ?? null,
+                    location_lng: location?.lng ?? null,
+                    address: [formData.address_street, formData.address_neighborhood && `Col. ${formData.address_neighborhood}`, formData.address_zip_code && `C.P. ${formData.address_zip_code}`, formData.address_municipality, formData.address_state].filter(Boolean).join(', ') || null,
+                } as any)
                 .eq('id', tenant?.id)
 
             if (tenantError) throw tenantError
@@ -352,24 +360,20 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
 
             {step === 1 && (
                 <>
-                    <WizardStepHeader icon={MapPin} title="Ubicación" description="Dirección oficial para documentos administrativos." />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-                        <WizardField label="Calle y número" className="md:col-span-2">
-                            <input className={wizardInput} value={formData.address_street} onChange={e => set({ address_street: e.target.value })} placeholder="Ej. Av. Reforma S/N" />
-                        </WizardField>
-                        <WizardField label="Colonia o localidad">
-                            <input className={wizardInput} value={formData.address_neighborhood} onChange={e => set({ address_neighborhood: e.target.value })} placeholder="Ej. Centro" />
-                        </WizardField>
-                        <WizardField label="Código postal">
-                            <input className={wizardInput} inputMode="numeric" value={formData.address_zip_code} onChange={e => set({ address_zip_code: e.target.value })} placeholder="00000" />
-                        </WizardField>
-                        <WizardField label="Municipio">
-                            <input className={wizardInput} value={formData.address_municipality} onChange={e => set({ address_municipality: e.target.value })} placeholder="Ej. Tuxtla Gutiérrez" />
-                        </WizardField>
-                        <WizardField label="Estado">
-                            <input className={wizardInput} value={formData.address_state} onChange={e => set({ address_state: e.target.value })} placeholder="Ej. Chiapas" />
-                        </WizardField>
-                    </div>
+                    <WizardStepHeader icon={MapPin} title="Ubicación" description="Estado, municipio y colonia del plantel (catálogo oficial de SEPOMEX) y su punto en el mapa." />
+                    <SchoolLocationFields
+                        value={{ ...emptyLocation, ...(formData.location || {}) }}
+                        onChange={(loc: SchoolLocation) => set({
+                            location: loc,
+                            address_state: loc.state,
+                            address_state_code: loc.stateCve,
+                            address_municipality: loc.municipality,
+                            address_municipality_code: loc.munCve ? `${loc.stateCve}${loc.munCve}` : '',
+                            address_neighborhood: loc.settlement,
+                            address_zip_code: loc.zip,
+                            address_street: loc.street,
+                        })}
+                    />
                 </>
             )}
 

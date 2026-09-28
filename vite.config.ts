@@ -38,6 +38,18 @@ export default defineConfig({
         // Nunca se guardan en caché las llamadas a Supabase: los datos offline los maneja la app (IndexedDB).
         runtimeCaching: [
           {
+            // Catálogo de estados, municipios y colonias: se guarda al primer uso para funcionar sin señal
+            urlPattern: ({ url }) => url.pathname.startsWith('/geo/') && url.pathname.endsWith('.json'),
+            handler: 'CacheFirst',
+            options: { cacheName: 'geo-mx', expiration: { maxEntries: 40, maxAgeSeconds: 60 * 60 * 24 * 90 } },
+          },
+          {
+            // Mosaicos del mapa (OpenStreetMap): los últimos vistos quedan disponibles sin conexión
+            urlPattern: ({ url }) => url.hostname.endsWith('tile.openstreetmap.org'),
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'osm-tiles', expiration: { maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 30 } },
+          },
+          {
             urlPattern: ({ url }) => url.origin === 'https://fonts.googleapis.com' || url.origin === 'https://fonts.gstatic.com',
             handler: 'StaleWhileRevalidate',
             options: { cacheName: 'google-fonts' },

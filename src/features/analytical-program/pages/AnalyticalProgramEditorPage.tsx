@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 // Force rebuild to fix intermittent 500 errors in some environments
 import { useTenant } from '../../../hooks/useTenant'
@@ -27,7 +27,7 @@ import { useQuery } from '@tanstack/react-query'
 import { WizardFooter, WizardProgress, WizardStepHeader } from '../../../components/wizard/Wizard'
 import { useToast } from '../../../components/ui/Toast'
 import {
-    useTeacherScope, loadScopedCatalog, findOutOfScopeMentions, sameDiscipline, toCampo,
+    useTeacherScope, restrictScope, loadScopedCatalog, findOutOfScopeMentions, sameDiscipline, toCampo,
     FIELD_KEY, FIELD_LABEL, FIELD_METHODOLOGY, type Campo, type ScopedContent,
 } from '../lib/teacherScope'
 
@@ -91,7 +91,27 @@ export const AnalyticalProgramEditorPage = () => {
 
     // Alcance curricular del docente: disciplinas, campo(s) formativo(s) y grados que atiende.
     // Toda la generación con IA se limita a este alcance.
-    const { data: scope, isLoading: scopeLoading } = useTeacherScope()
+    const { data: scopeAll, isLoading: scopeLoading } = useTeacherScope()
+    // Cada campo formativo tiene su propio programa analítico: el programa queda ligado a UN campo
+    const [searchParams] = useSearchParams()
+    const [programField, setProgramField] = useState<Campo | null>(() => toCampo(searchParams.get('campo')))
+    useEffect(() => {
+        // Si el docente solo tiene un campo, se asigna solo
+        if (!programField && scopeAll && scopeAll.fields.length === 1) setProgramField(scopeAll.fields[0])
+    }, [scopeAll, programField])
+    const scope = useMemo(() => restrictScope(scopeAll, programField), [scopeAll, programField])
+    const needsField = !!scopeAll && scopeAll.fields.length > 1 && !programField
+    // Programas que ya existen por campo (para no duplicar)
+    const { data: existingByField = {} } = useQuery({
+        queryKey: ['analytical-programs-by-field', tenant?.id],
+        enabled: !!tenant?.id,
+        queryFn: async () => {
+            const { data } = await supabase.from('analytical_programs').select('id, field_of_study').eq('tenant_id', tenant!.id)
+            const map: Record<string, string> = {}
+            for (const r of (data ?? []) as any[]) if (r.field_of_study && r.id !== id) map[r.field_of_study] = r.id
+            return map
+        },
+    })
 
     // Al terminar una generación con IA, la vista se lleva al resultado (antes quedaba fuera de pantalla
     // y parecía que la IA no había respondido).
@@ -247,6 +267,7 @@ export const AnalyticalProgramEditorPage = () => {
 
                 if (fetchError) console.error('Error loading existing program:', fetchError)
                 if (program) dbProgram = program
+                if (program?.field_of_study) setProgramField(toCampo(program.field_of_study))
             }
 
             // 3. Load from LocalStorage (Draft) as potential override or for "new"
@@ -398,6 +419,10 @@ export const AnalyticalProgramEditorPage = () => {
     // --- Actions ---
 
     const handleNext = () => {
+        if (currentStep === 1 && needsField) {
+            showToast('Elige el campo formativo de este programa analítico.', 'error')
+            return
+        }
         if (currentStep < STEPS.length) setCurrentStep(c => c + 1)
     }
 
@@ -461,8 +486,43 @@ export const AnalyticalProgramEditorPage = () => {
 
     // --- Render Steps ---
 
+    const renderFieldPicker = () => {
+        if (!scopeAll) return null
+        return (
+            <div className="rounded-3xl border border-indigo-100 bg-indigo-50/60 p-5 sm:p-6">
+                <h3 className="text-sm font-black text-indigo-900">Campo formativo de este programa</h3>
+                <p className="text-xs text-indigo-800 mt-1 mb-4">Cada campo formativo tiene su propio programa analítico. {scopeAll.fields.length > 1 ? 'Elige para cuál es este.' : 'Se tomó de tus materias.'}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {scopeAll.fields.map(f => {
+                        const subs = scopeAll.subjects.filter(sub => sub.field === f).map(sub => sub.name)
+                        const other = existingByField[f]
+                        const active = programField === f
+                        return (
+                            <div key={f} className={`rounded-2xl border-2 p-4 bg-white ${active ? 'border-indigo-600' : 'border-slate-200'}`}>
+                                <button type="button" disabled={!!other && !active} onClick={() => setProgramField(f)} className="w-full text-left disabled:cursor-not-allowed">
+                                    <span className="flex items-center gap-2 text-sm font-black text-slate-900">
+                                        <span className={`w-5 h-5 shrink-0 rounded-full border-2 flex items-center justify-center ${active ? 'border-indigo-600' : 'border-slate-300'}`}>{active && <span className="w-2.5 h-2.5 rounded-full bg-indigo-600" />}</span>
+                                        {f}
+                                    </span>
+                                    {subs.length > 0 && <span className="block text-xs text-slate-500 mt-1 ml-7">{subs.join(', ')}</span>}
+                                </button>
+                                {other && !active && (
+                                    <button type="button" onClick={() => navigate(`/analytical-program/${other}`)} className="mt-2 ml-7 text-xs font-black text-indigo-700 underline">Ya tienes este programa · abrirlo</button>
+                                )}
+                            </div>
+                        )
+                    })}
+                </div>
+            </div>
+        )
+    }
+
     const renderStep1 = () => (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+            {renderFieldPicker()}
+            <p className="text-sm text-slate-600 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3">
+                Estos datos se llenan con lo que registraste en <button type="button" onClick={() => navigate('/settings?tab=school')} className="font-black text-indigo-700 underline">Configuración → Datos de la escuela</button>. Si algo está mal, corrígelo allá para que se actualice en todo el sistema.
+            </p>
             <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
                 <h3 className="text-lg font-black text-gray-800 mb-6 uppercase tracking-wide">Datos de Identificación</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1114,8 +1174,8 @@ Responde ÚNICAMENTE JSON:
                 ) : scope?.missingSubjects ? (
                     <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
                         <p className="font-black">Registra tus materias para continuar</p>
-                        <p className="mt-1">El programa analítico se construye solo con las disciplinas que impartes. Agrégalas en tu perfil y vuelve a este paso.</p>
-                        <button type="button" onClick={() => navigate('/settings')} className="mt-3 px-4 py-2 rounded-xl bg-amber-600 text-white text-xs font-black">Ir a mi perfil</button>
+                        <p className="mt-1">El programa analítico se construye solo con las disciplinas que impartes. Agrégalas en Configuración → Mis materias y vuelve a este paso.</p>
+                        <button type="button" onClick={() => navigate('/settings?tab=subjects')} className="mt-3 px-4 py-2 rounded-xl bg-amber-600 text-white text-xs font-black">Registrar mis materias</button>
                     </div>
                 ) : scope && (
                     <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
@@ -1807,8 +1867,14 @@ Responde ÚNICAMENTE JSON:
                 suggested_contents: suggestedContents // Store selection context here
             }
 
-            const programData = {
+            if (!programField) {
+                showToast('Elige el campo formativo de este programa (paso 1).', 'error')
+                setCurrentStep(1)
+                return
+            }
+            const programData: Record<string, any> = {
                 tenant_id: tenant.id,
+                field_of_study: programField,
                 school_data: formData.school_data,
                 group_diagnosis: updatedDiagnosis,
                 program_by_fields: formData.program_by_fields,
@@ -1833,7 +1899,7 @@ Responde ÚNICAMENTE JSON:
                 // Insert
                 const res = await supabase
                     .from('analytical_programs')
-                    .insert([programData])
+                    .insert([{ ...programData, created_by: (profile as any)?.id ?? null }])
                     .select()
                 error = res.error
                 data = res.data
@@ -1870,7 +1936,7 @@ Responde ÚNICAMENTE JSON:
                     <ArrowLeft className="w-5 h-5" />
                 </button>
                 <div className="min-w-0">
-                    <p className="text-[11px] font-black uppercase tracking-widest text-indigo-600 mb-1">Nueva Escuela Mexicana{scope?.phase ? ` · Fase ${scope.phase}` : ''}{scope && !scope.generalist && scope.subjects.length ? ` · ${scope.subjects.map(sub => sub.name).join(', ')}` : ''}</p>
+                    <p className="text-[11px] font-black uppercase tracking-widest text-indigo-600 mb-1">Nueva Escuela Mexicana{scope?.phase ? ` · Fase ${scope.phase}` : ''}{programField ? ` · ${programField}` : ''}{scope && !scope.generalist && scope.subjects.length ? ` · ${scope.subjects.map(sub => sub.name).join(', ')}` : ''}</p>
                     <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Programa analítico</h1>
                 </div>
             </header>

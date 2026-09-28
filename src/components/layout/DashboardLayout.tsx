@@ -447,7 +447,7 @@ export const DashboardLayout = () => {
             { icon: Shield, label: 'Dashboard TI (God Mode)', path: '/admin' },
             { icon: Mail, label: 'Mensajes', path: '/messages' },
             { icon: UserCheck, label: 'Portal Docente', path: '/' },
-            { icon: Settings, label: 'Ajustes de Cuenta', path: '/settings' }
+            { icon: Settings, label: 'Configuración', path: '/settings' }
         ],
         DIRECTOR: [
             { icon: LayoutDashboard, label: 'Consola Directiva', path: '/' },
@@ -464,7 +464,7 @@ export const DashboardLayout = () => {
                     { label: 'Programa de Mejora (PEMC)', path: '/admin/pemc' },
                     { label: 'Libros de Texto', path: '/libros' },
                     { label: 'Programa Analítico', path: '/analytical-program' },
-                    { label: 'Mis PDAs', path: '/mis-pdas' },
+                    { label: 'PDAs, ejes y metodologías', path: '/mis-pdas' },
                     { label: 'Estadísticas Globales', path: '/stats' },
                     { label: 'Validar Planeaciones', path: '/planning' }
                 ]
@@ -691,7 +691,7 @@ export const DashboardLayout = () => {
                 subItems: [
                     { label: 'Consejo Técnico (CTE)', path: '/cte' },
                     { label: 'Módulo PEMC', path: '/admin/pemc' },
-                    { label: 'Ciclo Escolar', path: '/settings' },
+                    { label: 'Ciclo escolar y periodos', path: '/settings?tab=cycle' },
                     { label: 'Inventarios', path: '/inventory' },
                     { label: 'Estadísticas Globales', path: '/stats' }
                 ]

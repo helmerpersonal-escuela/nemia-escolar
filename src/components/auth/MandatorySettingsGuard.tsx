@@ -67,7 +67,7 @@ export const MandatorySettingsGuard = ({ children }: MandatorySettingsGuardProps
         // Only redirect if NOT already on settings page AND we have missing critical settings
         // AND validation is done.
         if (missing.length > 0 && !isSettingsPage) {
-            navigate('/settings?tab=institucional', { replace: true })
+            navigate(`/settings?tab=${missing[0] === 'school' ? 'school' : missing[0] === 'schedule' ? 'horarios' : 'cycle'}`, { replace: true })
         }
     }
 

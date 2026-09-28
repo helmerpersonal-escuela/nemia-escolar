@@ -41,6 +41,7 @@ import { ErrorModal } from '../components/editor/modals/ErrorModal'
 import { PreviewModal } from '../components/editor/modals/PreviewModal'
 import { useCatalog } from '../../../lib/nemCatalog'
 import { todayISO } from '../../../lib/dates'
+import { toCampo as toCampoLabel, FIELD_KEY } from '../../analytical-program/lib/teacherScope'
 
 interface Group {
     id: string
@@ -253,68 +254,62 @@ export const PlanningEditorPage = () => {
         fetchProgramContents()
     }, [analyticalProgram?.id, formData.subject_id, id, subjects])
 
-    // Unified Subject Fetching to prevent race conditions
+    // Materias del docente con su campo formativo.
+    // Se usan las que registró en su perfil (las que imparte); si no tiene, las asignadas al grupo.
     const fetchSubjects = async (groupId: string, tenantId: string) => {
         if (!tenantId) return []
-
-        // 1. Fetch Group specific subjects
-        let groupSubjectsData: any[] = []
-        if (groupId) {
-            const { data } = await supabase
-                .from('group_subjects')
-                .select(`
-                    id, 
-                    subject_catalog_id, 
-                    custom_name,
-                    subject_catalog(name)
-                `)
-                .eq('group_id', groupId)
-            if (data) groupSubjectsData = data
-        }
-
-        // 2. Fetch User Profile subjects (from settings)
         const { data: { user } } = await supabase.auth.getUser()
-        let profileSubjectsData: any[] = []
+        const toItem = (id: string, name: string, field: string | null) => ({ id, name, field: field || null })
+        const map = new Map<string, { id: string; name: string; field: string | null }>()
+
         if (user) {
             const { data } = await supabase
                 .from('profile_subjects')
-                .select(`
-                    id,
-                    subject_catalog_id,
-                    custom_detail,
-                    subject_catalog(name)
-                `)
+                .select('id, subject_catalog_id, custom_detail, subject_catalog(name, field_of_study)')
                 .eq('profile_id', user.id)
-            if (data) profileSubjectsData = data
-        }
-
-        // 3. Merge and Deduplicate
-        const subjectsMap = new Map()
-
-        // Process Group Subjects first
-        groupSubjectsData.forEach(gs => {
-            const subjectId = gs.subject_catalog_id || gs.id
-            subjectsMap.set(subjectId, {
-                id: subjectId,
-                name: gs.subject_catalog?.name || gs.custom_name
-            })
-        })
-
-        // Add Profile Subjects (they might override or add new ones)
-        profileSubjectsData.forEach(ps => {
-            const subjectId = ps.subject_catalog_id || ps.id
-            if (!subjectsMap.has(subjectId)) {
-                subjectsMap.set(subjectId, {
-                    id: subjectId,
-                    name: ps.subject_catalog?.name || ps.custom_detail || 'Materia Personalizada'
-                })
+                .eq('tenant_id', tenantId)
+            for (const ps of (data ?? []) as any[]) {
+                const sc = Array.isArray(ps.subject_catalog) ? ps.subject_catalog[0] : ps.subject_catalog
+                const sid = ps.subject_catalog_id || ps.id
+                if (!map.has(sid)) map.set(sid, toItem(sid, sc?.name || ps.custom_detail || 'Materia personalizada', sc?.field_of_study))
             }
-        })
-
-        const formattedSubjects = Array.from(subjectsMap.values())
-        setSubjects(formattedSubjects)
+        }
+        if (map.size === 0 && groupId) {
+            const { data } = await supabase
+                .from('group_subjects')
+                .select('id, subject_catalog_id, custom_name, subject_catalog(name, field_of_study)')
+                .eq('group_id', groupId)
+            for (const gs of (data ?? []) as any[]) {
+                const sc = Array.isArray(gs.subject_catalog) ? gs.subject_catalog[0] : gs.subject_catalog
+                const sid = gs.subject_catalog_id || gs.id
+                if (!map.has(sid)) map.set(sid, toItem(sid, sc?.name || gs.custom_name, sc?.field_of_study))
+            }
+        }
+        const formattedSubjects = Array.from(map.values())
+        setSubjects(formattedSubjects as any)
         return formattedSubjects
     }
+
+    // Las materias se cargan desde el inicio (no hace falta elegir grupo primero)
+    useEffect(() => {
+        if (!tenant?.id || subjects.length) return
+        fetchSubjects(formData.group_id, tenant.id)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tenant?.id])
+
+    // Una sola materia: se selecciona sola. Al elegir materia, su campo formativo se asigna automáticamente.
+    useEffect(() => {
+        if (!subjects.length) return
+        const current = (subjects as any[]).find(s => s.id === formData.subject_id)
+        if (!current && subjects.length === 1 && (!id || id === 'new')) {
+            const only = subjects[0] as any
+            setFormData(prev => ({ ...prev, subject_id: only.id, campo_formativo: toCampoLabel(only.field) || prev.campo_formativo }))
+            return
+        }
+        const campo = toCampoLabel(current?.field)
+        if (campo && campo !== formData.campo_formativo) setFormData(prev => ({ ...prev, campo_formativo: campo }))
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [subjects, formData.subject_id])
 
     // Reactive Subject Fetching strictly for interactive changes (manual group change)
     useEffect(() => {
@@ -322,42 +317,38 @@ export const PlanningEditorPage = () => {
         fetchSubjects(formData.group_id, tenant.id)
     }, [formData.group_id, tenant?.id])
 
-    // Reactive re-matching of Analytical Program when Group changes
+    // Programa analítico que corresponde: el del campo formativo de la materia
+    // (si no hay, se usa uno anterior "de varios campos" que incluya el grado).
+    const [fieldProgramMissing, setFieldProgramMissing] = useState(false)
     useEffect(() => {
-        if (!groups.length || !formData.group_id) return
-
-        const matchingGroup = groups.find(g => g.id === formData.group_id)
-        if (matchingGroup) {
-            // Attempt to find a program that matches this grade
-            const fetchMatchedProgram = async () => {
-                const { data: programs } = await supabase
-                    .from('analytical_programs')
-                    .select('*')
-                    .eq('tenant_id', tenant?.id)
-
-                if (programs) {
-                    const match = programs.find((p: any) => {
-                        const gs = p.school_data?.grades || ''
-                        return gs.includes(matchingGroup.grade)
-                    })
-                    if (match) {
-                        setAnalyticalProgram(match)
-                        const newContext = match.diagnosis_narrative || ''
-                        setFormData(prev => {
-                            if (prev.problem_context === newContext || (!prev.problem_context && !newContext)) {
-                                return prev
-                            }
-                            return {
-                                ...prev,
-                                problem_context: prev.problem_context || newContext
-                            }
-                        })
-                    }
-                }
+        if (!tenant?.id || !formData.campo_formativo) return
+        const grade = groups.find(g => g.id === formData.group_id)?.grade
+        let alive = true
+        const run = async () => {
+            const { data: programs } = await supabase
+                .from('analytical_programs')
+                .select('*')
+                .eq('tenant_id', tenant.id)
+                .order('updated_at', { ascending: false })
+            if (!alive) return
+            const list = (programs ?? []) as any[]
+            const byField = list.find(p => toCampoLabel(p.field_of_study) === formData.campo_formativo)
+            const legacy = list.filter(p => !p.field_of_study)
+            const match = byField
+                || legacy.find(p => grade && String(p.school_data?.grades || '').includes(String(grade)))
+                || legacy[0]
+                || null
+            setFieldProgramMissing(!byField && list.some(p => p.field_of_study))
+            setAnalyticalProgram(match)
+            if (match) {
+                const newContext = match.diagnosis_narrative || match.group_diagnosis?.narrative_final || ''
+                setFormData(prev => (prev.problem_context || !newContext) ? prev : { ...prev, problem_context: newContext })
             }
-            fetchMatchedProgram()
         }
-    }, [formData.group_id, groups, tenant?.id])
+        run()
+        return () => { alive = false }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [formData.group_id, formData.campo_formativo, groups, tenant?.id])
 
     const fetchProfile = async () => {
         const { data: { user } } = await supabase.auth.getUser()
@@ -962,10 +953,10 @@ export const PlanningEditorPage = () => {
         setGeneratingThemes(true)
         try {
             let themes: any[] = []
-            const apiKey = tenant?.aiConfig?.apiKey
+            const apiKey = tenant?.aiConfig?.apiKey || ''
 
             // 1. Try AI Generation
-            if ((bookTitle || extractedText) && apiKey) {
+            if (bookTitle || extractedText) {
                 try {
                     const aiService = new GeminiService(
                         tenant?.aiConfig?.geminiKey || apiKey,
@@ -1211,13 +1202,8 @@ export const PlanningEditorPage = () => {
             return
         }
 
-        const apiKey = tenant?.aiConfig?.apiKey
-        if (!apiKey) {
-            if (confirm('No se ha configurado la API Key de IA para la escuela. ¿Deseas configurarla ahora?')) {
-                navigate('/settings')
-            }
-            return
-        }
+        // La IA se usa desde el servidor: el docente no necesita configurar llaves
+        const apiKey = tenant?.aiConfig?.apiKey || ''
 
         setIsAiPanelOpen(true)
         setAiSuggestions([])
@@ -1703,6 +1689,11 @@ export const PlanningEditorPage = () => {
                                 generateAiSuggestions={generateAiSuggestions}
                                 generating={generating}
                                 analyticalProgram={analyticalProgram}
+                                fieldProgramMissing={fieldProgramMissing}
+                                onCreateFieldProgram={() => {
+                                    const campo = toCampoLabel(formData.campo_formativo)
+                                    navigate(`/analytical-program/new${campo ? `?campo=${FIELD_KEY[campo]}` : ''}`)
+                                }}
                             />
                         )}
 

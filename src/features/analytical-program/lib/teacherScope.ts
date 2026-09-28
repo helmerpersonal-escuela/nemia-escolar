@@ -198,3 +198,13 @@ export function findOutOfScopeMentions(text: string, scope: TeacherScope): strin
     }
     return [...new Set(hits)]
 }
+
+/** Alcance limitado a un solo campo formativo (cada campo tiene su propio programa analítico). */
+export function restrictScope(scope: TeacherScope | undefined, field: Campo | null): TeacherScope | undefined {
+    if (!scope || !field) return scope
+    return {
+        ...scope,
+        fields: scope.fields.includes(field) ? [field] : [],
+        subjects: scope.subjects.filter(s => s.field === field),
+    }
+}

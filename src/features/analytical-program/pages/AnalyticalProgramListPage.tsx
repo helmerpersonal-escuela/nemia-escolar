@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
 import { useProfile } from '../../../hooks/useProfile'
+import { useTeacherScope, toCampo, FIELD_KEY } from '../lib/teacherScope'
 import {
     Plus,
     BookOpen,
@@ -22,6 +23,7 @@ export const AnalyticalProgramListPage = () => {
     const [programs, setPrograms] = useState<any[]>([])
     const [cycles, setCycles] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+    const { data: scope } = useTeacherScope()
 
     useEffect(() => {
         if (!tenant) return
@@ -120,6 +122,32 @@ export const AnalyticalProgramListPage = () => {
                 </div>
             </div>
 
+            {/* Un programa analítico por cada campo formativo que atiende el docente */}
+            {scope && scope.fields.length > 0 && (
+                <section className="mb-10">
+                    <h2 className="text-sm font-black text-slate-700 mb-3">Tus programas por campo formativo</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        {scope.fields.map(f => {
+                            const prog = programs.find(p => toCampo(p.field_of_study) === f)
+                            const subs = scope.subjects.filter(sub => sub.field === f).map(sub => sub.name)
+                            return (
+                                <div key={f} className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm flex flex-col">
+                                    <p className="text-sm font-black text-slate-900 leading-tight">{f}</p>
+                                    {subs.length > 0 && <p className="text-xs text-slate-500 mt-1">{subs.join(', ')}</p>}
+                                    <div className="mt-auto pt-3">
+                                        {prog ? (
+                                            <button type="button" onClick={() => navigate(`/analytical-program/${prog.id}`)} className="w-full px-3 py-2 rounded-xl bg-indigo-50 text-indigo-700 text-xs font-black">Abrir programa</button>
+                                        ) : (
+                                            <button type="button" onClick={() => navigate(`/analytical-program/new?campo=${FIELD_KEY[f]}`)} className="w-full px-3 py-2 rounded-xl bg-indigo-600 text-white text-xs font-black inline-flex items-center justify-center gap-1"><Plus className="w-4 h-4" /> Crear programa</button>
+                                        )}
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
+                </section>
+            )}
+
             {programs.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {programs.map((prog) => (
@@ -163,6 +191,9 @@ export const AnalyticalProgramListPage = () => {
                                     {prog.school_data?.name || "PROGRAMA ESCOLAR"}
                                 </h2>
                                 <div className="flex flex-wrap gap-2">
+                                    <span className="text-[11px] font-black text-violet-700 px-2 py-1 bg-violet-50 rounded-md border border-violet-100">
+                                        {toCampo(prog.field_of_study) || 'Varios campos (versión anterior)'}
+                                    </span>
                                     <span className="text-[11px] font-black uppercase text-gray-500 px-2 py-1 bg-gray-50 rounded-md border border-gray-100">
                                         {prog.school_data?.level || "NIVEL NO DEF."}
                                     </span>

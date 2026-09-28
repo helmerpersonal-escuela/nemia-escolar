@@ -7,6 +7,8 @@ import {
     ClipboardCheck
 } from 'lucide-react'
 import type { LessonPlanFormData } from '../../types/planning.types'
+import { TitleSuggestions } from './TitleSuggestions'
+import { toCampo } from '../../../analytical-program/lib/teacherScope'
 
 interface Group {
     id: string
@@ -17,6 +19,7 @@ interface Group {
 interface Subject {
     id: string
     name: string
+    field?: string | null
 }
 
 interface EvaluationPeriod {
@@ -36,6 +39,8 @@ interface Step1ContextProps {
     generateAiSuggestions: () => void
     generating: boolean
     analyticalProgram: any
+    fieldProgramMissing?: boolean
+    onCreateFieldProgram?: () => void
 }
 
 export const Step1Context: React.FC<Step1ContextProps> = ({
@@ -49,8 +54,13 @@ export const Step1Context: React.FC<Step1ContextProps> = ({
     fetchTemplates,
     generateAiSuggestions,
     generating,
-    analyticalProgram
+    analyticalProgram,
+    fieldProgramMissing,
+    onCreateFieldProgram,
 }) => {
+    const currentSubject = subjects.find(s => s.id === formData.subject_id)
+    const subjectCampo = toCampo(currentSubject?.field)
+    const grade = groups.find(g => g.id === formData.group_id)?.grade
     if (isPreviewMode) {
         return (
             <section className="grid grid-cols-2 gap-8">
@@ -99,7 +109,7 @@ export const Step1Context: React.FC<Step1ContextProps> = ({
 
             <div className="bg-white p-8 md:p-10 rounded-[2.5rem] border-2 border-slate-50 shadow-sm relative overflow-hidden group">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    <div className="col-span-1 md:col-span-2 lg:col-span-3">
+                    <div className="col-span-1 md:col-span-2 lg:col-span-3 order-4">
                         <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Título del Proyecto / Unidad</label>
                         <div className="relative group">
                             <input aria-label="Título del Proyecto / Unidad"
@@ -110,13 +120,26 @@ export const Step1Context: React.FC<Step1ContextProps> = ({
                                 onChange={e => setFormData((prev: any) => ({ ...prev, title: e.target.value }))}
                             />
                         </div>
+                        {formData.subject_id && (
+                            <div className="mt-4">
+                                <TitleSuggestions
+                                    analyticalProgram={analyticalProgram}
+                                    campo={formData.campo_formativo}
+                                    subjectName={currentSubject?.name}
+                                    grade={grade}
+                                    value={formData.title || ''}
+                                    onPick={t => setFormData((prev: any) => ({ ...prev, title: t }))}
+                                />
+                            </div>
+                        )}
                     </div>
 
-                    <div className="space-y-3">
-                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1 ml-1">Campo Formativo</label>
+                    <div className="space-y-3 order-2">
+                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1 ml-1">Campo Formativo {subjectCampo && <span className="normal-case tracking-normal font-bold text-slate-400">· según la materia</span>}</label>
                         <select aria-label="Campo Formativo"
-                            className="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-100 rounded-2xl px-6 py-4 text-sm font-bold text-indigo-950 outline-none transition-all appearance-none cursor-pointer"
+                            className="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-100 rounded-2xl px-6 py-4 text-sm font-bold text-indigo-950 outline-none transition-all appearance-none cursor-pointer disabled:cursor-default disabled:opacity-100"
                             value={formData.campo_formativo}
+                            disabled={!!subjectCampo}
                             onChange={e => setFormData((prev: any) => ({ ...prev, campo_formativo: e.target.value }))}
                         >
                             {CAMPOS.map(c => (
@@ -125,12 +148,12 @@ export const Step1Context: React.FC<Step1ContextProps> = ({
                         </select>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-3 order-3">
                         <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1 ml-1">Grupo Escolar</label>
                         <select aria-label="Grupo Escolar"
                             className="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-100 rounded-2xl px-6 py-4 text-sm font-bold text-indigo-950 outline-none transition-all appearance-none cursor-pointer"
                             value={formData.group_id}
-                            onChange={e => setFormData((prev: any) => ({ ...prev, group_id: e.target.value, subject_id: '' }))}
+                            onChange={e => setFormData((prev: any) => ({ ...prev, group_id: e.target.value }))}
                         >
                             <option value="">Seleccionar Grupo</option>
                             {groups.map(g => (
@@ -139,22 +162,26 @@ export const Step1Context: React.FC<Step1ContextProps> = ({
                         </select>
                     </div>
 
-                    <div className="space-y-3">
-                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1 ml-1">Asignatura / Disciplina</label>
+                    <div className="space-y-3 order-1">
+                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1 ml-1">Asignatura / Disciplina {subjects.length === 1 && <span className="normal-case tracking-normal font-bold text-slate-400">· tu única materia</span>}</label>
                         <select aria-label="Asignatura / Disciplina"
-                            className="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-100 rounded-2xl px-6 py-4 text-sm font-bold text-indigo-950 outline-none transition-all appearance-none cursor-pointer disabled:opacity-50"
+                            className="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-100 rounded-2xl px-6 py-4 text-sm font-bold text-indigo-950 outline-none transition-all appearance-none cursor-pointer disabled:cursor-default disabled:opacity-100"
                             value={formData.subject_id}
-                            onChange={e => setFormData((prev: any) => ({ ...prev, subject_id: e.target.value }))}
-                            disabled={!formData.group_id}
+                            onChange={e => {
+                                const sub = subjects.find(x => x.id === e.target.value)
+                                const campo = toCampo(sub?.field)
+                                setFormData((prev: any) => ({ ...prev, subject_id: e.target.value, campo_formativo: campo || prev.campo_formativo, title: '' }))
+                            }}
+                            disabled={subjects.length === 1}
                         >
-                            <option value="">{formData.group_id ? 'Seleccionar Asignatura' : 'Primero elige un grupo'}</option>
+                            {subjects.length !== 1 && <option value="">{subjects.length ? '¿De qué materia es esta planeación?' : 'Registra tus materias en tu perfil'}</option>}
                             {subjects.map(s => (
-                                <option key={s.id} value={s.id}>{s.name}</option>
+                                <option key={s.id} value={s.id}>{s.name}{subjects.length > 1 && s.field ? ` · ${toCampo(s.field) ?? s.field}` : ''}</option>
                             ))}
                         </select>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-3 order-5">
                         <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1 ml-1">Periodo de Evaluación</label>
                         <select aria-label="Periodo de Evaluación"
                             className="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-100 rounded-2xl px-6 py-4 text-sm font-bold text-indigo-950 outline-none transition-all appearance-none cursor-pointer"
@@ -168,7 +195,7 @@ export const Step1Context: React.FC<Step1ContextProps> = ({
                         </select>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-3 order-6">
                         <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1 ml-1">Esquema de Planeación</label>
                         <select aria-label="Esquema de Planeación"
                             className="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-100 rounded-2xl px-6 py-4 text-sm font-bold text-indigo-950 outline-none transition-all appearance-none cursor-pointer"
@@ -182,7 +209,14 @@ export const Step1Context: React.FC<Step1ContextProps> = ({
                         </select>
                     </div>
 
-                    <div className="col-span-1 md:col-span-2 lg:col-span-3 flex flex-wrap gap-4 pt-4 border-t border-slate-50 mt-4">
+                    {fieldProgramMissing && formData.subject_id && (
+                        <div role="alert" className="col-span-1 md:col-span-2 lg:col-span-3 order-7 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 flex flex-wrap items-center justify-between gap-3">
+                            <span><strong>Aún no tienes el programa analítico de {formData.campo_formativo}.</strong> Cada campo formativo lleva el suyo; créalo para que la planeación tome sus contenidos.</span>
+                            {onCreateFieldProgram && <button type="button" onClick={onCreateFieldProgram} className="px-4 py-2 rounded-xl bg-amber-600 text-white text-xs font-black">Crear programa de este campo</button>}
+                        </div>
+                    )}
+
+                    <div className="col-span-1 md:col-span-2 lg:col-span-3 order-8 flex flex-wrap gap-4 pt-4 border-t border-slate-50 mt-4">
                         <button
                             onClick={fetchTemplates}
                             className="flex-1 bg-white border-2 border-indigo-600 text-indigo-600 px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-indigo-50 transition-all flex items-center justify-center gap-3 shadow-tactile shadow-indigo-100/50"

@@ -10,6 +10,7 @@ import { SubjectSelector } from '../../../components/academic/SubjectSelector'
 import { DateInput } from '../../../components/ui/DateInput'
 import { OfficialCycleNote } from '../../../components/academic/OfficialCycleNote'
 import { useOfficialCycle } from '../../../lib/officialCalendar'
+import { SchoolLocationFields, emptyLocation, isLocationComplete, saveSchoolLocation, loadSchoolLocation, type SchoolLocation } from '../../../components/location/SchoolLocationFields'
 
 export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => {
     const navigate = useNavigate()
@@ -22,6 +23,18 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
 
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+
+    // Ubicación de la escuela (estado, municipio, colonia y punto en el mapa)
+    const [location, setLocation] = useState<SchoolLocation>(() => {
+        try { return { ...emptyLocation, ...JSON.parse(sessionStorage.getItem('vunlek_onboarding_location') || '{}') } } catch { return emptyLocation }
+    })
+    useEffect(() => { try { sessionStorage.setItem('vunlek_onboarding_location', JSON.stringify(location)) } catch { /* nada */ } }, [location])
+    // Si la escuela ya tenía ubicación guardada, se recupera
+    useEffect(() => {
+        if (!tenant?.id || location.state) return
+        loadSchoolLocation(tenant.id).then(l => { if (l) setLocation(l) }).catch(() => {})
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tenant?.id])
 
     const [schoolData, setSchoolData] = useState(() => {
         const saved = sessionStorage.getItem('vunlek_onboarding_school_data')
@@ -161,6 +174,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
         sessionStorage.removeItem('vunlek_payment_syncing')
         sessionStorage.removeItem('vunlek_onboarding_coop')
         sessionStorage.removeItem('vunlek_onboarding_periods')
+        sessionStorage.removeItem('vunlek_onboarding_location')
     }
 
     const handleCancelRegistration = async () => {
@@ -197,6 +211,10 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
             setError('Indica si es Secundaria General o Secundaria Técnica.')
             return
         }
+        if (!isLocationComplete(location)) {
+            setError('Indica el estado, el municipio y la colonia o localidad de tu escuela.')
+            return
+        }
         setError(null)
         setLoading(true)
         try {
@@ -207,6 +225,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                 secondary_type: schoolData.educationalLevel === 'SECONDARY' ? schoolData.secondaryType : null,
             }).eq('id', tenant?.id)
             if (error) throw error
+            if (tenant?.id) await saveSchoolLocation(tenant.id, location, { name: schoolData.name.toUpperCase(), cct: schoolData.cct.toUpperCase() })
             setStep(1)
         } catch (err: any) {
             setError(err.message)
@@ -478,7 +497,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
             onStepClick={i => i < step && setStep(i)}
             width={step === 3 ? 'lg' : 'md'}
             footer={
-                step === 0 ? <WizardFooter onNext={handleUpdateSchool} loading={loading} nextDisabled={!schoolData.name || (schoolData.educationalLevel === 'SECONDARY' && !schoolData.secondaryType)} />
+                step === 0 ? <WizardFooter onNext={handleUpdateSchool} loading={loading} nextDisabled={!schoolData.name || (schoolData.educationalLevel === 'SECONDARY' && !schoolData.secondaryType) || !isLocationComplete(location)} />
                     : step === 1 ? <WizardFooter onBack={() => setStep(0)} onNext={handleCreateYear} loading={loading} nextDisabled={!yearData.name || !yearData.startDate || !yearData.endDate} />
                         : step === 2 ? <WizardFooter onBack={() => setStep(1)} onNext={handleSaveSchedule} loading={loading} />
                             : <WizardFooter onBack={() => setStep(2)} onNext={handleSaveSubjects} loading={loading} nextDisabled={!subjectsValid} nextLabel="Empezar a usar VUNLEK" nextIcon={Rocket} tone="success" />
@@ -519,6 +538,11 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
                     <WizardField label="CCT (Clave del Centro de Trabajo)" required={!isIndependent} hint={isIndependent ? 'Opcional si trabajas por tu cuenta.' : undefined}>
                         <input aria-label="CCT" value={schoolData.cct} onChange={e => setSchoolData({ ...schoolData, cct: e.target.value.toUpperCase() })} className={`${wizardInput} font-mono`} placeholder="Ej. 07DST0037X" />
                     </WizardField>
+                    <div className="pt-2 border-t border-slate-100">
+                        <p className="text-sm font-black text-slate-900 mt-4 mb-1">¿Dónde está la escuela?</p>
+                        <p className="text-xs text-slate-500 mb-4">Estado, municipio y colonia del catálogo oficial de SEPOMEX. Si tu colonia no aparece, escríbela.</p>
+                        <SchoolLocationFields value={location} onChange={setLocation} />
+                    </div>
                     <button type="button" onClick={handleCancelRegistration} className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-rose-600">
                         <Trash2 className="w-4 h-4" /> Cancelar registro y eliminar mi cuenta
                     </button>
