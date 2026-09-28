@@ -14,10 +14,13 @@ interface StateFile { m: [string, string][]; c: Record<string, [string, string, 
 let statesPromise: Promise<StatesFile> | null = null
 const stateCache = new Map<string, Promise<StateFile>>()
 
+/** Sube este número cada vez que se regenere public/geo, para no servir copias viejas del caché. */
+const GEO_VERSION = 2
+
 const base = () => (import.meta.env.BASE_URL || '/').replace(/\/?$/, '/')
 
 async function getJson<T>(path: string): Promise<T> {
-    const res = await fetch(`${base()}geo/${path}`)
+    const res = await fetch(`${base()}geo/${path}?v=${GEO_VERSION}`)
     if (!res.ok) throw new Error(`No se pudo cargar el catálogo (${path})`)
     return res.json() as Promise<T>
 }

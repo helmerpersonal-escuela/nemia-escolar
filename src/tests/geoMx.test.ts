@@ -34,4 +34,13 @@ describe('catálogo geográfico de México', () => {
         expect(filterSettlements(list, '2905').map(s => s.name)).toEqual(['Terán'])
         expect(normalizeGeo('  Tuxtla   GUTIÉRREZ ')).toBe('tuxtla gutierrez')
     })
+    it('Chiapas trae sus 124 municipios con nombre (sin "NULL")', () => {
+        const { m } = geo('07.json') as { m: [string, string][] }
+        expect(m).toHaveLength(124)
+        expect(m.filter(([, n]) => !n || n.toUpperCase() === 'NULL')).toEqual([])
+        const names = m.map(([, n]) => n)
+        expect(names).toContain('Tuxtla Gutiérrez')
+        expect(names).toContain('Mezcalapa')
+        expect(names).toContain('Honduras de la Sierra')
+    })
 })

@@ -41,7 +41,7 @@ export default defineConfig({
             // Catálogo de estados, municipios y colonias: se guarda al primer uso para funcionar sin señal
             urlPattern: ({ url }) => url.pathname.startsWith('/geo/') && url.pathname.endsWith('.json'),
             handler: 'CacheFirst',
-            options: { cacheName: 'geo-mx', expiration: { maxEntries: 40, maxAgeSeconds: 60 * 60 * 24 * 90 } },
+            options: { cacheName: 'geo-mx-v2', expiration: { maxEntries: 40, maxAgeSeconds: 60 * 60 * 24 * 90 } },
           },
           {
             // Mosaicos del mapa (OpenStreetMap): los últimos vistos quedan disponibles sin conexión
