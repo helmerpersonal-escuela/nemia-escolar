@@ -3,7 +3,7 @@ import { formatSubjectName } from '../../../lib/subjectName';
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
-import { User, School, Lock, Save, BookOpen, Sparkles, Database, Copy, Trash2, Calendar, Users, Clock, Plus, CreditCard, ArrowLeft, GraduationCap, Check, Layers } from 'lucide-react'
+import { Pencil, User, School, Lock, Save, BookOpen, Sparkles, Database, Copy, Trash2, Calendar, Users, Clock, Plus, CreditCard, ArrowLeft, GraduationCap, Check, Layers } from 'lucide-react'
 import { StaffManager } from '../components/StaffManager'
 import { PeriodManager } from '../../evaluation/components/PeriodManager'
 import { ScheduleConfig } from '../components/ScheduleConfig'
@@ -18,6 +18,9 @@ import { AcademicYearManager } from '../components/AcademicYearManager'
 import { useProfile } from '../../../hooks/useProfile'
 import { SubjectSelector } from '../../../components/academic/SubjectSelector'
 import { SchoolDataSection } from '../components/SchoolDataSection'
+import { SettingsHeader, SettingsCard, SettingsActionButton, SaveBar } from '../components/SettingsUI'
+import { WizardField, wizardInput } from '../../../components/wizard/Wizard'
+import { useToast } from '../../../components/ui/Toast'
 import { useQueryClient } from '@tanstack/react-query'
 
 // Leaflet Icons Fix
@@ -111,6 +114,20 @@ export const SettingsPage = () => {
         openai_key: ''
     })
 
+    // Lo último guardado, para saber si hay cambios pendientes (barra "Guardar cambios")
+    const profileKey = (p: { first_name: string; last_name_paternal: string; last_name_maternal: string; avatar_url: string }) =>
+        JSON.stringify([p.first_name, p.last_name_paternal, p.last_name_maternal, p.avatar_url])
+    const [savedProfileKey, setSavedProfileKey] = useState<string | null>(null)
+    const [savedSubjectsKey, setSavedSubjectsKey] = useState('[]')
+    const [savedAiKey, setSavedAiKey] = useState(JSON.stringify({ groq_key: '', gemini_key: '', openai_key: '' }))
+    const setProfileAndBaseline = (p: any) => { setProfile(p); setSavedProfileKey(profileKey(p)) }
+    const { showToast } = useToast()
+    // En celular, deja visible la opción activa de la fila deslizable (solo al cambiar de sección)
+    useEffect(() => {
+        const el = document.querySelector<HTMLElement>('[data-settings-chip="active"]')
+        const row = el?.closest('nav')
+        if (el && row) row.scrollTo({ left: el.offsetLeft - row.clientWidth / 2 + el.clientWidth / 2, behavior: 'smooth' })
+    }, [activeTab, loading])
     const [showAddSubject, setShowAddSubject] = useState(false)
     const [catalogNames, setCatalogNames] = useState<Record<string, string>>({})
     const [catalogItems, setCatalogItems] = useState<any[]>([])
@@ -142,23 +159,6 @@ export const SettingsPage = () => {
         }
     }, [location.state])
 
-    // Auto-save draft to localStorage
-    useEffect(() => {
-        if (loading || !profile.id) return;
-
-        const timeoutId = setTimeout(() => {
-            const draft = {
-                profile,
-                tenant,
-                selectedUserSubjects,
-                aiSettings,
-                timestamp: Date.now()
-            };
-            localStorage.setItem(`settings_draft_${profile.id}`, JSON.stringify(draft));
-        }, 1000);
-
-        return () => clearTimeout(timeoutId);
-    }, [profile, tenant, selectedUserSubjects, aiSettings, loading]);
 
     const loadData = async () => {
         setLoading(true)
@@ -185,7 +185,7 @@ export const SettingsPage = () => {
                         .maybeSingle()
 
                     workspaceRole = ptData?.role
-                    setProfile({
+                    setProfileAndBaseline({
                         ...profileData,
                         role: ptData?.role || profileData.role || '',
                         first_name: (ptData?.first_name || profileData.first_name || '').toUpperCase(),
@@ -195,7 +195,7 @@ export const SettingsPage = () => {
                         email: user.email || ''
                     })
                 } else {
-                    setProfile({
+                    setProfileAndBaseline({
                         ...profileData,
                         first_name: (profileData.first_name || '').toUpperCase(),
                         last_name_paternal: (profileData.last_name_paternal || '').toUpperCase(),
@@ -239,11 +239,13 @@ export const SettingsPage = () => {
                             logo_right_url: tenantData.logo_right_url || ''
                         })
                         if (tenantData.ai_config) {
-                            setAiSettings({
+                            const ai = {
                                 groq_key: tenantData.ai_config.groq_key || tenantData.ai_config.apiKey || '',
                                 gemini_key: tenantData.ai_config.gemini_key || '',
                                 openai_key: tenantData.ai_config.openai_key || ''
-                            })
+                            }
+                            setAiSettings(ai)
+                            setSavedAiKey(JSON.stringify(ai))
                         }
 
                         // Fetch School Details (for technologies/workshops) - ONLY if role is relevant
@@ -316,6 +318,7 @@ export const SettingsPage = () => {
                                     customDetail: (curr.custom_detail || '')
                                 }))
                                 setSelectedUserSubjects(mapped)
+                                setSavedSubjectsKey(JSON.stringify(mapped))
                             }
                         }
                     }
@@ -323,38 +326,6 @@ export const SettingsPage = () => {
 
                 // (End of subject fetching)
 
-                // RESTORE DRAFT IF EXISTS
-                const savedDraft = localStorage.getItem(`settings_draft_${user.id}`)
-                if (savedDraft) {
-                    try {
-                        const parsed = JSON.parse(savedDraft);
-                        // Optional: Check timestamp if needed
-                        console.log('Restoring draft:', parsed);
-
-                        if (parsed.profile) {
-                            setProfile(prev => ({
-                                ...prev,
-                                first_name: parsed.profile.first_name || prev.first_name,
-                                last_name_paternal: parsed.profile.last_name_paternal || prev.last_name_paternal,
-                                last_name_maternal: parsed.profile.last_name_maternal || prev.last_name_maternal,
-                                avatar_url: parsed.profile.avatar_url || prev.avatar_url
-                            }));
-                        }
-                        if (parsed.tenant && isDirectorOrAdmin) {
-                            setTenant(prev => ({
-                                ...prev,
-                                ...parsed.tenant,
-                                id: prev.id // Never overwrite ID
-                            }));
-                        }
-                        if (parsed.selectedUserSubjects) setSelectedUserSubjects(parsed.selectedUserSubjects);
-                        if (parsed.aiSettings && isSuperAdmin) setAiSettings(parsed.aiSettings);
-
-                        showSuccess('Se han restaurado tus cambios no guardados');
-                    } catch (e) {
-                        console.error('Error restoring draft:', e);
-                    }
-                }
             }
         } catch (error) {
             console.error('Error loading settings:', error)
@@ -364,6 +335,7 @@ export const SettingsPage = () => {
     }
 
     const showSuccess = (msg: string) => {
+        showToast(msg, 'success')
         setSuccessMessage(msg)
         setTimeout(() => setSuccessMessage(''), 3000)
     }
@@ -393,9 +365,11 @@ export const SettingsPage = () => {
                 alert('Error al actualizar perfil: ' + fallbackError.message)
             } else {
                 showSuccess('Perfil actualizado (Modo Global)')
+                setSavedProfileKey(profileKey(profile))
             }
         } else {
             showSuccess('Perfil actualizado para este espacio')
+            setSavedProfileKey(profileKey(profile))
             // Clear draft on save
             localStorage.removeItem(`settings_draft_${profile.id}`)
             // Refresh logic to ensure hooks pick up new data
@@ -484,6 +458,8 @@ export const SettingsPage = () => {
 
             queryClient.invalidateQueries({ queryKey: ['teacher-scope'] })
             showSuccess('Materias actualizadas correctamente')
+            setSavedSubjectsKey(JSON.stringify(selectedUserSubjects))
+            setIsEditingSubjects(false)
             localStorage.removeItem(`settings_draft_${profile.id}`)
         } catch (err) {
             console.error(err)
@@ -522,6 +498,7 @@ export const SettingsPage = () => {
                 }
             }))
             showSuccess('Configuración de IA guardada')
+            setSavedAiKey(JSON.stringify(aiSettings))
             localStorage.removeItem(`settings_draft_${profile?.id}`)
         } else {
             console.error(error)
@@ -600,329 +577,198 @@ export const SettingsPage = () => {
                     </div>
                 </div>
             )}
-            <div className="mb-8">
+            <div className="mb-4 lg:mb-8">
                 <h1 className="text-3xl font-black text-gray-900 tracking-tight">Configuración</h1>
-                <p className="text-gray-500 font-medium">Gestiona tu perfil personal, la información de la escuela y preferencias del sistema.</p>
+                <p className="text-gray-500 font-medium">Tus datos, los de tu escuela y cómo trabaja la app. Los cambios se guardan con el botón que aparece abajo.</p>
             </div>
 
-            <div className="flex flex-col lg:flex-row gap-8">
-                {/* Vertical Sidebar Navigation */}
-                {/* Vertical Sidebar Navigation */}
-                <aside className="lg:w-72 flex-shrink-0">
-                    <div className="bg-white p-3 rounded-[2.5rem] border border-gray-100 shadow-sm sticky top-24 space-y-8">
-                        {/* PERSONAL SECTION */}
-                        <div>
-                            <h4 className="px-4 text-[11px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Personal</h4>
-                            <nav className="space-y-1">
-                                {[
-                                    { id: 'profile', label: 'Mi perfil', icon: User, color: 'text-blue-600', bg: 'bg-blue-50' },
-                                    // Hide subjects for roles that don't teach. 
-                                    // INDEPENDENT_TEACHER sees this in Institutional section now.
-                                    ...(['TEACHER', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD', 'ADMIN', 'INDEPENDENT_TEACHER'].includes(currentRole) ? [
-                                        { id: 'subjects', label: 'Mis materias', icon: BookOpen, color: 'text-purple-600', bg: 'bg-purple-50' }
-                                    ] : []),
-                                    { id: 'security', label: 'Seguridad', icon: Lock, color: 'text-gray-600', bg: 'bg-gray-100' },
-                                    ...((profile.role?.toUpperCase() !== 'TUTOR') ? [
-                                        { id: 'billing', label: 'Mi cuenta', icon: CreditCard, color: 'text-blue-600', bg: 'bg-blue-50' }
-                                    ] : []),
-                                ].map((item: any) => {
-                                    const isActive = activeTab === item.id;
-                                    const Icon = item.icon;
-                                    return (
-                                        <button
-                                            key={item.id}
-                                            onClick={() => setActiveTab(item.id as any)}
-                                            className={`
-                                                w-full flex items-center px-4 py-3 text-sm font-bold rounded-2xl transition-all duration-200 group
-                                                ${isActive ? `${item.bg} ${item.color} shadow-sm shadow-black/5` : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}
-                                            `}
-                                        >
-                                            <Icon className={`w-4 h-4 mr-3 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
-                                            {item.label}
-                                        </button>
-                                    );
-                                })}
+            <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
+                {/* Navegación de Configuración: menú lateral en computadora, fila deslizable en celular */}
+                {(() => {
+                    const groups: { title: string; items: { id: string; label: string; icon: any }[] }[] = [
+                        {
+                            title: 'Personal', items: [
+                                { id: 'profile', label: 'Mi perfil', icon: User },
+                                ...(['TEACHER', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD', 'ADMIN', 'INDEPENDENT_TEACHER'].includes(currentRole) ? [{ id: 'subjects', label: 'Mis materias', icon: BookOpen }] : []),
+                                { id: 'security', label: 'Seguridad', icon: Lock },
+                                ...(profile.role?.toUpperCase() !== 'TUTOR' ? [{ id: 'billing', label: 'Mi cuenta', icon: CreditCard }] : []),
+                            ]
+                        },
+                        ...((isDirectorOrAdmin || ['TEACHER', 'ACADEMIC_COORD', 'TECH_COORD', 'PREFECT', 'SUPPORT'].includes(currentRole)) ? [{
+                            title: 'Escuela', items: [
+                                { id: 'school', label: 'Datos de la escuela', icon: School },
+                                { id: 'cycle', label: 'Ciclo escolar y periodos', icon: Calendar },
+                                { id: 'horarios', label: 'Jornada escolar', icon: Clock },
+                            ]
+                        }] : []),
+                        ...(((isDirectorOrAdmin || isSuperAdmin) && profile.role?.toUpperCase() !== 'INDEPENDENT_TEACHER' && tenant.type !== 'INDEPENDENT') ? [{
+                            title: 'Gestión', items: [
+                                ...(isDirectorOrAdmin ? [{ id: 'personal', label: 'Docentes de la escuela', icon: Users }] : []),
+                                ...(isSuperAdmin ? [{ id: 'ai', label: 'Inteligencia artificial', icon: Sparkles }] : []),
+                            ]
+                        }] : []),
+                    ].filter(g => g.items.length)
+                    const all = groups.flatMap(g => g.items)
+                    return (
+                        <>
+                            {/* Celular: una fila de opciones que se desliza */}
+                            <nav aria-label="Secciones de configuración" className="lg:hidden -mx-3 px-3 overflow-x-auto scrollbar-hide">
+                                <div className="flex gap-2 w-max pb-1">
+                                    {all.map(item => {
+                                        const Icon = item.icon, active = activeTab === item.id
+                                        return (
+                                            <button key={item.id} type="button" onClick={() => setActiveTab(item.id as any)} aria-current={active ? 'page' : undefined}
+                                                data-settings-chip={active ? 'active' : undefined}
+                                                className={`inline-flex items-center gap-2 min-h-[44px] px-4 rounded-2xl text-sm font-bold border whitespace-nowrap ${active ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200'}`}>
+                                                <Icon className="w-4 h-4" />{item.label}
+                                            </button>
+                                        )
+                                    })}
+                                </div>
                             </nav>
-                        </div>
-
-                        {/* INSTITUTIONAL SECTION (DIRECTOR/ADMIN/TEACHER/COORD) */}
-                        {(isDirectorOrAdmin || ['TEACHER', 'ACADEMIC_COORD', 'TECH_COORD', 'PREFECT', 'SUPPORT'].includes(currentRole)) && (
-                            <div>
-                                <h4 className="px-4 text-[11px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Institucional</h4>
-                                <nav className="space-y-1">
-                                    {[
-                                        { id: 'school', label: 'Datos de la escuela', icon: School, color: 'text-emerald-700', bg: 'bg-emerald-50' },
-                                        { id: 'cycle', label: 'Ciclo escolar y periodos', icon: Calendar, color: 'text-amber-700', bg: 'bg-amber-50' },
-                                        { id: 'horarios', label: 'Jornada escolar', icon: Clock, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-                                    ].map((item: any) => {
-                                        const isActive = activeTab === item.id;
-                                        const Icon = item.icon;
-                                        return (
-                                            <button
-                                                key={item.id}
-                                                onClick={() => setActiveTab(item.id as any)}
-                                                className={`
-                                                    w-full flex items-center px-4 py-3 text-sm font-bold rounded-2xl transition-all duration-200 group
-                                                    ${isActive ? `${item.bg} ${item.color} shadow-sm shadow-black/5` : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}
-                                                `}
-                                            >
-                                                <Icon className={`w-4 h-4 mr-3 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
-                                                {item.label}
-                                            </button>
-                                        );
-                                    })}
-                                </nav>
-                            </div>
-                        )}
-
-                        {/* ADMINISTRATION SECTION */}
-                        {(isDirectorOrAdmin || isSuperAdmin) && (profile.role?.toUpperCase() !== 'INDEPENDENT_TEACHER' && tenant.type !== 'INDEPENDENT') && (
-                            <div>
-                                <h4 className="px-4 text-[11px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Gestión</h4>
-                                <nav className="space-y-1">
-                                    {[
-                                        { id: 'personal', label: 'Docentes de la escuela', icon: Users, color: 'text-rose-600', bg: 'bg-rose-50', adminOnly: true, excludeIndependent: true },
-                                        { id: 'ai', label: 'Inteligencia artificial', icon: Sparkles, color: 'text-indigo-600', bg: 'bg-indigo-50', superOnly: true },
-                                    ].map((item: any) => {
-
-                                        if (item.adminOnly && !isDirectorOrAdmin) return null;
-                                        if (item.superOnly && !isSuperAdmin) return null;
-                                        if (item.id === 'ai' && profile.role?.toUpperCase() === 'TUTOR') return null;
-                                        if (item.excludeIndependent && profile.role?.toUpperCase() === 'INDEPENDENT_TEACHER') return null;
-                                        const isActive = activeTab === item.id;
-                                        const Icon = item.icon;
-                                        return (
-                                            <button
-                                                key={item.id}
-                                                onClick={() => setActiveTab(item.id as any)}
-                                                className={`
-                                                    w-full flex items-center px-4 py-3 text-sm font-bold rounded-2xl transition-all duration-200 group
-                                                    ${isActive ? `${item.bg} ${item.color} shadow-sm shadow-black/5` : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}
-                                                `}
-                                            >
-                                                <Icon className={`w-4 h-4 mr-3 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
-                                                {item.label}
-                                            </button>
-                                        );
-                                    })}
-                                </nav>
-                            </div>
-                        )}
-
-
-                    </div>
-                </aside>
+                            {/* Computadora: menú lateral */}
+                            <aside className="hidden lg:block lg:w-72 flex-shrink-0">
+                                <div className="bg-white p-3 rounded-[2rem] border border-slate-100 shadow-sm sticky top-24 space-y-6">
+                                    {groups.map(g => (
+                                        <div key={g.title}>
+                                            <h4 className="px-4 pt-2 text-xs font-bold text-slate-500 mb-2">{g.title}</h4>
+                                            <nav className="space-y-1">
+                                                {g.items.map(item => {
+                                                    const Icon = item.icon, active = activeTab === item.id
+                                                    return (
+                                                        <button key={item.id} type="button" onClick={() => setActiveTab(item.id as any)} aria-current={active ? 'page' : undefined}
+                                                            className={`w-full flex items-center px-4 py-3 text-sm font-bold rounded-2xl transition-colors ${active ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}>
+                                                            <Icon className="w-4 h-4 mr-3" />{item.label}
+                                                        </button>
+                                                    )
+                                                })}
+                                            </nav>
+                                        </div>
+                                    ))}
+                                </div>
+                            </aside>
+                        </>
+                    )
+                })()}
 
                 {/* Content Area */}
                 <main className="flex-1 min-w-0">
                     {/* overflow-clip (no hidden): así las barras "Guardar" fijas (sticky) siguen visibles al desplazarse */}
                     <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-clip min-h-[600px]">
 
-                        <div className="p-8 lg:p-12 animate-in fade-in slide-in-from-right-4 duration-500">
+                        <div className="p-5 sm:p-8 lg:p-10 animate-in fade-in duration-300">
+                            {(() => {
+                                const H: Record<string, { icon: any; title: string; description: string }> = {
+                                    profile: { icon: User, title: 'Mi perfil', description: 'Tu nombre y foto como aparecen en la app y en tus documentos. También puedes agrandar la letra.' },
+                                    subjects: { icon: BookOpen, title: 'Mis materias', description: 'Las materias que impartes. Definen tu programa analítico (uno por campo formativo) y las opciones de tus planeaciones.' },
+                                    security: { icon: Lock, title: 'Seguridad', description: 'Tu contraseña, verificación en dos pasos y respaldo de tus datos.' },
+                                    billing: { icon: CreditCard, title: 'Mi cuenta', description: 'El estado de tu suscripción.' },
+                                    school: { icon: School, title: 'Datos de la escuela', description: 'Lo que registraste al crear tu espacio. Aparece en tus planeaciones, programa analítico y documentos.' },
+                                    cycle: { icon: Calendar, title: 'Ciclo escolar y periodos', description: 'Las fechas del ciclo y los periodos de evaluación (trimestres). Organizan tus calificaciones, asistencia y planeaciones.' },
+                                    horarios: { icon: Clock, title: 'Jornada escolar', description: 'Hora de entrada y salida, duración de cada clase y recesos. Se usa para armar tu horario y tus planeaciones.' },
+                                    personal: { icon: Users, title: 'Docentes de la escuela', description: 'Quién tiene acceso a tu escuela: invita a docentes y personal, o crea sus accesos.' },
+                                    ai: { icon: Sparkles, title: 'Inteligencia artificial', description: 'Claves de los servicios de IA que generan planeaciones y evaluaciones.' },
+                                }
+                                const h = H[activeTab]
+                                return h ? <SettingsHeader icon={h.icon} title={h.title} description={h.description} /> : null
+                            })()}
                             {/* PROFILE TAB */}
                             {activeTab === 'profile' && (
                                 <div className="space-y-6">
-                                    <div className="mb-10 flex flex-col md:flex-row items-center gap-8 bg-gray-50 p-8 rounded-3xl border border-gray-100">
-                                        <div className="relative group">
+                                    <SettingsCard icon={User} title="Tus datos" hint="Así apareces en tus planeaciones, listas y documentos.">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <WizardField label="Nombre(s)">
+                                                <input aria-label="Nombre(s)" className={wizardInput} value={profile.first_name || ''}
+                                                    onChange={(e) => setProfile({ ...profile, first_name: e.target.value.toUpperCase() })} />
+                                            </WizardField>
+                                            <WizardField label="Apellido paterno">
+                                                <input aria-label="Apellido paterno" className={wizardInput} value={profile.last_name_paternal || ''}
+                                                    onChange={(e) => setProfile({ ...profile, last_name_paternal: e.target.value.toUpperCase() })} />
+                                            </WizardField>
+                                            <WizardField label="Apellido materno">
+                                                <input aria-label="Apellido materno" className={wizardInput} value={profile.last_name_maternal || ''}
+                                                    onChange={(e) => setProfile({ ...profile, last_name_maternal: e.target.value.toUpperCase() })} />
+                                            </WizardField>
+                                            <WizardField label="Correo" hint="Con él entras a la app; no se puede cambiar aquí.">
+                                                <input aria-label="Correo" type="email" disabled className={`${wizardInput} opacity-70 cursor-not-allowed`} value={profile.email || ''} />
+                                            </WizardField>
+                                        </div>
+                                    </SettingsCard>
+
+                                    <SettingsCard icon={Sparkles} title="Tu foto" hint="Elige una imagen para que tus alumnos y colegas te reconozcan.">
+                                        <div className="flex flex-col sm:flex-row items-center gap-5">
                                             <img
                                                 src={profile.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${profile.first_name}+${profile.last_name_paternal}`}
-                                                alt="Avatar"
-                                                className="w-32 h-32 rounded-full bg-white shadow-xl border-4 border-white object-cover group-hover:scale-105 transition-transform duration-300"
+                                                alt="Tu foto actual"
+                                                className="w-20 h-20 rounded-full bg-slate-50 border-4 border-white shadow object-cover"
                                             />
-                                            <div className="absolute -bottom-2 -right-2 bg-blue-600 text-white p-2 rounded-xl shadow-lg">
-                                                <Sparkles className="w-4 h-4" />
-                                            </div>
-                                        </div>
-                                        <div className="flex-1 text-center md:text-left">
-                                            <h3 className="text-xl font-black text-gray-900 tracking-tight">Tu foto</h3>
-                                            <p className="text-sm text-gray-500 font-medium mb-4">Personaliza tu avatar para ser reconocido por tus alumnos y colegas.</p>
-                                            <div className="flex flex-wrap justify-center md:justify-start gap-4">
+                                            <div className="flex flex-wrap justify-center sm:justify-start gap-3">
                                                 {AVATARS.map(url => (
                                                     <button
                                                         key={url}
+                                                        type="button"
+                                                        aria-label="Usar esta foto"
+                                                        aria-pressed={profile.avatar_url === url}
                                                         onClick={() => setProfile({ ...profile, avatar_url: url })}
-                                                        className={`w-10 h-10 rounded-full overflow-hidden border-4 transition-all hover:scale-110 ${profile.avatar_url === url ? 'border-blue-500 shadow-md ring-4 ring-blue-50' : 'border-white shadow-sm hover:border-blue-200'}`}
+                                                        className={`w-12 h-12 rounded-full overflow-hidden border-4 ${profile.avatar_url === url ? 'border-indigo-500 ring-4 ring-indigo-50' : 'border-white shadow-sm hover:border-indigo-200'}`}
                                                     >
-                                                        <img src={url} className="w-full h-full" alt="avatar option" />
+                                                        <img src={url} className="w-full h-full" alt="" />
                                                     </button>
                                                 ))}
                                             </div>
                                         </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700">Nombre(s)</label>
-                                            <input aria-label="Nombre(s)"
-                                                type="text"
-                                                value={profile.first_name || ''}
-                                                onChange={(e) => setProfile({ ...profile, first_name: e.target.value.toUpperCase() })}
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700">Apellido Paterno</label>
-                                            <input aria-label="Apellido Paterno"
-                                                type="text"
-                                                value={profile.last_name_paternal || ''}
-                                                onChange={(e) => setProfile({ ...profile, last_name_paternal: e.target.value.toUpperCase() })}
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700">Apellido Materno</label>
-                                            <input aria-label="Apellido Materno"
-                                                type="text"
-                                                value={profile.last_name_maternal || ''}
-                                                onChange={(e) => setProfile({ ...profile, last_name_maternal: e.target.value.toUpperCase() })}
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Correo Electrónico</label>
-                                            <input aria-label="Correo Electrónico"
-                                                type="email"
-                                                disabled
-                                                value={profile.email || ''}
-                                                className="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-gray-500 font-bold focus:ring-0 cursor-not-allowed"
-                                            />
-                                        </div>
-                                    </div>
+                                    </SettingsCard>
 
                                     <TextSizeSetting />
 
-                                    <div className="flex justify-end pt-8 border-t border-gray-100">
-                                        <button
-                                            onClick={handleUpdateProfile}
-                                            disabled={updating}
-                                            className="px-8 py-4 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-gray-200 disabled:opacity-50 flex items-center"
-                                        >
-                                            <Save className="w-4 h-4 mr-2" />
-                                            {updating ? 'Guardando...' : 'Guardar cambios'}
-                                        </button>
-                                    </div>
+                                    <SaveBar
+                                        dirty={savedProfileKey !== null && savedProfileKey !== profileKey(profile)}
+                                        saving={updating}
+                                        onSave={handleUpdateProfile}
+                                        onDiscard={() => { try { const [f, p, m, av] = JSON.parse(savedProfileKey || '[]'); setProfile(prev => ({ ...prev, first_name: f, last_name_paternal: p, last_name_maternal: m, avatar_url: av })) } catch { /* nada */ } }}
+                                        what="cambios en tu perfil"
+                                    />
                                 </div>
                             )}
 
                             {activeTab === 'subjects' && (
                                 <div className="space-y-6">
-                                    {/* Header Section */}
-                                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-gray-100 pb-6">
-                                        <div>
-                                            {isEditingSubjects ? (
-                                                <div className="flex items-center gap-2">
-                                                    <button aria-label="Regresar"
-                                                        onClick={() => setIsEditingSubjects(false)}
-                                                        className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
-                                                    >
-                                                        <ArrowLeft className="w-5 h-5" />
-                                                    </button>
-                                                    <div>
-                                                        <h3 className="text-2xl font-black text-gray-900 tracking-tight">Editar mis materias</h3>
-                                                        <p className="text-sm text-gray-500 font-medium">Marca las materias que impartes en esta escuela.</p>
-                                                    </div>
-                                                </div>
+                                    {isEditingSubjects ? (
+                                        <SettingsCard icon={Pencil} title="Elige las materias que impartes"
+                                            hint="Marca tus materias. En Tecnología escribe tu especialidad (ej. Informática)."
+                                            action={<SettingsActionButton icon={ArrowLeft} onClick={() => {
+                                                setSelectedUserSubjects(JSON.parse(savedSubjectsKey)); setIsEditingSubjects(false)
+                                            }}>Volver sin cambios</SettingsActionButton>}>
+                                            <SubjectSelector
+                                                educationalLevel={tenant.educational_level || 'SECONDARY'}
+                                                selectedSubjects={selectedUserSubjects.reduce((acc: any, curr) => {
+                                                    if (curr.catalogId) {
+                                                        acc[curr.catalogId] = { selected: true, customDetail: curr.customDetail }
+                                                    }
+                                                    return acc
+                                                }, {})}
+                                                onChange={(newSubjects) => {
+                                                    const list = Object.entries(newSubjects)
+                                                        .filter(([_, val]) => val.selected)
+                                                        .map(([key, val]) => ({
+                                                            catalogId: key,
+                                                            customDetail: val.customDetail
+                                                        }))
+                                                    setSelectedUserSubjects(list)
+                                                }}
+                                            />
+                                        </SettingsCard>
+                                    ) : (
+                                        <SettingsCard icon={BookOpen} title="Materias que impartes"
+                                            hint={<>El nivel educativo y el grado se cambian en <button type="button" onClick={() => setActiveTab('school')} className="font-bold text-indigo-700 underline">Datos de la escuela</button>.</>}
+                                            action={<SettingsActionButton icon={Pencil} onClick={() => setIsEditingSubjects(true)}>{selectedUserSubjects.length ? 'Agregar o cambiar' : 'Agregar materias'}</SettingsActionButton>}>
+                                            {selectedUserSubjects.length === 0 ? (
+                                                <p className="text-sm text-slate-500 text-center py-8 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                                                    Aún no registras materias. Usa “Agregar materias” para empezar a planear.
+                                                </p>
                                             ) : (
-                                                <div>
-                                                    <h3 className="text-2xl font-black text-gray-900 tracking-tight">Mis materias</h3>
-                                                    <p className="text-sm text-gray-500 font-medium">Las asignaturas que impartes.</p>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {!isEditingSubjects && (
-                                            <button
-                                                onClick={() => setIsEditingSubjects(true)}
-                                                className="px-6 py-3 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center"
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    <Plus className="w-4 h-4" /> Editar / Agregar
-                                                </div>
-                                            </button>
-                                        )}
-                                    </div>
-
-                                    <p className="text-sm text-slate-600 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3">
-                                        Tus materias definen tu programa analítico (uno por campo formativo) y las opciones de tus planeaciones.
-                                        El nivel educativo y el grado se cambian en <button type="button" onClick={() => setActiveTab('school')} className="font-black text-indigo-700 underline">Datos de la escuela</button>.
-                                    </p>
-
-                                    {/* Main Content Area */}
-                                    <div className="bg-gray-50 rounded-3xl border border-gray-100 min-h-[500px] flex flex-col relative overflow-hidden">
-                                        {isEditingSubjects ? (
-                                            <div className="flex flex-col h-full animate-in fade-in slide-in-from-bottom-4 duration-300">
-                                                {/* Scrollable Content */}
-                                                <div className="flex-1 p-6 overflow-y-auto max-h-[60vh]">
-                                                    <h4 className="text-sm font-black text-gray-800 uppercase tracking-widest mb-4 mt-6 flex items-center gap-2">
-                                                        <BookOpen className="w-5 h-5 text-purple-500" />
-                                                        Materias Asignadas
-                                                    </h4>
-                                                    <SubjectSelector
-                                                        educationalLevel={tenant.educational_level || 'SECONDARY'}
-                                                        selectedSubjects={selectedUserSubjects.reduce((acc: any, curr) => {
-                                                            if (curr.catalogId) {
-                                                                acc[curr.catalogId] = { selected: true, customDetail: curr.customDetail }
-                                                            }
-                                                            return acc
-                                                        }, {})}
-                                                        onChange={(newSubjects) => {
-                                                            const list = Object.entries(newSubjects)
-                                                                .filter(([_, val]) => val.selected)
-                                                                .map(([key, val]) => ({
-                                                                    catalogId: key,
-                                                                    customDetail: val.customDetail
-                                                                }))
-                                                            setSelectedUserSubjects(list)
-                                                        }}
-                                                    />
-                                                </div>
-
-                                                {/* Sticky Footer for Actions */}
-                                                <div className="p-4 bg-white border-t border-gray-100 flex justify-end gap-3 sticky bottom-0 z-10 shadow-lg shadow-gray-100/50">
-                                                    <button
-                                                        onClick={() => {
-                                                            setIsEditingSubjects(false);
-                                                            loadData(); // Discard changes
-                                                        }}
-                                                        disabled={updating}
-                                                        className="px-6 py-3 bg-white text-gray-700 border border-gray-200 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-gray-50 transition-all"
-                                                    >
-                                                        Cancelar
-                                                    </button>
-                                                    <button
-                                                        onClick={async () => {
-                                                            await handleUpdateSubjects();
-                                                            setIsEditingSubjects(false);
-                                                        }}
-                                                        disabled={updating}
-                                                        className="px-8 py-3 bg-emerald-500 text-white rounded-xl font-black text-xs uppercase tracking-wider hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-100 flex items-center"
-                                                    >
-                                                        <Save className="w-4 h-4 mr-2" />
-                                                        {updating ? 'Guardando...' : 'Guardar Cambios'}
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="p-6 animate-in fade-in duration-300 h-full">
-                                                {selectedUserSubjects.length === 0 ? (
-                                                    <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
-                                                        <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-6 animate-bounce-slow">
-                                                            <BookOpen className="w-10 h-10 text-blue-500" />
-                                                        </div>
-                                                        <h3 className="text-xl font-bold text-gray-900 mb-2">Tu lista de materias está vacía</h3>
-                                                        <p className="text-sm text-gray-500 max-w-xs mx-auto mb-8 leading-relaxed">
-                                                            Para comenzar a planear, primero necesitas agregar las asignaturas que impartes.
-                                                        </p>
-                                                        <button
-                                                            onClick={() => setIsEditingSubjects(true)}
-                                                            className="text-white bg-blue-600 px-8 py-3 rounded-xl font-bold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-200"
-                                                        >
-                                                            ¡Comenzar a Agregar!
-                                                        </button>
-                                                    </div>
-                                                ) : (
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                        {selectedUserSubjects.map((subject, index) => {
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+{selectedUserSubjects.map((subject, index) => {
                                                             const baseName = catalogNames[subject.catalogId || ''] || 'Materia';
                                                             const subjectName = formatSubjectName(baseName, subject.customDetail);
                                                             const needsSpecialty = /tecnolog/i.test(baseName) && !subject.customDetail;
@@ -959,6 +805,7 @@ export const SettingsPage = () => {
                                                                                         if (insertError) throw insertError
                                                                                     }
                                                                                     queryClient.invalidateQueries({ queryKey: ['teacher-scope'] })
+                                                                                    setSavedSubjectsKey(JSON.stringify(newList));
                                                                                     showSuccess('Materia eliminada');
                                                                                 } catch (e) {
                                                                                     console.error(e);
@@ -977,11 +824,17 @@ export const SettingsPage = () => {
                                                                 </div>
                                                             );
                                                         })}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
+                                                </div>
+                                            )}
+                                        </SettingsCard>
+                                    )}
+                                    <SaveBar
+                                        dirty={savedSubjectsKey !== JSON.stringify(selectedUserSubjects)}
+                                        saving={updating}
+                                        onSave={handleUpdateSubjects}
+                                        onDiscard={() => { setSelectedUserSubjects(JSON.parse(savedSubjectsKey)); setIsEditingSubjects(false) }}
+                                        what="cambios en tus materias"
+                                    />
                                 </div>
                             )}
 
@@ -992,12 +845,10 @@ export const SettingsPage = () => {
                             )}
 
                             {activeTab === 'horarios' && (
-                                <div className="space-y-16">
+                                <div className="space-y-6">
                                     <ScheduleConfig />
                                     {['DIRECTOR', 'ADMIN', 'SUPER_ADMIN', 'ACADEMIC_COORD', 'TECH_COORD'].includes(currentRole) && tenant.type?.toUpperCase() !== 'INDEPENDENT' && (
-                                        <div className="pt-16 border-t border-gray-100">
-                                            <SpecialScheduleManager />
-                                        </div>
+                                        <SpecialScheduleManager />
                                     )}
                                 </div>
                             )}
@@ -1006,19 +857,9 @@ export const SettingsPage = () => {
 
                             {
                                 activeTab === 'cycle' && (
-                                    <div className="space-y-12">
-                                        <div className="flex flex-col md:flex-row justify-between items-start gap-4 border-b border-gray-100 pb-6">
-                                            <div>
-                                                <h3 className="text-2xl font-black text-gray-900 tracking-tight">Ciclo escolar y periodos de evaluación</h3>
-                                                <p className="text-sm text-gray-500 font-medium">Las fechas del ciclo y los periodos (trimestres) que registraste al crear tu espacio. Organizan tus calificaciones, asistencia y planeaciones.</p>
-                                            </div>
-                                        </div>
-                                        <div className="bg-white rounded-[2rem] border border-gray-100 p-2 shadow-sm">
-                                            <AcademicYearManager readOnly={!isDirectorOrAdmin} />
-                                        </div>
-                                        <div className="bg-white rounded-[2rem] border border-gray-100 p-2 shadow-sm">
-                                            <PeriodManager readOnly={!isDirectorOrAdmin} />
-                                        </div>
+                                    <div className="space-y-6">
+                                        <AcademicYearManager readOnly={!isDirectorOrAdmin} />
+                                        <PeriodManager readOnly={!isDirectorOrAdmin} />
                                     </div>
                                 )
                             }
@@ -1035,20 +876,6 @@ export const SettingsPage = () => {
                             {
                                 activeTab === 'ai' && (
                                     <div className="space-y-12">
-                                        <div className="flex flex-col md:flex-row justify-between items-start gap-4 border-b border-gray-100 pb-6">
-                                            <div>
-                                                <h3 className="text-2xl font-black text-gray-900 tracking-tight">Inteligencia Artificial</h3>
-                                                <p className="text-sm text-gray-500 font-medium tracking-tight">El motor cognitivo que potencia tus planeaciones y evaluaciones.</p>
-                                            </div>
-                                            <button
-                                                onClick={handleUpdateAiSettings}
-                                                disabled={updating}
-                                                className="px-6 py-3 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 disabled:opacity-50 flex items-center"
-                                            >
-                                                <Save className="w-4 h-4 mr-2" />
-                                                {updating ? 'Guardando...' : 'Guardar Configuración'}
-                                            </button>
-                                        </div>
 
                                         <div className="space-y-8 max-w-2xl">
                                             <div className="bg-gradient-to-br from-indigo-600 to-blue-700 p-8 rounded-[2.5rem] text-white shadow-2xl shadow-indigo-200 relative overflow-hidden">
@@ -1155,6 +982,9 @@ export const SettingsPage = () => {
                                                     </div>
                                                 )}
                                             </div>
+
+                                            <SaveBar dirty={savedAiKey !== JSON.stringify(aiSettings)} saving={updating} onSave={handleUpdateAiSettings}
+                                                onDiscard={() => setAiSettings(JSON.parse(savedAiKey))} what="cambios en la configuración de IA" />
 
                                             <div className="pt-12 border-t border-gray-50">
                                                 <div className="flex items-center mb-6">

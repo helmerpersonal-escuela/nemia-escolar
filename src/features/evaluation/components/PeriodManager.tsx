@@ -5,6 +5,7 @@ import { Plus, Trash2, Calendar, AlertCircle, Edit2 } from 'lucide-react'
 import { useTenant } from '../../../hooks/useTenant'
 import { DateInput } from '../../../components/ui/DateInput'
 import { askConfirm } from '../../../components/ui/ConfirmDialog'
+import { SettingsCard, SettingsActionButton } from '../../settings/components/SettingsUI'
 
 interface Period {
     id: string
@@ -142,22 +143,8 @@ export const PeriodManager = ({ onSelectPeriod, selectedPeriodId, readOnly = fal
     if (loading) return <div>Cargando periodos...</div>
 
     return (
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                    <Calendar className="w-5 h-5 mr-2 text-indigo-600" />
-                    Periodos de Evaluación
-                </h3>
-                {!readOnly && (
-                    <button
-                        onClick={() => { setIsCreating(true); setEditingPeriod(null); }}
-                        className="text-sm bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition-colors font-medium flex items-center"
-                    >
-                        <Plus className="w-4 h-4 mr-1" />
-                        Nuevo Periodo
-                    </button>
-                )}
-            </div>
+        <SettingsCard icon={Calendar} title="Periodos de evaluación" hint="Los periodos en que divides el ciclo para calificar (por ejemplo, trimestres)."
+            action={!readOnly ? <SettingsActionButton onClick={() => { setIsCreating(true); setEditingPeriod(null) }}>Agregar periodo</SettingsActionButton> : undefined}>
 
             {!readOnly && (isCreating || editingPeriod) && (
                 <form onSubmit={editingPeriod ? handleUpdate : handleCreate} className="mb-6 p-4 bg-gray-50 rounded-lg space-y-4 border border-gray-200">
@@ -280,6 +267,6 @@ export const PeriodManager = ({ onSelectPeriod, selectedPeriodId, readOnly = fal
                     ))
                 )}
             </div>
-        </div>
+        </SettingsCard>
     )
 }

@@ -5,6 +5,7 @@ import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
 import { useToast } from '../../../components/ui/Toast'
 import { WizardField, wizardInput, wizardChoice, Radio } from '../../../components/wizard/Wizard'
+import { SettingsCard, SaveBar } from './SettingsUI'
 import { ImageUpload, ImageSpecHint, LOGO_SPEC } from '../../../components/common/ImageUpload'
 import { SchoolLocationFields, emptyLocation, isLocationComplete, loadSchoolLocation, saveSchoolLocation, type SchoolLocation } from '../../../components/location/SchoolLocationFields'
 import { phaseFor } from '../../../lib/nemCatalog'
@@ -26,14 +27,8 @@ interface SchoolForm {
 
 const EMPTY: SchoolForm = { name: '', cct: '', level: 'SECONDARY', secondaryType: '', grade: null, shift: 'MORNING', regime: '', zone: '', sector: '', phone: '', email: '', director: '', logoLeft: '', logoRight: '', legacyAddress: '' }
 const LEVELS: [Level, string][] = [['PRIMARY', 'Primaria'], ['SECONDARY', 'Secundaria'], ['TELESECUNDARIA', 'Telesecundaria']]
-const Section = ({ icon: Icon, title, hint, children }: { icon: any; title: string; hint?: string; children: React.ReactNode }) => (
-    <section className="rounded-3xl border border-slate-100 bg-white p-5 sm:p-6 space-y-4">
-        <header>
-            <h4 className="text-base font-black text-slate-900 flex items-center gap-2"><Icon className="w-5 h-5 text-indigo-600" /> {title}</h4>
-            {hint && <p className="text-sm text-slate-500 mt-1">{hint}</p>}
-        </header>
-        {children}
-    </section>
+const Section = ({ icon, title, hint, children }: { icon: any; title: string; hint?: string; children: React.ReactNode }) => (
+    <SettingsCard icon={icon} title={title} hint={hint}>{children}</SettingsCard>
 )
 
 export const SchoolDataSection = ({ readOnly = false }: { readOnly?: boolean }) => {
@@ -47,6 +42,23 @@ export const SchoolDataSection = ({ readOnly = false }: { readOnly?: boolean }) 
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const set = (p: Partial<SchoolForm>) => setForm(f => ({ ...f, ...p }))
+    // Foto de lo guardado para saber si hay cambios. Se toma un momento después de cargar,
+    // porque el mapa puede ajustar la ubicación sola al abrir.
+    const [baseline, setBaseline] = useState<string | null>(null)
+    const [justSaved, setJustSaved] = useState(false)
+    const snapshot = JSON.stringify({ form, location })
+    useEffect(() => {
+        if (loading) return
+        const t = setTimeout(() => setBaseline(b => b ?? JSON.stringify({ form, location })), 1200)
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [loading])
+    const dirty = !readOnly && baseline !== null && baseline !== snapshot
+    const discard = () => {
+        if (!baseline) return
+        const b = JSON.parse(baseline)
+        setForm(b.form); setLocation(b.location)
+    }
 
     useEffect(() => {
         if (!tenantId) return
@@ -124,6 +136,8 @@ export const SchoolDataSection = ({ readOnly = false }: { readOnly?: boolean }) 
             if (location.state) await saveSchoolLocation(tenantId, location, { name, cct })
             await qc.invalidateQueries({ queryKey: ['tenant'] })
             showToast('Datos de la escuela guardados.', 'success')
+            setBaseline(JSON.stringify({ form, location }))
+            setJustSaved(true)
         } catch (err: any) {
             showToast(`No se pudieron guardar los datos: ${err.message}`, 'error')
         } finally {
@@ -136,12 +150,8 @@ export const SchoolDataSection = ({ readOnly = false }: { readOnly?: boolean }) 
     const phase = form.level === 'PRIMARY' ? phaseFor('PRIMARY', form.grade) : phaseFor(form.level, null)
 
     return (
-        <div className="space-y-6 pb-24">
-            <div className="border-b border-slate-100 pb-5">
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Datos de la escuela</h3>
-                <p className="text-sm text-slate-500 mt-1">Lo que registraste al crear tu espacio. Aparece en tus planeaciones, programa analítico y documentos.</p>
-                {readOnly && <p className="mt-3 text-sm font-bold text-amber-800 bg-amber-50 border border-amber-100 rounded-2xl px-4 py-2">Solo la dirección puede modificar estos datos.</p>}
-            </div>
+        <div className="space-y-6">
+            {readOnly && <p className="text-sm font-bold text-amber-800 bg-amber-50 border border-amber-100 rounded-2xl px-4 py-2">Solo la dirección puede modificar estos datos.</p>}
 
             <fieldset disabled={readOnly || saving} className="space-y-6">
                 <Section icon={School} title="Identificación" hint="Nombre y clave con los que la escuela aparece en documentos oficiales.">
@@ -176,7 +186,7 @@ export const SchoolDataSection = ({ readOnly = false }: { readOnly?: boolean }) 
 
                     <div>
                         <span className="block text-xs font-black text-slate-600 mb-1.5">Nivel educativo <span className="text-rose-500">*</span></span>
-                        <div className="grid grid-cols-1 min-[420px]:grid-cols-3 gap-2">
+                        <div className="grid grid-cols-[repeat(auto-fit,minmax(10.5rem,1fr))] gap-2">
                             {LEVELS.map(([v, label]) => (
                                 <button key={v} type="button" onClick={() => set({ level: v, secondaryType: v === 'SECONDARY' ? form.secondaryType : '', grade: v === 'PRIMARY' ? form.grade : null })} className={wizardChoice(form.level === v)}>
                                     <Radio checked={form.level === v} /> {label}
@@ -237,14 +247,7 @@ export const SchoolDataSection = ({ readOnly = false }: { readOnly?: boolean }) 
                 </Section>
             </fieldset>
 
-            {!readOnly && (
-                <div className="fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] lg:bottom-6 lg:right-8 z-40 flex justify-end">
-                    <button type="button" onClick={save} disabled={saving}
-                        className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-indigo-600 text-white text-sm font-black shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 disabled:opacity-50">
-                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Guardar cambios
-                    </button>
-                </div>
-            )}
+            {!readOnly && <SaveBar dirty={dirty} saving={saving} onSave={save} onDiscard={discard} what="cambios en los datos de la escuela" saved={justSaved} />}
         </div>
     )
 }

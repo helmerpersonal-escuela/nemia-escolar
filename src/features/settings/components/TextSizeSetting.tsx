@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Type, Check } from 'lucide-react'
+import { SettingsCard } from './SettingsUI'
 import { getTextSize, setTextSize, onTextSizeChange, TEXT_SIZE_OPTIONS, type TextSize } from '../../../lib/textSize'
 
 const PREVIEW: Record<TextSize, string> = { normal: 'text-base', lg: 'text-lg', xl: 'text-xl' }
@@ -10,14 +11,7 @@ export function TextSizeSetting() {
     useEffect(() => onTextSizeChange(setSize), [])
 
     return (
-        <section aria-labelledby="text-size-title" className="rounded-3xl border border-gray-100 bg-white p-5 sm:p-6">
-            <div className="flex items-start gap-3 mb-4">
-                <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600 shrink-0"><Type className="w-5 h-5" /></div>
-                <div>
-                    <h3 id="text-size-title" className="text-base font-bold text-gray-900">Tamaño de letra</h3>
-                    <p className="text-sm text-gray-500">Si te cuesta leer, elige una letra más grande. El cambio se ve de inmediato y se guarda en este dispositivo.</p>
-                </div>
-            </div>
+        <SettingsCard icon={Type} title="Tamaño de letra" hint="Si te cuesta leer, elige una letra más grande. Se aplica de inmediato y se guarda en este dispositivo (no necesita el botón Guardar).">
             <div role="radiogroup" aria-label="Tamaño de letra" className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {TEXT_SIZE_OPTIONS.map(opt => {
                     const active = size === opt.value
@@ -40,6 +34,6 @@ export function TextSizeSetting() {
                     )
                 })}
             </div>
-        </section>
+        </SettingsCard>
     )
 }

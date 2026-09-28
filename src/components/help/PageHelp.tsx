@@ -104,8 +104,9 @@ const HELP: { match: (path: string, search: string) => boolean; help: Help }[] =
                 'Mi perfil: tu nombre y foto.',
                 'Mis materias: las asignaturas que impartes (definen tus programas y planeaciones).',
                 'Datos de la escuela, Ciclo escolar y periodos, y Jornada: lo que capturaste al crear tu espacio.',
+                'En cuanto cambias algo aparece abajo una barra oscura: toca "Guardar cambios" o "Descartar". Es igual en todas las secciones.',
             ],
-            tip: 'Recuerda presionar "Guardar cambios" al terminar de editar.',
+            tip: 'El tamaño de letra (en Mi perfil) se aplica al momento y no necesita guardarse.',
         },
     },
     {

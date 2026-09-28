@@ -1,3 +1,5 @@
+import { SettingsCard } from './SettingsUI'
+import { CalendarClock } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { Trash2, Calendar as CalendarIcon, Sparkles, Clock } from 'lucide-react'
@@ -143,13 +145,8 @@ export const SpecialScheduleManager = () => {
     if (loading || isIndependent) return null
 
     return (
-        <div className="space-y-12">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h3 className="text-xl font-black text-gray-900 tracking-tight">Actividades Extraordinarias</h3>
-                    <p className="text-sm text-gray-500 font-medium tracking-tight">Ajusta los tiempos de clase para días con eventos especiales.</p>
-                </div>
-            </div>
+        <div className="space-y-6">
+            <SettingsCard icon={CalendarClock} title="Días con horario especial" hint="Para festivales, actos cívicos u otros eventos: ajusta los tiempos de clase de ese día." />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                 {/* Form Section */}

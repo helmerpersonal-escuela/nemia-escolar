@@ -7,6 +7,7 @@ import { DateInput } from '../../../components/ui/DateInput'
 import { OfficialCycleNote, type CycleSource } from '../../../components/academic/OfficialCycleNote'
 import { useOfficialCycle } from '../../../lib/officialCalendar'
 import { askConfirm } from '../../../components/ui/ConfirmDialog'
+import { SettingsCard, SettingsActionButton } from './SettingsUI'
 
 interface AcademicYear {
     id: string
@@ -154,22 +155,8 @@ export const AcademicYearManager = ({ readOnly = false }: { readOnly?: boolean }
     if (loading) return <div className="text-center py-4 text-gray-500 text-xs">Cargando ciclos...</div>
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h3 className="text-xl font-black text-gray-900 tracking-tight">Ciclos Escolares</h3>
-                    <p className="text-sm text-gray-500 font-medium">Define los años lectivos (ej. 2024-2025). Solo uno puede estar activo.</p>
-                </div>
-                {!readOnly && (
-                    <button
-                        onClick={() => (years.length > 0 ? navigate('/nuevo-ciclo') : setIsCreating(true))}
-                        className="px-6 py-3 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-gray-200 flex items-center"
-                    >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Nuevo Ciclo
-                    </button>
-                )}
-            </div>
+        <SettingsCard icon={Calendar} title="Ciclo escolar" hint="El año escolar con sus fechas de inicio y fin. Solo uno puede estar activo."
+            action={!readOnly ? <SettingsActionButton onClick={() => (years.length > 0 ? navigate('/nuevo-ciclo') : setIsCreating(true))}>Nuevo ciclo</SettingsActionButton> : undefined}>
 
             {(isCreating || years.length === 0) && (
                 <form onSubmit={handleCreate} className="p-6 bg-gray-50 rounded-3xl border border-gray-100 space-y-4 animate-in fade-in slide-in-from-top-2">
@@ -293,6 +280,6 @@ export const AcademicYearManager = ({ readOnly = false }: { readOnly?: boolean }
                     ))
                 )}
             </div>
-        </div>
+        </SettingsCard>
     )
 }

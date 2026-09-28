@@ -148,21 +148,6 @@ export const StaffManager = () => {
 
     return (
         <div className="space-y-8">
-            {/* Header info */}
-            <div className="p-4 rounded-xl flex items-center justify-between bg-blue-50 border border-blue-100 transition-all">
-                <div className="flex items-start">
-                    <Shield className="w-5 h-5 mr-3 mt-0.5 text-blue-600" />
-                    <div>
-                        <h4 className="text-sm font-bold leading-none mb-1 text-blue-900">
-                            Control de Acceso y Personal
-                        </h4>
-                        <p className="text-xs leading-relaxed text-blue-700">
-                            Gestiona quién tiene acceso a los módulos de tu institución enviando invitaciones o creando credenciales directamente.
-                        </p>
-                    </div>
-                </div>
-            </div>
-
             {/* Invite Form */}
             {isDirectorOrAdmin ? (
                 <div className="bg-white border border-gray-100 p-6 rounded-2xl shadow-sm">
