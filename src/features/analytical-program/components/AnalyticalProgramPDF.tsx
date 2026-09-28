@@ -1,4 +1,5 @@
 import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer'
+import { FIELD_LABEL } from '../lib/teacherScope'
 
 // Register fonts if needed (optional, using default Helvetica for now)
 Font.register({
@@ -251,12 +252,12 @@ export const AnalyticalProgramPDF = ({ data }: { data: any }) => {
                 {/* 4. Codesign of Contents (Shifted to index 4) */}
                 <Text style={styles.sectionTitle}>4. Codiseño de Contenidos (Plano Didáctico)</Text>
 
-                {Object.entries(data.program_by_fields).map(([field, items]: any) => {
-                    if (items.length === 0) return null
+                {Object.entries(data.program_by_fields || {}).map(([field, items]: any) => {
+                    if (!items?.length) return null
                     return (
                         <View key={field} style={{ marginBottom: 20 }}>
-                            <Text style={{ fontSize: 12, fontWeight: 'bold', marginBottom: 5, color: '#374151', textTransform: 'capitalize' }}>
-                                Campo Formativo: {field}
+                            <Text style={{ fontSize: 12, fontWeight: 'bold', marginBottom: 5, color: '#374151' }}>
+                                Campo Formativo: {FIELD_LABEL[field] || field}
                             </Text>
 
                             <View style={styles.table}>
@@ -268,11 +269,15 @@ export const AnalyticalProgramPDF = ({ data }: { data: any }) => {
                                 </View>
                                 {items.map((item: any, idx: number) => (
                                     <View key={idx} style={styles.tableRow}>
-                                        <Text style={[styles.tableCell, { flex: 2 }]}>{item.contentName}</Text>
+                                        <View style={[styles.tableCell, { flex: 2 }]}>
+                                            <Text>{item.contentName}</Text>
+                                            {item.subject_name ? <Text style={{ marginTop: 3, color: '#4f46e5' }}>{item.subject_name}</Text> : null}
+                                            {item.timeframe ? <Text style={{ marginTop: 3, color: '#6b7280' }}>{item.timeframe}</Text> : null}
+                                        </View>
                                         <View style={[styles.tableCell, { flex: 3 }]}>
-                                            <Text>{item.pda_grade_1}</Text>
-                                            {item.pda_grade_2 && <Text style={{ marginTop: 4 }}>{item.pda_grade_2}</Text>}
-                                            {item.pda_grade_3 && <Text style={{ marginTop: 4 }}>{item.pda_grade_3}</Text>}
+                                            {[1, 2, 3, 4, 5, 6].filter(g => item[`pda_grade_${g}`]).map((g, i, arr) => (
+                                                <Text key={g} style={{ marginTop: i ? 4 : 0 }}>{arr.length > 1 ? `${g}°: ` : ''}{item[`pda_grade_${g}`]}</Text>
+                                            ))}
                                         </View>
                                         <Text style={[styles.tableCell, { flex: 2 }]}>{item.methodology}</Text>
                                         <Text style={[styles.tableCellLast, { flex: 2 }]}>{item.evaluation}</Text>

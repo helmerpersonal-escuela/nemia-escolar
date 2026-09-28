@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 // Force rebuild to fix intermittent 500 errors in some environments
@@ -17,12 +17,19 @@ import {
     Loader2,
     Check,
     RotateCcw,
+    Trash2,
+    ShieldCheck,
     Layers,
     GraduationCap,
     Save
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { WizardFooter, WizardProgress, WizardStepHeader } from '../../../components/wizard/Wizard'
+import { useToast } from '../../../components/ui/Toast'
+import {
+    useTeacherScope, loadScopedCatalog, findOutOfScopeMentions, sameDiscipline, toCampo,
+    FIELD_KEY, FIELD_LABEL, FIELD_METHODOLOGY, type Campo, type ScopedContent,
+} from '../lib/teacherScope'
 
 // Wizard Steps Configuration
 const STEPS = [
@@ -41,7 +48,7 @@ const DEFAULT_SCHOOL_DATA = {
     cct: '',
     zone: '',
     sector: '',
-    state: 'Guanajuato',
+    state: '',
     municipality: '',
     level: 'Secundaria',
     turn: 'Matutino',
@@ -80,6 +87,26 @@ export const AnalyticalProgramEditorPage = () => {
 
     // Service Instance
     const aiService = geminiService
+    const { showToast } = useToast()
+
+    // Alcance curricular del docente: disciplinas, campo(s) formativo(s) y grados que atiende.
+    // Toda la generación con IA se limita a este alcance.
+    const { data: scope, isLoading: scopeLoading } = useTeacherScope()
+
+    // Al terminar una generación con IA, la vista se lleva al resultado (antes quedaba fuera de pantalla
+    // y parecía que la IA no había respondido).
+    const resultRef = useRef<HTMLDivElement>(null)
+    const [genLabel, setGenLabel] = useState('')
+    const revealResult = (message?: string) => {
+        window.setTimeout(() => {
+            const el = resultRef.current
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                el.focus({ preventScroll: true })
+            }
+        }, 120)
+        if (message) showToast(message, 'success')
+    }
 
     // State
     const [currentStep, setCurrentStep] = useState(1)
@@ -295,6 +322,30 @@ export const AnalyticalProgramEditorPage = () => {
                         }
                     }
                 })
+                // Datos del plantel ya registrados en Ajustes de la escuela
+                if (tenant?.id) {
+                    const { data: sd } = await supabase
+                        .from('school_details')
+                        .select('official_name, cct, zone, sector, address_municipality, address_state, shift')
+                        .eq('tenant_id', tenant.id)
+                        .maybeSingle()
+                    if (sd) {
+                        const shift = String(sd.shift || '').toLowerCase()
+                        setFormData(prev => ({
+                            ...prev,
+                            school_data: {
+                                ...prev.school_data,
+                                name: sd.official_name || prev.school_data.name,
+                                cct: sd.cct || prev.school_data.cct,
+                                zone: sd.zone || prev.school_data.zone,
+                                sector: sd.sector || prev.school_data.sector,
+                                municipality: sd.address_municipality || prev.school_data.municipality,
+                                state: sd.address_state || prev.school_data.state,
+                                turn: shift ? shift.charAt(0).toUpperCase() + shift.slice(1) : prev.school_data.turn,
+                            },
+                        }))
+                    }
+                }
             }
             setLoading(false)
         }
@@ -355,7 +406,9 @@ export const AnalyticalProgramEditorPage = () => {
     }
 
     const generateDiagnosisNarrative = async () => {
+        if (isGenerating) return
         setIsGenerating(true)
+        setGenLabel('Redactando el diagnóstico socioeducativo…')
         try {
             const level = formData.school_data.level || 'Secundaria'
             const isPrimary = level.toLowerCase().includes('primaria')
@@ -395,11 +448,13 @@ export const AnalyticalProgramEditorPage = () => {
                     narrative_final: narrative || 'Error generando narrativa. Intenta de nuevo.'
                 }
             }))
+            if (narrative) revealResult('Diagnóstico generado.')
         } catch (e) {
             console.error(e)
-            alert('Error generando narrativa diagnóstica')
+            showToast('No se pudo generar el diagnóstico. Intenta de nuevo.', 'error')
         } finally {
             setIsGenerating(false)
+            setGenLabel('')
         }
     }
 
@@ -652,7 +707,7 @@ export const AnalyticalProgramEditorPage = () => {
 
             {/* Resultado Narrativa - Editable */}
             {formData.diagnosis.narrative_final && (
-                <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-xl animate-in zoom-in duration-300 ring-4 ring-yellow-50/50">
+                <div ref={resultRef} tabIndex={-1} className="bg-white p-5 sm:p-8 rounded-3xl border border-gray-200 shadow-xl animate-in zoom-in duration-300 ring-4 ring-yellow-50/50 scroll-mt-24 outline-none">
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="text-sm font-black text-gray-800 uppercase tracking-wide flex items-center">
                             <CheckCircle2 className="w-5 h-5 mr-2 text-green-500" /> Diagnóstico Generado
@@ -894,77 +949,145 @@ export const AnalyticalProgramEditorPage = () => {
         </div>
     )
 
-    const handleSuggestContents = async () => {
-        if (isGenerating) return
-        setIsGenerating(true)
-        try {
-            const level = formData.school_data.level || 'Secundaria'
-            const isPrimary = level.toLowerCase().includes('primaria')
-            const problemsString = formData.problems.map(p => p.description).join('; ') || 'General'
-            const primaryContext = isPrimary ? 'ENFOQUE PRIMARIA: Asegúrate de que los PDAs reflejen actividades más lúdicas, material concreto y trabajo formativo adecuado para niños de primaria.' : ''
+    // ---------- Contexto y alcance para la IA ----------
 
-            // Group by field and take a balanced sample (e.g. 10 per field)
-            const groupedCatalog: Record<string, any[]> = {}
-            syntheticCatalog.forEach(c => {
-                const field = c.field_of_study || 'Otros'
-                if (!groupedCatalog[field]) groupedCatalog[field] = []
-                if (groupedCatalog[field].length < 15) {
-                    groupedCatalog[field].push({
-                        id: c.id,
-                        content: c.content,
-                        field: field,
-                        pda_base: c.pda_grade_1 || c.pda || '' // Base PDA to contextualize
-                    })
-                }
-            })
+    /** Bloque de alcance curricular: se incluye en TODAS las solicitudes a la IA. */
+    const scopeBlock = () => {
+        if (!scope) return ''
+        const grades = scope.grades.map(g => `${g}°`).join(', ')
+        if (scope.generalist) {
+            return `ALCANCE CURRICULAR DEL DOCENTE (OBLIGATORIO)
+- Nivel: ${scope.levelLabel}. Fase ${scope.phase ?? ''}. Grado(s) que atiende: ${grades}.
+- Docente frente a grupo: atiende los cuatro campos formativos (${scope.fields.join('; ')}).
+- Organiza SIEMPRE por campo formativo, sin mezclar propósitos, contenidos ni PDA de un campo en otro.`
+        }
+        return `ALCANCE CURRICULAR DEL DOCENTE (OBLIGATORIO)
+- Nivel: ${scope.levelLabel}. Fase ${scope.phase ?? ''}. Grado(s) que atiende: ${grades}.
+- Disciplina(s) que imparte: ${scope.subjects.map(s => `${s.name} (campo formativo: ${s.field})`).join('; ')}.
+- Campo(s) formativo(s) permitido(s): ${scope.fields.join('; ')}.
+REGLAS ESTRICTAS:
+1. Trabaja EXCLUSIVAMENTE con esa(s) disciplina(s). No generes, agregues ni menciones contenidos, PDA, propósitos o actividades de otras asignaturas.
+2. No nombres ni vincules otros campos formativos. Si imparte disciplinas de campos distintos, trata cada una dentro de su propio campo.
+3. Usa solo los contenidos y PDA oficiales que se te entregan; contextualízalos, no los sustituyas.`
+    }
 
-            const catalogSample = Object.values(groupedCatalog).flat()
+    /** Diagnóstico, datos del plantel y problemática comunitaria ya registrados en los pasos 1–3. */
+    const contextBlock = () => {
+        const sd = formData.school_data
+        const d = formData.diagnosis
+        const place = [sd.municipality, sd.state].filter(Boolean).join(', ')
+        const ext = [d.external_context.geo, d.external_context.social, d.external_context.cultural].filter(Boolean).join('; ')
+        const int = [d.internal_context.infrastructure, d.internal_context.environment].filter(Boolean).join('; ')
+        const problems = formData.problems.map((p: any, i: number) =>
+            `${i + 1}. ${p.description}${p.trait_id ? ` (rasgo del perfil: ${p.trait_id})` : ''}${p.axes_ids?.length ? ` (ejes: ${p.axes_ids.join(', ')})` : ''}`).join('\n')
+        return `DATOS DEL PLANTEL: ${sd.name || 'Escuela'}${sd.cct ? ` (CCT ${sd.cct})` : ''}, ${sd.level}${sd.turn ? `, turno ${sd.turn}` : ''}${place ? `, ${place}` : ''}.
+LECTURA DE LA REALIDAD (diagnóstico socioeducativo):
+${d.narrative_final || `Contexto externo: ${ext || 'sin datos'}. Contexto interno: ${int || 'sin datos'}.`}
+PROBLEMÁTICA(S) COMUNITARIA(S) PRIORIZADA(S):
+${problems || 'Sin problemática registrada.'}`
+    }
 
-            const prompt = `
-            Actúa como un experto pedagogo de la NEM.
-            Para el nivel ${level} y las problemáticas siguientes: "${problemsString}", selecciona al menos 1 o 2 contenidos de CADA campo formativo (Lenguajes, Saberes, Ética, Humano) de la siguiente lista:
-
-            ${JSON.stringify(catalogSample)}
-
-            Para cada contenido seleccionado, utiliza su "pda_base" y redáctalo de forma "Contextualizada" para que atienda específicamente las problemáticas mencionadas.
-
-            ${primaryContext}
-
-            Responde ÚNICAMENTE un objeto JSON con este formato:
-            {
-                "selected": [
-            {"id": "ID_DEL_CONTENIDO", "pda": "Texto del PDA contextualizado" }
-            ]
-                }
-
-            ${syntheticContext ? `\nDOCUMENTO OFICIAL DE REFERENCIA (RESUMEN):\nExtrae inspiración de este texto oficial de la SEP para redactar PDAs alineados:\n${syntheticContext.substring(0, 5000)}...\n` : ''}
-            `
-
-            const response = await aiService.generateContent(prompt, true)
-            const data = JSON.parse(response)
-
-            const suggested = (data.selected || []).map((sel: any) => {
-                const original = syntheticCatalog.find(c => c.id === sel.id)
-                if (!original) return null
-                return {
-                    ...original,
-                    selected: true,
-                    pda: sel.pda || original.pda_grade_1 || 'PDA no generado'
-                }
-            }).filter(Boolean)
-
-            setSuggestedContents(suggested)
-        } catch (e) {
-            console.error(e)
-            alert('Error sugiriendo contenidos con IA')
-        } finally {
-            setIsGenerating(false)
+    const parseJson = (text: string) => {
+        try { return JSON.parse(text) } catch {
+            const m = String(text).match(/\{[\s\S]*\}/)
+            return m ? JSON.parse(m[0]) : {}
         }
     }
 
+    const handleSuggestContents = async () => {
+        if (isGenerating) return
+        if (!scope) { showToast('Todavía estamos cargando tus materias. Intenta de nuevo en un momento.', 'info'); return }
+        if (scope.missingSubjects) {
+            showToast('Registra en tu perfil la(s) materia(s) que impartes para generar tu programa analítico.', 'error')
+            return
+        }
+        setIsGenerating(true)
+        setGenLabel('Revisando el programa sintético de tus disciplinas…')
+        try {
+            const catalog = await loadScopedCatalog(scope)
+            if (catalog.length === 0) {
+                showToast('No encontramos contenidos oficiales para tus materias y grados. Revisa tus materias en tu perfil.', 'error')
+                return
+            }
+            // Identificadores cortos para el modelo; el campo y la materia salen del catálogo, no de la IA.
+            const byKey = new Map<string, ScopedContent>()
+            const listing = catalog.map((c, i) => {
+                const key = `C${i + 1}`
+                byKey.set(key, c)
+                const pdas = scope.grades.filter(g => c.pdas[g]).map(g => `    ${g}°: ${c.pdas[g]}`).join('\n')
+                return `[${key}] Campo: ${c.field_of_study}${c.subject_name ? ` | Disciplina: ${c.subject_name}` : ''}\n  Contenido: ${c.content}\n  PDA oficiales:\n${pdas || '    (sin PDA por grado)'}`
+            }).join('\n')
+
+            const perUnit = scope.generalist ? 'entre 2 y 4 contenidos por cada campo formativo' : 'entre 3 y 6 contenidos por cada disciplina'
+            const prompt = `
+Eres asesor técnico pedagógico experto en la Nueva Escuela Mexicana (Plan de Estudio 2022, Programas Sintéticos 2024).
+Tarea: SEGUNDO PLANO del Programa Analítico (contextualización). Elige del catálogo oficial los contenidos que mejor atienden la problemática y contextualiza sus PDA para esta escuela.
+
+${scopeBlock()}
+
+${contextBlock()}
+
+CATÁLOGO OFICIAL (ya filtrado a las disciplinas y grados del docente; usa solo estos identificadores):
+${listing}
+
+INSTRUCCIONES:
+- Selecciona ${perUnit}, priorizando los que tengan relación directa con la problemática y el diagnóstico.
+- Para cada contenido, redacta el PDA contextualizado de CADA grado que atiende el docente (${scope.grades.map(g => `${g}°`).join(', ')}), partiendo del PDA oficial de ese grado: conserva su intención y nivel de logro, e incorpora la realidad de la comunidad (lugares, prácticas, necesidades). Tercera persona, redacción formal, sin viñetas.
+- En "vinculo" explica en una oración cómo ese contenido atiende la problemática, sin mencionar otras disciplinas.
+- No inventes contenidos ni identificadores.
+
+Responde ÚNICAMENTE JSON:
+{"selected":[{"id":"C1","pdas":{"1":"PDA contextualizado 1°"},"vinculo":"..."}]}
+`
+            setGenLabel('Contextualizando PDA con el diagnóstico de tu escuela…')
+            const data = parseJson(await aiService.generateContent(prompt, true))
+
+            const chosen: any[] = []
+            for (const sel of (data.selected || []) as any[]) {
+                const c = byKey.get(String(sel?.id ?? '').trim())
+                if (!c || chosen.some(x => x.id === c.id)) continue   // se descarta todo lo que no esté en el catálogo filtrado
+                const pdas: Record<number, string> = {}
+                for (const g of scope.grades) {
+                    const txt = sel?.pdas?.[g] ?? sel?.pdas?.[String(g)]
+                    if (typeof txt === 'string' && txt.trim()) pdas[g] = txt.trim()
+                    else if (c.pdas[g]) pdas[g] = c.pdas[g]
+                }
+                chosen.push({ ...c, pdas, official_pdas: c.pdas, pda: Object.values(pdas)[0] || '', reason: sel?.vinculo || '', selected: true })
+            }
+            // Cada disciplina (o campo, en primaria) debe quedar representada al menos con un contenido oficial
+            const units = scope.generalist ? scope.fields.map(f => ({ field: f as Campo, subject: null as string | null })) : scope.subjects.map(s => ({ field: s.field as Campo, subject: s.name }))
+            for (const u of units) {
+                const has = chosen.some(x => x.field_of_study === u.field && (!u.subject || (x.subject_name && sameDiscipline(u.subject, x.subject_name, u.field, x.field_of_study))))
+                if (has) continue
+                const fallback = catalog.find(c => c.field_of_study === u.field && (!u.subject || (c.subject_name && sameDiscipline(u.subject, c.subject_name, u.field, c.field_of_study))))
+                if (fallback) chosen.push({ ...fallback, pdas: fallback.pdas, official_pdas: fallback.pdas, pda: Object.values(fallback.pdas)[0] || '', reason: '', selected: true })
+            }
+            if (chosen.length === 0) throw new Error('La IA no devolvió contenidos válidos')
+
+            // Se conservan los PDA propios que el docente ya había agregado
+            setSuggestedContents(prev => [...chosen, ...prev.filter(c => c.is_custom)])
+            revealResult(`Propuesta lista: ${chosen.length} contenidos de ${scope.generalist ? 'tus campos formativos' : scope.subjects.map(s => s.name).join(', ')}.`)
+        } catch (e) {
+            console.error(e)
+            showToast('No se pudo generar la propuesta de contenidos. Intenta de nuevo.', 'error')
+        } finally {
+            setIsGenerating(false)
+            setGenLabel('')
+        }
+    }
+
+    // PDA propios del docente que pertenecen a su alcance (no se ofrecen los de otras disciplinas)
+    const scopedCustomPdas = customPdas.filter((p: any) => {
+        if (!scope || scope.generalist) return true
+        const campo = toCampo(p.field_of_study)
+        if (!campo || !scope.fields.includes(campo)) return false
+        return !p.subject_name || scope.subjects.some(s => sameDiscipline(s.name, p.subject_name, s.field, campo))
+    })
+
     const renderStep4 = () => {
         const grouped = suggestedContents.reduce((acc: any, curr) => {
-            const field = curr.field_of_study || 'Otros'
+            const campo = toCampo(curr.field_of_study) || curr.field_of_study || 'Otros'
+            const field = curr.subject_name ? `${campo} · ${curr.subject_name}` : campo
             if (!acc[field]) acc[field] = []
             acc[field].push(curr)
             return acc
@@ -979,16 +1102,38 @@ export const AnalyticalProgramEditorPage = () => {
                     <div>
                         <h3 className="text-sm font-black text-indigo-900 uppercase tracking-wide">Segundo Plano: Contextualización</h3>
                         <p className="text-sm text-indigo-700 mt-1">
-                            La IA analizará el Programa Sintético y seleccionará los contenidos que mejor atiendan tus problemáticas: <strong>"{formData.problems.map(p => p.description).join(', ')}"</strong>.
+                            La IA elige, del programa sintético oficial, los contenidos de <strong>tus disciplinas</strong> que mejor atienden la problemática
+                            {formData.problems.length > 0 && <> <strong>"{formData.problems.map(p => p.description).join(', ')}"</strong></>} y contextualiza sus PDA con el diagnóstico de tu escuela.
                         </p>
                     </div>
                 </div>
 
-                {suggestedContents.length === 0 ? (
+                {/* Alcance curricular: qué entra al programa y qué no */}
+                {scopeLoading ? (
+                    <p className="text-sm text-slate-500 flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Cargando tus materias…</p>
+                ) : scope?.missingSubjects ? (
+                    <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                        <p className="font-black">Registra tus materias para continuar</p>
+                        <p className="mt-1">El programa analítico se construye solo con las disciplinas que impartes. Agrégalas en tu perfil y vuelve a este paso.</p>
+                        <button type="button" onClick={() => navigate('/settings')} className="mt-3 px-4 py-2 rounded-xl bg-amber-600 text-white text-xs font-black">Ir a mi perfil</button>
+                    </div>
+                ) : scope && (
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                        <p className="text-xs font-black text-slate-500 mb-2">Tu programa incluirá únicamente</p>
+                        <div className="flex flex-wrap gap-2">
+                            {scope.generalist
+                                ? scope.fields.map(f => <span key={f} className="px-3 py-1 rounded-full bg-white border border-slate-200 text-xs font-bold text-slate-700">{f}</span>)
+                                : scope.subjects.map(s => <span key={s.name} className="px-3 py-1 rounded-full bg-white border border-indigo-100 text-xs font-bold text-indigo-800">{s.name} <span className="text-slate-500 font-medium">· {s.field}</span></span>)}
+                            <span className="px-3 py-1 rounded-full bg-white border border-slate-200 text-xs font-bold text-slate-600">{scope.grades.map(g => `${g}°`).join(', ')} grado</span>
+                        </div>
+                    </div>
+                )}
+
+                {suggestedContents.filter(c => !c.is_custom).length === 0 ? (
                     <div className="flex justify-center py-10">
                         <button
                             onClick={handleSuggestContents}
-                            disabled={isGenerating}
+                            disabled={isGenerating || !scope || scope.missingSubjects}
                             className="bg-gray-900 text-white px-10 py-5 rounded-3xl font-black uppercase tracking-widest shadow-2xl hover:scale-105 transition-all flex items-center gap-4 group"
                         >
                             {isGenerating ? <Loader2 className="w-6 h-6 animate-spin" /> : <Sparkles className="w-6 h-6 text-yellow-400 group-hover:rotate-12 transition-transform" />}
@@ -996,7 +1141,14 @@ export const AnalyticalProgramEditorPage = () => {
                         </button>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 gap-6">
+                    <div ref={resultRef} tabIndex={-1} className="grid grid-cols-1 gap-6 scroll-mt-24 outline-none">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-sm font-black text-slate-800 flex items-center gap-2"><CheckCircle2 className="w-5 h-5 text-emerald-600" /> Propuesta de contenidos lista · revisa y ajusta</p>
+                            <button type="button" onClick={handleSuggestContents} disabled={isGenerating}
+                                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-xs font-black text-slate-700 hover:bg-slate-50 disabled:opacity-40">
+                                {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />} Generar otra propuesta
+                            </button>
+                        </div>
                         {Object.entries(grouped).map(([field, contents]: any) => (
                             <div key={field} className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
                                 <div className="bg-gray-50 px-8 py-4 border-b border-gray-100">
@@ -1016,7 +1168,16 @@ export const AnalyticalProgramEditorPage = () => {
                                             />
                                             <div className="flex-1">
                                                 <p className="font-bold text-gray-800 text-sm mb-1">{content.content}</p>
-                                                <p className="text-xs text-gray-500 font-medium line-clamp-2">{content.is_custom && <span className="mr-1 text-amber-600 font-black">★ Propio ·</span>}{content.pda || content.pda_grade_1 || content.pda_grade_2 || content.pda_grade_3}</p>
+                                                {content.pdas && Object.keys(content.pdas).length > 0 ? (
+                                                    <div className="space-y-1.5 mt-1">
+                                                        {Object.entries(content.pdas).map(([g, txt]: any) => (
+                                                            <p key={g} className="text-xs text-gray-600 leading-relaxed"><span className="font-black text-indigo-700">{g}°</span> {txt}</p>
+                                                        ))}
+                                                        {content.reason && <p className="text-xs text-emerald-800 bg-emerald-50 rounded-lg px-2 py-1 mt-1">Vínculo con la problemática: {content.reason}</p>}
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-xs text-gray-500 font-medium line-clamp-2">{content.is_custom && <span className="mr-1 text-amber-600 font-black">★ Propio ·</span>}{content.pda || content.pda_grade_1 || content.pda_grade_2 || content.pda_grade_3}</p>
+                                                )}
                                             </div>
                                         </label>
                                     ))}
@@ -1035,11 +1196,11 @@ export const AnalyticalProgramEditorPage = () => {
                         </div>
                         <button type="button" onClick={() => navigate('/mis-pdas')} className="px-3 py-2 rounded-xl bg-white border border-amber-200 text-xs font-black text-amber-800">Crear o editar PDAs</button>
                     </div>
-                    {customPdas.length === 0 ? (
-                        <p className="text-sm text-amber-800/80">Aún no tienes PDAs propios.</p>
+                    {scopedCustomPdas.length === 0 ? (
+                        <p className="text-sm text-amber-800/80">Aún no tienes PDAs propios de tus materias.</p>
                     ) : (
                         <div className="space-y-2">
-                            {customPdas.map((p: any) => {
+                            {scopedCustomPdas.map((p: any) => {
                                 const added = suggestedContents.some(c => c.id === `custom:${p.id}`)
                                 return (
                                     <div key={p.id} className="flex items-start gap-3 bg-white rounded-xl border border-amber-100 p-3">
@@ -1061,93 +1222,106 @@ export const AnalyticalProgramEditorPage = () => {
         )
     }
 
-    // --- Step 5: Codiseño ---
+    // --- Paso 6: Codiseño de contenidos (tercer plano) ---
     const handleGenerateDidactic = async () => {
+        if (isGenerating || !scope) return
+        const selected = suggestedContents.filter(c => c.selected)
+        if (selected.length === 0) {
+            showToast('Primero selecciona contenidos en el paso "Contextualización".', 'info')
+            return
+        }
+        // Solo entra lo que pertenece al alcance del docente (defensa ante borradores antiguos)
+        const inScope = selected.filter(c => {
+            const campo = toCampo(c.field_of_study)
+            if (!campo || !scope.fields.includes(campo)) return false
+            if (scope.generalist || !c.subject_name) return true
+            return scope.subjects.some(sub => sameDiscipline(sub.name, c.subject_name, sub.field, campo))
+        })
+        if (inScope.length === 0) {
+            showToast('Los contenidos seleccionados no corresponden a tus materias. Genera de nuevo la contextualización.', 'error')
+            return
+        }
         setIsGenerating(true)
+        setGenLabel('Diseñando la propuesta didáctica de tus contenidos…')
         try {
-            const selected = suggestedContents.filter(c => c.selected)
-            if (selected.length === 0) return
-
-            const problemsString = formData.problems.map(p => p.description).join('; ')
+            const keyOf = new Map<string, any>()
+            const listing = inScope.map((c, i) => {
+                const k = `C${i + 1}`
+                keyOf.set(k, c)
+                const campo = toCampo(c.field_of_study) as Campo
+                const pdas = c.pdas && Object.keys(c.pdas).length
+                    ? Object.entries(c.pdas).map(([g, t]) => `    ${g}°: ${t}`).join('\n')
+                    : `    ${c.pda || ''}`
+                return `[${k}] Campo: ${campo}${c.subject_name ? ` | Disciplina: ${c.subject_name}` : ''} | Metodología sugerida para el campo: ${FIELD_METHODOLOGY[campo]}\n  Contenido: ${c.content}\n  PDA contextualizados:\n${pdas}`
+            }).join('\n')
 
             const prompt = `
-            Actúa como un experto de la NEM.
-            Para los siguientes contenidos y las problemáticas: "${problemsString}", genera una propuesta didáctica técnica (Tercer Plano).
+Eres asesor técnico pedagógico experto en la Nueva Escuela Mexicana.
+Tarea: TERCER PLANO del Programa Analítico (codiseño y plano didáctico) para los contenidos listados.
 
-            Contenidos:
-            ${selected.map(c => `- ${c.content} (PDA: ${c.pda})`).join('\n')}
+${scopeBlock()}
 
-            Para cada contenido, define:
-            1. Metodología sugerida (ABP, STEAM, Aprendizaje de Servicio, etc.)
-            2. Sugerencia de evaluación formativa.
-            3. Temporalidad (ej. 2 semanas).
+${contextBlock()}
 
-            Responde ÚNICAMENTE un objeto JSON con este formato:
-            {
-                "proposals": [
-            {
-                "contentId": "ID_DEL_CONTENIDO",
-            "methodology": "Nombre de la metodología",
-            "evaluation": "Sugerencia de evaluación",
-            "timeframe": "Temporalidad"
-                        }
-            ]
-                }
+CONTENIDOS A PLANIFICAR (usa solo estos identificadores):
+${listing}
 
-            ${syntheticContext ? `\nDOCUMENTO OFICIAL DE REFERENCIA (PROGRAMA SINTÉTICO):\nEmplea el enfoque didáctico y los lineamientos que marca el siguiente texto oficial de la SEP para proponer las metodologías y estrategias de evaluación idóneas en esta fase:\n${syntheticContext.substring(0, 15000)}...\n` : ''}
-            `
+Para CADA contenido define:
+- "metodologia": la metodología sociocrítica del campo (la sugerida arriba, salvo que otra del Plan 2022 sea claramente mejor) y, en una frase, el proyecto o situación concreta en la comunidad.
+- "evaluacion": estrategia de evaluación formativa con instrumento (p. ej., lista de cotejo, rúbrica, diario, portafolio) y producto o evidencia.
+- "temporalidad": duración estimada (p. ej., "2 semanas", "10 sesiones").
+- "ejes": 1 a 3 ejes articuladores pertinentes (Inclusión; Pensamiento crítico; Interculturalidad crítica; Igualdad de género; Vida saludable; Apropiación de las culturas a través de la lectura y la escritura; Artes y experiencias estéticas).
+- "vinculo": cómo se atiende la problemática comunitaria desde esta disciplina.
+Redacción profesional, en tercera persona, sin mencionar otras asignaturas ni otros campos formativos.
 
-            const response = await aiService.generateContent(prompt, true)
-            const data = JSON.parse(response)
+Responde ÚNICAMENTE JSON:
+{"propuestas":[{"id":"C1","metodologia":"...","evaluacion":"...","temporalidad":"...","ejes":["..."],"vinculo":"..."}]}
+`
+            const data = parseJson(await aiService.generateContent(prompt, true))
+            const proposals = new Map<string, any>(((data.propuestas || data.proposals || []) as any[]).map(p => [String(p?.id ?? '').trim(), p]))
 
-            const newProgramByFields = { ...formData.program_by_fields }
-
-            selected.forEach(item => {
-                const proposal = (data.proposals || []).find((p: any) => p.contentId === item.id)
-                const field = item.field_of_study || 'Otros'
-
-                // @ts-expect-error -- pendiente de tipar
-                if (!newProgramByFields[field]) newProgramByFields[field] = []
-
-                // @ts-expect-error -- pendiente de tipar
-                const existingIndex = newProgramByFields[field].findIndex(x => x.contentId === item.id)
-
-                const fieldData = {
-                    contentId: item.id,
-                    contentName: item.content,
-                    pda_grade_1: item.pda, // Usamos el PDA sugerido en el paso anterior
-                    pda_grade_2: item.pda,
-                    pda_grade_3: item.pda,
-                    methodology: proposal?.methodology || 'Aprendizaje Basado en Proyectos (ABP)',
-                    evaluation: proposal?.evaluation || 'Evaluación formativa continua.',
-                    timeframe: proposal?.timeframe || '2 semanas'
-                }
-
-                if (existingIndex >= 0) {
-                    // @ts-expect-error -- pendiente de tipar
-                    newProgramByFields[field][existingIndex] = fieldData
-                } else {
-                    // @ts-expect-error -- pendiente de tipar
-                    newProgramByFields[field].push(fieldData)
-                }
-            })
-
-            setFormData(prev => ({ ...prev, program_by_fields: newProgramByFields }))
+            // Se reconstruye el programa desde cero: así no quedan campos o disciplinas ajenos de versiones anteriores
+            const next: Record<string, any[]> = { lenguajes: [], saberes: [], etica: [], humano: [] }
+            for (const [k, c] of keyOf) {
+                const campo = toCampo(c.field_of_study) as Campo
+                const pr = proposals.get(k) || {}
+                const pdas: Record<string, string> = {}
+                const src = c.pdas && Object.keys(c.pdas).length ? c.pdas : { [scope.grades[0]]: c.pda }
+                for (const g of scope.grades) if (src[g]) pdas[`pda_grade_${g}`] = src[g]
+                next[FIELD_KEY[campo]].push({
+                    contentId: c.id,
+                    contentName: c.content,
+                    subject_name: c.subject_name || null,
+                    field_of_study: campo,
+                    grades: scope.grades,
+                    ...pdas,
+                    methodology: pr.metodologia || FIELD_METHODOLOGY[campo],
+                    evaluation: pr.evaluacion || 'Evaluación formativa con lista de cotejo y retroalimentación durante el proceso.',
+                    timeframe: pr.temporalidad || '2 semanas',
+                    axes: Array.isArray(pr.ejes) ? pr.ejes.slice(0, 3) : [],
+                    community_link: pr.vinculo || c.reason || '',
+                    is_custom: !!c.is_custom,
+                })
+            }
+            setFormData(prev => ({ ...prev, program_by_fields: next as any }))
+            const total = Object.values(next).reduce((n, a) => n + a.length, 0)
+            revealResult(`Propuesta didáctica lista: ${total} contenidos.`)
         } catch (e: any) {
             console.error(e)
-            if (e.message?.includes('429') || e.message?.includes('limit')) {
-                alert('Estamos procesando muchas peticiones. Por favor, espera unos segundos y vuelve a intentar generar sugerencias.')
-            } else {
-                alert('Error al generar sugerencias. Por favor intenta de nuevo.')
-            }
+            showToast(e.message?.includes('429') || e.message?.includes('limit')
+                ? 'Hay muchas solicitudes en este momento. Espera unos segundos e intenta de nuevo.'
+                : 'No se pudo generar la propuesta didáctica. Intenta de nuevo.', 'error')
         } finally {
             setIsGenerating(false)
+            setGenLabel('')
         }
     }
 
     // --- Step 5: Proceso de Codiseño ---
     const handleGenerateCodesign = async () => {
+        if (isGenerating) return
         setIsGenerating(true)
+        setGenLabel('Redactando el proceso de codiseño del colectivo…')
         try {
             const problems = formData.problems.map(p => p.description).join('; ') || 'Problemática no definida'
             const userNotes = formData.codesign_process?.dialogue_notes || ''
@@ -1158,6 +1332,12 @@ export const AnalyticalProgramEditorPage = () => {
 
             Problemáticas seleccionadas: "${problems}"
             Notas del colectivo docente: "${userNotes || 'No hay notas previas, propón tú el inicio del diálogo.'}"
+
+            ${scopeBlock()}
+
+            ${contextBlock()}
+
+            IMPORTANTE: el diálogo y la tabla de problematización deben centrarse en la(s) disciplina(s) y el/los campo(s) formativo(s) del docente indicados arriba; no propongas contenidos de otras asignaturas.
 
             Debes generar:
             1. Un diálogo de 3 turnos (Director y 2 docentes) que refleje la discusión colectiva. SI HAY NOTAS DEL USUARIO, ÚSALAS COMO BASE Y MEJORA SU REDACCIÓN PEDAGÓGICA. Si no hay notas, propón un diálogo realista de planeación.
@@ -1201,11 +1381,13 @@ export const AnalyticalProgramEditorPage = () => {
                     collective_notes: data.collective_notes || []
                 }
             }))
+            revealResult('Proceso de codiseño listo.')
         } catch (e) {
             console.error(e)
-            alert('Error generando proceso de codiseño con IA. Por favor verifica tu conexión o API Key.')
+            showToast('No se pudo generar el proceso de codiseño. Intenta de nuevo.', 'error')
         } finally {
             setIsGenerating(false)
+            setGenLabel('')
         }
     }
 
@@ -1255,7 +1437,7 @@ export const AnalyticalProgramEditorPage = () => {
                         </div>
                     </div>
                 ) : (
-                    <div className="space-y-10">
+                    <div ref={resultRef} tabIndex={-1} className="space-y-10 scroll-mt-24 outline-none">
                         {/* Diálogo Colectivo */}
                         <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm relative group">
                             <button
@@ -1345,20 +1527,39 @@ export const AnalyticalProgramEditorPage = () => {
         )
     }
 
-    // --- Step 6: Codiseño de Contenidos ---
+    // --- Paso 6: Codiseño de contenidos ---
+    const updateProgramItem = (fieldKey: string, idx: number, key: string, value: any) => {
+        setFormData(prev => {
+            const items = [...((prev.program_by_fields as any)[fieldKey] || [])]
+            items[idx] = { ...items[idx], [key]: value }
+            return { ...prev, program_by_fields: { ...prev.program_by_fields, [fieldKey]: items } }
+        })
+    }
+    const removeProgramItem = (fieldKey: string, idx: number) => {
+        setFormData(prev => ({
+            ...prev,
+            program_by_fields: { ...prev.program_by_fields, [fieldKey]: ((prev.program_by_fields as any)[fieldKey] || []).filter((_: any, i: number) => i !== idx) },
+        }))
+    }
+    const itemText = (it: any) => [it.contentName, it.methodology, it.evaluation, it.community_link, ...Object.keys(it).filter(k => k.startsWith('pda_grade_')).map(k => it[k])].filter(Boolean).join(' \n ')
+    const itemGrades = (it: any) => (Array.isArray(it.grades) && it.grades.length ? it.grades : (scope?.grades ?? [1]))
+        .filter((g: number) => it[`pda_grade_${g}`] !== undefined || g === (scope?.grades?.[0] ?? 1))
+
     const renderStep6_Didactic = () => {
-        const hasContents = Object.values(formData.program_by_fields).some((arr: any) => arr.length > 0)
+        const entries = Object.entries(formData.program_by_fields as Record<string, any[]>).filter(([, items]) => items?.length > 0)
+        const hasContents = entries.length > 0
+        const fieldInput = 'w-full bg-slate-50 border border-slate-200 rounded-xl text-sm p-3 focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition'
 
         return (
             <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
-                <div className="bg-indigo-50 border border-indigo-100 p-6 rounded-3xl flex items-start gap-4">
-                    <div className="p-3 bg-white rounded-xl shadow-sm">
+                <div className="bg-indigo-50 border border-indigo-100 p-5 sm:p-6 rounded-3xl flex items-start gap-4">
+                    <div className="p-3 bg-white rounded-xl shadow-sm shrink-0">
                         <Briefcase className="w-6 h-6 text-indigo-600" />
                     </div>
                     <div>
-                        <h3 className="text-sm font-black text-indigo-900 uppercase tracking-wide">Tercer Plano: Codiseño</h3>
+                        <h3 className="text-sm font-black text-indigo-900 uppercase tracking-wide">Tercer Plano: Codiseño de contenidos</h3>
                         <p className="text-sm text-indigo-700 mt-1">
-                            Define los PDAs contextualizados, la metodología y la evaluación para cada contenido seleccionado. La IA puede generar una propuesta inicial.
+                            Para cada contenido de tus disciplinas: PDA por grado, metodología, evaluación formativa, temporalidad y su vínculo con la problemática.
                         </p>
                     </div>
                 </div>
@@ -1367,84 +1568,93 @@ export const AnalyticalProgramEditorPage = () => {
                     <div className="flex justify-center py-10">
                         <button
                             onClick={handleGenerateDidactic}
-                            disabled={isGenerating}
-                            className="bg-gray-900 text-white px-10 py-5 rounded-3xl font-black uppercase tracking-widest shadow-2xl hover:scale-105 transition-all flex items-center gap-4 group"
+                            disabled={isGenerating || !scope}
+                            className="bg-gray-900 text-white px-8 sm:px-10 py-5 rounded-3xl font-black uppercase tracking-widest shadow-2xl hover:scale-105 transition-all flex items-center gap-4 group disabled:opacity-50"
                         >
                             {isGenerating ? <Loader2 className="w-6 h-6 animate-spin" /> : <Sparkles className="w-6 h-6 text-yellow-400 group-hover:rotate-12 transition-transform" />}
-                            <span className="text-lg">Generar Propuesta Didáctica (IA)</span>
+                            <span className="text-base sm:text-lg">Generar propuesta didáctica (IA)</span>
                         </button>
                     </div>
                 ) : (
-                    <div className="space-y-8">
-                        {Object.entries(formData.program_by_fields).map(([field, items]: any) => {
-                            if (items.length === 0) return null
+                    <div ref={resultRef} tabIndex={-1} className="space-y-8 scroll-mt-24 outline-none">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-sm font-black text-slate-800 flex items-center gap-2"><CheckCircle2 className="w-5 h-5 text-emerald-600" /> Propuesta didáctica lista · todo es editable</p>
+                            <button type="button" onClick={handleGenerateDidactic} disabled={isGenerating}
+                                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-xs font-black text-slate-700 hover:bg-slate-50 disabled:opacity-40">
+                                {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />} Generar de nuevo
+                            </button>
+                        </div>
+
+                        {entries.map(([fieldKey, items]) => {
+                            const label = FIELD_LABEL[fieldKey] || toCampo(fieldKey) || fieldKey
+                            const outOfScope = !!scope && !scope.fields.includes(label as Campo)
                             return (
-                                <div key={field} className="bg-white rounded-[2.5rem] border border-gray-100 shadow-lg overflow-hidden">
-                                    <div className="bg-indigo-600 px-8 py-5 border-b border-indigo-700">
-                                        <h4 className="font-black text-white uppercase tracking-widest text-sm flex items-center">
-                                            <Briefcase className="w-5 h-5 mr-3 text-indigo-200" /> {field === 'saberes' ? 'Saberes y Pensamiento' : field}
-                                        </h4>
-                                    </div>
-                                    <div className="p-6 overflow-x-auto">
-                                        <table className="w-full text-sm text-left">
-                                            <thead>
-                                                <tr className="border-b border-gray-100">
-                                                    <th className="pb-4 font-black text-gray-500 uppercase text-xs w-1/4">Contenido</th>
-                                                    <th className="pb-4 font-black text-gray-500 uppercase text-xs w-1/4">PDA Contextualizado</th>
-                                                    <th className="pb-4 font-black text-gray-500 uppercase text-xs w-1/4">Metodología / Proyecto</th>
-                                                    <th className="pb-4 font-black text-gray-500 uppercase text-xs w-1/4">Evaluación</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-gray-50">
-                                                {items.map((item: any, idx: number) => (
-                                                    <tr key={idx} className="group hover:bg-gray-50/50 transition-colors">
-                                                        <td className="py-6 pr-4 align-top">
-                                                            <p className="font-bold text-gray-800 mb-1">{item.contentName}</p>
-                                                            <span className="text-[11px] bg-gray-100 text-gray-500 px-2 py-1 rounded-full font-bold uppercase">{item.timeframe}</span>
-                                                        </td>
-                                                        <td className="py-6 px-4 align-top space-y-4">
-                                                            <div>
-                                                                <span className="text-[11px] text-indigo-400 font-bold uppercase mb-1 block">1er Grado</span>
-                                                                <textarea
-                                                                    className="w-full bg-white border-gray-200 rounded-lg text-xs p-2 focus:ring-2 focus:ring-indigo-500"
-                                                                    value={item.pda_grade_1}
-                                                                    onChange={(e) => {
-                                                                        const newItems = [...items]
-                                                                        newItems[idx].pda_grade_1 = e.target.value
-                                                                        setFormData(prev => ({ ...prev, program_by_fields: { ...prev.program_by_fields, [field]: newItems } }))
-                                                                    }}
-                                                                />
+                                <section key={fieldKey} className={`rounded-[2rem] border overflow-hidden ${outOfScope ? 'border-rose-200' : 'border-slate-100'} bg-white shadow-sm`}>
+                                    <header className={`px-5 sm:px-8 py-4 flex flex-wrap items-center justify-between gap-2 ${outOfScope ? 'bg-rose-600' : 'bg-indigo-600'}`}>
+                                        <h4 className="font-black text-white text-sm flex items-center gap-2"><Briefcase className="w-5 h-5 text-white/70" /> Campo formativo: {label}</h4>
+                                        {outOfScope && <span className="text-xs font-black bg-white text-rose-700 px-3 py-1 rounded-full">No corresponde a tus materias</span>}
+                                    </header>
+                                    <div className="divide-y divide-slate-100">
+                                        {items.map((item: any, idx: number) => {
+                                            const flags = scope ? findOutOfScopeMentions(itemText(item), scope) : []
+                                            return (
+                                                <article key={item.contentId || idx} className="p-5 sm:p-8 space-y-4">
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        <div className="min-w-0">
+                                                            <div className="flex flex-wrap gap-2 mb-2">
+                                                                {item.subject_name && <span className="text-xs font-black bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full">{item.subject_name}</span>}
+                                                                {item.is_custom && <span className="text-xs font-black bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full">PDA propio</span>}
+                                                                {(item.axes || []).map((ax: string) => <span key={ax} className="text-xs font-bold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full">{ax}</span>)}
                                                             </div>
-                                                            {/* Add logic/UI for 2nd and 3rd grade if needed or tabbed */}
-                                                        </td>
-                                                        <td className="py-6 px-4 align-top">
-                                                            <textarea
-                                                                className="w-full bg-white border-gray-200 rounded-lg text-xs p-2 focus:ring-2 focus:ring-indigo-500 h-24"
-                                                                value={item.methodology}
-                                                                onChange={(e) => {
-                                                                    const newItems = [...items]
-                                                                    newItems[idx].methodology = e.target.value
-                                                                    setFormData(prev => ({ ...prev, program_by_fields: { ...prev.program_by_fields, [field]: newItems } }))
-                                                                }}
-                                                            />
-                                                        </td>
-                                                        <td className="py-6 pl-4 align-top">
-                                                            <textarea
-                                                                className="w-full bg-white border-gray-200 rounded-lg text-xs p-2 focus:ring-2 focus:ring-indigo-500 h-24"
-                                                                value={item.evaluation}
-                                                                onChange={(e) => {
-                                                                    const newItems = [...items]
-                                                                    newItems[idx].evaluation = e.target.value
-                                                                    setFormData(prev => ({ ...prev, program_by_fields: { ...prev.program_by_fields, [field]: newItems } }))
-                                                                }}
-                                                            />
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                                                            <p className="font-black text-slate-900 leading-snug">{item.contentName}</p>
+                                                        </div>
+                                                        <button type="button" aria-label="Quitar contenido" onClick={() => removeProgramItem(fieldKey, idx)} className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 shrink-0">
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+
+                                                    {flags.length > 0 && (
+                                                        <p role="alert" className="text-xs font-bold text-rose-700 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2">
+                                                            Revisa la redacción: menciona {flags.join(', ')}, que no corresponde(n) a tus materias.
+                                                        </p>
+                                                    )}
+
+                                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                                        <div className="space-y-3">
+                                                            {itemGrades(item).map((g: number) => (
+                                                                <label key={g} className="block">
+                                                                    <span className="block text-xs font-black text-slate-600 mb-1.5">PDA contextualizado · {g}° grado</span>
+                                                                    <textarea rows={4} className={fieldInput} value={item[`pda_grade_${g}`] || ''}
+                                                                        onChange={e => updateProgramItem(fieldKey, idx, `pda_grade_${g}`, e.target.value)} />
+                                                                </label>
+                                                            ))}
+                                                        </div>
+                                                        <div className="space-y-3">
+                                                            <label className="block">
+                                                                <span className="block text-xs font-black text-slate-600 mb-1.5">Metodología / proyecto</span>
+                                                                <textarea rows={3} className={fieldInput} value={item.methodology || ''} onChange={e => updateProgramItem(fieldKey, idx, 'methodology', e.target.value)} />
+                                                            </label>
+                                                            <label className="block">
+                                                                <span className="block text-xs font-black text-slate-600 mb-1.5">Evaluación formativa</span>
+                                                                <textarea rows={3} className={fieldInput} value={item.evaluation || ''} onChange={e => updateProgramItem(fieldKey, idx, 'evaluation', e.target.value)} />
+                                                            </label>
+                                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                                                <label className="block">
+                                                                    <span className="block text-xs font-black text-slate-600 mb-1.5">Temporalidad</span>
+                                                                    <input className={fieldInput} value={item.timeframe || ''} onChange={e => updateProgramItem(fieldKey, idx, 'timeframe', e.target.value)} />
+                                                                </label>
+                                                                <label className="block sm:col-span-2">
+                                                                    <span className="block text-xs font-black text-slate-600 mb-1.5">Vínculo con la problemática</span>
+                                                                    <textarea rows={2} className={fieldInput} value={item.community_link || ''} onChange={e => updateProgramItem(fieldKey, idx, 'community_link', e.target.value)} />
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </article>
+                                            )
+                                        })}
                                     </div>
-                                </div>
+                                </section>
                             )
                         })}
                     </div>
@@ -1508,14 +1718,56 @@ export const AnalyticalProgramEditorPage = () => {
                         ))}
                     </div>
 
+                    {/* Verificación de alcance: nada fuera de las disciplinas y campos del docente */}
+                    {scope && (() => {
+                        const all = Object.entries(formData.program_by_fields as Record<string, any[]>).flatMap(([k, items]) => (items || []).map((it: any) => ({ k, it })))
+                        const foreignFields = Object.entries(formData.program_by_fields as Record<string, any[]>)
+                            .filter(([k, items]) => items?.length && !scope.fields.includes((FIELD_LABEL[k] || toCampo(k)) as Campo))
+                        const foreignSubjects = scope.generalist ? [] : all.filter(({ it }) => it.subject_name && !scope.subjects.some(sub => sameDiscipline(sub.name, it.subject_name)))
+                        const flagged = all.map(({ k, it }) => ({ k, it, hits: findOutOfScopeMentions(itemText(it), scope) })).filter(x => x.hits.length)
+                        const ok = all.length > 0 && !foreignFields.length && !foreignSubjects.length && !flagged.length
+                        const prune = () => setFormData(prev => {
+                            const next: any = { lenguajes: [], saberes: [], etica: [], humano: [] }
+                            for (const [k, items] of Object.entries(prev.program_by_fields as Record<string, any[]>)) {
+                                const campo = (FIELD_LABEL[k] || toCampo(k)) as Campo
+                                if (!campo || !scope.fields.includes(campo)) continue
+                                next[FIELD_KEY[campo]] = [...next[FIELD_KEY[campo]], ...(items || []).filter((it: any) =>
+                                    scope.generalist || !it.subject_name || scope.subjects.some(sub => sameDiscipline(sub.name, it.subject_name)))]
+                            }
+                            return { ...prev, program_by_fields: next }
+                        })
+                        return (
+                            <div className={`p-6 rounded-3xl border ${ok ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-200'}`}>
+                                <h4 className={`font-black uppercase tracking-wide text-sm mb-3 flex items-center ${ok ? 'text-emerald-800' : 'text-amber-900'}`}>
+                                    <ShieldCheck className="w-4 h-4 mr-2" /> Verificación de alcance curricular
+                                </h4>
+                                <ul className="space-y-1.5 text-sm">
+                                    <li className="text-slate-700"><strong>Disciplina(s):</strong> {scope.generalist ? 'Docente frente a grupo (todos los campos)' : scope.subjects.map(sub => sub.name).join(', ')}</li>
+                                    <li className="text-slate-700"><strong>Campo(s) formativo(s):</strong> {scope.fields.join(' · ')}</li>
+                                    <li className="text-slate-700"><strong>Grado(s):</strong> {scope.grades.map(g => `${g}°`).join(', ')}</li>
+                                    <li className={all.length ? 'text-emerald-800' : 'text-amber-900'}>{all.length ? `✓ ${all.length} contenidos del programa sintético oficial` : '• Aún no hay contenidos en el plano didáctico (paso 6).'}</li>
+                                    {!foreignFields.length && all.length > 0 && <li className="text-emerald-800">✓ Sin campos formativos ajenos</li>}
+                                    {!foreignSubjects.length && all.length > 0 && <li className="text-emerald-800">✓ Sin contenidos de otras asignaturas</li>}
+                                    {!flagged.length && all.length > 0 && <li className="text-emerald-800">✓ La redacción no menciona otras disciplinas ni campos</li>}
+                                    {foreignFields.map(([k, items]) => <li key={k} className="text-rose-700">✗ {items.length} contenido(s) del campo {FIELD_LABEL[k] || k}, que no te corresponde</li>)}
+                                    {foreignSubjects.map(({ it }, i) => <li key={i} className="text-rose-700">✗ "{it.contentName}" es de {it.subject_name}</li>)}
+                                    {flagged.map(({ it, hits }, i) => <li key={`f${i}`} className="text-amber-900">⚠ "{it.contentName}" menciona {hits.join(', ')}: revisa la redacción en el paso 6</li>)}
+                                </ul>
+                                {(foreignFields.length > 0 || foreignSubjects.length > 0) && (
+                                    <button type="button" onClick={prune} className="mt-4 px-4 py-2 rounded-xl bg-rose-600 text-white text-xs font-black">Quitar lo que no corresponde</button>
+                                )}
+                            </div>
+                        )
+                    })()}
+
                     {/* 5. Codesign Summary */}
                     <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm relative group hover:border-indigo-200 transition-all">
                         <button onClick={() => setCurrentStep(6)} className="absolute top-6 right-6 text-xs font-bold text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity uppercase">Editar</button>
                         <h4 className="font-black text-gray-800 uppercase tracking-wide text-sm mb-4 flex items-center"><Briefcase className="w-4 h-4 mr-2" /> Plano Didáctico</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                            {Object.entries(formData.program_by_fields).map(([field, items]: any) => (
+                            {Object.entries(formData.program_by_fields).filter(([, items]: any) => items?.length > 0).map(([field, items]: any) => (
                                 <div key={field} className="bg-gray-50 rounded-xl p-3 text-center">
-                                    <span className="block text-xs font-bold text-gray-500 uppercase mb-1">{field}</span>
+                                    <span className="block text-xs font-bold text-gray-500 mb-1">{FIELD_LABEL[field] || field}</span>
                                     <span className="text-2xl font-black text-indigo-600">{items.length}</span>
                                     <span className="block text-[11px] text-gray-500">Contenidos</span>
                                 </div>
@@ -1618,7 +1870,7 @@ export const AnalyticalProgramEditorPage = () => {
                     <ArrowLeft className="w-5 h-5" />
                 </button>
                 <div className="min-w-0">
-                    <p className="text-[11px] font-black uppercase tracking-widest text-indigo-600 mb-1">Nueva Escuela Mexicana · Fase 6</p>
+                    <p className="text-[11px] font-black uppercase tracking-widest text-indigo-600 mb-1">Nueva Escuela Mexicana{scope?.phase ? ` · Fase ${scope.phase}` : ''}{scope && !scope.generalist && scope.subjects.length ? ` · ${scope.subjects.map(sub => sub.name).join(', ')}` : ''}</p>
                     <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Programa analítico</h1>
                 </div>
             </header>
@@ -1627,6 +1879,12 @@ export const AnalyticalProgramEditorPage = () => {
 
             <section className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-4 sm:p-8">
                 <WizardStepHeader icon={stepInfo?.icon ?? School} title={stepInfo?.title || 'Paso'} description={stepInfo?.description} />
+                {isGenerating && (
+                    <div role="status" aria-live="polite" className="sticky top-2 z-20 mb-6 flex items-center gap-3 rounded-2xl bg-indigo-600 text-white px-4 py-3 shadow-lg shadow-indigo-600/20">
+                        <Loader2 className="w-5 h-5 animate-spin shrink-0" />
+                        <p className="text-sm font-bold">{genLabel || 'La IA está trabajando…'} <span className="font-medium text-indigo-100">Esto puede tardar hasta un minuto.</span></p>
+                    </div>
+                )}
                 {currentStep === 1 && renderStep1()}
                 {currentStep === 2 && renderStep2()}
                 {currentStep === 3 && renderStep3()}

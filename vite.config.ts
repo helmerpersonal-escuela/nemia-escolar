@@ -32,6 +32,9 @@ export default defineConfig({
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/functions\//, /^\/rest\//, /^\/auth\//],
         cleanupOutdatedCaches: true,
+        // La versión nueva entra en cuanto se descarga (sin esperar a cerrar todas las pestañas)
+        skipWaiting: true,
+        clientsClaim: true,
         // Nunca se guardan en caché las llamadas a Supabase: los datos offline los maneja la app (IndexedDB).
         runtimeCaching: [
           {
