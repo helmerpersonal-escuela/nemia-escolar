@@ -4,6 +4,7 @@ import { supabase } from '../../../lib/supabase'
 import { Plus, Trash2, Calendar, AlertCircle, Edit2 } from 'lucide-react'
 import { useTenant } from '../../../hooks/useTenant'
 import { DateInput } from '../../../components/ui/DateInput'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 interface Period {
     id: string
@@ -116,7 +117,7 @@ export const PeriodManager = ({ onSelectPeriod, selectedPeriodId, readOnly = fal
     }
 
     const handleDelete = async (id: string) => {
-        if (!confirm('¿Estás seguro? Esto eliminará también los criterios asociados.')) return
+        if (!(await askConfirm('¿Estás seguro? Esto eliminará también los criterios asociados.'))) return
 
         try {
             const { error } = await supabase
@@ -225,7 +226,7 @@ export const PeriodManager = ({ onSelectPeriod, selectedPeriodId, readOnly = fal
 
             <div className="space-y-3">
                 {periods.length === 0 ? (
-                    <p className="text-gray-500 text-sm text-center py-4 italic">No hay periodos configurados.</p>
+                    <p className="text-gray-600 text-sm text-center py-4">Aún no hay periodos de evaluación (por ejemplo, trimestres). Agrega el primero para empezar a calificar.</p>
                 ) : (
                     periods.map(period => (
                         <div

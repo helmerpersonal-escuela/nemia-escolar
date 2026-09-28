@@ -20,6 +20,7 @@ import { useChat } from '../../../../hooks/useChat'
 import { supabase } from '../../../../lib/supabase'
 import { StudentSelectionModal } from './StudentSelectionModal'
 import { ContinuousImprovementCard } from '../../../../components/academic/ContinuousImprovementCard'
+import { FirstSteps } from '../FirstSteps'
 
 export const IndependentDashboard = () => {
     const { data: tenant } = useTenant()
@@ -109,6 +110,7 @@ export const IndependentDashboard = () => {
 
     return (
         <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-1000 pb-20 px-4 sm:px-6">
+            <FirstSteps />
 
             {/* 1. Header & Quick Actions */}
             <header className="relative overflow-hidden bg-slate-900 rounded-[3rem] p-8 sm:p-12 text-white shadow-2xl shadow-indigo-900/20">
@@ -213,12 +215,13 @@ export const IndependentDashboard = () => {
                                     <div className="p-6 bg-slate-50 rounded-full mb-4">
                                         <Calendar className="w-10 h-10 text-slate-300" />
                                     </div>
-                                    <p className="text-slate-500 font-bold uppercase tracking-widest text-sm">Sin clases programadas</p>
+                                    <p className="text-slate-600 font-bold text-sm">Aún no tienes clases en tu horario</p>
+                                    <p className="text-slate-500 text-sm mt-1 max-w-xs">Captúralo una vez y aquí verás qué clase sigue cada día.</p>
                                     <button
                                         onClick={() => navigate('/schedule')}
                                         className="mt-6 px-6 py-3 bg-indigo-50 text-indigo-600 rounded-xl font-black text-[11px] uppercase tracking-widest border border-indigo-100 hover:bg-indigo-100 transition-all"
                                     >
-                                        Configurar Horario
+                                        Capturar mi horario
                                     </button>
                                 </div>
                             )}

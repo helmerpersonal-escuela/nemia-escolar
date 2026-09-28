@@ -42,6 +42,7 @@ import { PreviewModal } from '../components/editor/modals/PreviewModal'
 import { useCatalog } from '../../../lib/nemCatalog'
 import { todayISO } from '../../../lib/dates'
 import { toCampo as toCampoLabel, FIELD_KEY } from '../../analytical-program/lib/teacherScope'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 interface Group {
     id: string
@@ -1412,7 +1413,7 @@ export const PlanningEditorPage = () => {
     }
 
     const applyTemplate = async (template: any) => {
-        if (confirm(`¿Deseas cargar la plantilla "${template.title}"? Esto reemplazará el progreso actual.`)) {
+        if ((await askConfirm(`¿Deseas cargar la plantilla "${template.title}"? Esto reemplazará el progreso actual.`))) {
             setFormData(prev => ({
                 ...prev,
                 title: template.title,
@@ -1762,8 +1763,8 @@ export const PlanningEditorPage = () => {
                                     extra={
                                         <button
                                             type="button"
-                                            onClick={() => {
-                                                if (window.confirm('¿Estás seguro de que deseas cancelar? Se perderán todos los datos no guardados.')) {
+                                            onClick={async () => {
+                                                if ((await askConfirm('¿Estás seguro de que deseas cancelar? Se perderán todos los datos no guardados.'))) {
                                                     const draftId = id || 'new'
                                                     localStorage.removeItem(`lp_draft_${draftId} `)
                                                     navigate('/planning')

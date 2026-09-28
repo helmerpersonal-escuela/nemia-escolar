@@ -10,6 +10,7 @@ import { FORMAT_KINDS, analyzeFormat, proposeFormat, useFormats, type FormatKind
 import { FormatDocument, printFormat } from '../../../components/formats/FormatDocument'
 import { extractFileText } from '../../cte/lib/docText'
 import { readSpreadsheet } from '../../../lib/textImport'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 const safeName = (n: string) => n.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w.-]+/g, '_').slice(-80)
 
@@ -98,7 +99,7 @@ export const FormatsPage = () => {
         refresh()
     }
     const remove = async (f: TeacherFormat) => {
-        if (!window.confirm(`¿Eliminar el formato "${f.name}"?`)) return
+        if (!(await askConfirm(`¿Eliminar el formato "${f.name}"?`))) return
         if (f.file_path) await supabase.storage.from('teacher_formats').remove([f.file_path])
         await supabase.from('teacher_formats').delete().eq('id', f.id)
         refresh()

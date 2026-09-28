@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Ban, Building2, Copy, Download, KeyRound, Loader2, Mail, Plus, Save, Tag, Timer } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { wizardInput } from '../../../components/wizard/Wizard'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 const db = supabase as any
 const input = wizardInput.replace('px-4 py-3', 'px-3 py-2.5')
@@ -200,7 +201,7 @@ export const PromoAndLicensesPanel = () => {
         qc.invalidateQueries({ queryKey: ['god', 'keys'] })
     }
     const revoke = async (id: string) => {
-        if (!confirm('¿Revocar esta clave? Ya no se podrá activar.')) return
+        if (!(await askConfirm('¿Revocar esta clave? Ya no se podrá activar.'))) return
         await db.from('license_keys').update({ status: 'REVOKED' }).eq('id', id).eq('status', 'AVAILABLE')
         qc.invalidateQueries({ queryKey: ['god', 'keys'] })
     }

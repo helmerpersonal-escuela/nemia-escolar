@@ -1,3 +1,4 @@
+import { TextSizeSetting } from '../components/TextSizeSetting';
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
@@ -23,6 +24,7 @@ import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import { DateInput } from '../../../components/ui/DateInput'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 // @ts-expect-error -- pendiente de tipar
 delete L.Icon.Default.prototype._getIconUrl;
@@ -612,7 +614,7 @@ export const SettingsPage = () => {
                             <h4 className="px-4 text-[11px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Personal</h4>
                             <nav className="space-y-1">
                                 {[
-                                    { id: 'profile', label: 'Mi Perfil', icon: User, color: 'text-blue-600', bg: 'bg-blue-50' },
+                                    { id: 'profile', label: 'Mi perfil', icon: User, color: 'text-blue-600', bg: 'bg-blue-50' },
                                     // Hide subjects for roles that don't teach. 
                                     // INDEPENDENT_TEACHER sees this in Institutional section now.
                                     ...(['TEACHER', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD', 'ADMIN', 'INDEPENDENT_TEACHER'].includes(currentRole) ? [
@@ -620,7 +622,7 @@ export const SettingsPage = () => {
                                     ] : []),
                                     { id: 'security', label: 'Seguridad', icon: Lock, color: 'text-gray-600', bg: 'bg-gray-100' },
                                     ...((profile.role?.toUpperCase() !== 'TUTOR') ? [
-                                        { id: 'billing', label: 'Gestión de Cuenta', icon: CreditCard, color: 'text-blue-600', bg: 'bg-blue-50' }
+                                        { id: 'billing', label: 'Mi cuenta', icon: CreditCard, color: 'text-blue-600', bg: 'bg-blue-50' }
                                     ] : []),
                                 ].map((item: any) => {
                                     const isActive = activeTab === item.id;
@@ -678,8 +680,8 @@ export const SettingsPage = () => {
                                 <h4 className="px-4 text-[11px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Gestión</h4>
                                 <nav className="space-y-1">
                                     {[
-                                        { id: 'personal', label: 'Plantilla Docente', icon: Users, color: 'text-rose-600', bg: 'bg-rose-50', adminOnly: true, excludeIndependent: true },
-                                        { id: 'ai', label: 'Configuración IA', icon: Sparkles, color: 'text-indigo-600', bg: 'bg-indigo-50', superOnly: true },
+                                        { id: 'personal', label: 'Docentes de la escuela', icon: Users, color: 'text-rose-600', bg: 'bg-rose-50', adminOnly: true, excludeIndependent: true },
+                                        { id: 'ai', label: 'Inteligencia artificial', icon: Sparkles, color: 'text-indigo-600', bg: 'bg-indigo-50', superOnly: true },
                                     ].map((item: any) => {
 
                                         if (item.adminOnly && !isDirectorOrAdmin) return null;
@@ -730,7 +732,7 @@ export const SettingsPage = () => {
                                             </div>
                                         </div>
                                         <div className="flex-1 text-center md:text-left">
-                                            <h3 className="text-xl font-black text-gray-900 tracking-tight">Tu Identidad</h3>
+                                            <h3 className="text-xl font-black text-gray-900 tracking-tight">Tu foto</h3>
                                             <p className="text-sm text-gray-500 font-medium mb-4">Personaliza tu avatar para ser reconocido por tus alumnos y colegas.</p>
                                             <div className="flex flex-wrap justify-center md:justify-start gap-4">
                                                 {AVATARS.map(url => (
@@ -785,6 +787,8 @@ export const SettingsPage = () => {
                                         </div>
                                     </div>
 
+                                    <TextSizeSetting />
+
                                     <div className="flex justify-end pt-8 border-t border-gray-100">
                                         <button
                                             onClick={handleUpdateProfile}
@@ -792,7 +796,7 @@ export const SettingsPage = () => {
                                             className="px-8 py-4 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-gray-200 disabled:opacity-50 flex items-center"
                                         >
                                             <Save className="w-4 h-4 mr-2" />
-                                            {updating ? 'Guardando...' : 'Actualizar Perfil'}
+                                            {updating ? 'Guardando...' : 'Guardar cambios'}
                                         </button>
                                     </div>
                                 </div>
@@ -931,7 +935,7 @@ export const SettingsPage = () => {
                                                                     </div>
                                                                     <button
                                                                         onClick={async () => {
-                                                                            if (window.confirm(`¿Estás seguro de quitar ${subjectName}?`)) {
+                                                                            if ((await askConfirm(`¿Estás seguro de quitar ${subjectName}?`))) {
                                                                                 const newList = selectedUserSubjects.filter((_, i) => i !== index);
                                                                                 setSelectedUserSubjects(newList);
                                                                                 setUpdating(true);
@@ -1161,7 +1165,7 @@ export const SettingsPage = () => {
                                                         </div>
                                                         <button
                                                             onClick={async () => {
-                                                                const confirm = window.confirm('¿Estas seguro? Esto creará muchos datos de prueba.')
+                                                                const confirm = (await askConfirm('¿Estas seguro? Esto creará muchos datos de prueba.'))
                                                                 if (!confirm) return
                                                                 setUpdating(true)
                                                                 try {

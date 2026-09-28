@@ -38,6 +38,7 @@ import { RegularUserTable } from '../components/RegularUserTable'
 import { TextbookManager } from '../components/TextbookManager'
 import { SyntheticProgramsManager } from '../components/SyntheticProgramsManager'
 import { ClientIssuesPanel } from '../components/ClientIssuesPanel'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 export const SuperAdminDashboard = () => {
     const [stats, setStats] = useState({
@@ -229,13 +230,13 @@ export const SuperAdminDashboard = () => {
     const handleSignOut = async () => { await supabase.auth.signOut(); window.location.href = '/login' }
     const handleImpersonate = (id: string) => window.open(`${window.location.origin}/?impersonate=${id}`, '_blank')
     const handleDeleteUser = async (userId: string) => {
-        if (confirm('¿Eliminar este usuario permanentemente?')) {
+        if ((await askConfirm('¿Eliminar este usuario permanentemente?'))) {
             await supabase.from('profiles').delete().eq('id', userId)
             window.location.reload()
         }
     }
     const handleDeleteSubscription = async (userId: string) => {
-        if (confirm('Eliminar suscripción?')) {
+        if ((await askConfirm('Eliminar suscripción?'))) {
             await supabase.from('subscriptions').delete().eq('user_id', userId)
             window.location.reload()
         }
@@ -247,7 +248,7 @@ export const SuperAdminDashboard = () => {
     }
     const handleSetProvisionalPassword = async (userId: string, email: string) => {
         const password = Math.floor(100000 + Math.random() * 900000).toString()
-        if (confirm(`¿Resetear contraseña de ${email} a: ${password}?`)) {
+        if ((await askConfirm(`¿Resetear contraseña de ${email} a: ${password}?`))) {
             try {
                 const { data, error } = await supabase.rpc('admin_set_any_password', {
                     target_user_id: userId,
@@ -263,19 +264,19 @@ export const SuperAdminDashboard = () => {
         window.location.reload()
     }
     const handleRestoreAccount = async (userId: string) => {
-        if (confirm('¿Restaurar esta cuenta?')) {
+        if ((await askConfirm('¿Restaurar esta cuenta?'))) {
             await supabase.from('profiles').update({ deleted_at: null }).eq('id', userId)
             window.location.reload()
         }
     }
     const handlePermanentDelete = async (userId: string) => {
-        if (confirm('¿ELIMINAR PERMANENTEMENTE? Esta acción no se puede deshacer.')) {
+        if ((await askConfirm('¿ELIMINAR PERMANENTEMENTE? Esta acción no se puede deshacer.'))) {
             await supabase.from('profiles').delete().eq('id', userId)
             window.location.reload()
         }
     }
     const handleVerifyEmail = async (userId: string, email: string) => {
-        if (confirm(`¿Marcar el correo ${email} como verificado manualmente?`)) {
+        if ((await askConfirm(`¿Marcar el correo ${email} como verificado manualmente?`))) {
             try {
                 const { data, error } = await supabase.rpc('admin_verify_email', {
                     target_user_id: userId

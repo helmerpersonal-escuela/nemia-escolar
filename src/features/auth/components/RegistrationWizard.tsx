@@ -11,6 +11,7 @@ import { SubjectSelector } from '../../../components/academic/SubjectSelector'
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 // @ts-expect-error -- pendiente de tipar
 delete L.Icon.Default.prototype._getIconUrl;
@@ -456,8 +457,8 @@ export const RegistrationWizard = () => {
 
                 <div className="mt-8 flex justify-between pt-4 border-t border-gray-100">
                     <button
-                        onClick={() => {
-                            if (confirm('¿Estás seguro de que quieres cancelar el registro actual? Podrás volver a elegir entre Docente Independiente o Institución.')) {
+                        onClick={async () => {
+                            if ((await askConfirm('¿Estás seguro de que quieres cancelar el registro actual? Podrás volver a elegir entre Docente Independiente o Institución.'))) {
                                 navigate('/register')
                             }
                         }}

@@ -4,6 +4,7 @@ import { Lightbulb, Loader2, Pencil, Plus, Search, Trash2, X } from 'lucide-reac
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
 import { useToast } from '../../../components/ui/Toast'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 /**
  * Mis PDAs: procesos de desarrollo de aprendizaje propios del docente o la escuela.
@@ -94,7 +95,7 @@ export const CustomPdasPage = () => {
     }
 
     const remove = async (p: CustomPda) => {
-        if (!window.confirm('¿Eliminar este PDA? Si ya lo usaste en tu programa analítico, dejará de aparecer ahí.')) return
+        if (!(await askConfirm('¿Eliminar este PDA? Si ya lo usaste en tu programa analítico, dejará de aparecer ahí.'))) return
         const { error } = await supabase.from('custom_pdas').delete().eq('id', p.id)
         if (error) { showToast('No se pudo eliminar', 'error'); return }
         qc.invalidateQueries({ queryKey: ['custom-pdas'] })

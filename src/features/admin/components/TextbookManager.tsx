@@ -9,6 +9,7 @@ import {
     Search,
     Loader2
 } from 'lucide-react'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 interface Textbook {
     id: string
@@ -108,7 +109,7 @@ export const TextbookManager = () => {
     }
 
     const handleDelete = async (id: string, fileUrl: string) => {
-        if (!confirm('¿Estás seguro de eliminar este libro?')) return
+        if (!(await askConfirm('¿Estás seguro de eliminar este libro?'))) return
 
         try {
             // Extract path from URL to delete from storage if needed

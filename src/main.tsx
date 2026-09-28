@@ -5,6 +5,7 @@ import './index.css'
 import 'leaflet/dist/leaflet.css'
 import App from './App.tsx'
 import { ToastProvider } from './components/ui/Toast.tsx'
+import { ConfirmHost } from './components/ui/ConfirmDialog'
 
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 import { queryClient, queryPersister, PERSIST_MAX_AGE } from './lib/queryClient'
@@ -12,6 +13,10 @@ import { startOutbox } from './lib/offline/outbox'
 import { registerServiceWorker } from './lib/offline/registerSW'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
 import { installGlobalErrorHandlers } from './lib/errorReporting'
+import { applyTextSize } from './lib/textSize'
+
+// Aplica el tamaño de letra guardado antes de pintar (evita el salto visual).
+applyTextSize()
 
 const missingEnv = ['VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY'].filter(k => !import.meta.env[k])
 
@@ -40,6 +45,7 @@ createRoot(document.getElementById('root')!).render(
           <ErrorBoundary area="app">
             <App />
           </ErrorBoundary>
+          <ConfirmHost />
         </ToastProvider>
       </BrowserRouter>
     </PersistQueryClientProvider>

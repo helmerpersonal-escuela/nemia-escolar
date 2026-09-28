@@ -1,3 +1,4 @@
+import { EmptyState } from '../../../components/ui/EmptyState'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Users, School, Trash2, Edit, ArrowRight, BookOpen, GraduationCap, ClipboardList } from 'lucide-react'
@@ -9,6 +10,7 @@ import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
 import { useProfile } from '../../../hooks/useProfile'
 import { useSubscriptionLimits } from '../../../hooks/useSubscriptionLimits'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 type Group = {
     id: string
@@ -222,7 +224,7 @@ export const GroupsPage = () => {
     })
 
     const handleDeleteGroup = async (groupId: string) => {
-        if (window.confirm('¿Estás seguro de que deseas eliminar este grupo? Esta acción no se puede deshacer.')) {
+        if ((await askConfirm('¿Estás seguro de que deseas eliminar este grupo? Esta acción no se puede deshacer.'))) {
             deleteGroupMutation.mutate(groupId)
         }
     }
@@ -301,35 +303,24 @@ export const GroupsPage = () => {
             </div>
 
             {isLoading ? (
-                <div className="text-center py-12">Cargando grupos...</div>
+                <div className="text-center py-12">Cargando tus grupos…</div>
             ) : subjectCards.length === 0 ? (
-                <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-300 shadow-sm">
-                    <div className="mx-auto w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                        <School className="h-10 w-10 text-gray-500" />
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">No hay grupos registrados</h3>
-                    <p className="text-gray-500 max-w-sm mx-auto mb-8">
-                        {isTeacher
-                            ? "Aún no tienes grupos asignados para este ciclo escolar. Contacta al administrador."
-                            : "Para comenzar a evaluar y pasar lista, necesitas crear tu primer grupo escolar."
-                        }
-                    </p>
-                    {canCreateGroup && (
-                        <button
-                            onClick={() => {
-                                if (!limits.canAddGroup) {
-                                    setShowUpgradeModal(true)
-                                    return
-                                }
-                                setIsModalOpen(true)
-                            }}
-                            className="inline-flex items-center px-6 py-3 border border-transparent shadow-lg text-sm font-bold rounded-xl text-white bg-blue-600 hover:bg-blue-700 transition-all hover:scale-105"
-                        >
-                            <Plus className="h-5 w-5 mr-2" />
-                            Crear Primer Grupo
-                        </button>
-                    )}
-                </div>
+                <EmptyState
+                    icon={School}
+                    title="Aún no tienes grupos"
+                    description={isTeacher
+                        ? 'Tu director(a) todavía no te ha asignado grupos para este ciclo. Pídele que te agregue; en cuanto lo haga, aparecerán aquí.'
+                        : 'Un grupo es tu salón (por ejemplo, 1° A). Con él podrás pasar lista, calificar y planear.'}
+                    steps={canCreateGroup ? ['Crea tu grupo con el grado y la letra.', 'Agrega a tus alumnos (uno por uno o desde Excel).', 'Listo: ya puedes pasar lista.'] : undefined}
+                    action={canCreateGroup ? {
+                        label: 'Crear mi primer grupo',
+                        icon: Plus,
+                        onClick: () => {
+                            if (!limits.canAddGroup) { setShowUpgradeModal(true); return }
+                            setIsModalOpen(true)
+                        },
+                    } : undefined}
+                />
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
                     {subjectCards.map((item, idx) => (

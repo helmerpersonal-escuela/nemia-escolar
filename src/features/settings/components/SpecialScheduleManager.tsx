@@ -4,6 +4,7 @@ import { Trash2, Calendar as CalendarIcon, Sparkles, Clock } from 'lucide-react'
 import { useTenant } from '../../../hooks/useTenant'
 import { todayISO } from '../../../lib/dates'
 import { DateInput } from '../../../components/ui/DateInput'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 export const SpecialScheduleManager = () => {
     const { data: tenant } = useTenant()
@@ -131,7 +132,7 @@ export const SpecialScheduleManager = () => {
     }
 
     const handleDelete = async (id: string) => {
-        if (!confirm('¿Eliminar este ajuste?')) return
+        if (!(await askConfirm('¿Eliminar este ajuste?'))) return
         await supabase.from('special_schedule_structure').delete().eq('id', id)
         fetchSpecialSchedules()
     }

@@ -30,6 +30,7 @@ import {
     useTeacherScope, restrictScope, loadScopedCatalog, findOutOfScopeMentions, sameDiscipline, toCampo,
     FIELD_KEY, FIELD_LABEL, FIELD_METHODOLOGY, type Campo, type ScopedContent,
 } from '../lib/teacherScope'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 // Wizard Steps Configuration
 const STEPS = [
@@ -1970,8 +1971,8 @@ Responde ÚNICAMENTE JSON:
                 extra={
                     <button
                         type="button"
-                        onClick={() => {
-                            if (confirm('¿Estás seguro de que deseas reiniciar la construcción? Se borrará todo el progreso actual de esta sesión.')) {
+                        onClick={async () => {
+                            if ((await askConfirm('¿Estás seguro de que deseas reiniciar la construcción? Se borrará todo el progreso actual de esta sesión.'))) {
                                 localStorage.removeItem(`analytical_program_draft_${id || 'new'}`)
                                 window.location.reload()
                             }

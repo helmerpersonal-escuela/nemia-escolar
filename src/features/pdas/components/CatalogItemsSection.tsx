@@ -5,6 +5,7 @@ import { useTenant } from '../../../hooks/useTenant'
 import { useProfile } from '../../../hooks/useProfile'
 import { useToast } from '../../../components/ui/Toast'
 import { CAMPOS_FORMATIVOS, OFFICIAL_EJES, OFFICIAL_METODOLOGIAS, useCatalogActions, useHiddenItems, usePedagogyItems, type CatalogItem } from '../../../lib/nemCatalog'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 type Kind = 'EJE' | 'METODOLOGIA'
 const TEXT = {
@@ -52,7 +53,7 @@ export const CatalogItemsSection = ({ kind }: { kind: Kind }) => {
     }
 
     const remove = async (item: CatalogItem) => {
-        if (!window.confirm(`¿Eliminar "${item.name}"?`)) return
+        if (!(await askConfirm(`¿Eliminar "${item.name}"?`))) return
         const { error } = await supabase.from('pedagogy_items').delete().eq('id', item.id)
         if (error) showToast('No se pudo eliminar', 'error')
         refresh()

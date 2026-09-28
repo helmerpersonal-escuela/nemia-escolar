@@ -4,6 +4,7 @@ import {
     Printer, ChevronRight, Plus, Search, MessageSquare, AlertCircle
 } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 interface ClassPlanListProps {
     tenantId: string
@@ -56,7 +57,7 @@ export const ClassPlanList: React.FC<ClassPlanListProps> = ({
     }
 
     const handleDelete = async (id: string) => {
-        if (!confirm('¿Estás seguro de eliminar este plan de clase? Esta acción no se puede deshacer.')) return
+        if (!(await askConfirm('¿Estás seguro de eliminar este plan de clase? Esta acción no se puede deshacer.'))) return
 
         try {
             const { error } = await supabase

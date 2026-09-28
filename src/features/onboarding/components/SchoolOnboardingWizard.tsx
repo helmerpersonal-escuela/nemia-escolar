@@ -23,6 +23,7 @@ import { DateInput } from '../../../components/ui/DateInput'
 import { OfficialCycleNote, type CycleSource } from '../../../components/academic/OfficialCycleNote'
 import { useOfficialCycle, cycleNameFromDates } from '../../../lib/officialCalendar'
 import { SchoolLocationFields, emptyLocation, isLocationComplete, type SchoolLocation } from '../../../components/location/SchoolLocationFields'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void }) => {
     const navigate = useNavigate()
@@ -153,7 +154,7 @@ export const SchoolOnboardingWizard = ({ onComplete }: { onComplete: () => void 
     }
 
     const handleCancelRegistration = async () => {
-        if (confirm('¿Estás seguro de cancelar tu registro? Toda tu información será eliminada para liberar tu correo.')) {
+        if ((await askConfirm('¿Estás seguro de cancelar tu registro? Toda tu información será eliminada para liberar tu correo.'))) {
             setLoading(true)
             try {
                 // Call RPC to delete own account

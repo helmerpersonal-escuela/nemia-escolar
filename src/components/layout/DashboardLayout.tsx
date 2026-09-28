@@ -30,7 +30,10 @@ import {
     Loader2,
     MessageSquare,
     Home,
-    Store
+    Store,
+    BookOpen,
+    MoreHorizontal,
+    ClipboardCheck,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { queryClient } from '../../lib/queryClient'
@@ -45,6 +48,7 @@ import { NotificationManager } from '../ui/NotificationManager'
 import { ErrorBoundary } from '../common/ErrorBoundary'
 import { setErrorContext } from '../../lib/errorReporting'
 import { OfflineCenter } from '../offline/OfflineCenter'
+import { PageHelpButton } from '../help/PageHelp'
 import { TrialNotificationSystem } from '../../features/subscription/components/TrialNotificationSystem'
 import { NewCycleBanner } from '../../features/school-year/components/NewCycleBanner'
 import { useCooperativeRecord } from '../../features/cooperative/lib/useCooperative'
@@ -56,13 +60,15 @@ const DocumentTitle = ({ title }: { title: string }) => {
 
 const MenuSection = ({ title, items, location }: any) => {
     return (
-        <section className="mb-6" aria-labelledby={`section-title-${title.toLowerCase().replace(/\s+/g, '-')}`}>
-            <h3
-                id={`section-title-${title.toLowerCase().replace(/\s+/g, '-')}`}
-                className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 opacity-80"
-            >
-                {title}
-            </h3>
+        <section className={title ? 'mb-6' : 'mb-1'} aria-labelledby={title ? `section-title-${title.toLowerCase().replace(/\s+/g, '-')}` : undefined}>
+            {title && (
+                <h3
+                    id={`section-title-${title.toLowerCase().replace(/\s+/g, '-')}`}
+                    className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 opacity-80"
+                >
+                    {title}
+                </h3>
+            )}
             <div className="space-y-1">
                 {items.map((item: any) => (
                     <MenuItem key={item.label} item={item} location={location} />
@@ -132,7 +138,7 @@ const MenuItem = ({ item, location }: any) => {
         )
     }
 
-    const isActive = location.pathname === item.path
+    const isActive = item.path.includes('?') ? full === item.path : location.pathname === item.path
     return (
         <Link
             to={item.path}
@@ -338,7 +344,7 @@ export const DashboardLayout = () => {
                             <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
                                 <AlertTriangle className="w-10 h-10" />
                             </div>
-                            <h2 className="text-2xl font-black text-slate-900 mb-2">Error de Sincronización</h2>
+                            <h2 className="text-2xl font-black text-slate-900 mb-2">No pudimos cargar tus datos</h2>
                             <p className="text-slate-500 font-medium mb-8">No pudimos confirmar tu acceso: {syncError}</p>
                             <button
                                 onClick={() => window.location.href = '/'}
@@ -353,7 +359,7 @@ export const DashboardLayout = () => {
                                 <Zap className="w-10 h-10 animate-pulse" />
                             </div>
                             <h2 className="text-3xl font-black text-slate-900 mb-2">¡Suscripción Activa!</h2>
-                            <p className="text-slate-500 font-medium mb-8">Estamos preparando tu nueva oficina digital escolar...</p>
+                            <p className="text-slate-500 font-medium mb-8">Estamos dejando todo listo para ti…</p>
                             <div className="flex flex-col items-center gap-2">
                                 <Loader2 className="w-8 h-8 text-emerald-700 animate-spin" />
                                 <span className="text-[11px] font-black text-slate-300 uppercase tracking-[0.2em]">Finalizando proceso</span>
@@ -519,47 +525,41 @@ export const DashboardLayout = () => {
                 ]
             }
         ],
+        // Docentes: lo de todos los días arriba (un toque); lo ocasional agrupado y cerrado.
         TEACHER: [
+            { icon: Home, label: 'Inicio', path: '/' },
+            { icon: ClipboardCheck, label: 'Pasar lista', path: '/gradebook?tab=ATTENDANCE' },
+            { icon: GraduationCap, label: 'Calificaciones', path: '/gradebook?tab=EVALUATION' },
+            { icon: ClipboardList, label: 'Mis planeaciones', path: '/planning' },
+            { icon: Users, label: 'Mis grupos y alumnos', path: '/groups' },
+            { icon: Calendar, label: 'Mi agenda', path: '/agenda' },
+            { icon: Mail, label: 'Mensajes', path: '/messages' },
             {
-                icon: Users,
-                label: 'Mis Clases',
-                path: '#classes',
-                defaultOpen: true,
+                icon: BookOpen,
+                label: 'Planeación NEM',
+                path: '#nem',
                 subItems: [
-                    { label: 'Mis Grupos', path: '/groups' },
-                    { label: 'Grupo que asesoro', path: '/asesoria' },
-                    { label: 'Mi Horario', path: '/schedule' }
-                ]
-            },
-            { icon: LayoutDashboard, label: 'Consola Docente', path: '/' },
-            { icon: Calendar, label: 'Mi Agenda', path: '/agenda' },
-            {
-                icon: ClipboardList,
-                label: 'Gestión',
-                path: '#planning_mgmt',
-                subItems: [
-                    { label: 'Programa Analítico', path: '/analytical-program' },
-                    { label: 'Mis Planeaciones', path: '/planning' },
+                    { label: 'Programa analítico', path: '/analytical-program' },
                     { label: 'PDAs, ejes y metodologías', path: '/mis-pdas' },
-                    { label: 'Instrumentos', path: '/rubrics' },
-                    { label: 'Mis Formatos', path: '/formatos' },
-                    { label: 'Consejo Técnico (CTE)', path: '/cte' },
-                    { label: 'Libros de Texto', path: '/libros' },
-                    { label: 'Guardias (Ausencias)', path: '/absences' }
+                    { label: 'Instrumentos de evaluación', path: '/rubrics' },
+                    { label: 'Mis formatos', path: '/formatos' },
+                    { label: 'Libros de texto', path: '/libros' }
                 ]
             },
             {
-                icon: CheckSquare,
-                label: 'Herramientas',
-                path: '#evaluation_tools',
+                icon: MoreHorizontal,
+                label: 'Más',
+                path: '#more',
                 subItems: [
-                    { label: 'Calificaciones', path: '/gradebook?tab=EVALUATION' },
-                    { label: 'Conducta y Reportes', path: '/gradebook?tab=REPORTS' },
-                    { label: 'Portafolio de Alumnos', path: '/evaluation/portfolio' },
-                    { label: 'Herramientas Formativas', path: '/evaluation/formative' }
+                    { label: 'Conducta y reportes', path: '/gradebook?tab=REPORTS' },
+                    { label: 'Portafolio de alumnos', path: '/evaluation/portfolio' },
+                    { label: 'Herramientas formativas', path: '/evaluation/formative' },
+                    { label: 'Grupo que asesoro', path: '/asesoria' },
+                    { label: 'Mi horario', path: '/schedule' },
+                    { label: 'Consejo Técnico (CTE)', path: '/cte' },
+                    { label: 'Guardias (ausencias)', path: '/absences' }
                 ]
-            },
-            { icon: Mail, label: 'Mensajes', path: '/messages' }
+            }
         ],
         PREFECT: [
             { icon: LayoutDashboard, label: 'Panel de Prefectura', path: '/' },
@@ -641,42 +641,34 @@ export const DashboardLayout = () => {
             }
         ],
         INDEPENDENT_TEACHER: [
+            { icon: Home, label: 'Inicio', path: '/' },
+            { icon: ClipboardCheck, label: 'Pasar lista', path: '/gradebook?tab=ATTENDANCE' },
+            { icon: GraduationCap, label: 'Calificaciones', path: '/gradebook?tab=EVALUATION' },
+            { icon: ClipboardList, label: 'Mis planeaciones', path: '/planning' },
+            { icon: Users, label: 'Mis grupos y alumnos', path: '/groups' },
+            { icon: Calendar, label: 'Mi agenda', path: '/agenda' },
             {
-                icon: Users,
-                label: 'Mis Clases',
-                path: '#classes',
-                defaultOpen: true,
+                icon: BookOpen,
+                label: 'Planeación NEM',
+                path: '#nem',
                 subItems: [
-                    { label: 'Grupos y Alumnos', path: '/groups' },
-                    { label: 'Expedientes', path: '/students' },
-                    { label: 'Asistencia', path: '/attendance' },
-                    { label: 'Mi Horario', path: '/schedule' }
-                ]
-            },
-            { icon: LayoutDashboard, label: 'Consola Docente', path: '/' },
-            { icon: Calendar, label: 'Mi Agenda', path: '/agenda' },
-            {
-                icon: ClipboardList,
-                label: 'Gestión',
-                path: '#planning_mgmt',
-                subItems: [
-                    { label: 'Programa Analítico', path: '/analytical-program' },
-                    { label: 'Mis Planeaciones', path: '/planning' },
+                    { label: 'Programa analítico', path: '/analytical-program' },
                     { label: 'PDAs, ejes y metodologías', path: '/mis-pdas' },
-                    { label: 'Instrumentos', path: '/rubrics' },
-                    { label: 'Mis Formatos', path: '/formatos' },
-                    { label: 'Consejo Técnico (CTE)', path: '/cte' },
-                    { label: 'Libros de Texto', path: '/libros' }
+                    { label: 'Instrumentos de evaluación', path: '/rubrics' },
+                    { label: 'Mis formatos', path: '/formatos' },
+                    { label: 'Libros de texto', path: '/libros' }
                 ]
             },
             {
-                icon: CheckSquare,
-                label: 'Herramientas',
-                path: '#evaluation_tools',
+                icon: MoreHorizontal,
+                label: 'Más',
+                path: '#more',
                 subItems: [
-                    { label: 'Calificaciones', path: '/gradebook?tab=EVALUATION' },
-                    { label: 'Conducta y Reportes', path: '/gradebook?tab=REPORTS' },
-                    { label: 'Portafolios', path: '/evaluation/portfolio' }
+                    { label: 'Conducta y reportes', path: '/gradebook?tab=REPORTS' },
+                    { label: 'Portafolio de alumnos', path: '/evaluation/portfolio' },
+                    { label: 'Expedientes de alumnos', path: '/students' },
+                    { label: 'Mi horario', path: '/schedule' },
+                    { label: 'Consejo Técnico (CTE)', path: '/cte' }
                 ]
             }
         ],
@@ -716,9 +708,9 @@ export const DashboardLayout = () => {
     const showCoop = coopRoles.includes(currentRole) && (!!coopRecord || ((tenant as any)?.secondaryType === 'TECNICA' && ['TECH_COORD', 'DIRECTOR', 'ADMIN'].includes(currentRole)))
     const coopEntry = { label: 'Cooperativa Escolar', path: '/cooperativa' }
     const menuWithCoop = !showCoop ? menuItems
-        : menuItems.some((i: any) => i.path === '#evaluation_tools')
-            // Docentes: dentro de Herramientas
-            ? menuItems.map((i: any) => i.path === '#evaluation_tools' ? { ...i, subItems: [...i.subItems, coopEntry] } : i)
+        : menuItems.some((i: any) => i.path === '#more')
+            // Docentes: dentro de "Más"
+            ? menuItems.map((i: any) => i.path === '#more' ? { ...i, subItems: [...i.subItems, coopEntry] } : i)
             // Dirección/coordinación (sin Herramientas): como opción propia
             : [...menuItems.slice(0, 3), { icon: Store, ...coopEntry }, ...menuItems.slice(3)]
 
@@ -737,12 +729,13 @@ export const DashboardLayout = () => {
     }
     const path = location.pathname
     const pageTitle = path === '/'
-        ? (workspaceType === 'INDEPENDENT' ? 'Aula Privada' : currentRole === 'TUTOR' ? 'Portal de Tutor' : 'Inicio')
+        ? (currentRole === 'TUTOR' ? 'Portal de Tutor' : 'Inicio')
         : (flatMenu.filter(i => !i.path.includes('?') && i.path !== '/' && (path === i.path || path.startsWith(i.path + '/')))
             .sort((a, b) => b.path.length - a.path.length)[0]?.label
             ?? Object.entries(EXTRA_TITLES).filter(([k]) => path === k || path.startsWith(k + '/')).sort((a, b) => b[0].length - a[0].length)[0]?.[1]
             ?? 'Vunlek')
 
+    const isTeacherRole = ['TEACHER', 'INDEPENDENT_TEACHER'].includes(currentRole)
     const principalMenu = finalMenuItems.filter(i => !i.path.startsWith('#'))
     const academicMenu = finalMenuItems.filter(i => i.path.startsWith('#'))
 
@@ -761,15 +754,25 @@ export const DashboardLayout = () => {
             )}
 
             {/* Mobile Bottom Navigation */}
-            <nav aria-label="Navegación principal" className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 lg:hidden flex justify-around items-center px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
+            <nav aria-label="Navegación principal" className="bottom-nav fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 lg:hidden flex justify-around items-center px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
                 <Link
                     to="/"
                     aria-current={location.pathname === '/' ? 'page' : undefined}
                     className={`flex flex-col items-center justify-center min-w-16 min-h-12 px-3 py-1.5 rounded-xl transition-all ${location.pathname === '/' ? 'text-indigo-700 bg-indigo-50' : 'text-slate-500'}`}
                 >
                     <Home className="w-6 h-6 mb-1" />
-                    <span className="text-[11px] font-bold">{['TEACHER', 'INDEPENDENT_TEACHER'].includes(currentRole) ? 'Consola' : 'Inicio'}</span>
+                    <span className="text-[11px] font-bold">Inicio</span>
                 </Link>
+                {['TEACHER', 'INDEPENDENT_TEACHER'].includes(currentRole) && (
+                    <Link
+                        to="/gradebook?tab=ATTENDANCE"
+                        aria-current={location.pathname === '/gradebook' && location.search.includes('ATTENDANCE') ? 'page' : undefined}
+                        className={`flex flex-col items-center justify-center min-w-16 min-h-12 px-3 py-1.5 rounded-xl transition-all ${(location.pathname === '/gradebook' && location.search.includes('ATTENDANCE')) ? 'text-indigo-700 bg-indigo-50' : 'text-slate-500'}`}
+                    >
+                        <ClipboardCheck className="w-6 h-6 mb-1" />
+                        <span className="text-[11px] font-bold">Pasar lista</span>
+                    </Link>
+                )}
                 {['TEACHER', 'INDEPENDENT_TEACHER'].includes(currentRole) ? (
                     <Link
                         to="/groups"
@@ -777,7 +780,7 @@ export const DashboardLayout = () => {
                         className={`flex flex-col items-center justify-center min-w-16 min-h-12 px-3 py-1.5 rounded-xl transition-all ${location.pathname.startsWith('/groups') ? 'text-indigo-700 bg-indigo-50' : 'text-slate-500'}`}
                     >
                         <Users className="w-6 h-6 mb-1" />
-                        <span className="text-[11px] font-bold">Mis clases</span>
+                        <span className="text-[11px] font-bold">Grupos</span>
                     </Link>
                 ) : (
                     <Link
@@ -843,7 +846,7 @@ export const DashboardLayout = () => {
                     {/* Navigation */}
                     <nav className="flex-1 px-4 py-2 space-y-4 overflow-y-auto scrollbar-hide">
                         <MenuSection
-                            title="PRINCIPAL"
+                            title={isTeacherRole ? 'USO DIARIO' : 'PRINCIPAL'}
                             items={principalMenu}
                             location={location}
                         />
@@ -851,7 +854,8 @@ export const DashboardLayout = () => {
                         {academicMenu.length > 0 && academicMenu.map((section: any) => (
                             <MenuSection
                                 key={section.path}
-                                title={section.label.toUpperCase()}
+                                // Para docentes el botón del grupo ya dice su nombre: no se repite como encabezado
+                                title={isTeacherRole ? '' : section.label.toUpperCase()}
                                 items={[section]}
                                 location={location}
                             />
@@ -906,6 +910,8 @@ export const DashboardLayout = () => {
                     </div>
 
                     <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+                        {/* Ayuda contextual de la pantalla */}
+                        <PageHelpButton path={location.pathname} search={location.search} />
                         {/* Conexión y trabajo sin señal */}
                         <OfflineCenter />
 

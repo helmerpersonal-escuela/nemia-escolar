@@ -4,6 +4,7 @@ import { QRCodeSVG } from 'qrcode.react'
 import { Lock, Smartphone, Shield, AlertCircle, Database, DownloadCloud, Trash2, CheckCircle } from 'lucide-react'
 import { exportUserData } from '../../../utils/backupUtils'
 import { todayISO } from '../../../lib/dates'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 interface SecuritySettingsProps {
     profile: any
@@ -102,7 +103,7 @@ export const SecuritySettings = ({ profile, tenant, isDirectorOrAdmin }: Securit
     }
 
     const handleUnenroll = async (factorId: string) => {
-        if (!confirm('¿Estás seguro de desactivar la autenticación de dos factores? Tu cuenta será menos segura.')) return
+        if (!(await askConfirm('¿Estás seguro de desactivar la autenticación de dos factores? Tu cuenta será menos segura.'))) return
         setLoading(true)
         try {
             const { error } = await supabase.auth.mfa.unenroll({ factorId })
@@ -117,8 +118,8 @@ export const SecuritySettings = ({ profile, tenant, isDirectorOrAdmin }: Securit
     }
 
     const handleDeleteAccount = async () => {
-        if (!confirm('¿ESTÁS ABSOLUTAMENTE SEGURO? Esta acción es IRREVERSIBLE y eliminará todos tus datos.')) return
-        const secondFactor = confirm('¿Confirmas que deseas ELIMINAR COMPLETAMENTE tu cuenta?')
+        if (!(await askConfirm('¿ESTÁS ABSOLUTAMENTE SEGURO? Esta acción es IRREVERSIBLE y eliminará todos tus datos.'))) return
+        const secondFactor = (await askConfirm('¿Confirmas que deseas ELIMINAR COMPLETAMENTE tu cuenta?'))
         if (!secondFactor) return
 
         setLoading(true)
@@ -135,7 +136,7 @@ export const SecuritySettings = ({ profile, tenant, isDirectorOrAdmin }: Securit
 
     const handleBackup = async () => {
         if (!tenant?.id) return
-        if (!confirm('¿Deseas descargar una copia de seguridad?')) return
+        if (!(await askConfirm('¿Deseas descargar una copia de seguridad?'))) return
         try {
             setLoading(true)
             await exportUserData(tenant.id, `Respaldo_Vunlek_${todayISO()}.json`)

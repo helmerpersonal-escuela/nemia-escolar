@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { X, Save, Trash2 } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 type ScheduleEntry = {
     id: string
@@ -209,7 +210,7 @@ export const EditScheduleModal = ({
     }
 
     const handleDelete = async () => {
-        if (!entry?.id || !confirm('¿Estás seguro de eliminar esta clase?')) return
+        if (!entry?.id || !(await askConfirm('¿Estás seguro de eliminar esta clase?'))) return
 
         setIsLoading(true)
         try {

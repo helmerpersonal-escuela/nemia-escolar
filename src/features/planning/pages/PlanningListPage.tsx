@@ -1,8 +1,10 @@
+import { EmptyState } from '../../../components/ui/EmptyState'
 import { useState, useEffect } from 'react'
 import { Plus, FileText, Users, ArrowRight, Sparkles, LayoutGrid, Clock, ChevronRight, Trash2, Eye } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 interface Plan {
     id: string
@@ -55,7 +57,7 @@ export const PlanningListPage = () => {
         e.preventDefault() // Evitar navegación del Link
         e.stopPropagation()
 
-        if (!window.confirm('¿Estás seguro de que deseas eliminar esta planeación? Esta acción no se puede deshacer.')) {
+        if (!(await askConfirm('¿Estás seguro de que deseas eliminar esta planeación? Esta acción no se puede deshacer.'))) {
             return
         }
 
@@ -82,7 +84,7 @@ export const PlanningListPage = () => {
                     <div>
                         <div className="flex items-center space-x-2 text-indigo-600 font-black uppercase text-[11px] tracking-[0.3em] mb-2 md:mb-4">
                             <Sparkles className="w-4 h-4" />
-                            <span>Gobernanza Pedagógica</span>
+                            <span>Tus planeaciones</span>
                         </div>
                         <h1 className="text-3xl sm:text-6xl font-black text-gray-900 tracking-tight leading-none">
                             Planeación <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">Didáctica</span>
@@ -103,32 +105,24 @@ export const PlanningListPage = () => {
                 {loading ? (
                     <div className="flex flex-col items-center justify-center py-32 animate-pulse">
                         <div className="w-16 h-16 bg-indigo-50 rounded-3xl mb-6"></div>
-                        <span className="text-xs font-black text-indigo-400 uppercase tracking-widest tracking-[0.3em]">Sincronizando Archivos...</span>
+                        <span className="text-xs font-black text-indigo-400 uppercase tracking-widest tracking-[0.3em]">Actualizando tus planeaciones…</span>
                     </div>
                 ) : error ? (
                     <div className="bg-red-50 rounded-[2rem] p-12 text-center max-w-2xl mx-auto">
-                        <h3 className="text-xl font-black text-red-900 mb-2">Error de Sincronización</h3>
+                        <h3 className="text-xl font-black text-red-900 mb-2">No se pudieron cargar tus planeaciones</h3>
                         <p className="text-red-600 mb-6">{error}</p>
                         <button onClick={() => window.location.reload()} className="px-6 py-2 bg-red-100 text-red-700 rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-red-200 btn-tactile">
-                            Reintentar Conexión
+                            Intentar de nuevo
                         </button>
                     </div>
                 ) : plans.length === 0 ? (
-                    <div className="squishy-card bg-white border-2 border-dashed border-gray-100 p-8 md:p-24 text-center shadow-sm max-w-4xl mx-auto animate-in fade-in duration-700">
-                        <div className="w-16 h-16 md:w-24 md:h-24 bg-gray-50 rounded-[1.5rem] md:rounded-[2.5rem] flex items-center justify-center mx-auto mb-6 md:mb-8">
-                            <FileText className="w-8 h-8 md:w-12 md:h-12 text-gray-200" />
-                        </div>
-                        <h3 className="text-xl md:text-2xl font-black text-gray-900 uppercase tracking-tighter">No hay documentos aún</h3>
-                        <p className="text-gray-500 max-w-sm mx-auto mt-2 font-medium text-sm md:text-base">
-                            Toda gran enseñanza comienza con un plan. Crea hoy tu primer proyecto o secuencia didáctica.
-                        </p>
-                        <Link
-                            to="/planning/new"
-                            className="mt-6 md:mt-10 inline-flex items-center bg-indigo-50 text-indigo-600 px-6 py-3 md:px-8 md:py-4 rounded-2xl font-black text-[11px] md:text-xs uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all btn-tactile"
-                        >
-                            Comenzar ahora <ArrowRight className="w-4 h-4 ml-2" />
-                        </Link>
-                    </div>
+                    <EmptyState
+                        icon={FileText}
+                        title="Aún no tienes planeaciones"
+                        description="Una planeación es lo que vas a trabajar con tu grupo en unos días o semanas. Te guiamos paso a paso y la IA te sugiere el contenido."
+                        steps={['Elige el grupo y la materia.', 'Escoge un título (te damos ideas).', 'Revisa lo que propone la IA y guarda.']}
+                        action={{ label: 'Hacer mi primera planeación', to: '/planning/new' }}
+                    />
                 ) : (
                     <div className="columns-1 md:columns-2 lg:columns-3 gap-8 space-y-8 animate-in slide-in-from-bottom-12 duration-700">
                         {plans.map(plan => (

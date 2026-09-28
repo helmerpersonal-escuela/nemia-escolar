@@ -9,6 +9,7 @@ import { aiGenerate } from '../../../lib/aiClient'
 import { printFormat } from '../../../components/formats/FormatDocument'
 import { CTE_PORTAL_URL, currentSchoolYear, pickNextSession, sessionLabel, todayISO, type CteAgreement, type CteDocument, type CteSession } from '../lib/cteApi'
 import { extractFileText } from '../lib/docText'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 type TaskStatus = 'PENDIENTE' | 'EN_PROCESO' | 'CUMPLIDO'
 interface Task { id: string, session_id: string, kind: 'TAREA' | 'COMPROMISO', description: string, due_date: string | null, status: TaskStatus, follow_up: string | null }
@@ -157,7 +158,7 @@ Devuelve SOLO JSON: {"resumen":"...","por_tema":[{"tema":"...","ideas_clave":[".
         refreshTasks()
     }
     const updateTask = async (t: Task, patch: Partial<Task>) => { await supabase.from('cte_teacher_tasks').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', t.id); refreshTasks() }
-    const deleteTask = async (t: Task) => { if (window.confirm('¿Eliminar?')) { await supabase.from('cte_teacher_tasks').delete().eq('id', t.id); refreshTasks() } }
+    const deleteTask = async (t: Task) => { if ((await askConfirm('¿Eliminar?'))) { await supabase.from('cte_teacher_tasks').delete().eq('id', t.id); refreshTasks() } }
     const updateAgreement = async (a: CteAgreement, status: string, follow: string) => {
         const { error } = await supabase.rpc('cte_update_my_agreement', { p_id: a.id, p_status: status, p_follow_up: follow })
         if (error) showToast('No se pudo actualizar', 'error')

@@ -10,6 +10,7 @@ import {
     CheckCircle2
 } from 'lucide-react'
 import * as pdfjsLib from 'pdfjs-dist'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 // Worker setup for PDF.js - Same as PDFUpload.tsx
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
@@ -88,7 +89,7 @@ export const SyntheticProgramsManager = () => {
 
         // Check if phase already exists
         if (programs.some(p => p.phase === newProgram.phase)) {
-            if (!confirm(`Ya existe un documento cargado para la Fase ${newProgram.phase}. ¿Deseas reemplazarlo? (El sistema lo sobreescribirá)`)) {
+            if (!(await askConfirm(`Ya existe un documento cargado para la Fase ${newProgram.phase}. ¿Deseas reemplazarlo? (El sistema lo sobreescribirá)`))) {
                 return
             }
         }
@@ -142,7 +143,7 @@ export const SyntheticProgramsManager = () => {
     }
 
     const handleDelete = async (id: string, phase: number) => {
-        if (!confirm(`¿Estás seguro de eliminar el Programa Sintético de la Fase ${phase}? La Inteligencia Artificial dejará de tener este contexto oficial.`)) return
+        if (!(await askConfirm(`¿Estás seguro de eliminar el Programa Sintético de la Fase ${phase}? La Inteligencia Artificial dejará de tener este contexto oficial.`))) return
 
         try {
             const { error } = await supabase

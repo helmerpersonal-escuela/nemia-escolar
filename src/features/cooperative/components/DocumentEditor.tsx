@@ -14,6 +14,7 @@ import {
     type ProgressRow, type ReturnData, type ReturnRow, type SemesterData, type FinalRow,
 } from '../lib/types'
 import { Btn, Card, DocBadge, RowsEditor, StatusBadge, inputSm } from './ui'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 const db = supabase as any
 const FIN = ['COOP ESC', 'ING. PROP.', 'OTRO']
@@ -108,7 +109,7 @@ export const DocumentEditor = ({ doc, ctx, related, canReview, independent, onCl
     }
 
     const remove = async () => {
-        if (!confirm('¿Eliminar este borrador?')) return
+        if (!(await askConfirm('¿Eliminar este borrador?'))) return
         const { error } = await db.from('coop_documents').delete().eq('id', doc.id)
         if (error) { showToast('No se pudo eliminar: ' + error.message, 'error'); return }
         onChanged(); onClose()
@@ -121,8 +122,8 @@ export const DocumentEditor = ({ doc, ctx, related, canReview, independent, onCl
         finally { setBusy(null) }
     }
 
-    const refill = () => {
-        if (!confirm('Se reemplazarán los renglones con los datos actuales (plan anual, socios, informe anual). ¿Continuar?')) return
+    const refill = async () => {
+        if (!(await askConfirm('Se reemplazarán los renglones con los datos actuales (plan anual, socios, informe anual). ¿Continuar?'))) return
         const fresh = initialData(doc.doc_type, ctx, related)
         change({ rows: fresh.rows, ...(doc.doc_type === 'NOMINA_FONDO_REPARTIBLE' ? { fund: fresh.fund } : {}) })
     }

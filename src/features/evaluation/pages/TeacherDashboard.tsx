@@ -15,6 +15,7 @@ import { AttendanceWidget } from '../../dashboard/components/AttendanceWidget'
 import { StudentSelectionModal } from '../../dashboard/components/roles/StudentSelectionModal'
 import { ContinuousImprovementCard } from '../../../components/academic/ContinuousImprovementCard'
 import { AdvisoryGroupCard } from '../../advisory/components/AdvisoryGroupCard'
+import { FirstSteps } from '../../dashboard/components/FirstSteps'
 
 export const TeacherDashboard = () => {
     const { data: tenant } = useTenant()
@@ -188,6 +189,7 @@ export const TeacherDashboard = () => {
 
     return (
         <div className="max-w-7xl mx-auto space-y-4 sm:space-y-8 animate-in fade-in duration-1000 pb-20 px-3 sm:px-6">
+            <FirstSteps />
 
             {/* 1. Header & Quick Actions */}
             <header className="relative overflow-hidden bg-slate-900 rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-12 text-white shadow-2xl">
@@ -309,8 +311,8 @@ export const TeacherDashboard = () => {
                             <div className="p-6 bg-slate-50 rounded-full mb-6">
                                 <Clock className="w-12 h-12 text-slate-300" />
                             </div>
-                            <h2 className="text-2xl font-black text-slate-900 mb-2 uppercase">Sin clase programada</h2>
-                            <p className="text-slate-500 font-bold mb-8">Disfruta tu tiempo o adelanta planeaciones.</p>
+                            <h2 className="text-2xl font-black text-slate-900 mb-2">No tienes clase en este momento</h2>
+                            <p className="text-slate-500 font-bold mb-8">Aprovecha para adelantar tus planeaciones.</p>
 
                             {nextClass && (
                                 <div className="bg-slate-50 border border-slate-100 rounded-3xl p-6 text-left flex items-center justify-between w-full max-w-sm group hover:scale-105 transition-transform cursor-pointer btn-tactile">
@@ -326,6 +328,15 @@ export const TeacherDashboard = () => {
                                     <div className="p-3 bg-white rounded-xl shadow-sm group-hover:bg-blue-600 group-hover:text-white transition-all">
                                         <ArrowRight className="w-5 h-5" />
                                     </div>
+                                </div>
+                            )}
+                            {!nextClass && (
+                                <div className="w-full max-w-sm text-left bg-blue-50 border border-blue-100 rounded-3xl p-5">
+                                    <p className="text-sm font-bold text-blue-900">¿Aún no capturas tu horario?</p>
+                                    <p className="text-sm text-blue-800 mt-1">Si lo registras, aquí verás qué clase sigue y podrás pasar lista con un toque.</p>
+                                    <Link to="/schedule" className="mt-3 inline-flex items-center gap-2 min-h-[44px] px-5 py-2.5 rounded-2xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700">
+                                        Capturar mi horario <ArrowRight className="w-4 h-4" />
+                                    </Link>
                                 </div>
                             )}
                         </div>

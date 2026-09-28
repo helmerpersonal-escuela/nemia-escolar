@@ -12,6 +12,7 @@ import { DictationModeModal } from './DictationModeModal'
 import { Mic, Sparkles, Loader2 } from 'lucide-react'
 import { GeminiService } from '../../../lib/gemini'
 import { useMemo } from 'react'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 type GradingModalProps = {
     isOpen: boolean
@@ -423,9 +424,9 @@ export const GradingModal = ({
                                                             )}
                                                             {onDelete && (
                                                                 <button
-                                                                    onClick={(e) => {
+                                                                    onClick={async (e) => {
                                                                         e.stopPropagation();
-                                                                        if (confirm('¿Estás seguro de que deseas eliminar esta actividad? Esta acción no se puede deshacer.')) {
+                                                                        if ((await askConfirm('¿Estás seguro de que deseas eliminar esta actividad? Esta acción no se puede deshacer.'))) {
                                                                             onDelete(assignment.id)
                                                                         }
                                                                     }}
@@ -456,7 +457,7 @@ export const GradingModal = ({
                                                     <div className={`text-2xl font-black transition-colors ${isExpanded ? 'text-indigo-600' : (currentScore > 0 ? 'text-indigo-400' : 'text-gray-200')}`}>
                                                         {grades[assignment.id]?.score || '-'}
                                                     </div>
-                                                    <div className="text-[11px] font-black text-gray-500 uppercase tracking-tighter">CALIFICACIÓN</div>
+                                                    <div className="text-[11px] font-black text-gray-500 uppercase tracking-tighter">Calificación</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -483,7 +484,7 @@ export const GradingModal = ({
                                                                 className="w-24 bg-indigo-50/50 border-none rounded-2xl py-3 px-4 text-center font-black text-2xl text-indigo-700 focus:ring-4 focus:ring-indigo-100 transition-all"
                                                                 placeholder="-"
                                                             />
-                                                            <span className="absolute -bottom-5 right-0 text-[11px] font-black text-indigo-300 uppercase tracking-widest text-right w-full">PROMEDIO FINAL</span>
+                                                            <span className="absolute -bottom-5 right-0 text-[11px] font-black text-indigo-300 uppercase tracking-widest text-right w-full">Promedio final</span>
                                                         </div>
                                                     </div>
                                                 </div>

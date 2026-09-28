@@ -213,3 +213,27 @@ html body :focus-visible {
   -webkit-overflow-scrolling: touch;
   max-width: 100%;
 }
+
+/* ── Legibilidad para docentes ─────────────────────────────────────────
+   1) Nada de TEXTO EN MAYÚSCULAS: se lee más lento y parece que "grita".
+      El texto se muestra tal como está escrito. Quien necesite mayúsculas
+      reales (siglas) ya las escribe así; `.keep-caps` conserva el estilo.
+   2) Los tamaños fijos en px pasan a rem para que crezcan con "Letra grande",
+      y los más pequeños suben un poco para leerse mejor en el celular. */
+.uppercase.uppercase:not(.keep-caps) {
+  text-transform: none;
+  letter-spacing: normal;
+}
+.text-\[9px\] { font-size: 0.6875rem; }
+.text-\[10px\] { font-size: 0.6875rem; }
+.text-\[11px\] { font-size: 0.75rem; }
+.text-\[12px\] { font-size: 0.75rem; }
+.text-\[13px\] { font-size: 0.8125rem; }
+
+/* Tamaño de letra elegido en Configuración → Mi perfil → Letra. */
+html[data-text-size='lg'] { font-size: 112.5%; }
+html[data-text-size='xl'] { font-size: 125%; }
+/* La barra inferior del celular no debe desbordarse con letra muy grande. */
+html[data-text-size] .bottom-nav .text-\[11px\] { font-size: 12.5px; }
+html[data-text-size] .bottom-nav > * { min-width: 0; flex: 1 1 0; padding-left: 0.125rem; padding-right: 0.125rem; }
+html[data-text-size] .bottom-nav span { white-space: nowrap; }

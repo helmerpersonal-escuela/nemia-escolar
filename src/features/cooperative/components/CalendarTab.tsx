@@ -8,6 +8,7 @@ import { DOC_TYPES, docShort } from '../lib/types'
 import { deadlineStates, LEVEL_STYLE, levelText, suggestedDeadlines } from '../lib/deadlines'
 import type { CoopBundleCtx } from './shared'
 import { Btn, Card, Empty, inputSm } from './ui'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 const db = supabase as any
 
@@ -39,7 +40,7 @@ export const CalendarTab = ({ bundle, isReviewer, onChanged }: { bundle: CoopBun
         if (await add(rows)) showToast(`${rows.length} fecha(s) sugerida(s) agregada(s)`, 'success')
     }
     const remove = async (id: string) => {
-        if (!confirm('¿Eliminar esta fecha límite?')) return
+        if (!(await askConfirm('¿Eliminar esta fecha límite?'))) return
         const { error } = await db.from('coop_deadlines').delete().eq('id', id)
         if (error) return showToast('No se pudo eliminar: ' + error.message, 'error')
         onChanged()

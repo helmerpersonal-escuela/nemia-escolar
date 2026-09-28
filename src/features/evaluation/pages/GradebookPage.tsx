@@ -1,3 +1,4 @@
+import { EmptyState } from '../../../components/ui/EmptyState'
 
 import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
@@ -49,6 +50,7 @@ import { useMemo } from 'react'
 import { ClassPlanGeneratorModal } from '../components/ClassPlanGeneratorModal'
 import { ClassPlanList } from '../components/ClassPlanList'
 import { DateInput } from '../../../components/ui/DateInput'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 /** Fecha de hoy (AAAA-MM-DD) en la hora local del dispositivo, no en UTC. */
 const localDateISO = () => {
@@ -116,6 +118,14 @@ export const GradebookPage = () => {
 
     // State for Group Selector fallback
     const [availableGroups, setAvailableGroups] = useState<any[]>([])
+    // Con un solo grupo no se pide elegir: se abre directo en la pestaña solicitada
+    useEffect(() => {
+        if (groupId || availableGroups.length !== 1) return
+        const t = searchParams.get('tab')
+        const tab = t === 'REPORTS' || t === 'ATTENDANCE' ? t : 'EVALUATION'
+        navigate(`/gradebook?groupId=${availableGroups[0].id}&tab=${tab}`, { replace: true })
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [groupId, availableGroups])
 
     // Copia guardada para trabajar sin señal
     const [offlineInfo, setOfflineInfo] = useState<{ fromCache: boolean, savedAt?: number }>({ fromCache: false })
@@ -176,13 +186,13 @@ export const GradebookPage = () => {
 
             // Autoseleccionar la materia si solo hay una
             if (!subjectId && formattedSubjects.length === 1) {
-                navigate(`/gradebook?groupId=${groupId}&subjectId=${formattedSubjects[0].id}${currentPeriodId ? `&periodId=${currentPeriodId}` : ''}`, { replace: true })
+                navigate(`/gradebook?groupId=${groupId}&subjectId=${formattedSubjects[0].id}${currentPeriodId ? `&periodId=${currentPeriodId}` : ''}${searchParams.get('tab') ? `&tab=${searchParams.get('tab')}` : ''}`, { replace: true })
                 return
             }
 
             // Materia en la URL que ya no existe
             if (subjectId && !formattedSubjects.some(s => s.id === subjectId)) {
-                navigate(`/gradebook?groupId=${groupId}${currentPeriodId ? `&periodId=${currentPeriodId}` : ''}`, { replace: true })
+                navigate(`/gradebook?groupId=${groupId}${currentPeriodId ? `&periodId=${currentPeriodId}` : ''}${searchParams.get('tab') ? `&tab=${searchParams.get('tab')}` : ''}`, { replace: true })
             }
 
             if (subjectId) {
@@ -304,6 +314,14 @@ export const GradebookPage = () => {
         return totalWeightedScore.toFixed(1)
     }
 
+    // Si hay asistencia sin guardar, el navegador pregunta antes de cerrar o recargar la página
+    useEffect(() => {
+        if (Object.keys(pendingAttendance).length === 0) return
+        const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
+        window.addEventListener('beforeunload', warn)
+        return () => window.removeEventListener('beforeunload', warn)
+    }, [pendingAttendance])
+
     const handleAttendanceChange = (studentId: string, status: string) => {
         setPendingAttendance(prev => ({
             ...prev,
@@ -388,7 +406,7 @@ export const GradebookPage = () => {
     }
 
 
-    if (loading) return <div className="p-8 text-center">Cargando libreta...</div>
+    if (loading) return <div className="p-8 text-center">Cargando tu lista…</div>
 
     // Check for Missing Planning (Only if specific subject selected)
     // We need state for this, adding it below to avoid full file rewrite issues
@@ -398,7 +416,8 @@ export const GradebookPage = () => {
     // FALLBACK: Group Selection
     if (!groupId) {
         // El menú abre la libreta en "Calificaciones" o en "Conducta y reportes": se conserva al elegir grupo
-        const pickerTab = searchParams.get('tab') === 'REPORTS' ? 'REPORTS' : 'EVALUATION'
+        const rawTab = searchParams.get('tab')
+        const pickerTab = rawTab === 'REPORTS' || rawTab === 'ATTENDANCE' ? rawTab : 'EVALUATION'
         return (
             <div className="max-w-5xl mx-auto p-8 animate-in fade-in duration-500">
                 <OfflineDataBanner fromCache={offlineInfo.fromCache} savedAt={offlineInfo.savedAt} hasData={availableGroups.length > 0} />
@@ -406,26 +425,25 @@ export const GradebookPage = () => {
                     <span className="p-3 bg-blue-100 rounded-full inline-block mb-4 shadow-sm">
                         <BookOpen className="w-8 h-8 text-blue-600" />
                     </span>
-                    <h1 className="text-4xl font-black text-gray-900 mb-3 tracking-tight">{pickerTab === 'REPORTS' ? 'Conducta y reportes' : 'Libreta de Calificaciones'}</h1>
+                    <h1 className="text-4xl font-black text-gray-900 mb-3 tracking-tight">{pickerTab === 'REPORTS' ? 'Conducta y reportes' : pickerTab === 'ATTENDANCE' ? 'Pasar lista' : 'Calificaciones'}</h1>
                     <p className="text-lg text-gray-500 max-w-2xl mx-auto">
                         {pickerTab === 'REPORTS'
-                            ? 'Selecciona un grupo para registrar incidencias, compromisos y reportes de conducta.'
-                            : 'Selecciona un grupo para capturar evaluaciones y calificaciones.'}
+                            ? 'Elige el grupo para registrar incidencias, compromisos y reportes de conducta.'
+                            : pickerTab === 'ATTENDANCE'
+                                ? 'Elige el grupo al que vas a pasar lista hoy.'
+                                : 'Elige el grupo para capturar evaluaciones y calificaciones.'}
                     </p>
                 </div>
 
                 {availableGroups.length === 0 ? (
-                    <div className="text-center py-16 bg-white rounded-3xl border border-dashed border-gray-300 shadow-sm max-w-2xl mx-auto">
-                        <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">No hay grupos disponibles</h3>
-                        <p className="text-gray-500 mb-6">Primero debes crear tus grupos en la sección correspondiente.</p>
-                        <button
-                            onClick={() => navigate('/groups')}
-                            className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 hover:scale-105 transition-all btn-tactile"
-                        >
-                            Ir a Mis Grupos
-                        </button>
-                    </div>
+                    <EmptyState
+                        icon={Users}
+                        title="Aún no tienes grupos"
+                        description={profile?.role === 'TEACHER'
+                            ? 'Para pasar lista o calificar necesitas un grupo. Tu director(a) aún no te asigna uno; pídeselo y aparecerá aquí.'
+                            : 'Para pasar lista o calificar primero necesitas un grupo con alumnos. Toma un par de minutos.'}
+                        action={profile?.role === 'TEACHER' ? undefined : { label: 'Crear mi primer grupo', to: '/groups' }}
+                    />
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {availableGroups.map(group => (
@@ -453,7 +471,7 @@ export const GradebookPage = () => {
 
                                 <div className="mt-4 pt-4 border-t border-gray-50 w-full text-center">
                                     <span className="text-sm font-bold text-gray-500 group-hover:text-blue-500 flex items-center justify-center transition-colors">
-                                        {pickerTab === 'REPORTS' ? 'Ver conducta' : 'Abrir Libreta'} <ArrowRight className="w-4 h-4 ml-1" />
+                                        {pickerTab === 'REPORTS' ? 'Ver conducta' : pickerTab === 'ATTENDANCE' ? 'Pasar lista' : 'Calificar'} <ArrowRight className="w-4 h-4 ml-1" />
                                     </span>
                                 </div>
                             </button>
@@ -604,7 +622,7 @@ export const GradebookPage = () => {
                                     return (
                                         <button
                                             onClick={async () => {
-                                                if (!confirm('¿Estás seguro de reabrir este periodo? Podrás editar calificaciones nuevamente.')) return
+                                                if (!(await askConfirm('¿Estás seguro de reabrir este periodo? Podrás editar calificaciones nuevamente.'))) return
                                                 const { error } = await supabase.from('evaluation_periods').update({ is_closed: false }).eq('id', currentPeriod.id)
                                                 if (!error) loadData()
                                             }}
@@ -756,7 +774,7 @@ export const GradebookPage = () => {
                             <div>
                                 <p className="text-xs text-slate-500 font-black uppercase tracking-widest flex items-center gap-2">
                                     Actividades
-                                    <span className="p-1 bg-amber-500 rounded-lg text-[11px] text-white animate-pulse">GESTIONAR</span>
+                                    <span className="p-1 bg-amber-500 rounded-lg text-[11px] text-white animate-pulse">Gestionar</span>
                                 </p>
                                 <h3 className="text-3xl font-black text-slate-900">{assignments.length}</h3>
                             </div>
@@ -868,10 +886,20 @@ export const GradebookPage = () => {
                         <div className="flex items-center gap-3">
                             <div className="w-2 h-8 bg-indigo-600 rounded-full"></div>
                             <h3 className="font-black text-slate-900 uppercase tracking-[0.1em]">
-                                {activeTab === 'EVALUATION' ? 'Listado Académico' : 'Reporte de Asistencia'}
+                                {activeTab === 'EVALUATION' ? 'Calificaciones del grupo' : 'Asistencia de hoy'}
                             </h3>
                         </div>
                         <div className="flex flex-wrap items-center gap-3">
+                            {activeTab === 'ATTENDANCE' && Object.keys(pendingAttendance).length > 0 && !profile?.is_demo && (
+                                // Aviso fijo (sobre todo en celular): la lista no se guarda hasta presionar el botón
+                                <div role="status" className="fixed left-3 right-3 bottom-[calc(5rem+env(safe-area-inset-bottom))] lg:bottom-6 lg:left-auto lg:right-8 lg:w-[26rem] z-40 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-2xl bg-slate-900 text-white px-4 py-3 shadow-2xl">
+                                    <span className="text-sm font-bold">{Object.keys(pendingAttendance).length} {Object.keys(pendingAttendance).length === 1 ? 'cambio' : 'cambios'} sin guardar</span>
+                                    <button type="button" onClick={saveAttendance} disabled={isSavingAttendance}
+                                        className="ml-auto max-w-full inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 text-white text-sm font-black disabled:opacity-50">
+                                        <Save className="w-4 h-4" /> {isSavingAttendance ? 'Guardando…' : 'Guardar asistencia'}
+                                    </button>
+                                </div>
+                            )}
                             {activeTab === 'ATTENDANCE' && (
                                 <button
                                     onClick={profile?.is_demo ? undefined : saveAttendance}
@@ -887,7 +915,7 @@ export const GradebookPage = () => {
                                     ) : (
                                         <Save className="w-4 h-4 mr-2" />
                                     )}
-                                    {isSavingAttendance ? 'Sincronizando...' : 'Publicar Pase'}
+                                    {isSavingAttendance ? 'Guardando…' : 'Guardar asistencia'}
                                 </button>
                             )}
                             <div className="relative flex-1 md:flex-none">
@@ -961,7 +989,7 @@ export const GradebookPage = () => {
                                                                     <div className={`h-full transition-all duration-1000 ${c.id === 'uncategorized' ? 'bg-amber-400 w-0' : 'bg-indigo-500'}`} style={{ width: c.id === 'uncategorized' ? '0%' : '100%' }}></div>
                                                                 </div>
                                                                 {c.id !== 'uncategorized' && <span className="mt-1 block text-[11px] font-black text-indigo-400 lowercase opacity-60">{c.weight || c.percentage}%</span>}
-                                                                {c.id === 'uncategorized' && <span className="mt-1 block text-[11px] font-black text-amber-700 lowercase opacity-60">Sin Peso</span>}
+                                                                {c.id === 'uncategorized' && <span className="mt-1 block text-[11px] font-black text-amber-700 lowercase opacity-60">Sin porcentaje</span>}
                                                             </div>
                                                         </th>
                                                     )
@@ -988,7 +1016,7 @@ export const GradebookPage = () => {
                                                 <div>
                                                     <p className="text-sm font-black text-slate-900 leading-none mb-1">{student.last_name_paternal} {student.last_name_maternal}</p>
                                                     <p className="text-sm font-bold text-slate-500 leading-none">{student.first_name}</p>
-                                                    <p className="text-[11px] text-slate-500 font-black uppercase tracking-widest mt-1">{student.curp || 'SIN CURP'}</p>
+                                                    <p className="text-[11px] text-slate-500 font-black uppercase tracking-widest mt-1">{student.curp || 'Sin CURP'}</p>
                                                 </div>
                                             </div>
                                         </td>
@@ -1260,7 +1288,7 @@ export const GradebookPage = () => {
                             </div>
                             <div className="max-h-[60vh] overflow-y-auto p-4">
                                 {attendance.filter(a => a.student_id === selectedStudentForHistory.id).length === 0 ? (
-                                    <div className="py-12 text-center text-gray-500">Sin registros de asistencia</div>
+                                    <div className="py-12 text-center text-gray-500">Todavía no has pasado lista a este grupo. Hazlo en la pestaña “Pasar lista”.</div>
                                 ) : (
                                     <div className="space-y-2">
                                         {attendance

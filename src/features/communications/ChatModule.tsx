@@ -23,6 +23,7 @@ import {
     Bell,
     Trash2
 } from 'lucide-react'
+import { askConfirm } from '../../components/ui/ConfirmDialog'
 
 // ProfileItem Component
 const ProfileItem = ({ profile, isSelected, onChat, onToggle, isOnline, isStarting }: {
@@ -474,9 +475,9 @@ export const ChatModule = () => {
                                         <p className="text-xs text-slate-500 truncate font-medium">{room.last_message?.content || 'Inicia una conversación'}</p>
                                     </div>
                                     <button
-                                        onClick={(e) => {
+                                        onClick={async (e) => {
                                             e.stopPropagation()
-                                            const confirmed = window.confirm(`¿Eliminar chat con "${room.name}"? Esta acción no se puede deshacer.`)
+                                            const confirmed = (await askConfirm(`¿Eliminar chat con "${room.name}"? Esta acción no se puede deshacer.`))
                                             if (confirmed) {
                                                 deleteRoom(room.id).then(success => {
                                                     if (success && roomId === room.id) navigate('/messages')

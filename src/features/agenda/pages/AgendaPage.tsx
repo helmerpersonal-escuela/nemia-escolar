@@ -9,6 +9,7 @@ import { supabase } from '../../../lib/supabase'
 import { parseIcsContent } from '../../../utils/icsParser'
 import { useRef } from 'react'
 import { EventModal } from '../components/EventModal'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 export const AgendaPage = () => {
     const { data: tenant } = useTenant()
@@ -252,9 +253,9 @@ export const AgendaPage = () => {
                 return
             }
 
-            if (!window.confirm(`Se encontraron ${parsedEvents.length} eventos. ¿Deseas importarlos a tu agenda?`)) return
+            if (!(await askConfirm(`Se encontraron ${parsedEvents.length} eventos. ¿Deseas importarlos a tu agenda?`))) return
 
-            const isGlobal = window.confirm('¿Deseas marcar estos eventos como "Globales de Dirección" para que todo el personal los visualice?')
+            const isGlobal = (await askConfirm('¿Deseas marcar estos eventos como "Globales de Dirección" para que todo el personal los visualice?'))
 
             const eventsToInsert = parsedEvents.map(event => ({
                 title: event.title,
@@ -286,7 +287,7 @@ export const AgendaPage = () => {
     }
 
     const handleDeleteEvent = async (event: any) => {
-        if (!window.confirm('¿Estás seguro de que deseas eliminar este evento?')) return
+        if (!(await askConfirm('¿Estás seguro de que deseas eliminar este evento?'))) return
 
         try {
             const table = ['SEP', 'DIRECTION'].includes(event.type) ? 'calendar_events' : 'teacher_events'
@@ -525,9 +526,13 @@ export const AgendaPage = () => {
 
                             <div className="p-4 overflow-y-auto custom-scrollbar flex-1 space-y-3">
                                 {getDailyEvents(focusedDate).length === 0 ? (
-                                    <div className="text-center py-8 opacity-50">
+                                    <div className="text-center py-8">
                                         <Clock className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                                        <p className="text-sm font-medium text-gray-500">Sin eventos este día</p>
+                                        <p className="text-sm font-medium text-gray-600">No tienes nada anotado este día.</p>
+                                        <button type="button" onClick={() => openCreateModal(focusedDate)}
+                                            className="mt-4 inline-flex items-center gap-2 min-h-[44px] px-5 py-2.5 rounded-2xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700">
+                                            Anotar algo este día
+                                        </button>
                                     </div>
                                 ) : (
                                     getDailyEvents(focusedDate).map((event, idx) => (

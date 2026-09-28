@@ -5,6 +5,7 @@ import { supabase } from '../../../lib/supabase'
 import { isNetworkError } from '../../../lib/offline/network'
 import { useTenant } from '../../../hooks/useTenant'
 import { todayISO } from '../../../lib/dates'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 interface ConductReportsTabProps {
     groupId: string
@@ -42,7 +43,7 @@ export const ConductReportsTab = ({
     }, [incidents, students, searchTerm, filterType])
 
     const handleDelete = async (id: string) => {
-        if (!confirm('¿Estás seguro de eliminar este reporte?')) return
+        if (!(await askConfirm('¿Estás seguro de eliminar este reporte?'))) return
         try {
             const { error } = await supabase.from('student_incidents').delete().eq('id', id)
             if (error) throw error

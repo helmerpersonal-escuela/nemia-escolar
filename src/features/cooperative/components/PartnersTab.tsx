@@ -9,6 +9,7 @@ import { buildConstanciaModel, buildPartnersModel, buildReceiptModel } from '../
 import { exportModels } from '../export'
 import { isThirdGrade, money, num, partnerName, type CoopBundleCtx } from './shared'
 import { Btn, Card, Empty, Kpi, inputSm } from './ui'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 const db = supabase as any
 
@@ -70,7 +71,7 @@ export const PartnersTab = ({ bundle, onChanged }: { bundle: CoopBundleCtx; onCh
     const returnAllThird = async () => {
         const ids = active.filter(p => isThirdGrade(p.group_label))
         if (!ids.length) return showToast('No hay socios activos de 3er grado.', 'info')
-        if (!confirm(`¿Marcar como devueltos los certificados de ${ids.length} socio(s) de 3er grado?`)) return
+        if (!(await askConfirm(`¿Marcar como devueltos los certificados de ${ids.length} socio(s) de 3er grado?`))) return
         for (const p of ids) await markReturned(p.id, num(p.amount))
     }
 

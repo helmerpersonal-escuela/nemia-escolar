@@ -8,6 +8,7 @@ import { useTenant } from '../../../hooks/useTenant'
 import { PLAN_LABEL, SPACE_ACCESS_KEY, useSpaceAccess, type SpaceAccess } from '../../../hooks/useSpaceAccess'
 import { WizardAlert, WizardField, wizardInput } from '../../../components/wizard/Wizard'
 import { formatDateEs } from '../../../components/ui/DateInput'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 interface Plan { code: 'MONTHLY' | 'ANNUAL'; name: string; price: number; months: number }
 interface Quote { plan: string; base: number; discount: number; final: number; code: string | null; code_valid: boolean; code_message: string | null; discount_label: string | null }
@@ -103,7 +104,7 @@ const StatusCard = ({ access, native, onChanged, tenantId }: { access: SpaceAcce
                 : { text: 'Activa', tone: 'bg-emerald-50 text-emerald-700 border-emerald-100', icon: BadgeCheck }
 
     const cancel = async () => {
-        if (!tenantId || !confirm('¿Desactivar el cobro automático? Conservas el acceso hasta el final del periodo pagado y te avisaremos antes de que venza.')) return
+        if (!tenantId || !(await askConfirm('¿Desactivar el cobro automático? Conservas el acceso hasta el final del periodo pagado y te avisaremos antes de que venza.'))) return
         setBusy(true); setErr(null)
         const { data, error } = await supabase.functions.invoke('billing', { body: { action: 'cancel_auto_renew', tenantId } })
         setBusy(false)

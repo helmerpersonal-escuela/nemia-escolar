@@ -1,3 +1,4 @@
+import { EmptyState } from '../../../components/ui/EmptyState'
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -9,6 +10,7 @@ import { StudentCredential } from '../components/StudentCredential'
 import { CriteriaManager } from '../../evaluation/components/CriteriaManager'
 import { EditGroupModal } from '../components/EditGroupModal'
 import { useTenant } from '../../../hooks/useTenant'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 export const GroupDetailsPage = () => {
     const { groupId } = useParams()
@@ -94,7 +96,7 @@ export const GroupDetailsPage = () => {
     })
 
     const handleDeleteStudent = async (id: string) => {
-        if (!confirm('¿Estás seguro de eliminar este alumno?')) return
+        if (!(await askConfirm('¿Estás seguro de eliminar este alumno?'))) return
         await supabase.from('students').delete().eq('id', id)
         refetch()
     }
@@ -106,7 +108,7 @@ Se eliminará el grupo ${group.grade}° "${group.section}" y TODOS sus alumnos.
         
 Esta acción NO se puede deshacer.`
 
-        if (!confirm(confirmMessage)) return
+        if (!(await askConfirm(confirmMessage))) return
 
         const { error } = await supabase.from('groups').delete().eq('id', groupId)
 
@@ -117,10 +119,14 @@ Esta acción NO se puede deshacer.`
         }
     }
 
-    if (loadingGroup || loadingStudents) return <div className="p-8 text-center">Cargando...</div>
-    if (!group) return <div className="p-8 text-center text-red-600">Grupo no encontrado</div>
-
-    if (!group) return <div className="p-8 text-center text-red-600">Grupo no encontrado</div>
+    if (loadingGroup || loadingStudents) return <div className="p-8 text-center text-gray-600">Cargando el grupo…</div>
+    if (!group) return (
+        <div className="p-4 sm:p-8">
+            <EmptyState compact icon={Users} title="No encontramos este grupo"
+                description="Puede que se haya borrado o que el enlace esté incompleto."
+                action={{ label: 'Ver mis grupos', to: '/groups' }} />
+        </div>
+    )
 
     return (
         <div className="space-y-8 pb-12 animate-in fade-in duration-500">
@@ -139,14 +145,14 @@ Esta acción NO se puede deshacer.`
                                 Grupo {group.grade}° "{group.section}"
                             </h1>
                             <p className="text-lg text-gray-600 font-medium">
-                                Administración de Alumnos y Criterios de Evaluación
+                                Tus alumnos y cómo los vas a calificar
                             </p>
                             <div className="flex items-center space-x-2 mt-4">
                                 <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-white border border-gray-200 text-gray-600 shadow-sm">
                                     {group.shift === 'MORNING' ? 'Matutino' : group.shift === 'AFTERNOON' ? 'Vespertino' : 'Tiempo Completo'}
                                 </span>
                                 <span className="text-gray-300">|</span>
-                                <span className="text-sm text-gray-500 font-bold">{students?.length || 0} Alumnos Inscritos</span>
+                                <span className="text-sm text-gray-500 font-bold">{students?.length || 0} alumnos</span>
                             </div>
                         </div>
 
@@ -156,22 +162,22 @@ Esta acción NO se puede deshacer.`
                                 className="flex items-center px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-blue-300 hover:text-blue-600 font-bold shadow-sm transition-all"
                             >
                                 <BookOpen className="h-5 w-5 mr-2" />
-                                Ir a Libreta
+                                Pasar lista y calificar
                             </button>
                             <button
                                 onClick={() => setIsAddModalOpen(true)}
                                 className="flex items-center px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-bold shadow-lg shadow-blue-200 btn-tactile"
                             >
                                 <UserPlus className="h-5 w-5 mr-2" />
-                                Agregar Alumno
+                                Agregar alumno
                             </button>
                             <button
                                 onClick={() => setIsBulkImportOpen(true)}
                                 className="flex items-center px-4 py-2.5 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-xl hover:bg-indigo-100 font-bold shadow-sm transition-all btn-tactile"
-                                title="Importación Masiva (Excel/CSV)"
+                                title="Subir una lista de Excel"
                             >
                                 <Users className="h-5 w-5 sm:mr-2" />
-                                <span className="hidden sm:inline">Importar Masivo</span>
+                                <span className="sm:hidden">Importar Excel</span><span className="hidden sm:inline">Importar varios</span>
                             </button>
                             <div className="flex bg-gray-100 rounded-xl p-1">
                                 <button
@@ -227,8 +233,15 @@ Esta acción NO se puede deshacer.`
                     </div>
 
                     {students?.length === 0 ? (
-                        <div className="p-8 text-center text-gray-500">
-                            No hay alumnos registrados en este grupo.
+                        <div className="p-4 sm:p-8">
+                            <EmptyState
+                                compact
+                                icon={UserPlus}
+                                title="Este grupo aún no tiene alumnos"
+                                description="Agrégalos uno por uno o, si ya tienes la lista en Excel, súbela completa de una vez."
+                                action={{ label: 'Agregar alumno', icon: UserPlus, onClick: () => setIsAddModalOpen(true) }}
+                                secondary={{ label: 'Subir lista de Excel', icon: Users, onClick: () => setIsBulkImportOpen(true) }}
+                            />
                         </div>
                     ) : (
                         <div className="table-scroll">
@@ -236,7 +249,7 @@ Esta acción NO se puede deshacer.`
                             <thead className="bg-indigo-50/50">
                                 <tr>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Foto</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre Completo</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre completo</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CURP</th>
                                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                                 </tr>
@@ -304,7 +317,7 @@ Esta acción NO se puede deshacer.`
                 <div className="space-y-4">
                     {/* Period Selector */}
                     <div className="bg-white p-4 rounded-xl border border-gray-200 flex items-center space-x-4">
-                        <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Trimestre:</span>
+                        <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Periodo:</span>
                         <div className="flex flex-wrap gap-2">
                             {periods?.map(p => (
                                 <button
@@ -319,7 +332,7 @@ Esta acción NO se puede deshacer.`
                                 </button>
                             ))}
                             {(!periods || periods.length === 0) && (
-                                <span className="text-sm text-gray-500 italic">No hay trimestres configurados</span>
+                                <span className="text-sm text-gray-600">Aún no hay periodos de evaluación. <button type="button" onClick={() => navigate('/settings?tab=cycle')} className="font-bold text-blue-700 underline">Configurarlos</button></span>
                             )}
                         </div>
                     </div>
@@ -380,7 +393,7 @@ Esta acción NO se puede deshacer.`
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
                         <div className="bg-white p-6 rounded-lg max-w-lg w-full max-h-[90dvh] overflow-y-auto">
                             <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-lg font-bold">Vista Previa de Credencial</h3>
+                                <h3 className="text-lg font-bold">Así se verá la credencial</h3>
                                 <button onClick={() => setShowCredential(false)}><XIcon /></button>
                             </div>
 

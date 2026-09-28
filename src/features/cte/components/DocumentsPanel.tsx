@@ -7,6 +7,7 @@ import {
     CTE_PORTAL_URL, DOCUMENT_KIND_LABEL, sessionLabel,
     type CteDocument, type CteSession, type DocumentKind,
 } from '../lib/cteApi'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 const MAX_BYTES = 20 * 1024 * 1024
 const ACCEPT = '.pdf,.docx,.pptx,.txt,.md,image/png,image/jpeg'
@@ -107,7 +108,7 @@ export const DocumentsPanel = ({ tenantId, sessions, defaultSessionId }: Props) 
     }
 
     const remove = async (d: CteDocument) => {
-        if (!window.confirm(`¿Eliminar "${d.title}"?`)) return
+        if (!(await askConfirm(`¿Eliminar "${d.title}"?`))) return
         if (d.storage_path) await supabase.storage.from('cte_documents').remove([d.storage_path])
         const { error } = await supabase.from('cte_documents').delete().eq('id', d.id)
         if (error) { showToast('No se pudo eliminar.', 'error'); return }

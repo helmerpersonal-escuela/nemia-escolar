@@ -1,9 +1,11 @@
+import { EmptyState } from '../../../components/ui/EmptyState'
 
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { Plus, FileText, Trash2, Edit } from 'lucide-react'
 import { useTenant } from '../../../hooks/useTenant'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 interface Rubric {
     id: string
@@ -12,6 +14,12 @@ interface Rubric {
     type: 'ANALYTIC' | 'HOLISTIC' | 'CHECKLIST' | 'QUIZ' | 'OBSERVATION' | 'JOURNAL' | 'TEST' | 'INTERVIEW' | 'PORTFOLIO' | 'MAP' | 'SELF_ASSESSMENT'
     updated_at: string
     is_ai_generated?: boolean
+}
+
+const TYPE_LABEL: Record<string, string> = {
+    ANALYTIC: 'Rúbrica', HOLISTIC: 'Rúbrica global', CHECKLIST: 'Lista de cotejo', QUIZ: 'Cuestionario',
+    OBSERVATION: 'Hoja de observación', JOURNAL: 'Diario reflexivo', TEST: 'Prueba corta', INTERVIEW: 'Guía de entrevista',
+    PORTFOLIO: 'Portafolio', MAP: 'Mapa conceptual', SELF_ASSESSMENT: 'Autoevaluación',
 }
 
 export const RubricListPage = () => {
@@ -41,7 +49,7 @@ export const RubricListPage = () => {
     }
 
     const handleDelete = async (id: string) => {
-        if (!confirm('¿Estás seguro de eliminar esta rúbrica?')) return
+        if (!(await askConfirm('¿Estás seguro de eliminar esta rúbrica?'))) return
 
         try {
             const { error } = await supabase.from('rubrics').delete().eq('id', id)
@@ -56,9 +64,9 @@ export const RubricListPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="sm:flex sm:items-center">
                 <div className="sm:flex-auto">
-                    <h1 className="text-3xl font-bold text-gray-900">Banco de Instrumentos</h1>
+                    <h1 className="text-3xl font-bold text-gray-900">Instrumentos de evaluación</h1>
                     <p className="mt-2 text-gray-700">
-                        Gestiona tus instrumentos de evaluación.
+                        Rúbricas, listas de cotejo y cuestionarios para calificar a tus alumnos.
                     </p>
                 </div>
                 <Link
@@ -66,26 +74,19 @@ export const RubricListPage = () => {
                     className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center shadow-sm font-medium"
                 >
                     <Plus className="w-5 h-5 mr-2" />
-                    Nueva Instrumento
+                    Nuevo instrumento
                 </Link>
             </div>
 
             {loading ? (
-                <div className="text-center py-12">Cargando rúbricas...</div>
+                <div className="text-center py-12">Cargando tus instrumentos…</div>
             ) : rubrics.length === 0 ? (
-                <div className="text-center py-12 bg-white rounded-xl border-2 border-dashed border-gray-200">
-                    <FileText className="mx-auto h-12 w-12 text-gray-500" />
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">No tienes instrumentos aún</h3>
-                    <p className="mt-1 text-sm text-gray-500">
-                        Crea tu primer instrumento de evaluación (rúbrica, lista de cotejo, etc).
-                    </p>
-                    <Link
-                        to="/rubrics/new"
-                        className="text-blue-600 font-medium hover:text-blue-800"
-                    >
-                        Crear ahora &rarr;
-                    </Link>
-                </div>
+                <EmptyState
+                    icon={FileText}
+                    title="Aún no tienes instrumentos de evaluación"
+                    description="Un instrumento te ayuda a calificar de forma justa: una rúbrica, una lista de cotejo o un cuestionario. La IA te ayuda a armarlo a partir de tu planeación."
+                    action={{ label: 'Crear mi primer instrumento', to: '/rubrics/new' }}
+                />
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {rubrics.map((rubric) => (
@@ -95,7 +96,7 @@ export const RubricListPage = () => {
                                     ${rubric.type === 'ANALYTIC' ? 'bg-purple-100 text-purple-700' :
                                         rubric.type === 'HOLISTIC' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}
                                 `}>
-                                    {rubric.type}
+                                    {TYPE_LABEL[rubric.type] ?? rubric.type}
                                 </div>
                                 <div className="flex space-x-2">
                                     <Link to={rubric.is_ai_generated ? `/rubrics/ver/${rubric.id}` : `/rubrics/${rubric.id}`} className="text-gray-500 hover:text-blue-600 p-1">

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { useProfile } from '../../../hooks/useProfile'
 import { UserPlus, Mail, Shield, Copy, Trash2, Clock } from 'lucide-react'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 const ROLES = [
     { id: 'DIRECTOR', name: 'Director' },
@@ -138,7 +139,7 @@ export const StaffManager = () => {
     }
 
     const deleteInvitation = async (id: string) => {
-        if (!confirm('¿Deseas cancelar esta invitación?')) return
+        if (!(await askConfirm('¿Deseas cancelar esta invitación?'))) return
         await supabase.from('staff_invitations').delete().eq('id', id)
         loadData()
     }

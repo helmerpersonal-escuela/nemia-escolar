@@ -9,6 +9,7 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { AbsenceRequestModal } from '../components/AbsenceRequestModal'
 import { AbsenceDetailView } from '../components/AbsenceDetailView'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 export const AbsenceManagerPage = () => {
     const { data: tenant } = useTenant()
@@ -37,7 +38,7 @@ export const AbsenceManagerPage = () => {
     })
 
     const handleDelete = async (id: string) => {
-        if (!confirm('¿Estás seguro de eliminar este registro de ausencia y sus actividades?')) return
+        if (!(await askConfirm('¿Estás seguro de eliminar este registro de ausencia y sus actividades?'))) return
         // Cascase delete happens automatically if configured, otherwise we should delete activities first
         await supabase.from('substitution_activities').delete().eq('absence_id', id)
         await supabase.from('teacher_absences').delete().eq('id', id)

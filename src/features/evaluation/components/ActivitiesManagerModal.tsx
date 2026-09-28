@@ -1,6 +1,7 @@
 
 import { X, Pencil, Trash2, Mic, Calendar, LayoutList, AlertCircle, Search, Sparkles, Loader2 } from 'lucide-react'
 import { useState } from 'react'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 type ActivitiesManagerModalProps = {
     isOpen: boolean
@@ -137,8 +138,8 @@ export const ActivitiesManagerModal = ({
                                                     <Pencil className="w-4 h-4" />
                                                 </button>
                                                 <button
-                                                    onClick={() => {
-                                                        if (confirm('¿ESTÁS SEGURO? ESTA ACCIÓN NO SE PUEDE DESHACER.')) {
+                                                    onClick={async () => {
+                                                        if ((await askConfirm('¿ESTÁS SEGURO? ESTA ACCIÓN NO SE PUEDE DESHACER.'))) {
                                                             onDelete(assignment.id)
                                                         }
                                                     }}

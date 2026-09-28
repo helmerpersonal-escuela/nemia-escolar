@@ -4,6 +4,7 @@ import { supabase } from '../../../lib/supabase';
 import { PdfExtractionService } from '../../../services/PdfExtractionService';
 import { NemAiService } from '../../../services/NemAiService';
 import { useProfile } from '../../../hooks/useProfile';
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 interface NemDocument {
     id: string;
@@ -86,7 +87,7 @@ export const DocumentManager = () => {
     };
 
     const handleDelete = async (id: string, title: string) => {
-        if (!window.confirm(`¿Estás seguro de eliminar el documento "${title}" y todo su conocimiento vectorial?`)) return;
+        if (!(await askConfirm(`¿Estás seguro de eliminar el documento "${title}" y todo su conocimiento vectorial?`))) return;
 
         try {
             const { error } = await supabase.from('nem_documents').delete().eq('id', id);

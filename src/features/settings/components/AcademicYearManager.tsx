@@ -6,6 +6,7 @@ import { useTenant } from '../../../hooks/useTenant'
 import { DateInput } from '../../../components/ui/DateInput'
 import { OfficialCycleNote, type CycleSource } from '../../../components/academic/OfficialCycleNote'
 import { useOfficialCycle } from '../../../lib/officialCalendar'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 interface AcademicYear {
     id: string
@@ -129,7 +130,7 @@ export const AcademicYearManager = ({ readOnly = false }: { readOnly?: boolean }
             alert('No puedes eliminar el ciclo escolar activo. Activa otro primero.')
             return
         }
-        if (!confirm('¿Estás seguro? Esto podría desconectar grupos y datos asociados.')) return
+        if (!(await askConfirm('¿Estás seguro? Esto podría desconectar grupos y datos asociados.'))) return
 
         try {
             const { error } = await supabase

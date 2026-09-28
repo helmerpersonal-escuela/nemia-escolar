@@ -7,6 +7,7 @@ import {
     type AgreementStatus, type CteAgreement, type CteSession, type StaffMember,
 } from '../lib/cteApi'
 import { DateInput } from '../../../components/ui/DateInput'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 const STATUS_CLS: Record<AgreementStatus, string> = {
     PENDIENTE: 'bg-amber-50 text-amber-700',
@@ -78,7 +79,7 @@ export const AgreementsPanel = ({ tenantId, sessions, staff, defaultSessionId }:
     }
 
     const remove = async (a: CteAgreement) => {
-        if (!window.confirm('¿Eliminar este acuerdo?')) return
+        if (!(await askConfirm('¿Eliminar este acuerdo?'))) return
         const { error } = await supabase.from('cte_agreements').delete().eq('id', a.id)
         if (error) { showToast('No se pudo eliminar.', 'error'); return }
         setItems(prev => prev.filter(x => x.id !== a.id))

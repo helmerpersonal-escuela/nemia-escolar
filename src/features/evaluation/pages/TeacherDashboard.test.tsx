@@ -12,6 +12,9 @@ vi.mock('../../../hooks/useProfile', () => ({
     useProfile: vi.fn(),
 }))
 
+// La guía "Primeros pasos" tiene su propia lógica de datos; aquí no se evalúa
+vi.mock('../../dashboard/components/FirstSteps', () => ({ FirstSteps: () => null }))
+
 vi.mock('../../../hooks/useChat', () => ({
     useChat: vi.fn(() => ({ rooms: [], loading: false })),
 }))

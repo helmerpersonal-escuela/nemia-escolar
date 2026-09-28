@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { Plus, Trash2, Save, AlertCircle, PieChart, Copy, Sparkles } from 'lucide-react'
 import { useTenant } from '../../../hooks/useTenant'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 interface Criteria {
     id: string
@@ -143,7 +144,7 @@ export const CriteriaManager = ({ periodId, groupId }: CriteriaManagerProps) => 
 
     const handleCopyToOtherPeriods = async (targetPeriodId: string) => {
         if (!tenant?.id || !selectedGroupId || !criteriaList.length) return
-        if (!confirm('¿Copiar estos criterios al periodo seleccionado? Se sobrescribirán los criterios existentes en ese periodo para este grupo.')) return
+        if (!(await askConfirm('¿Copiar estos criterios al periodo seleccionado? Se sobrescribirán los criterios existentes en ese periodo para este grupo.'))) return
 
         setLoading(true)
         try {
@@ -338,9 +339,9 @@ export const CriteriaManager = ({ periodId, groupId }: CriteriaManagerProps) => 
                         <div className="bg-white p-4 rounded-2xl shadow-sm mb-4">
                             <PieChart className="w-10 h-10 text-gray-300" />
                         </div>
-                        <h3 className="text-lg font-bold text-gray-700 uppercase tracking-tight mb-2">Sin Criterios Definidos</h3>
+                        <h3 className="text-lg font-bold text-gray-700 uppercase tracking-tight mb-2">¿Cómo vas a calificar este periodo?</h3>
                         <p className="text-sm text-gray-500 max-w-xs mb-6 font-medium">
-                            Es necesario definir cómo evaluarás este trimestre (ej. Examen 50%, Tareas 50%).
+                            Reparte el 100% de la calificación entre lo que vas a tomar en cuenta. Por ejemplo: Tareas 30%, Proyecto 40%, Participación 30%. Lo más fácil es elegir una de las opciones ya hechas.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-3">
                             <button
@@ -348,14 +349,14 @@ export const CriteriaManager = ({ periodId, groupId }: CriteriaManagerProps) => 
                                 className="flex items-center px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
                             >
                                 <Sparkles className="w-5 h-5 mr-2 text-white" />
-                                Usar Catálogo
+                                Elegir una opción ya hecha
                             </button>
                             <button
                                 onClick={addCriteria}
                                 className="flex items-center px-6 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
                             >
                                 <Plus className="w-5 h-5 mr-2 text-indigo-500" />
-                                Crear Manualmente
+                                Armarla yo
                             </button>
                         </div>
                     </div>

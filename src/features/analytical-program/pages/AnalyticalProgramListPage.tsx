@@ -12,6 +12,7 @@ import {
     Trash2,
     Eye
 } from 'lucide-react'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 
 export const AnalyticalProgramListPage = () => {
 
@@ -70,7 +71,7 @@ export const AnalyticalProgramListPage = () => {
             alert('Modo Demo: La eliminación de programas está deshabilitada.')
             return
         }
-        if (!window.confirm('¿Estás seguro de que deseas eliminar este Programa Analítico? Esta acción no se puede deshacer.')) return
+        if (!(await askConfirm('¿Estás seguro de que deseas eliminar este Programa Analítico? Esta acción no se puede deshacer.'))) return
 
         try {
             const { error } = await supabase
@@ -226,20 +227,20 @@ export const AnalyticalProgramListPage = () => {
                     <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 mx-auto mb-8">
                         <Plus className="w-10 h-10" />
                     </div>
-                    <h3 className="text-2xl font-black text-gray-900 mb-4 tracking-tight">No hay programas registrados</h3>
+                    <h3 className="text-2xl font-black text-gray-900 mb-4 tracking-tight">Aún no hay programa analítico</h3>
                     <p className="text-gray-500 font-bold text-sm leading-relaxed mb-10">
-                        Inicia la construcción del Programa Analítico de tu escuela para este ciclo escolar siguiendo los lineamientos de la NEM.
+                        El programa analítico adapta los contenidos oficiales a tu escuela y tu comunidad. Es la base de tus planeaciones; la IA te acompaña paso a paso.
                     </p>
                     {isDirectorOrAdmin ? (
                         <button
                             onClick={() => navigate('/analytical-program/new')}
                             className="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all font-sans"
                         >
-                            Comenzar Ahora
+                            Empezar mi programa
                         </button>
                     ) : (
                         <p className="text-amber-700 font-black text-xs uppercase tracking-widest bg-amber-50 px-6 py-3 rounded-xl border border-amber-100 inline-block">
-                            Consulta con la dirección para la creación del programa
+                            La dirección de tu escuela es quien lo crea. Pídele que lo inicie.
                         </p>
                     )}
                 </div>
