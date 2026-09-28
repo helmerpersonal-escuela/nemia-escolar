@@ -7,6 +7,7 @@ import { Lock, Smartphone, Shield, AlertCircle, Database, DownloadCloud, Trash2,
 import { exportUserData } from '../../../utils/backupUtils'
 import { todayISO } from '../../../lib/dates'
 import { askConfirm } from '../../../components/ui/ConfirmDialog'
+import { queryClient, queryPersister } from '../../../lib/queryClient'
 
 interface SecuritySettingsProps {
     profile: any
@@ -120,18 +121,23 @@ export const SecuritySettings = ({ profile, tenant, isDirectorOrAdmin }: Securit
     }
 
     const handleDeleteAccount = async () => {
-        if (!(await askConfirm('¿ESTÁS ABSOLUTAMENTE SEGURO? Esta acción es IRREVERSIBLE y eliminará todos tus datos.'))) return
-        const secondFactor = (await askConfirm('¿Confirmas que deseas ELIMINAR COMPLETAMENTE tu cuenta?'))
-        if (!secondFactor) return
+        if (!(await askConfirm(
+            'Se cerrará tu cuenta: ya no podrás entrar y saldrás de todos tus espacios. Tus grupos, alumnos y planeaciones dejarán de estar disponibles. Si después vuelves a entrar con el mismo correo, empezarás desde cero. Te recomendamos descargar antes tu respaldo.',
+            { title: '¿Eliminar tu cuenta?', confirmLabel: 'Continuar', danger: true }
+        ))) return
+        if (!(await askConfirm('Esta acción no se puede deshacer. ¿Eliminar tu cuenta definitivamente?', { title: 'Última confirmación', confirmLabel: 'Sí, eliminar mi cuenta', danger: true }))) return
 
         setLoading(true)
         try {
             const { error } = await supabase.rpc('soft_delete_account', { target_user_id: profile.id })
             if (error) throw error
-            await supabase.auth.signOut()
+            // Limpia lo guardado en este dispositivo para que no aparezca nada de la cuenta anterior
+            try { queryClient.clear(); await queryPersister.removeClient() } catch { /* nada */ }
+            try { Object.keys(localStorage).filter(k => k.startsWith('sb-') || k.startsWith('vunlek') || k.startsWith('settings_draft_')).forEach(k => localStorage.removeItem(k)) } catch { /* nada */ }
+            await supabase.auth.signOut().catch(() => {})
             window.location.href = '/login'
         } catch (err: any) {
-            alert('Error al eliminar cuenta: ' + err.message)
+            alert('No se pudo eliminar la cuenta: ' + err.message)
             setLoading(false)
         }
     }
@@ -206,7 +212,7 @@ export const SecuritySettings = ({ profile, tenant, isDirectorOrAdmin }: Securit
 
             {(isDirectorOrAdmin || profile?.role?.toUpperCase() === 'INDEPENDENT_TEACHER' || profile?.role?.toUpperCase() === 'TEACHER') && (
                 <SettingsCard tone="danger" icon={AlertCircle} title="Eliminar mi cuenta"
-                    hint="No se puede deshacer: se borran tus datos, configuraciones y accesos."
+                    hint="Cierra tu cuenta y sales de tus espacios. No se puede deshacer; descarga antes tu respaldo."
                     action={<SettingsActionButton tone="danger" icon={Trash2} onClick={handleDeleteAccount} disabled={loading}>Eliminar mi cuenta</SettingsActionButton>} />
             )}
         </div>
