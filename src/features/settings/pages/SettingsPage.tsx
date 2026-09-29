@@ -735,7 +735,7 @@ export const SettingsPage = () => {
                                 <div className="space-y-6">
                                     {isEditingSubjects ? (
                                         <SettingsCard icon={Pencil} title="Elige las materias que impartes"
-                                            hint="Marca tus materias. En Tecnología escribe tu especialidad (ej. Informática)."
+                                            hint="Toca las materias que das; puedes buscarlas por nombre. Si das Tecnología, elige tu especialidad."
                                             action={<SettingsActionButton icon={ArrowLeft} onClick={() => {
                                                 setSelectedUserSubjects(JSON.parse(savedSubjectsKey)); setIsEditingSubjects(false)
                                             }}>Volver sin cambios</SettingsActionButton>}>

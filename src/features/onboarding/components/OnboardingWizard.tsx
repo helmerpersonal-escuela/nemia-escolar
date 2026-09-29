@@ -649,13 +649,9 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
 
             {step === 3 && (
                 <div className="space-y-5">
-                    <WizardStepHeader icon={BookOpen} title="Tus materias" description="Selecciona las asignaturas que impartirás este ciclo escolar." />
+                    <WizardStepHeader icon={BookOpen} title="Tus materias" description="Toca las materias que darás este ciclo. Si no ves la tuya, búscala o agrégala al final." />
                     <WizardAlert tone="success"><span className="inline-flex items-start gap-2"><Gift className="w-4 h-4 mt-0.5 shrink-0" /><span>Tu espacio incluye <b>30 días gratis con todas las herramientas</b>. No necesitas tarjeta; te avisaremos una semana antes de que termine.</span></span></WizardAlert>
-                    <div className="flex items-center justify-between text-xs font-bold text-slate-500">
-                        <span>Catálogo del programa de estudios</span>
-                        <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-700">{Object.values(selectedSubjects).filter(s => s.selected).length} seleccionadas</span>
-                    </div>
-                    <div className="rounded-2xl border border-slate-100 p-3 sm:p-4 max-h-[420px] overflow-y-auto custom-scrollbar">
+                    <div className="rounded-2xl border border-slate-100 p-3 sm:p-4">
                         <SubjectSelector educationalLevel={schoolData.educationalLevel} selectedSubjects={selectedSubjects} onChange={setSelectedSubjects} />
                     </div>
 
