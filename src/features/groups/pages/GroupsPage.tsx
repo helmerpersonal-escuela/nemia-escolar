@@ -1,3 +1,4 @@
+import { useGradeScope } from '../../../hooks/useMyAssignment'
 import { formatSubjectName } from '../../../lib/subjectName'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { useState } from 'react'
@@ -41,6 +42,8 @@ export const GroupsPage = () => {
         message: ''
     })
     const queryClient = useQueryClient()
+    const gradeScope = useGradeScope()
+    const [showAllGrades, setShowAllGrades] = useState(false)
     const { data: tenant } = useTenant()
     const { profile } = useProfile()
     const limits = useSubscriptionLimits()
@@ -235,8 +238,10 @@ export const GroupsPage = () => {
         createGroupMutation.mutate(formData)
     }
 
+    // Personal con grados asignados (p. ej. control escolar de primeros): ve primero sus grados
+    const inScope = (g: any) => showAllGrades || gradeScope.length === 0 || gradeScope.includes(Number(g.grade))
     // Flatten groups into subject cards
-    const subjectCards = groups?.flatMap(group => {
+    const subjectCards = groups?.filter(inScope).flatMap(group => {
         if (!group.subjects || group.subjects.length === 0) {
             return [{ ...group, currentSubject: null }]
         }
@@ -303,6 +308,12 @@ export const GroupsPage = () => {
                 </div>
             </div>
 
+            {gradeScope.length > 0 && (
+                <p className="flex flex-wrap items-center gap-2 text-sm text-indigo-900 bg-indigo-50 border border-indigo-100 rounded-2xl px-4 py-3">
+                    {showAllGrades ? 'Mostrando todos los grados.' : `Mostrando tus grados: ${gradeScope.map(g => `${g}°`).join(', ')}.`}
+                    <button type="button" onClick={() => setShowAllGrades(v => !v)} className="font-bold underline">{showAllGrades ? 'Ver solo mis grados' : 'Ver todos'}</button>
+                </p>
+            )}
             {isLoading ? (
                 <div className="text-center py-12">Cargando tus grupos…</div>
             ) : subjectCards.length === 0 ? (

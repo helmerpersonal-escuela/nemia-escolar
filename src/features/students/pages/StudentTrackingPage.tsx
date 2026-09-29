@@ -1,3 +1,4 @@
+import { useGradeScope } from '../../../hooks/useMyAssignment'
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
@@ -39,6 +40,7 @@ interface Incident {
 }
 
 export const StudentTrackingPage = () => {
+    const gradeScope = useGradeScope()
     const { studentId } = useParams()
     const { data: tenant } = useTenant()
     const [loading, setLoading] = useState(true)
@@ -71,14 +73,16 @@ export const StudentTrackingPage = () => {
     useEffect(() => {
         if (!tenant) return
         const fetchGroups = async () => {
-            const { data } = await supabase.from('groups').select('*').eq('tenant_id', tenant.id).is('archived_at', null)
+            const { data: all } = await supabase.from('groups').select('*').eq('tenant_id', tenant.id).is('archived_at', null).order('grade').order('section')
+            // Personal con grados asignados: solo sus grados (si no tiene, todos)
+            const data = all && gradeScope.length ? all.filter((g: any) => gradeScope.includes(Number(g.grade))) : all
             if (data) {
                 setGroups(data)
                 if (data.length > 0 && !selectedGroupId) setSelectedGroupId(data[0].id)
             }
         }
         fetchGroups()
-    }, [tenant])
+    }, [tenant, gradeScope.join(',')])
 
     useEffect(() => {
         if (!selectedGroupId) return
