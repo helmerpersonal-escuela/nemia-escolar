@@ -1,7 +1,8 @@
 import { useGradeScope } from '../../../hooks/useMyAssignment'
 import { formatSubjectName } from '../../../lib/subjectName'
 import { EmptyState } from '../../../components/ui/EmptyState'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { buildSubjectOptions, type CatalogSubject } from '../../../lib/subjectCatalog'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Users, School, Trash2, Edit, ArrowRight, BookOpen, GraduationCap, ClipboardList } from 'lucide-react'
 import { EditGroupModal } from '../components/EditGroupModal'
@@ -133,6 +134,21 @@ export const GroupsPage = () => {
         }
     })
 
+    // Dirección / control escolar: las materias del plan de estudios (sin docente todavía)
+    const { data: schoolSubjects } = useQuery({
+        queryKey: ['school_subjects', tenant?.educationalLevel],
+        enabled: isStaff && !!tenant,
+        queryFn: async () => {
+            const level = tenant?.educationalLevel || 'SECONDARY'
+            const { data } = await supabase
+                .from('subject_catalog')
+                .select('id, name, field_of_study, requires_specification')
+                .or(`educational_level.eq.${level}${level === 'TELESECUNDARIA' ? ',educational_level.eq.SECONDARY' : ''},educational_level.eq.BOTH`)
+            return buildSubjectOptions((data ?? []) as CatalogSubject[]).options.map(o => ({ id: o.id, name: o.name, isCustom: false, customDetail: '' }))
+        }
+    })
+    const subjectChoices: any[] = (isStaff ? schoolSubjects : teacherSubjects) ?? []
+
     const createGroupMutation = useMutation({
         mutationFn: async (newGroup: { grade: string; section: string; shift: string; selectedSubjects: any[] }) => {
             console.log('--- DIAGNOSTIC START ---')
@@ -147,7 +163,7 @@ export const GroupsPage = () => {
             console.log('--- DIAGNOSTIC END ---')
 
             if (!tenant?.id) throw new Error('No tenant ID')
-            if (newGroup.selectedSubjects.length === 0) throw new Error('Debes seleccionar al menos una materia')
+            if (!isStaff && newGroup.selectedSubjects.length === 0) throw new Error('Debes seleccionar al menos una materia')
 
             const { data: years } = await supabase.from('academic_years').select('id').eq('is_active', true).limit(1)
             const yearId = years?.[0]?.id
@@ -176,7 +192,8 @@ export const GroupsPage = () => {
                     tenant_id: tenant.id,
                     subject_catalog_id: subject.id,
                     custom_name: subject.customDetail ? `${subject.name}: ${subject.customDetail}` : null,
-                    teacher_id: profile?.id // Automatically assign the creator if teacher
+                    // El docente queda asignado si él crea el grupo; la escuela lo asigna después en "Editar grupo"
+                    teacher_id: isStaff ? null : profile?.id
                 }))
 
                 const { error: subjectsError } = await supabase
@@ -204,6 +221,14 @@ export const GroupsPage = () => {
         selectedSubjects: any[]
     }>({ grade: '1', section: 'A', shift: 'MORNING', selectedSubjects: [] })
     const [isCustomSection, setIsCustomSection] = useState(false)
+
+    // Al abrir "Nuevo grupo" la escuela ya trae todas las materias marcadas
+    useEffect(() => {
+        if (isModalOpen && isStaff && schoolSubjects?.length && formData.selectedSubjects.length === 0) {
+            setFormData(prev => ({ ...prev, selectedSubjects: schoolSubjects }))
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isModalOpen, isStaff, schoolSubjects])
 
     const getGradeOptions = () => {
         const level = tenant?.educationalLevel || 'PRIMARY'
@@ -493,9 +518,9 @@ export const GroupsPage = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Materias <span className="text-red-500">*</span></label>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Materias {!isStaff && <span className="text-red-500">*</span>}</label>
                                 <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto p-4 bg-gray-50 rounded-xl border border-gray-100">
-                                    {teacherSubjects?.map((sub: any) => (
+                                    {subjectChoices.map((sub: any) => (
                                         <label key={sub.id || sub.name} className="flex items-center space-x-3 p-2 hover:bg-white hover:shadow-sm rounded-lg cursor-pointer transition-all border border-transparent">
                                             <input
                                                 type="checkbox"
@@ -513,7 +538,9 @@ export const GroupsPage = () => {
                                         </label>
                                     ))}
                                 </div>
-                                <p className="mt-2 text-[11px] text-gray-500 font-medium italic">Selecciona las materias que impartes a este grupo.</p>
+                                <p className="mt-2 text-xs text-gray-500 font-medium">{isStaff
+                                    ? 'Ya vienen marcadas las materias del plan de estudios. El docente de cada una se asigna después en "Editar grupo".'
+                                    : 'Selecciona las materias que impartes a este grupo.'}</p>
                             </div>
 
                             <div className="flex justify-end space-x-3 pt-4">
@@ -526,7 +553,7 @@ export const GroupsPage = () => {
                                 </button>
                                 <button
                                     type="submit"
-                                    disabled={createGroupMutation.isPending || formData.selectedSubjects.length === 0}
+                                    disabled={createGroupMutation.isPending || (!isStaff && formData.selectedSubjects.length === 0)}
                                     className="px-6 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 shadow-lg shadow-blue-100 disabled:opacity-50 transition-all"
                                 >
                                     {createGroupMutation.isPending ? 'Creando...' : 'Crear Grupo'}

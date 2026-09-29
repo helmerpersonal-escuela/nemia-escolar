@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { EmergencyPhonesForm } from '../../../family/components/EmergencyPhonesForm'
 import {
     Users, GraduationCap, Calendar, Mail, Star, Clock,
     Loader2, AlertCircle, CheckCircle2, Info, Bell
@@ -19,6 +20,7 @@ export const TutorDashboard = () => {
     const [announcements, setAnnouncements] = useState<any[]>([])
     const [pendingActivities, setPendingActivities] = useState<any[]>([])
     const [userId, setUserId] = useState<string | undefined>()
+    const [showPhones, setShowPhones] = useState(false)
 
     // Notification System
     const { alerts, markAsRead, runComplianceChecks, unreadCount } = useAlerts(userId, children)
@@ -186,7 +188,19 @@ export const TutorDashboard = () => {
                     <h1 className="text-2xl md:text-4xl font-black text-gray-900 tracking-tight leading-none mb-2">Panel del Tutor</h1>
                     <p className="text-gray-500 font-bold uppercase tracking-widest text-[11px] md:text-xs">Acompañamiento Académico</p>
                 </div>
-                <Link to="/familia" className="text-sm font-bold text-rose-600 hover:underline">+ Agregar otro hijo(a) con su código</Link>
+                <div className="flex flex-col items-center md:items-end gap-1">
+                    <Link to="/familia" className="text-sm font-bold text-rose-600 hover:underline">+ Agregar otro hijo(a) con su código</Link>
+                    <button type="button" onClick={() => setShowPhones(v => !v)} className="text-sm font-bold text-slate-600 hover:underline">
+                        {showPhones ? 'Ocultar mis teléfonos' : 'Mis teléfonos de emergencia'}
+                    </button>
+                </div>
+            </div>
+            {showPhones && (
+                <div className="max-w-md">
+                    <EmergencyPhonesForm onSaved={() => setShowPhones(false)} />
+                </div>
+            )}
+            <div className="hidden">
             </div>
 
             {/* Children Cards Grid (The "Mis Hijos" Selector) */}

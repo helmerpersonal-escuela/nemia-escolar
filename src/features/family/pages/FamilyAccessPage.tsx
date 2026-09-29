@@ -7,6 +7,7 @@ import { queryClient } from '../../../lib/queryClient'
 import { GoogleButton } from '../../auth/components/GoogleButton'
 import { savePendingSignup, readPendingSignup, clearPendingSignup } from '../../auth/lib/googleAuth'
 import { isCompleteFamilyCode, normalizeFamilyCode, redeemFamilyCode } from '../lib/familyCode'
+import { EmergencyPhonesForm } from '../components/EmergencyPhonesForm'
 
 const input = 'w-full border-2 border-slate-200 rounded-xl px-3 py-3 text-base font-bold focus:border-rose-400 focus:outline-none'
 
@@ -29,6 +30,7 @@ export const FamilyAccessPage = () => {
     const [confirmSent, setConfirmSent] = useState(false)
     const [form, setForm] = useState({ firstName: '', lastNamePaternal: '', email: '', password: '' })
     const [terms, setTerms] = useState(false)
+    const [phonesDone, setPhonesDone] = useState(false)
 
     useEffect(() => {
         supabase.auth.getSession().then(({ data }) => setSession(data.session))
@@ -124,11 +126,19 @@ export const FamilyAccessPage = () => {
                             Listo. Tu cuenta quedó ligada con <b>{done.student ?? 'tu hijo(a)'}</b>
                             {done.school ? <> en <b>{done.school}</b></> : null}.
                         </p>
-                        <p className="text-sm text-slate-500">¿Tienes otro hijo(a) en la escuela? Escribe su código después desde tu panel.</p>
-                        <button type="button" onClick={() => { window.location.href = '/' }}
-                            className="w-full py-3.5 rounded-2xl bg-rose-500 hover:bg-rose-600 text-white font-black text-base">
-                            Ver a mi hijo(a)
-                        </button>
+                        {!phonesDone ? (
+                            <div className="text-left">
+                                <EmergencyPhonesForm submitLabel="Guardar y continuar" onSaved={() => setPhonesDone(true)} bare />
+                            </div>
+                        ) : (
+                            <>
+                                <p className="text-sm text-slate-500">¿Tienes otro hijo(a) en la escuela? Escribe su código después desde tu panel.</p>
+                                <button type="button" onClick={() => { window.location.href = '/' }}
+                                    className="w-full py-3.5 rounded-2xl bg-rose-500 hover:bg-rose-600 text-white font-black text-base">
+                                    Ver a mi hijo(a)
+                                </button>
+                            </>
+                        )}
                     </div>
                 ) : confirmSent ? (
                     <div className="space-y-4 text-center">

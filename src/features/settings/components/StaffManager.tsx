@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { InitialsAvatar } from '../../../components/ui/InitialsAvatar'
 import { supabase } from '../../../lib/supabase'
 import { useProfile } from '../../../hooks/useProfile'
 import { UserPlus, Mail, Copy, Trash2, Clock, Users, UserMinus, Loader2, KeyRound } from 'lucide-react'
@@ -319,7 +320,7 @@ export const StaffManager = () => {
                         return (
                             <li key={m.profile_id} className="flex flex-col gap-3 p-3 rounded-2xl border border-slate-100 bg-white">
                                 <div className="flex items-center gap-3 min-w-0">
-                                    <img src={m.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}`} alt="" className="w-11 h-11 rounded-2xl bg-slate-50 shrink-0" />
+                                    {m.avatar_url ? <img src={m.avatar_url} alt="" className="w-11 h-11 rounded-2xl bg-slate-50 shrink-0 object-cover" /> : <InitialsAvatar name={name} className="w-11 h-11 rounded-2xl text-sm" />}
                                     <div className="min-w-0">
                                         <p className="font-bold text-slate-900">{name}{m.is_me && <span className="ml-2 text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg">Tú</span>}</p>
                                         <p className="text-sm text-slate-500 break-all">{m.email}</p>

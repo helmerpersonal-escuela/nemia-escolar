@@ -6,6 +6,7 @@ import { WizardFooter, WizardProgress, WizardModalHeader, wizardInput } from '..
 import { supabase } from '../../../lib/supabase'
 import { useSubscriptionLimits } from '../../../hooks/useSubscriptionLimits'
 import { UpgradeModal } from '../../../components/UpgradeModal'
+import { normalizePhone, phonesProblem } from '../../../lib/phones'
 
 type Guardian = {
     firstName: string
@@ -15,6 +16,8 @@ type Guardian = {
     relationshipDetails?: string
     email: string
     phone: string
+    phoneAlt1: string
+    phoneAlt2: string
     occupation: string
     address: string
 }
@@ -91,7 +94,7 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
 
     const [guardian, setGuardian] = useState<Guardian>({
         firstName: '', lastNamePaternal: '', lastNameMaternal: '',
-        relationship: 'MADRE', relationshipDetails: '', email: '', phone: '', occupation: '', address: ''
+        relationship: 'MADRE', relationshipDetails: '', email: '', phone: '', phoneAlt1: '', phoneAlt2: '', occupation: '', address: ''
     })
 
     // Webcam
@@ -193,6 +196,8 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                             relationshipDetails: gData.relationship === 'OTRO' ? (gData.relationship_details || '') : '',
                             email: gData.email || '',
                             phone: gData.phone || '',
+                            phoneAlt1: gData.phone_alt1 || '',
+                            phoneAlt2: gData.phone_alt2 || '',
                             occupation: gData.occupation || '',
                             address: gData.address || '',
                             id: gData.id // Store guardian ID for invitation
@@ -330,6 +335,14 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
             alert('Nombre y Apellidos del alumno son obligatorios')
             return
         }
+        if (guardian.firstName.trim()) {
+            const phoneProblem = phonesProblem(guardian.phone, guardian.phoneAlt1, guardian.phoneAlt2)
+            if (phoneProblem) {
+                alert(`Datos del tutor: ${phoneProblem}\nCada madre, padre o tutor necesita al menos un teléfono principal para emergencias.`)
+                setStep(2)
+                return
+            }
+        }
 
         // Check student limit only when creating new student (not editing)
         if (!studentId && currentStudentCount >= limits.maxStudentsPerGroup) {
@@ -397,7 +410,9 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                     last_name_maternal: guardian.lastNameMaternal || null,
                     relationship: guardian.relationship,
                     email: guardian.email || null,
-                    phone: guardian.phone || null,
+                    phone: normalizePhone(guardian.phone) || null,
+                    phone_alt1: normalizePhone(guardian.phoneAlt1) || null,
+                    phone_alt2: normalizePhone(guardian.phoneAlt2) || null,
                     occupation: guardian.occupation || null,
                     address: guardian.address || null,
                     profile_id: invitedProfileId // Link the profile created via manual invitation
@@ -579,11 +594,24 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                                     </select>
                                 </div>
                                 <div className="relative">
-                                    <label className="block text-xs font-black text-slate-600 mb-1.5">Teléfono de Contacto</label>
+                                    <label className="block text-xs font-black text-slate-600 mb-1.5">Teléfono principal *</label>
                                     <Phone className="absolute left-4 top-[36px] w-4 h-4 text-slate-400 pointer-events-none" />
-                                    <input aria-label="Teléfono de Contacto" name="phone" value={guardian.phone} onChange={handleGuardianChange} className={`${wizardInput} pl-11`} placeholder="10 dígitos" />
+                                    <input aria-label="Teléfono principal" type="tel" inputMode="tel" name="phone" value={guardian.phone} onChange={handleGuardianChange} className={`${wizardInput} pl-11`} placeholder="10 dígitos" />
                                 </div>
                             </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="relative">
+                                    <label className="block text-xs font-black text-slate-600 mb-1.5">Teléfono de respaldo 1</label>
+                                    <Phone className="absolute left-4 top-[36px] w-4 h-4 text-slate-400 pointer-events-none" />
+                                    <input aria-label="Teléfono de respaldo 1" type="tel" inputMode="tel" name="phoneAlt1" value={guardian.phoneAlt1} onChange={handleGuardianChange} className={`${wizardInput} pl-11`} placeholder="Otro número (familiar, trabajo)" />
+                                </div>
+                                <div className="relative">
+                                    <label className="block text-xs font-black text-slate-600 mb-1.5">Teléfono de respaldo 2</label>
+                                    <Phone className="absolute left-4 top-[36px] w-4 h-4 text-slate-400 pointer-events-none" />
+                                    <input aria-label="Teléfono de respaldo 2" type="tel" inputMode="tel" name="phoneAlt2" value={guardian.phoneAlt2} onChange={handleGuardianChange} className={`${wizardInput} pl-11`} placeholder="Otro número" />
+                                </div>
+                            </div>
+                            <p className="text-xs text-slate-500 -mt-2">Para emergencias: el principal es obligatorio; los de respaldo, muy recomendables.</p>
                             <div className="relative">
                                 <label className="block text-xs font-black text-slate-600 mb-1.5">Ocupación</label>
                                 <Briefcase className="absolute left-4 top-[36px] w-4 h-4 text-slate-400 pointer-events-none" />
@@ -667,7 +695,7 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                                                 Activar Cámara
                                             </button>
                                             <button
-                                                onClick={() => setImgSrc(`https://api.dicebear.com/7.x/avataaars/svg?seed=${student.curp || student.firstName}&gender=${student.gender === 'MUJER' ? 'female' : 'male'}`)}
+                                                onClick={() => setImgSrc(`https://api.dicebear.com/7.x/avataaars/svg?seed=${Math.random().toString(36).slice(2, 10)}&gender=${student.gender === 'MUJER' ? 'female' : 'male'}`)}
                                                 type="button"
                                                 className="px-5 py-3 bg-white text-slate-700 border border-slate-200 rounded-2xl text-sm font-black hover:bg-slate-50"
                                             >

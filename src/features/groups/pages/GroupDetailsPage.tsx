@@ -1,4 +1,5 @@
 import { EmptyState } from '../../../components/ui/EmptyState'
+import { InitialsAvatar } from '../../../components/ui/InitialsAvatar'
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -261,11 +262,7 @@ Esta acción NO se puede deshacer.`
                                             {student.photo_url ? (
                                                 <img src={student.photo_url} alt="" className="h-10 w-10 rounded-full object-cover border" />
                                             ) : (
-                                                <img
-                                                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${student.curp || student.first_name}&gender=${student.gender === 'MUJER' ? 'female' : 'male'}`}
-                                                    alt=""
-                                                    className="h-10 w-10 rounded-full object-cover border bg-gray-100"
-                                                />
+                                                <InitialsAvatar name={`${student.first_name} ${student.last_name_paternal}`} />
                                             )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">

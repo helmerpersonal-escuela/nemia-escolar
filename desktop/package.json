@@ -1,0 +1,38 @@
+{
+  "name": "vunlek-escritorio",
+  "productName": "VUNLEK",
+  "version": "1.0.0",
+  "description": "VUNLEK Escolar para computadoras de la escuela (Windows).",
+  "author": "VUNLEK",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win nsis --x64",
+    "dist:mac": "electron-builder --mac dmg",
+    "dist:linux": "electron-builder --linux AppImage"
+  },
+  "devDependencies": {
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.vunlek.escritorio",
+    "productName": "VUNLEK",
+    "copyright": "VUNLEK",
+    "directories": { "output": "release", "buildResources": "build" },
+    "files": ["main.js", "offline.html", "build/icon.png"],
+    "win": { "target": ["nsis"], "icon": "build/icon.png" },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "VUNLEK",
+      "language": "3082"
+    },
+    "mac": { "category": "public.app-category.education", "icon": "build/icon.png" },
+    "linux": { "target": ["AppImage"], "category": "Education", "icon": "build/icon.png" }
+  }
+}

@@ -947,7 +947,7 @@ export const GradebookPage = () => {
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-indigo-50/50">
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50/90 backdrop-blur-sm z-20 border-r border-gray-200">Alumno</th>
+                                    <th className="px-3 sm:px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50/90 backdrop-blur-sm z-20 border-r border-gray-200">Alumno</th>
                                     {activeTab === 'EVALUATION' ? (
                                         <>
                                             {(() => {
@@ -999,7 +999,7 @@ export const GradebookPage = () => {
                                         </>
                                     ) : (
                                         <>
-                                            <th className="px-8 py-6 text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] text-center">Asistencia ({attendanceDate})</th>
+                                            <th className="px-2 sm:px-8 py-4 sm:py-6 text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] text-center">Asistencia ({attendanceDate})</th>
                                             <th className="px-8 py-6 text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] text-right">Acumulado</th>
                                         </>
                                     )}
@@ -1008,15 +1008,15 @@ export const GradebookPage = () => {
                             <tbody className="divide-y divide-gray-100">
                                 {students.map(student => (
                                     <tr key={student.id} className="hover:bg-slate-50 transition-colors group/row">
-                                        <td className="px-8 py-6 sticky left-0 bg-white group-hover/row:bg-slate-50 transition-colors z-10 border-r border-slate-100 shadow-[4px_0_10px_-4px_rgba(0,0,0,0.05)]">
+                                        <td className="px-3 py-3 sm:px-8 sm:py-6 sticky left-0 bg-white group-hover/row:bg-slate-50 transition-colors z-10 border-r border-slate-100 shadow-[4px_0_10px_-4px_rgba(0,0,0,0.05)]">
                                             <div className="flex items-center">
-                                                <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 border-4 border-white flex items-center justify-center text-white font-black text-sm mr-4 shadow-lg group-hover/row:scale-110 transition-transform">
+                                                <div className="hidden sm:flex h-12 w-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 border-4 border-white items-center justify-center text-white font-black text-sm mr-4 shadow-lg group-hover/row:scale-110 transition-transform">
                                                     {student.first_name[0]}{student.last_name_paternal[0]}
                                                 </div>
                                                 <div>
                                                     <p className="text-sm font-black text-slate-900 leading-none mb-1">{student.last_name_paternal} {student.last_name_maternal}</p>
                                                     <p className="text-sm font-bold text-slate-500 leading-none">{student.first_name}</p>
-                                                    <p className="text-[11px] text-slate-500 font-black uppercase tracking-widest mt-1">{student.curp || 'Sin CURP'}</p>
+                                                    <p className="hidden sm:block text-[11px] text-slate-500 font-black uppercase tracking-widest mt-1">{student.curp || 'Sin CURP'}</p>
                                                 </div>
                                             </div>
                                         </td>
@@ -1084,8 +1084,8 @@ export const GradebookPage = () => {
                                             </>
                                         ) : (
                                             <>
-                                                <td className="px-8 py-6 text-center">
-                                                    <div className="flex items-center justify-center gap-2">
+                                                <td className="px-2 py-3 sm:px-8 sm:py-6 text-center">
+                                                    <div className="flex items-center justify-center gap-1.5 sm:gap-2">
                                                         {[
                                                             { status: 'PRESENT', label: 'A', title: 'Asistencia', activeColor: 'bg-emerald-500', hoverColor: 'hover:bg-emerald-50', textColor: 'text-emerald-700' },
                                                             { status: 'LATE', label: 'R', title: 'Retardo', activeColor: 'bg-amber-500', hoverColor: 'hover:bg-amber-50', textColor: 'text-amber-700' },

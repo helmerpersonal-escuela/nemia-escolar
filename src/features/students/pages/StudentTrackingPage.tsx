@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { saveOrQueue } from '../../../lib/offline/outbox'
 import { useTenant } from '../../../hooks/useTenant'
+import { EmergencyContactsCard } from '../components/EmergencyContactsCard'
 import {
     Activity,
     Plus,
@@ -290,6 +291,8 @@ export const StudentTrackingPage = () => {
                                     </div>
                                 </div>
                             </div>
+
+                            {tenant?.role !== 'STUDENT' && tenant?.role !== 'TUTOR' && <EmergencyContactsCard studentId={selectedStudent.id} />}
 
                             {/* Full Timeline List */}
                             <div className="squishy-card bg-white overflow-hidden">

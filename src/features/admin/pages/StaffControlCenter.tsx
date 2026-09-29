@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { roleLabel } from '../../../lib/roleLabels'
 import { supabase } from '../../../lib/supabase'
 import {
     Users,
@@ -238,11 +239,9 @@ export const StaffControlCenter = () => {
                                         <tr key={member.id} className="hover:bg-blue-50/30 transition-colors group">
                                             <td className="px-8 py-4">
                                                 <div className="flex items-center gap-4">
-                                                    <img
-                                                        src={member.avatar_url || `https://ui-avatars.com/api/?name=${member.first_name}+${member.last_name_paternal}&background=random`}
-                                                        className="w-10 h-10 rounded-xl shadow-sm border border-gray-100"
-                                                        alt="avatar"
-                                                    />
+                                                    {member.avatar_url
+                                                        ? <img src={member.avatar_url} className="w-10 h-10 rounded-xl shadow-sm border border-gray-100 object-cover" alt="" />
+                                                        : <span className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 font-black text-sm flex items-center justify-center shrink-0" aria-hidden="true">{(member.first_name?.[0] ?? '') + (member.last_name_paternal?.[0] ?? '')}</span>}
                                                     <div>
                                                         <p className="text-sm font-black text-gray-900 leading-tight uppercase">
                                                             {member.first_name} {member.last_name_paternal}
@@ -253,7 +252,7 @@ export const StaffControlCenter = () => {
                                             </td>
                                             <td className="px-8 py-4">
                                                 <div className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-[11px] font-black uppercase tracking-widest">
-                                                    {member.role === 'TEACHER' ? 'Docente' : member.role === 'DIRECTOR' ? 'Dirección' : member.role}
+                                                    {roleLabel(member.role)}
                                                 </div>
                                             </td>
                                             <td className="px-8 py-4">
@@ -317,14 +316,12 @@ export const StaffControlCenter = () => {
                         {/* Modal Header */}
                         <div className="p-8 bg-blue-600 text-white flex items-center justify-between border-b border-blue-500 shrink-0">
                             <div className="flex items-center gap-4">
-                                <img
-                                    src={selectedStaff.avatar_url || `https://ui-avatars.com/api/?name=${selectedStaff.first_name}+${selectedStaff.last_name_paternal}&background=random`}
-                                    className="w-14 h-14 rounded-2xl border-2 border-white/50"
-                                    alt="avatar"
-                                />
+                                {selectedStaff.avatar_url
+                                    ? <img src={selectedStaff.avatar_url} className="w-14 h-14 rounded-2xl border-2 border-white/50 object-cover" alt="" />
+                                    : <span className="w-14 h-14 rounded-2xl border-2 border-white/50 bg-white/20 font-black text-lg flex items-center justify-center" aria-hidden="true">{(selectedStaff.first_name?.[0] ?? '') + (selectedStaff.last_name_paternal?.[0] ?? '')}</span>}
                                 <div>
                                     <h3 className="text-xl font-black">{selectedStaff.first_name} {selectedStaff.last_name_paternal}</h3>
-                                    <p className="text-xs font-bold text-blue-100 uppercase tracking-widest">{selectedStaff.role} • Gestión de Asignaciones</p>
+                                    <p className="text-xs font-bold text-blue-100 uppercase tracking-widest">{roleLabel(selectedStaff.role)} • Gestión de Asignaciones</p>
                                 </div>
                             </div>
                             <button aria-label="Cerrar" onClick={() => setIsAssignmentModalOpen(false)} className="p-2 hover:bg-white/10 rounded-xl transition-all">

@@ -5,9 +5,9 @@
     <key>CAPACITOR_DEBUG</key>
 	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>en</string>
+	<string>es</string>
 	<key>CFBundleDisplayName</key>
-        <string>NEMIA</string>
+	<string>VUNLEK</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -55,8 +55,19 @@
             <key>CFBundleURLSchemes</key>
             <array>
                 <string>nemia</string>
+                <string>vunlek</string>
             </array>
         </dict>
     </array>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>VUNLEK usa el micrófono para grabar notas de voz en el chat con la escuela.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>VUNLEK usa la cámara para tomar la foto del alumno y fotos de evidencias o justificantes.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>VUNLEK abre tus fotos para enviar justificantes, tareas o evidencias.</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>VUNLEK guarda en tus fotos los documentos que descargas.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>VUNLEK usa tu ubicación solo para marcar dónde está la escuela en el mapa.</string>
 </dict>
 </plist>

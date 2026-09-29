@@ -9,7 +9,10 @@ export interface SchoolOverview {
     students: number
     staff: number
     teachers: number
+    schoolControl: number
     groups: number
+    groupSubjects: number
+    familiesLinked: number
     subjectsWithoutTeacher: number
     today: { recorded: number; present: number; groupsTaken: number }
     last30: { recorded: number; present: number }
@@ -40,7 +43,7 @@ export function useSchoolOverview() {
             const monthStart = new Date(); monthStart.setDate(1)
             const count = (r: { count: number | null }) => r.count ?? 0
 
-            const [students, staff, groups, gsNoTeacher, attToday, att30, plans, incidents, bap, staffAtt, sched, periods, ann] = await Promise.all([
+            const [students, staff, groups, gsNoTeacher, attToday, att30, plans, incidents, bap, staffAtt, sched, periods, ann, gsAll, families] = await Promise.all([
                 supabase.from('students').select('id', { count: 'exact', head: true }).eq('tenant_id', t).or('status.is.null,status.not.in.(GRADUATED,INACTIVE)'),
                 supabase.rpc('school_staff'),
                 supabase.from('groups').select('id, grade, section').eq('tenant_id', t).is('archived_at', null),
@@ -54,6 +57,8 @@ export function useSchoolOverview() {
                 supabase.from('schedule_settings').select('tenant_id').eq('tenant_id', t).maybeSingle(),
                 supabase.from('evaluation_periods').select('id', { count: 'exact', head: true }).eq('tenant_id', t),
                 supabase.from('school_announcements').select('id, title, created_at').eq('tenant_id', t).order('created_at', { ascending: false }).limit(3),
+                supabase.from('group_subjects').select('id', { count: 'exact', head: true }).eq('tenant_id', t),
+                supabase.from('guardians').select('id', { count: 'exact', head: true }).eq('tenant_id', t).not('user_id', 'is', null),
             ])
 
             const staffRows = ((staff.data as any[]) || [])
@@ -77,7 +82,10 @@ export function useSchoolOverview() {
                 students: count(students as any),
                 staff: staffRows.length,
                 teachers: staffRows.filter(s => String(s.role).toUpperCase() === 'TEACHER').length,
+                schoolControl: staffRows.filter(s => String(s.role).toUpperCase() === 'SCHOOL_CONTROL').length,
                 groups: groupRows.length,
+                groupSubjects: count(gsAll as any),
+                familiesLinked: count(families as any),
                 subjectsWithoutTeacher: count(gsNoTeacher as any),
                 today: {
                     recorded: todayRows.length,

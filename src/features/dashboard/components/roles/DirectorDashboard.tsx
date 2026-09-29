@@ -9,13 +9,17 @@ export const DirectorDashboard = () => {
     const { data: tenant } = useTenant()
     const { data: o, isLoading } = useSchoolOverview()
 
+    // Orden de arranque: cada paso necesita los datos del anterior (ver manual de implementación)
     const steps = o ? [
-        { done: true, label: 'Crear el espacio de la escuela', to: '/settings?tab=school' },
-        { done: o.hasSchedule, label: 'Registrar la jornada escolar (entrada, salida, recesos)', to: '/settings?tab=horarios' },
-        { done: o.hasPeriods, label: 'Definir los periodos de evaluación', to: '/settings?tab=cycle' },
-        { done: o.staff > 1, label: 'Dar de alta al personal (invitar docentes)', to: '/settings?tab=personal' },
-        { done: o.groups > 0, label: 'Crear los grupos', to: '/groups' },
-        { done: o.students > 0, label: 'Inscribir a los alumnos', to: '/groups' },
+        { done: true, label: 'Crear el espacio de la escuela (datos, logo, CCT)', to: '/settings?tab=school' },
+        { done: o.hasPeriods, label: 'Ciclo escolar y periodos de evaluación', to: '/settings?tab=cycle' },
+        { done: o.hasSchedule, label: 'Jornada escolar: entrada, salida, módulos y recesos', to: '/settings?tab=horarios' },
+        { done: o.schoolControl > 0, label: 'Dar de alta a control escolar (inscribe a los alumnos)', to: '/settings?tab=personal' },
+        { done: o.teachers > 0, label: 'Dar de alta a docentes, coordinación, prefectura y apoyo', to: '/settings?tab=personal' },
+        { done: o.groups > 0, label: 'Crear los grupos (grado, grupo y turno)', to: '/groups' },
+        { done: o.groupSubjects > 0 && o.subjectsWithoutTeacher === 0, label: 'Asignar materias y docente a cada grupo', to: '/groups' },
+        { done: o.students > 0, label: 'Inscribir a los alumnos con sus tutores y teléfonos', to: '/groups' },
+        { done: o.familiesLinked > 0, label: 'Entregar los códigos a las familias', to: '/familias/codigos' },
     ] : []
     const pending = steps.filter(s => !s.done).length
 

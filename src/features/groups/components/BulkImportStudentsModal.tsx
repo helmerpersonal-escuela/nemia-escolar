@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { X, Upload, FileDown, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { downloadCsv, readSpreadsheet } from '../../../lib/textImport'
+import { normalizePhone } from '../../../lib/phones'
 
 interface Props {
     isOpen: boolean
@@ -15,6 +16,7 @@ export const BulkImportStudentsModal = ({ isOpen, onClose, groupId, tenantId, on
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [successCount, setSuccessCount] = useState<number | null>(null)
+    const [missingPhones, setMissingPhones] = useState(0)
     const fileInputRef = useRef<HTMLInputElement>(null)
 
     const downloadTemplate = () => {
@@ -27,7 +29,9 @@ export const BulkImportStudentsModal = ({ isOpen, onClose, groupId, tenantId, on
             'Apellido_Paterno_Tutor',
             'Apellido_Materno_Tutor',
             'Correo_Acceso_Tutor',
-            'Telefono_Tutor'
+            'Telefono_Tutor',
+            'Telefono_Respaldo_1',
+            'Telefono_Respaldo_2'
         ].join(',')
 
         const exampleRow = [
@@ -39,7 +43,9 @@ export const BulkImportStudentsModal = ({ isOpen, onClose, groupId, tenantId, on
             'LOPEZ',
             'GARCIA',
             'maria@ejemplo.com',
-            '5551234567'
+            '9611234567',
+            '9617654321',
+            '9612223344'
         ].join(',')
 
         downloadCsv('Plantilla_Alumnos.csv', [headers.split(','), exampleRow.split(',')])
@@ -66,6 +72,7 @@ export const BulkImportStudentsModal = ({ isOpen, onClose, groupId, tenantId, on
             }
 
             let inserted = 0
+            let withoutPhone = 0
 
             for (const row of records) {
                 // Determine mandatory fields for student
@@ -107,7 +114,9 @@ export const BulkImportStudentsModal = ({ isOpen, onClose, groupId, tenantId, on
                 const tutorPaternal = row['apellido_paterno_tutor'] || row['apellido paterno tutor']
                 const tutorMaternal = row['apellido_materno_tutor'] || row['apellido materno tutor'] || ''
                 const tutorEmail = row['correo_acceso_tutor'] || row['correo acceso tutor'] || row['correo tutor'] || null
-                const tutorPhone = row['telefono_tutor'] || row['telefono tutor'] || null
+                const tutorPhone = normalizePhone(row['telefono_tutor'] || row['telefono tutor'] || row['telefono_principal']) || null
+                const tutorAlt1 = normalizePhone(row['telefono_respaldo_1'] || row['telefono respaldo 1']) || null
+                const tutorAlt2 = normalizePhone(row['telefono_respaldo_2'] || row['telefono respaldo 2']) || null
 
                 if (tutorFirstName && tutorPaternal) {
                     const tutorPayload = {
@@ -118,14 +127,18 @@ export const BulkImportStudentsModal = ({ isOpen, onClose, groupId, tenantId, on
                         last_name_maternal: tutorMaternal.toUpperCase(),
                         relationship: 'TUTOR LEGAL', // Default
                         email: tutorEmail,
-                        phone: tutorPhone
+                        phone: tutorPhone,
+                        phone_alt1: tutorAlt1,
+                        phone_alt2: tutorAlt2
                     }
+                    if (!tutorPhone || tutorPhone.length !== 10) withoutPhone++
 
                     await supabase.from('guardians').insert(tutorPayload)
                 }
             }
 
             setSuccessCount(inserted)
+            setMissingPhones(withoutPhone)
             onSuccess()
             if (fileInputRef.current) fileInputRef.current.value = ''
         } catch (err: any) {
@@ -168,6 +181,9 @@ export const BulkImportStudentsModal = ({ isOpen, onClose, groupId, tenantId, on
                         <div>
                             <p className="font-black text-lg">¡Importación Exitosa!</p>
                             <p className="text-sm font-medium">Se registraron {successCount} alumnos correctamente.</p>
+                            {missingPhones > 0 && (
+                                <p className="text-sm font-bold text-amber-800 mt-1">{missingPhones} tutores quedaron sin teléfono principal válido (10 dígitos). Complétalos en el expediente de cada alumno o pide a las familias que los capturen al entrar con su código.</p>
+                            )}
                         </div>
                     </div>
                 )}

@@ -1,4 +1,5 @@
 import { QRCodeSVG } from 'qrcode.react'
+import { InitialsAvatar } from '../../../components/ui/InitialsAvatar'
 import { School } from 'lucide-react'
 
 type StudentCredentialProps = {
@@ -54,11 +55,7 @@ export const StudentCredential = ({ student, school }: StudentCredentialProps) =
                             {student.photo_url ? (
                                 <img src={student.photo_url} alt="Student" className="w-full h-full object-cover" />
                             ) : (
-                                <img
-                                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${student.curp || student.first_name}&gender=${student.gender === 'MUJER' ? 'female' : 'male'}`}
-                                    alt="Avatar"
-                                    className="w-full h-full object-cover"
-                                />
+                                <InitialsAvatar name={`${student.first_name} ${student.last_name_paternal}`} className="w-full h-full text-2xl" />
                             )}
                         </div>
                         <div className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-[11px] font-bold">
