@@ -132,7 +132,7 @@ export const StaffManager = () => {
     }
 
     const copyInviteLink = (token: string) => {
-        const link = `${window.location.origin}/register?token=${token}`
+        const link = `${window.location.origin}/invitacion?token=${token}`
         navigator.clipboard.writeText(link)
         setSuccessMsg('¡Enlace copiado!')
         setTimeout(() => setSuccessMsg(''), 3000)
@@ -267,12 +267,12 @@ export const StaffManager = () => {
 
                     {lastToken && registrationMethod === 'invite' && (
                         <div className="mt-8 p-6 bg-indigo-50 border border-indigo-100 rounded-[2rem] animate-in fade-in slide-in-from-top-4">
-                            <p className="text-xs font-black text-indigo-900 mb-3 uppercase tracking-widest">¡Enlace de Invitación Creado!</p>
+                            <p className="text-xs font-black text-indigo-900 mb-3 uppercase tracking-widest">Invitación creada</p>
                             <div className="flex items-center gap-3">
                                 <input
                                     readOnly
                                     className="flex-1 text-xs bg-white border-transparent rounded-xl p-3 font-mono text-indigo-600 shadow-inner"
-                                    value={`${window.location.origin}/register?token=${lastToken}`}
+                                    value={`${window.location.origin}/invitacion?token=${lastToken}`}
                                 />
                                 <button aria-label="Copiar"
                                     onClick={() => copyInviteLink(lastToken)}
@@ -281,7 +281,7 @@ export const StaffManager = () => {
                                     <Copy className="w-5 h-5" />
                                 </button>
                             </div>
-                            <p className="text-[11px] text-indigo-400 font-bold mt-3 uppercase tracking-tight">Copia y envía este enlace manualmente al docente.</p>
+                            <p className="text-sm text-indigo-900 mt-3">Copia el enlace y envíalo a la persona invitada (por WhatsApp o correo). <strong>Debe abrirlo ella</strong>, en su celular o computadora, y entrar con el correo al que se invitó. Si lo abres tú con tu sesión, verás un aviso de que es para otra cuenta.</p>
                         </div>
                     )}
                 </div>

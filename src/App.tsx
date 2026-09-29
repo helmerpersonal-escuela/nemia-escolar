@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { SpeedInsights } from "@vercel/speed-insights/react"
 import { LoginPage } from './features/auth/pages/LoginPage'
 const RegisterPage = lazyNamed(() => import('./features/auth/pages/RegisterPage'), 'RegisterPage')
+const InvitationPage = lazyNamed(() => import('./features/auth/pages/InvitationPage'), 'InvitationPage')
 const ResetPasswordPage = lazyNamed(() => import('./features/auth/pages/ResetPasswordPage'), 'ResetPasswordPage')
 import { DashboardLayout } from './components/layout/DashboardLayout'
 const DashboardPage = lazyNamed(() => import('./features/dashboard/pages/DashboardPage'), 'DashboardPage')
@@ -78,8 +79,22 @@ const NemAssistantPage = lazyNamed(() => import('./features/nem-assistant/pages/
 import { queryClient } from './lib/queryClient'
 import { clearCache } from './lib/offline/cache'
 
+/** Si alguien abrió una invitación y fue a iniciar sesión, al volver lo regresamos a ella. */
+function pendingInvitePath(): string | null {
+  try {
+    const t = localStorage.getItem('vunlek.pendingInvite')
+    return t ? `/invitacion?token=${encodeURIComponent(t)}` : null
+  } catch { return null }
+}
+
 function App() {
   const [session, setSession] = useState<Session | null>(null)
+  // Tras entrar (también con Google), retoma la invitación pendiente
+  useEffect(() => {
+    if (!session) return
+    const target = pendingInvitePath()
+    if (target && !window.location.pathname.startsWith('/invitacion')) navigate(target, { replace: true })
+  }, [session])
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   // Usuario con el que se cargaron los datos en caché. Supabase vuelve a emitir SIGNED_IN
@@ -203,8 +218,10 @@ function App() {
             <SuperAdminDashboard />
           </ProtectedRoute>
         } />
-        <Route path="/login" element={session ? <Navigate to="/" replace /> : <LoginPage />} />
-        <Route path="/register" element={session ? <Navigate to="/" replace /> : <RegisterPage />} />
+        <Route path="/login" element={session ? <Navigate to={pendingInvitePath() ?? '/'} replace /> : <LoginPage />} />
+        {/* Con sesión, un enlace de invitación (/register?token=…) va a la pantalla para aceptarla */}
+        <Route path="/register" element={session ? <Navigate to={new URLSearchParams(window.location.search).get('token') ? `/invitacion${window.location.search}` : '/'} replace /> : <RegisterPage />} />
+        <Route path="/invitacion" element={<InvitationPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/privacidad" element={<LegalPage kind="privacy" />} />
         <Route path="/privacy" element={<LegalPage kind="privacy" />} />
