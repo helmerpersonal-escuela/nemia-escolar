@@ -1,78 +1,134 @@
-import { LayoutDashboard, Users, PieChart, TrendingUp, Bell } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { LayoutDashboard, Users, GraduationCap, School, CalendarCheck, Bell, CheckCircle2, Circle, ArrowRight, AlertTriangle, Loader2, Megaphone } from 'lucide-react'
+import { useTenant } from '../../../../hooks/useTenant'
+import { formatDateEs } from '../../../../components/ui/DateInput'
+import { useSchoolOverview, pct } from '../../lib/useSchoolOverview'
 
+/** Inicio de la dirección: solo datos reales de la escuela; si aún no hay, dice qué hacer. */
 export const DirectorDashboard = () => {
-    return (
-        <div className="space-y-8 animate-in fade-in duration-700">
-            {/* Welcome Section */}
-            <div className="bg-white rounded-3xl p-8 shadow-xl border border-gray-100 flex flex-col md:flex-row items-center justify-between relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-indigo-50 opacity-50" />
-                <div className="relative z-10 mb-6 md:mb-0">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="bg-blue-100 p-2 rounded-xl">
-                            <LayoutDashboard className="w-6 h-6 text-blue-700" />
-                        </div>
-                        <h1 className="text-4xl font-black text-gray-900 tracking-tight">
-                            Panel Directivo
-                        </h1>
-                    </div>
-                    <p className="text-gray-600 text-lg">
-                        Supervisión global del plantel educativo.
-                    </p>
-                </div>
-                <div className="relative z-10">
-                    <button className="px-6 py-3 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all flex items-center">
-                        <Bell className="w-5 h-5 mr-2" /> Crear Comunicado
-                    </button>
-                </div>
-            </div>
+    const { data: tenant } = useTenant()
+    const { data: o, isLoading } = useSchoolOverview()
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <StatCard title="Total Alumnos" value="452" icon={Users} color="blue" />
-                <StatCard title="Docentes Activos" value="28" icon={Users} color="emerald" />
-                <StatCard title="Planeaciones Validadas" value="85%" icon={PieChart} color="purple" />
-                <StatCard title="Asistencia General" value="94%" icon={TrendingUp} color="orange" />
-            </div>
+    const steps = o ? [
+        { done: true, label: 'Crear el espacio de la escuela', to: '/settings?tab=school' },
+        { done: o.hasSchedule, label: 'Registrar la jornada escolar (entrada, salida, recesos)', to: '/settings?tab=horarios' },
+        { done: o.hasPeriods, label: 'Definir los periodos de evaluación', to: '/settings?tab=cycle' },
+        { done: o.staff > 1, label: 'Dar de alta al personal (invitar docentes)', to: '/settings?tab=personal' },
+        { done: o.groups > 0, label: 'Crear los grupos', to: '/groups' },
+        { done: o.students > 0, label: 'Inscribir a los alumnos', to: '/groups' },
+    ] : []
+    const pending = steps.filter(s => !s.done).length
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-white p-8 rounded-[2rem] shadow-xl shadow-slate-100 border border-slate-50">
-                    <h3 className="text-xl font-bold mb-6">Alertas Académicas</h3>
-                    <div className="space-y-4">
-                        <AlertItem title="Planeaciones pendientes" subtitle="12 docentes no han entregado" type="warning" />
-                        <AlertItem title="Baja asistencia en 3ºB" subtitle="Promedio debajo del 80%" type="error" />
-                    </div>
-                </div>
-                <div className="bg-white p-8 rounded-[2rem] shadow-xl shadow-slate-100 border border-slate-50">
-                    <h3 className="text-xl font-bold mb-6">Últimos Comunicados</h3>
-                    <p className="text-slate-500 font-medium text-center py-10">No hay comunicados recientes.</p>
-                </div>
-            </div>
-        </div>
-    )
-}
-
-const StatCard = ({ title, value, icon: Icon, color }: any) => {
-    const colors: any = {
-        blue: 'text-blue-600 bg-blue-50',
-        emerald: 'text-emerald-700 bg-emerald-50',
-        purple: 'text-purple-600 bg-purple-50',
-        orange: 'text-orange-600 bg-orange-50'
+    const todayPct = o ? pct(o.today.present, o.today.recorded) : null
+    const alerts: { tone: 'warn' | 'bad'; title: string; text: string; to?: string }[] = []
+    if (o) {
+        if (o.subjectsWithoutTeacher > 0) alerts.push({ tone: 'warn', title: 'Materias sin docente', text: `${o.subjectsWithoutTeacher} materia(s) de grupos no tienen docente asignado.`, to: '/groups' })
+        for (const g of o.lowAttendance.slice(0, 3)) alerts.push({ tone: 'bad', title: `Asistencia baja en ${g.group}`, text: `${g.pct}% en los últimos 30 días.`, to: '/groups' })
+        if (o.groups > 0 && o.today.recorded === 0 && new Date().getDay() % 6 !== 0 && new Date().getHours() >= 10)
+            alerts.push({ tone: 'warn', title: 'Hoy no se ha pasado lista', text: 'Ningún grupo tiene asistencia registrada hoy.' })
     }
+
     return (
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 ${colors[color]}`}>
-                <Icon className="w-6 h-6" />
+        <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-500">
+            <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                    <div className="bg-indigo-50 text-indigo-600 p-3 rounded-2xl"><LayoutDashboard className="w-6 h-6" /></div>
+                    <div>
+                        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Inicio de la dirección</h1>
+                        <p className="text-slate-600">{tenant?.name || 'Tu escuela'}</p>
+                    </div>
+                </div>
+                <Link to="/messages" className="inline-flex items-center justify-center gap-2 min-h-[48px] px-5 rounded-2xl bg-indigo-600 text-white font-bold hover:bg-indigo-700">
+                    <Bell className="w-5 h-5" /> Enviar comunicado
+                </Link>
             </div>
-            <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">{title}</p>
-            <h4 className="text-2xl font-black text-slate-900">{value}</h4>
+
+            {isLoading || !o ? (
+                <p className="flex items-center gap-2 text-slate-500"><Loader2 className="w-5 h-5 animate-spin" /> Cargando datos de la escuela…</p>
+            ) : (
+                <>
+                    {pending > 0 && (
+                        <section className="bg-white rounded-3xl p-5 sm:p-6 border-2 border-indigo-100">
+                            <h2 className="text-lg font-black text-slate-900">Para arrancar tu escuela</h2>
+                            <p className="text-sm text-slate-500 mb-4">{steps.length - pending} de {steps.length} listos. Los números de abajo se llenan conforme tu personal trabaja.</p>
+                            <ol className="space-y-2">
+                                {steps.map((s, i) => (
+                                    <li key={i}>
+                                        <Link to={s.to} className={`flex items-center gap-3 rounded-2xl px-4 py-3 border ${s.done ? 'border-emerald-100 bg-emerald-50/50 text-slate-500' : 'border-slate-200 bg-white hover:border-indigo-300 text-slate-900 font-semibold'}`}>
+                                            {s.done ? <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" /> : <Circle className="w-5 h-5 text-slate-300 shrink-0" />}
+                                            <span className={`flex-1 ${s.done ? 'line-through' : ''}`}>{s.label}</span>
+                                            {!s.done && <ArrowRight className="w-4 h-4 text-indigo-600" />}
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ol>
+                        </section>
+                    )}
+
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                        <Stat icon={GraduationCap} title="Alumnos" value={o.students} hint={o.students ? 'Inscritos y activos' : 'Aún sin alumnos'} to="/students" />
+                        <Stat icon={Users} title="Personal" value={o.staff} hint={`${o.teachers} docente${o.teachers === 1 ? '' : 's'}`} to="/settings?tab=personal" />
+                        <Stat icon={School} title="Grupos" value={o.groups} hint={o.groups ? 'Del ciclo actual' : 'Aún sin grupos'} to="/groups" />
+                        <Stat icon={CalendarCheck} title="Asistencia de hoy" value={todayPct === null ? '—' : `${todayPct}%`}
+                            hint={o.today.recorded ? `${o.today.groupsTaken} de ${o.groups} grupos pasaron lista` : 'Sin registro hoy'} />
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <section className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-100">
+                            <h3 className="text-lg font-black text-slate-900 mb-4">Pendientes</h3>
+                            {alerts.length === 0 ? (
+                                <p className="text-sm text-slate-500 flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> Nada pendiente por ahora.</p>
+                            ) : (
+                                <ul className="space-y-3">
+                                    {alerts.map((a, i) => (
+                                        <li key={i}>
+                                            <Link to={a.to || '#'} className={`block p-4 rounded-2xl border-l-4 ${a.tone === 'bad' ? 'bg-red-50 border-red-400' : 'bg-amber-50 border-amber-400'}`}>
+                                                <p className="font-bold text-slate-900 flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> {a.title}</p>
+                                                <p className="text-sm text-slate-600">{a.text}</p>
+                                            </Link>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                            <dl className="mt-5 grid grid-cols-2 gap-3 text-sm">
+                                <div className="rounded-2xl bg-slate-50 p-3"><dt className="text-slate-500">Planeaciones este mes</dt><dd className="text-xl font-black text-slate-900">{o.plansThisMonth}</dd></div>
+                                <div className="rounded-2xl bg-slate-50 p-3"><dt className="text-slate-500">Incidencias (30 días)</dt><dd className="text-xl font-black text-slate-900">{o.incidents30}</dd></div>
+                            </dl>
+                        </section>
+                        <section className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-100">
+                            <h3 className="text-lg font-black text-slate-900 mb-4">Últimos comunicados</h3>
+                            {o.announcements.length === 0 ? (
+                                <div className="text-center py-6">
+                                    <Megaphone className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                                    <p className="text-sm text-slate-500">Aún no envías comunicados.</p>
+                                    <Link to="/messages" className="mt-3 inline-block text-sm font-bold text-indigo-700 underline">Enviar el primero</Link>
+                                </div>
+                            ) : (
+                                <ul className="space-y-2">
+                                    {o.announcements.map(a => (
+                                        <li key={a.id} className="p-3 rounded-2xl bg-slate-50">
+                                            <p className="font-bold text-slate-900">{a.title}</p>
+                                            <p className="text-xs text-slate-500">{formatDateEs(a.created_at.slice(0, 10))}</p>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </section>
+                    </div>
+                </>
+            )}
         </div>
     )
 }
 
-const AlertItem = ({ title, subtitle, type }: any) => (
-    <div className={`p-4 rounded-2xl border-l-4 flex gap-4 ${type === 'warning' ? 'bg-orange-50 border-orange-400' : 'bg-red-50 border-red-400'}`}>
-        <div className="flex-grow">
-            <h5 className="font-bold text-slate-900">{title}</h5>
-            <p className="text-sm text-slate-500">{subtitle}</p>
+const Stat = ({ icon: Icon, title, value, hint, to }: { icon: any; title: string; value: number | string; hint: string; to?: string }) => {
+    const body = (
+        <div className="h-full bg-white p-4 sm:p-6 rounded-3xl border border-slate-100 hover:border-indigo-200 transition-colors">
+            <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-3 bg-indigo-50 text-indigo-600"><Icon className="w-5 h-5" /></div>
+            <p className="text-sm font-bold text-slate-500">{title}</p>
+            <p className="text-2xl sm:text-3xl font-black text-slate-900">{value}</p>
+            <p className="text-xs text-slate-500 mt-1">{hint}</p>
         </div>
-    </div>
-)
+    )
+    return to ? <Link to={to} className="block">{body}</Link> : body
+}

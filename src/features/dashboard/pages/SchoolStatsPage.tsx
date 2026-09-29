@@ -1,8 +1,10 @@
 import { BarChart3, TrendingUp, Users, GraduationCap, ArrowLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { useSchoolOverview, pct } from '../lib/useSchoolOverview'
 
 export const SchoolStatsPage = () => {
     const navigate = useNavigate()
+    const { data: o } = useSchoolOverview()
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
             <div className="flex items-center gap-4">
@@ -16,18 +18,18 @@ export const SchoolStatsPage = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <MetricCard title="Aprovechamiento" value="8.4" trend="+0.2" icon={GraduationCap} color="blue" />
-                <MetricCard title="Asistencia" value="94.2%" trend="-0.5%" icon={Users} color="emerald" />
-                <MetricCard title="Altas/Bajas" value="12" trend="+2" icon={TrendingUp} color="purple" />
-                <MetricCard title="Incidencias" value="45" trend="-8" icon={BarChart3} color="orange" />
+                <MetricCard title="Alumnos" value={o ? o.students : '…'} trend="" icon={GraduationCap} color="blue" />
+                <MetricCard title="Asistencia (30 días)" value={o ? (pct(o.last30.present, o.last30.recorded) === null ? '—' : `${pct(o.last30.present, o.last30.recorded)}%`) : '…'} trend="" icon={Users} color="emerald" />
+                <MetricCard title="Alumnos con BAP" value={o ? o.bapStudents : '…'} trend="" icon={TrendingUp} color="purple" />
+                <MetricCard title="Incidencias (30 días)" value={o ? o.incidents30 : '…'} trend="" icon={BarChart3} color="orange" />
             </div>
 
             <div className="bg-white p-10 rounded-[3rem] shadow-2xl shadow-slate-100 border border-slate-100 flex flex-col items-center justify-center min-h-[400px]">
                 <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6">
                     <BarChart3 className="w-10 h-10 text-slate-200" />
                 </div>
-                <h3 className="text-2xl font-black text-slate-300 uppercase tracking-widest">Gráficos de Análisis</h3>
-                <p className="text-slate-300 font-bold text-sm uppercase mt-4 text-center max-w-xs">Estamos procesando los datos históricos para generar visualizaciones detalladas.</p>
+                <h3 className="text-xl font-black text-slate-500">Gráficas por grupo y periodo</h3>
+                <p className="text-slate-500 text-sm mt-2 text-center max-w-sm">Todavía no están disponibles. Los números de arriba ya son reales y se actualizan con lo que registra tu personal.</p>
             </div>
         </div>
     )

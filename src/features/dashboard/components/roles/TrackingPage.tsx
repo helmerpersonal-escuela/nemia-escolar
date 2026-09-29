@@ -73,9 +73,9 @@ export const TrackingPage = () => {
             parentName: 'Nombre del Tutor (Pendiente)', // In real app, fetch parent
             staffName: 'Personal de Apoyo', // Current user name
             folio: Math.floor(Math.random() * 10000).toString().padStart(5, '0'),
-            // Mock data for preview, in real app we'd fetch specific data
-            antecedents: 'El alumno ha presentado incidencias reiteradas en conducta...',
-            count: 3 // Example count for absences
+            // Se deja en blanco para que el personal lo redacte: no se inventan antecedentes ni conteos
+            antecedents: '',
+            count: 0
         })
         setShowDocumentModal(true)
     }

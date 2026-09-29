@@ -1,3 +1,4 @@
+import { useSchoolOverview, pct } from '../../dashboard/lib/useSchoolOverview'
 import { useState, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
 import {
@@ -21,6 +22,7 @@ import {
 import { Link } from 'react-router-dom'
 
 export const AdminDashboard = () => {
+    const { data: overview } = useSchoolOverview()
     const [loading, setLoading] = useState(true)
     const [stats, setStats] = useState({
         totalStudents: 0,
@@ -66,9 +68,9 @@ export const AdminDashboard = () => {
                 totalStaff: staff.count || 0,
                 totalGroups: groups.count || 0,
                 activeCycle: cycle.data?.name || 'No configurado',
-                attendanceRate: 94, // Mocked for now
-                pemcProgress: 45, // Mocked for now
-                academicLagRef: 12 // % of students in risk
+                attendanceRate: 0, // no se muestra un dato inventado
+                pemcProgress: 0, // Aún no se calcula: se muestra sin inventar datos
+                academicLagRef: 0 // se reemplaza abajo con el dato real (alumnos con BAP)
             })
         } catch (error) {
             console.error('Error loading admin stats:', error)
@@ -237,11 +239,11 @@ export const AdminDashboard = () => {
                                 </div>
                                 <div className="grid grid-cols-2 w-full gap-2">
                                     <div className="bg-white/5 p-3 rounded-2xl border border-white/10 text-center">
-                                        <span className="text-lg font-black block text-emerald-400">12</span>
+                                        <span className="text-lg font-black block text-emerald-400">—</span>
                                         <span className="text-[11px] font-black uppercase opacity-60">Acciones</span>
                                     </div>
                                     <div className="bg-white/5 p-3 rounded-2xl border border-white/10 text-center">
-                                        <span className="text-lg font-black block text-blue-400">4</span>
+                                        <span className="text-lg font-black block text-blue-400">—</span>
                                         <span className="text-[11px] font-black uppercase opacity-60">Metas</span>
                                     </div>
                                 </div>
@@ -256,11 +258,8 @@ export const AdminDashboard = () => {
                             </div>
                             <h4 className="text-sm font-black text-gray-500 uppercase tracking-[0.2em] mb-8">Rezago Educativo</h4>
                             <div className="flex items-end gap-4 mb-4">
-                                <h3 className="text-4xl font-black text-gray-900">{stats.academicLagRef}%</h3>
-                                <span className="text-rose-500 text-xs font-bold mb-2 flex items-center">
-                                    <ArrowUpRight className="w-3 h-3 mr-1" />
-                                    +2% este mes
-                                </span>
+                                <h3 className="text-4xl font-black text-gray-900">{overview ? (pct(overview.bapStudents, overview.students) ?? 0) : '…'}%</h3>
+                                <span className="text-slate-500 text-xs font-bold mb-2">{overview ? `${overview.bapStudents} alumno(s)` : ''}</span>
                             </div>
                             <p className="text-xs text-gray-500 font-medium leading-relaxed mb-8">
                                 Estudiantes identificados con barreras para el aprendizaje. Requieren atención prioritaria.
@@ -276,7 +275,7 @@ export const AdminDashboard = () => {
                             </div>
                             <h4 className="text-sm font-black text-gray-500 uppercase tracking-[0.2em] mb-8">Asistencia Personal</h4>
                             <div className="flex items-end gap-4 mb-4">
-                                <h3 className="text-4xl font-black text-gray-900">98%</h3>
+                                <h3 className="text-4xl font-black text-gray-900">{overview ? (overview.staff ? `${pct(overview.staffCheckedInToday, overview.staff)}%` : '—') : '…'}</h3>
                                 <div className="flex gap-1 mb-2">
                                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />

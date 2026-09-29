@@ -456,7 +456,7 @@ export const DashboardLayout = () => {
             { icon: Settings, label: 'Configuración', path: '/settings' }
         ],
         DIRECTOR: [
-            { icon: LayoutDashboard, label: 'Consola Directiva', path: '/' },
+            { icon: LayoutDashboard, label: 'Inicio', path: '/' },
             { icon: Users, label: 'Control de Personal', path: '/admin/staff' },
             { icon: Users, label: 'Grupos (Inscripciones)', path: '/groups' },
             { icon: GraduationCap, label: 'Alumnos (Expedientes)', path: '/students' },

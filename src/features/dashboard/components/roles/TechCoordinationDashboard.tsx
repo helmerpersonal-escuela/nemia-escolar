@@ -1,8 +1,27 @@
 import { useState, useEffect } from 'react'
 import { Settings, AlertTriangle, Hammer, ClipboardCheck, BarChart3 } from 'lucide-react'
+import { supabase } from '../../../../lib/supabase'
+import { useTenant } from '../../../../hooks/useTenant'
+import { useSchoolOverview } from '../../lib/useSchoolOverview'
+import { formatSubjectName } from '../../../../lib/subjectName'
 
 export const TechCoordinationDashboard = () => {
     const [currentTime, setCurrentTime] = useState(new Date())
+    const { data: o } = useSchoolOverview()
+    const { data: tenant } = useTenant()
+    const [techTeachers, setTechTeachers] = useState<{ name: string; specialty: string }[] | null>(null)
+    useEffect(() => {
+        if (!tenant?.id) return
+        ;(async () => {
+            const [{ data: ps }, { data: staff }] = await Promise.all([
+                supabase.from('profile_subjects').select('profile_id, custom_detail, subject_catalog(name)').eq('tenant_id', tenant.id),
+                supabase.rpc('school_staff'),
+            ])
+            const names = new Map(((staff as any[]) || []).map(s => [s.profile_id, [s.first_name, s.last_name_paternal].filter(Boolean).join(' ') || s.email]))
+            const rows = ((ps as any[]) || []).filter(r => /tecnolog/i.test((Array.isArray(r.subject_catalog) ? r.subject_catalog[0] : r.subject_catalog)?.name || ''))
+            setTechTeachers(rows.map(r => ({ name: names.get(r.profile_id) || 'Docente', specialty: r.custom_detail ? formatSubjectName('', r.custom_detail) : '' })))
+        })()
+    }, [tenant?.id])
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 60000)
@@ -34,33 +53,32 @@ export const TechCoordinationDashboard = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <StatCard title="Insumos Totales" value="1,240" icon={Settings} color="blue" />
-                <StatCard title="Talleres Activos" value="8" icon={Hammer} color="emerald" />
-                <StatCard title="Planeaciones Validadas" value="92%" icon={ClipboardCheck} color="purple" />
-                <StatCard title="Prácticas Semanales" value="45" icon={BarChart3} color="orange" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
+                <StatCard title="Personal" value={o ? o.staff : '…'} icon={Settings} color="blue" />
+                <StatCard title="Docentes de Tecnología" value={techTeachers ? techTeachers.length : '…'} icon={Hammer} color="emerald" />
+                <StatCard title="Grupos" value={o ? o.groups : '…'} icon={ClipboardCheck} color="purple" />
+                <StatCard title="Planeaciones este mes" value={o ? o.plansThisMonth : '…'} icon={BarChart3} color="orange" />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-white p-8 rounded-3xl shadow-xl shadow-slate-100 border border-slate-50">
-                    <h3 className="text-xl font-bold mb-6 flex items-center">
-                        <AlertTriangle className="w-5 h-5 mr-3 text-amber-700" /> Alertas de Inventario
+                <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-100">
+                    <h3 className="text-xl font-bold mb-4 flex items-center">
+                        <Hammer className="w-5 h-5 mr-3 text-emerald-700" /> Talleres y especialidades
                     </h3>
-                    <div className="space-y-4">
-                        <InventoryAlert item="Martillos 12oz" shop="Carpintería" stock="2" min="5" type="warning" />
-                        <InventoryAlert item="Hojas Máquina" shop="Ofimática" stock="0" min="10" type="error" />
-                        <InventoryAlert item="Estaño para Soldar" shop="Electrónica" stock="3" min="5" type="warning" />
-                    </div>
+                    {!techTeachers ? <p className="text-sm text-slate-500">Cargando…</p> : techTeachers.length === 0 ? (
+                        <p className="text-sm text-slate-500">Aún no hay docentes con Tecnología registrada. Cada docente la agrega en Configuración → Mis materias, con su especialidad (por ejemplo, Informática).</p>
+                    ) : (
+                        <ul className="space-y-2">
+                            {techTeachers.map((t, i) => <TechPlan key={i} teacher={t.name} shop={t.specialty || 'Sin especialidad registrada'} status={t.specialty ? 'LISTO' : 'PENDIENTE'} />)}
+                        </ul>
+                    )}
                 </div>
 
-                <div className="bg-white p-8 rounded-3xl shadow-xl shadow-slate-100 border border-slate-50">
-                    <h3 className="text-xl font-bold mb-6 flex items-center">
-                        <ClipboardCheck className="w-5 h-5 mr-3 text-blue-600" /> Planeaciones Técnicas
+                <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-100">
+                    <h3 className="text-xl font-bold mb-4 flex items-center">
+                        <AlertTriangle className="w-5 h-5 mr-3 text-amber-700" /> Inventario de talleres
                     </h3>
-                    <div className="space-y-4">
-                        <TechPlan teacher="Ing. Roberto Gomez" shop="Electricidad" status="PENDIENTE" />
-                        <TechPlan teacher="Profra. Martha Soto" shop="Contabilidad" status="LISTO" />
-                    </div>
+                    <p className="text-sm text-slate-500">El control de inventario de insumos todavía no está disponible en la app. Mientras tanto, aquí solo verás información real de tus talleres y docentes.</p>
                 </div>
             </div>
         </div>
