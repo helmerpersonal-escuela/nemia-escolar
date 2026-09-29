@@ -1,24 +1,29 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { useProfile } from '../../../hooks/useProfile'
-import { UserPlus, Mail, Shield, Copy, Trash2, Clock } from 'lucide-react'
+import { UserPlus, Mail, Copy, Trash2, Clock, Users, UserMinus, Loader2, KeyRound } from 'lucide-react'
 import { askConfirm } from '../../../components/ui/ConfirmDialog'
+import { useToast } from '../../../components/ui/Toast'
+import { SettingsCard, SettingsActionButton } from './SettingsUI'
+import { WizardField, wizardInput, wizardChoice, Radio } from '../../../components/wizard/Wizard'
 
 const ROLES = [
-    { id: 'DIRECTOR', name: 'Director' },
-    { id: 'ACADEMIC_COORD', name: 'Coord. Académica' },
-    { id: 'TECH_COORD', name: 'Coord. Tecnológica' },
-    { id: 'SCHOOL_CONTROL', name: 'Control Escolar' },
     { id: 'TEACHER', name: 'Docente' },
+    { id: 'DIRECTOR', name: 'Directivo' },
+    { id: 'ACADEMIC_COORD', name: 'Coordinación académica' },
+    { id: 'TECH_COORD', name: 'Coordinación de tecnologías' },
+    { id: 'SCHOOL_CONTROL', name: 'Control escolar' },
     { id: 'PREFECT', name: 'Prefectura' },
-    { id: 'SUPPORT', name: 'Apoyo Educativo' },
+    { id: 'SUPPORT', name: 'Apoyo educativo / USAER' },
 ]
 
 export const StaffManager = () => {
     const { profile } = useProfile()
     const [loading, setLoading] = useState(true)
 
-    const isDirectorOrAdmin = ['DIRECTOR', 'ADMIN'].includes(profile?.role || '')
+    const isDirectorOrAdmin = ['DIRECTOR', 'ADMIN', 'SUPER_ADMIN'].includes((profile?.role || '').toUpperCase())
+    const { showToast } = useToast()
+    const [busyId, setBusyId] = useState<string | null>(null)
     const [staff, setStaff] = useState<any[]>([])
     const [invitations, setInvitations] = useState<any[]>([])
     const [isInviting, setIsInviting] = useState(false)
@@ -54,13 +59,10 @@ export const StaffManager = () => {
             if (!myProfile?.tenant_id) return
 
             // 2. Load Staff
-            const { data: staffData } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('tenant_id', myProfile.tenant_id)
-                .order('first_name')
-
-            setStaff(staffData || [])
+            // Todo el personal que pertenece a la escuela (aunque ahora esté trabajando en otro espacio)
+            const { data: staffData, error: staffError } = await supabase.rpc('school_staff')
+            if (staffError) console.error('school_staff', staffError)
+            setStaff((staffData as any[]) || [])
 
             // 3. Load Pending Invitations
             const { data: invData } = await supabase
@@ -102,7 +104,7 @@ export const StaffManager = () => {
                 })
 
                 if (error) throw error
-                setSuccessMsg('¡Usuario creado y vinculado exitosamente!')
+                showToast('Listo: ya tiene acceso a la escuela.', 'success')
             } else {
                 // Traditional Invitation
                 const { data, error } = await supabase
@@ -118,14 +120,14 @@ export const StaffManager = () => {
 
                 if (error) throw error
                 setLastToken(data.token)
-                setSuccessMsg('¡Invitación generada!')
+                showToast('Invitación creada. Copia el enlace y envíalo.', 'success')
             }
 
             setInviteData({ email: '', role: 'TEACHER', firstName: '', lastNamePaternal: '', password: '', phone: '' })
             setTimeout(() => setSuccessMsg(''), 3000)
             loadData()
         } catch (error: any) {
-            alert('Error: ' + error.message)
+            showToast('No se pudo completar: ' + error.message, 'error')
         } finally {
             setIsInviting(false)
         }
@@ -133,250 +135,155 @@ export const StaffManager = () => {
 
     const copyInviteLink = (token: string) => {
         const link = `${window.location.origin}/invitacion?token=${token}`
-        navigator.clipboard.writeText(link)
-        setSuccessMsg('¡Enlace copiado!')
-        setTimeout(() => setSuccessMsg(''), 3000)
+        navigator.clipboard?.writeText(link).then(() => showToast('Enlace copiado', 'success')).catch(() => showToast('Copia el enlace manualmente', 'info'))
     }
 
     const deleteInvitation = async (id: string) => {
-        if (!(await askConfirm('¿Deseas cancelar esta invitación?'))) return
+        if (!(await askConfirm('¿Cancelar esta invitación? El enlace dejará de funcionar.'))) return
         await supabase.from('staff_invitations').delete().eq('id', id)
         loadData()
     }
 
-    if (loading && staff.length === 0) return <div className="p-4 animate-pulse">Cargando personal...</div>
+    const removeMember = async (m: any) => {
+        const name = [m.first_name, m.last_name_paternal].filter(Boolean).join(' ') || m.email
+        if (!(await askConfirm(`¿Dar de baja a ${name}? Dejará de tener acceso a esta escuela y se le quitarán sus grupos asignados. Sus registros (calificaciones, asistencia) se conservan.`, { title: 'Dar de baja', confirmLabel: 'Sí, dar de baja', danger: true }))) return
+        setBusyId(m.profile_id)
+        const { error } = await supabase.rpc('remove_staff_member', { p_profile_id: m.profile_id })
+        setBusyId(null)
+        if (error) { showToast('No se pudo dar de baja: ' + error.message, 'error'); return }
+        showToast(`${name} ya no tiene acceso a la escuela.`, 'success')
+        loadData()
+    }
+
+    const changeRole = async (m: any, role: string) => {
+        setBusyId(m.profile_id)
+        const { error } = await supabase.rpc('set_staff_role', { p_profile_id: m.profile_id, p_role: role })
+        setBusyId(null)
+        if (error) { showToast('No se pudo cambiar el puesto: ' + error.message, 'error'); return }
+        showToast('Puesto actualizado', 'success')
+        loadData()
+    }
+
+    const roleName = (id: string) => ROLES.find(r => r.id === (id || '').toUpperCase())?.name || id
+
+    if (loading && staff.length === 0) return <p className="text-sm text-slate-500 flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Cargando personal…</p>
 
     return (
-        <div className="space-y-8">
-            {/* Invite Form */}
+        <div className="space-y-6">
             {isDirectorOrAdmin ? (
-                <div className="bg-white border border-gray-100 p-6 rounded-2xl shadow-sm">
-
-                    {/* Method Tabs */}
-                    <div className="flex flex-wrap items-center gap-1 mb-6 bg-gray-50 p-1 rounded-xl w-fit max-w-full">
-                        <button
-                            type="button"
-                            onClick={() => setRegistrationMethod('invite')}
-                            className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${registrationMethod === 'invite'
-                                ? 'bg-white text-indigo-600 shadow-sm'
-                                : 'text-gray-500 hover:text-gray-600'
-                                }`}
-                        >
-                            <Mail className="w-3 h-3 inline mr-2" />
-                            Enviar Invitación
+                <SettingsCard icon={UserPlus} title="Dar de alta" hint="Agrega a un docente o a alguien del personal. Lo más fácil es enviarle una invitación.">
+                    <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Cómo darle acceso">
+                        <button type="button" role="radio" aria-checked={registrationMethod === 'invite'} onClick={() => setRegistrationMethod('invite')} className={wizardChoice(registrationMethod === 'invite')}>
+                            <Radio checked={registrationMethod === 'invite'} /> Enviarle una invitación
                         </button>
-                        <button
-                            type="button"
-                            onClick={() => setRegistrationMethod('direct')}
-                            className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${registrationMethod === 'direct'
-                                ? 'bg-white text-amber-700 shadow-sm'
-                                : 'text-gray-500 hover:text-gray-600'
-                                }`}
-                        >
-                            <UserPlus className="w-3 h-3 inline mr-2" />
-                            Registro Directo
+                        <button type="button" role="radio" aria-checked={registrationMethod === 'direct'} onClick={() => setRegistrationMethod('direct')} className={wizardChoice(registrationMethod === 'direct')}>
+                            <Radio checked={registrationMethod === 'direct'} /> Crear su acceso yo
                         </button>
                     </div>
+                    <p className="text-sm text-slate-500">
+                        {registrationMethod === 'invite'
+                            ? 'Generamos un enlace; la persona lo abre y entra con su correo (o con Google).'
+                            : 'Tú escribes su correo y una contraseña inicial y se la compartes. Podrá cambiarla después.'}
+                    </p>
 
-                    <form onSubmit={handleSendInvite} className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-                            {/* Common Fields */}
-                            <div>
-                                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-2 ml-1">Correo Electrónico</label>
-                                <div className="relative">
-                                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
-                                    <input aria-label="Correo Electrónico"
-                                        type="email"
-                                        required
-                                        placeholder="ejemplo@escuela.com"
-                                        className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border-transparent rounded-xl text-sm focus:bg-white focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-inner"
-                                        value={inviteData.email}
-                                        onChange={(e) => setInviteData({ ...inviteData, email: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-2 ml-1">Rol Asignado</label>
-                                <select aria-label="Rol Asignado"
-                                    className="w-full px-4 py-2.5 bg-gray-50 border-transparent rounded-xl text-sm focus:bg-white focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-inner"
-                                    value={inviteData.role}
-                                    onChange={(e) => setInviteData({ ...inviteData, role: e.target.value })}
-                                >
+                    <form onSubmit={handleSendInvite} className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <WizardField label="Correo" required>
+                                <input aria-label="Correo" type="email" required inputMode="email" className={wizardInput} placeholder="nombre@correo.com"
+                                    value={inviteData.email} onChange={(e) => setInviteData({ ...inviteData, email: e.target.value })} />
+                            </WizardField>
+                            <WizardField label="Puesto" required>
+                                <select aria-label="Puesto" className={wizardInput} value={inviteData.role} onChange={(e) => setInviteData({ ...inviteData, role: e.target.value })}>
                                     {ROLES.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                                 </select>
-                            </div>
-
-                            {/* Direct Method specific fields */}
+                            </WizardField>
                             {registrationMethod === 'direct' && (
                                 <>
-                                    <div>
-                                        <label className="block text-[11px] font-bold text-gray-500 uppercase mb-2 ml-1">Nombre(s)</label>
-                                        <input aria-label="Nombre(s)"
-                                            type="text"
-                                            required
-                                            placeholder="Juan"
-                                            className="w-full px-4 py-2.5 bg-gray-50 border-transparent rounded-xl text-sm focus:bg-white focus:ring-amber-500 focus:border-amber-500 transition-all shadow-inner"
-                                            value={inviteData.firstName}
-                                            onChange={(e) => setInviteData({ ...inviteData, firstName: e.target.value })}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[11px] font-bold text-gray-500 uppercase mb-2 ml-1">Apellido Paterno</label>
-                                        <input aria-label="Apellido Paterno"
-                                            type="text"
-                                            required
-                                            placeholder="Pérez"
-                                            className="w-full px-4 py-2.5 bg-gray-50 border-transparent rounded-xl text-sm focus:bg-white focus:ring-amber-500 focus:border-amber-500 transition-all shadow-inner"
-                                            value={inviteData.lastNamePaternal}
-                                            onChange={(e) => setInviteData({ ...inviteData, lastNamePaternal: e.target.value })}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[11px] font-bold text-gray-500 uppercase mb-2 ml-1">Contraseña de Acceso</label>
-                                        <input aria-label="Contraseña de Acceso"
-                                            type="text"
-                                            required
-                                            placeholder="Clave123"
-                                            className="w-full px-4 py-2.5 bg-gray-50 border-transparent rounded-xl text-sm font-mono focus:bg-white focus:ring-amber-500 focus:border-amber-500 transition-all shadow-inner"
-                                            value={inviteData.password}
-                                            onChange={(e) => setInviteData({ ...inviteData, password: e.target.value })}
-                                        />
-                                    </div>
+                                    <WizardField label="Nombre(s)" required>
+                                        <input aria-label="Nombre(s)" required className={wizardInput} value={inviteData.firstName} onChange={(e) => setInviteData({ ...inviteData, firstName: e.target.value })} />
+                                    </WizardField>
+                                    <WizardField label="Apellido paterno" required>
+                                        <input aria-label="Apellido paterno" required className={wizardInput} value={inviteData.lastNamePaternal} onChange={(e) => setInviteData({ ...inviteData, lastNamePaternal: e.target.value })} />
+                                    </WizardField>
+                                    <WizardField label="Contraseña inicial" required hint="Mínimo 8 caracteres. Compártela en privado." className="sm:col-span-2">
+                                        <input aria-label="Contraseña inicial" type="text" required minLength={8} autoComplete="off" className={`${wizardInput} font-mono`} value={inviteData.password} onChange={(e) => setInviteData({ ...inviteData, password: e.target.value })} />
+                                    </WizardField>
                                 </>
                             )}
-
-
-                            <div className="flex items-end">
-                                <button
-                                    type="submit"
-                                    disabled={isInviting}
-                                    className={`w-full py-3 text-white font-black rounded-xl text-xs uppercase tracking-widest transition-all shadow-xl disabled:opacity-50 ${registrationMethod === 'direct'
-                                        ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-100'
-                                        : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100'
-                                        }`}
-                                >
-                                    {isInviting ? 'Procesando...' : (
-                                        registrationMethod === 'direct' ? 'Crear Usuario Ahora' : 'Generar Invitación'
-                                    )}
-                                </button>
-                            </div>
+                        </div>
+                        <div className="flex justify-end">
+                            <SettingsActionButton type="submit" icon={registrationMethod === 'direct' ? KeyRound : Mail} disabled={isInviting}>
+                                {isInviting ? 'Procesando…' : registrationMethod === 'direct' ? 'Crear acceso' : 'Crear invitación'}
+                            </SettingsActionButton>
                         </div>
                     </form>
 
                     {lastToken && registrationMethod === 'invite' && (
-                        <div className="mt-8 p-6 bg-indigo-50 border border-indigo-100 rounded-[2rem] animate-in fade-in slide-in-from-top-4">
-                            <p className="text-xs font-black text-indigo-900 mb-3 uppercase tracking-widest">Invitación creada</p>
-                            <div className="flex items-center gap-3">
-                                <input
-                                    readOnly
-                                    className="flex-1 text-xs bg-white border-transparent rounded-xl p-3 font-mono text-indigo-600 shadow-inner"
-                                    value={`${window.location.origin}/invitacion?token=${lastToken}`}
-                                />
-                                <button aria-label="Copiar"
-                                    onClick={() => copyInviteLink(lastToken)}
-                                    className="p-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all"
-                                >
-                                    <Copy className="w-5 h-5" />
-                                </button>
+                        <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl space-y-3">
+                            <p className="text-sm font-bold text-indigo-900">Invitación creada. Envía este enlace:</p>
+                            <div className="flex items-center gap-2">
+                                <input readOnly aria-label="Enlace de invitación" className={`${wizardInput} font-mono text-xs`} value={`${window.location.origin}/invitacion?token=${lastToken}`} onFocus={e => e.currentTarget.select()} />
+                                <button type="button" aria-label="Copiar enlace" onClick={() => copyInviteLink(lastToken)} className="shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center bg-indigo-600 text-white rounded-xl hover:bg-indigo-700"><Copy className="w-5 h-5" /></button>
                             </div>
-                            <p className="text-sm text-indigo-900 mt-3">Copia el enlace y envíalo a la persona invitada (por WhatsApp o correo). <strong>Debe abrirlo ella</strong>, en su celular o computadora, y entrar con el correo al que se invitó. Si lo abres tú con tu sesión, verás un aviso de que es para otra cuenta.</p>
+                            <p className="text-sm text-indigo-900">Mándalo por WhatsApp o correo. <strong>Debe abrirlo la persona invitada</strong>, en su celular o computadora, y entrar con el correo al que la invitaste. Si lo abres tú con tu sesión, verás un aviso de que es para otra cuenta.</p>
                         </div>
                     )}
-                </div>
+                </SettingsCard>
             ) : (
-                <div className="p-8 bg-amber-50 rounded-3xl border border-amber-100 flex flex-col items-center text-center">
-                    <Shield className="w-12 h-12 text-amber-700 mb-4 opacity-50" />
-                    <h3 className="text-lg font-black text-amber-900 uppercase tracking-tight">Acceso de Lectura</h3>
-                    <p className="text-sm text-amber-700 max-w-sm mt-1">
-                        Solo el **Director** o el **Administrador** pueden gestionar las invitaciones y el registro de nuevo personal.
-                    </p>
-                </div>
+                <p className="text-sm font-semibold text-amber-900 bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3">Solo la dirección puede dar de alta o de baja al personal.</p>
             )}
 
-            {successMsg && (
-                <div className="fixed bottom-6 right-6 bg-gray-900/95 backdrop-blur-md text-white px-6 py-4 rounded-[2rem] text-xs font-black uppercase tracking-widest shadow-2xl animate-in slide-in-from-bottom-6 flex items-center z-50">
-                    <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse mr-3" />
-                    {successMsg}
-                </div>
-            )}
-
-            {/* Existing Lists */}
             {invitations.length > 0 && (
-                <div className="space-y-4">
-                    <h3 className="text-[11px] font-black text-gray-500 uppercase tracking-widest flex items-center ml-2">
-                        <Clock className="w-3 h-3 mr-2 text-amber-700" />
-                        Invitaciones Pendientes ({invitations.length})
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <SettingsCard icon={Clock} title={`Invitaciones sin aceptar (${invitations.length})`} hint="Aún no abren su enlace. Puedes copiarlo de nuevo o cancelarlo.">
+                    <ul className="space-y-2">
                         {invitations.map(inv => (
-                            <div key={inv.id} className="p-5 bg-white border border-gray-100 rounded-3xl flex items-center justify-between group hover:shadow-xl hover:shadow-gray-100 transition-all">
-                                <div className="flex items-center">
-                                    <div className="p-3 bg-amber-50 text-amber-700 rounded-2xl mr-4">
-                                        <Mail className="w-4 h-4" />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-black text-gray-900 tracking-tight">{inv.email}</p>
-                                        <p className="text-[11px] font-black text-amber-700 uppercase tracking-widest mt-0.5">
-                                            {ROLES.find(r => r.id === inv.role)?.name || inv.role}
-                                        </p>
-                                    </div>
+                            <li key={inv.id} className="flex items-center justify-between gap-3 p-3 rounded-2xl border border-slate-100 bg-white">
+                                <div className="min-w-0">
+                                    <p className="font-bold text-slate-900 break-all">{inv.email}</p>
+                                    <p className="text-sm text-slate-500">{roleName(inv.role)}</p>
                                 </div>
                                 {isDirectorOrAdmin && (
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={() => copyInviteLink(inv.token)}
-                                            className="p-3 text-gray-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all"
-                                            title="Copiar Enlace"
-                                        >
-                                            <Copy className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => deleteInvitation(inv.id)}
-                                            className="p-3 text-gray-300 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all"
-                                            title="Cancelar"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
+                                    <div className="flex gap-1 shrink-0">
+                                        <button type="button" onClick={() => copyInviteLink(inv.token)} aria-label={`Copiar enlace de ${inv.email}`} className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-slate-500 hover:text-indigo-700 hover:bg-indigo-50"><Copy className="w-4 h-4" /></button>
+                                        <button type="button" onClick={() => deleteInvitation(inv.id)} aria-label={`Cancelar invitación de ${inv.email}`} className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-slate-500 hover:text-red-600 hover:bg-red-50"><Trash2 className="w-4 h-4" /></button>
                                     </div>
                                 )}
-                            </div>
+                            </li>
                         ))}
-                    </div>
-                </div>
+                    </ul>
+                </SettingsCard>
             )}
 
-            <div className="space-y-4">
-                <h3 className="text-[11px] font-black text-gray-500 uppercase tracking-widest flex items-center ml-2">
-                    <Shield className="w-3 h-3 mr-2 text-green-500" />
-                    Personal Activo ({staff.length})
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {staff.map(member => (
-                        <div key={member.id} className="p-5 bg-white border border-gray-100 rounded-[2.5rem] shadow-sm hover:shadow-xl hover:shadow-gray-100 transition-all relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                                <Shield className="w-12 h-12 text-gray-900" />
-                            </div>
-                            <div className="flex items-center relative z-10">
-                                <img
-                                    src={member.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${member.first_name}+${member.last_name_paternal}`}
-                                    className="w-12 h-12 rounded-[1.25rem] mr-4 shadow-sm"
-                                    alt="avatar"
-                                />
-                                <div>
-                                    <p className="text-sm font-black text-gray-900 uppercase tracking-tight leading-none mb-1.5">
-                                        {member.first_name} {member.last_name_paternal}
-                                    </p>
-                                    <div className="inline-flex items-center px-3 py-1 bg-gray-50 text-[11px] font-black text-gray-500 rounded-full border border-gray-100 uppercase tracking-widest">
-                                        {ROLES.find(r => r.id === member.role)?.name || member.role}
+            <SettingsCard icon={Users} title={`Personal con acceso (${staff.length})`} hint={isDirectorOrAdmin ? 'Cambia su puesto o dale de baja cuando ya no trabaje en la escuela.' : undefined}>
+                <ul className="space-y-2">
+                    {staff.map(m => {
+                        const name = [m.first_name, m.last_name_paternal, m.last_name_maternal].filter(Boolean).join(' ') || m.email
+                        const busy = busyId === m.profile_id
+                        return (
+                            <li key={m.profile_id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl border border-slate-100 bg-white">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <img src={m.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}`} alt="" className="w-11 h-11 rounded-2xl bg-slate-50 shrink-0" />
+                                    <div className="min-w-0">
+                                        <p className="font-bold text-slate-900">{name}{m.is_me && <span className="ml-2 text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg">Tú</span>}</p>
+                                        <p className="text-sm text-slate-500 break-all">{m.email}</p>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
+                                {isDirectorOrAdmin && !m.is_me ? (
+                                    <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
+                                        <select aria-label={`Puesto de ${name}`} disabled={busy} className={`${wizardInput} !py-2 flex-1 min-w-[11rem]`} value={(m.role || '').toUpperCase()} onChange={e => changeRole(m, e.target.value)}>
+                                            {ROLES.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                            {!ROLES.some(r => r.id === (m.role || '').toUpperCase()) && <option value={m.role}>{m.role}</option>}
+                                        </select>
+                                        <SettingsActionButton tone="danger" icon={busy ? Loader2 : UserMinus} disabled={busy} onClick={() => removeMember(m)}>Dar de baja</SettingsActionButton>
+                                    </div>
+                                ) : (
+                                    <span className="text-sm font-bold text-slate-600 bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 self-start sm:self-auto">{roleName(m.role)}</span>
+                                )}
+                            </li>
+                        )
+                    })}
+                </ul>
+            </SettingsCard>
         </div>
     )
 }

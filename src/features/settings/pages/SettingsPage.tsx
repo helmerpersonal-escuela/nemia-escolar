@@ -603,7 +603,7 @@ export const SettingsPage = () => {
                         }] : []),
                         ...(((isDirectorOrAdmin || isSuperAdmin) && profile.role?.toUpperCase() !== 'INDEPENDENT_TEACHER' && tenant.type !== 'INDEPENDENT') ? [{
                             title: 'Gestión', items: [
-                                ...(isDirectorOrAdmin ? [{ id: 'personal', label: 'Docentes de la escuela', icon: Users }] : []),
+                                ...(isDirectorOrAdmin ? [{ id: 'personal', label: 'Personal: altas y bajas', icon: Users }] : []),
                                 ...(isSuperAdmin ? [{ id: 'ai', label: 'Inteligencia artificial', icon: Sparkles }] : []),
                             ]
                         }] : []),
@@ -666,7 +666,7 @@ export const SettingsPage = () => {
                                     school: { icon: School, title: 'Datos de la escuela', description: 'Lo que registraste al crear tu espacio. Aparece en tus planeaciones, programa analítico y documentos.' },
                                     cycle: { icon: Calendar, title: 'Ciclo escolar y periodos', description: 'Las fechas del ciclo y los periodos de evaluación (trimestres). Organizan tus calificaciones, asistencia y planeaciones.' },
                                     horarios: { icon: Clock, title: 'Jornada escolar', description: 'Hora de entrada y salida, duración de cada clase y recesos. Se usa para armar tu horario y tus planeaciones.' },
-                                    personal: { icon: Users, title: 'Docentes de la escuela', description: 'Quién tiene acceso a tu escuela: invita a docentes y personal, o crea sus accesos.' },
+                                    personal: { icon: Users, title: 'Personal: altas y bajas', description: 'Da de alta a docentes, directivos y demás personal, cambia su puesto o dales de baja cuando ya no trabajen en la escuela.' },
                                     ai: { icon: Sparkles, title: 'Inteligencia artificial', description: 'Claves de los servicios de IA que generan planeaciones y evaluaciones.' },
                                 }
                                 const h = H[activeTab]
