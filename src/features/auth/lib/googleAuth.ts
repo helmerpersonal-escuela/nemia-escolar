@@ -16,8 +16,10 @@ const PENDING_KEY = 'vunlek_pending_signup'
 export const NATIVE_REDIRECT = 'vunlek://auth/callback'
 
 export interface SignupIntent {
-    mode?: 'INDEPENDENT' | 'SCHOOL' | 'JOIN'
+    mode?: 'INDEPENDENT' | 'SCHOOL' | 'JOIN' | 'FAMILY'
     organizationName?: string
+    /** Código impreso que liga a madre/padre con su hijo(a) */
+    familyCode?: string
     invitationToken?: string | null
 }
 

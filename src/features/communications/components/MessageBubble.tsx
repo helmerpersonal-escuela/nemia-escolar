@@ -1,5 +1,42 @@
 import type { Message } from '../../../hooks/useChat'
-import { FileText, Download } from 'lucide-react'
+import { FileText, Download, Loader2, ImageOff } from 'lucide-react'
+import { useSignedChatUrl, formatSize, formatSeconds } from '../lib/chatFiles'
+
+/** Foto, PDF o nota de voz guardados en el bucket privado del chat */
+const Attachment = ({ message, isOwn }: { message: Message; isOwn: boolean }) => {
+    const meta = (message.metadata ?? {}) as { path?: string; name?: string; size?: number; duration?: number }
+    const { url, failed } = useSignedChatUrl(meta.path)
+    if (failed) {
+        return <p className="text-sm flex items-center gap-2 opacity-80"><ImageOff className="w-4 h-4" /> No se pudo abrir el archivo.</p>
+    }
+    if (!url) return <Loader2 className="w-5 h-5 animate-spin opacity-70" />
+    if (message.type === 'IMAGE') {
+        return (
+            <a href={url} target="_blank" rel="noreferrer" title="Ver foto completa">
+                <img src={url} alt={meta.name || 'Foto'} className="rounded-xl max-w-full max-h-80 h-auto object-contain" loading="lazy" />
+            </a>
+        )
+    }
+    if (message.type === 'AUDIO') {
+        return (
+            <div className="min-w-[14rem]">
+                <audio controls preload="metadata" src={url} className="w-full h-10" />
+                {meta.duration ? <p className={`text-[11px] mt-1 ${isOwn ? 'text-blue-100' : 'text-slate-500'}`}>Nota de voz · {formatSeconds(meta.duration)}</p> : null}
+            </div>
+        )
+    }
+    return (
+        <a href={url} target="_blank" rel="noreferrer"
+            className={`flex items-center gap-3 p-3 rounded-xl border ${isOwn ? 'bg-white/15 border-white/20' : 'bg-slate-50 border-slate-200'}`}>
+            <span className="p-2 bg-white rounded-lg"><FileText className="h-6 w-6 text-rose-600" /></span>
+            <span className="flex-1 min-w-0">
+                <span className="block text-sm font-bold truncate">{meta.name || 'Documento PDF'}</span>
+                <span className="block text-[11px] opacity-80">{meta.size ? formatSize(meta.size) + ' · ' : ''}Toca para abrir</span>
+            </span>
+            <Download className="h-4 w-4 shrink-0" />
+        </a>
+    )
+}
 
 interface Props {
     message: Message
@@ -20,11 +57,19 @@ export const MessageBubble = ({ message, isOwn }: Props) => {
     const renderContent = () => {
         switch (message.type) {
             case 'IMAGE':
-                return (
-                    <div className="space-y-2">
-                        <img src={message.content} alt="Shared" className="rounded-xl max-w-full h-auto shadow-sm" />
-                    </div>
-                )
+            case 'AUDIO':
+            case 'DOCUMENT':
+                if (message.metadata?.path) {
+                    return (
+                        <div className="space-y-2">
+                            <Attachment message={message} isOwn={isOwn} />
+                            {message.content && message.type !== 'DOCUMENT' ? <p className="text-sm font-medium whitespace-pre-wrap">{message.content}</p> : null}
+                        </div>
+                    )
+                }
+                return message.type === 'IMAGE'
+                    ? <img src={message.content} alt="Foto" className="rounded-xl max-w-full h-auto shadow-sm" />
+                    : <p className="text-sm font-medium">{message.content}</p>
             case 'REPORT':
                 return (
                     <div className="flex items-center gap-3 p-3 bg-white/20 rounded-xl backdrop-blur-sm border border-white/10">
@@ -71,8 +116,8 @@ export const MessageBubble = ({ message, isOwn }: Props) => {
                     : 'bg-white text-slate-800 rounded-tl-none border border-slate-100'}
             `}>
                 {!isOwn && (
-                    <p className="text-[11px] font-black text-slate-500 mb-1 uppercase tracking-tight">
-                        {message.profiles?.first_name} {message.profiles?.last_name_paternal}
+                    <p className="text-[11px] font-black text-slate-500 mb-1 tracking-tight">
+                        {message.profiles?.label || `${message.profiles?.first_name ?? ''} ${message.profiles?.last_name_paternal ?? ''}`}
                     </p>
                 )}
 

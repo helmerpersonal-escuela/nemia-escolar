@@ -29,14 +29,25 @@ export default defineConfig({
         // Todo el código de la app (incluidas las pantallas de carga diferida) queda guardado.
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
-        navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/functions\//, /^\/rest\//, /^\/auth\//],
+        // Las páginas se piden primero al servidor (así un enlace nuevo, como una invitación, abre la
+        // versión más reciente). Sin señal o si tarda más de 3 s, se usa la copia guardada.
+        navigateFallback: null,
         cleanupOutdatedCaches: true,
         // La versión nueva entra en cuanto se descarga (sin esperar a cerrar todas las pestañas)
         skipWaiting: true,
         clientsClaim: true,
         // Nunca se guardan en caché las llamadas a Supabase: los datos offline los maneja la app (IndexedDB).
         runtimeCaching: [
+          {
+            urlPattern: ({ request, url }) => request.mode === 'navigate' && !/^\/(functions|rest|auth)\//.test(url.pathname),
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'pages',
+              networkTimeoutSeconds: 3,
+              expiration: { maxEntries: 20 },
+              precacheFallback: { fallbackURL: '/index.html' },
+            },
+          },
           {
             // Catálogo de estados, municipios y colonias: se guarda al primer uso para funcionar sin señal
             urlPattern: ({ url }) => url.pathname.startsWith('/geo/') && url.pathname.endsWith('.json'),

@@ -68,6 +68,8 @@ const CooperativePage = lazyNamed(() => import('./features/cooperative/pages/Coo
 const TextbooksPage = lazyNamed(() => import('./features/textbooks/pages/TextbooksPage'), 'TextbooksPage')
 const CompleteSignupPage = lazyNamed(() => import('./features/auth/pages/CompleteSignupPage'), 'CompleteSignupPage')
 const LegalPage = lazyNamed(() => import('./features/legal/LegalPage'), 'LegalPage')
+const FamilyAccessPage = lazyNamed(() => import('./features/family/pages/FamilyAccessPage'), 'FamilyAccessPage')
+const FamilyCodesPage = lazyNamed(() => import('./features/family/pages/FamilyCodesPage'), 'FamilyCodesPage')
 const AdvisoryGroupPage = lazyNamed(() => import('./features/advisory/pages/AdvisoryGroupPage'), 'AdvisoryGroupPage')
 const PedagogyCatalogPage = lazyNamed(() => import('./features/pdas/pages/PedagogyCatalogPage'), 'PedagogyCatalogPage')
 const FormatsPage = lazyNamed(() => import('./features/formats/pages/FormatsPage'), 'FormatsPage')
@@ -222,6 +224,7 @@ function App() {
         {/* Con sesión, un enlace de invitación (/register?token=…) va a la pantalla para aceptarla */}
         <Route path="/register" element={session ? <Navigate to={new URLSearchParams(window.location.search).get('token') ? `/invitacion${window.location.search}` : '/'} replace /> : <RegisterPage />} />
         <Route path="/invitacion" element={<InvitationPage />} />
+        <Route path="/familia" element={<FamilyAccessPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/privacidad" element={<LegalPage kind="privacy" />} />
         <Route path="/privacy" element={<LegalPage kind="privacy" />} />
@@ -249,6 +252,11 @@ function App() {
           <Route path="teacher-dashboard" element={<TeacherDashboard />} />
           <Route path="groups" element={<GroupsPage />} />
           <Route path="groups/:groupId" element={<GroupDetailsPage />} />
+          <Route path="familias/codigos" element={
+            <ProtectedRoute allowedRoles={['DIRECTOR', 'ADMIN', 'SCHOOL_CONTROL', 'ACADEMIC_COORD', 'TECH_COORD']}>
+              <FamilyCodesPage />
+            </ProtectedRoute>
+          } />
           <Route path="onboarding/*" element={<OnboardingWizard onComplete={() => window.location.href = '/'} />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="schedule" element={<SchedulePage />} />

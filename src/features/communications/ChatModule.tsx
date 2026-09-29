@@ -24,6 +24,9 @@ import {
     Trash2
 } from 'lucide-react'
 import { askConfirm } from '../../components/ui/ConfirmDialog'
+import { Loader2 } from 'lucide-react'
+import { VoiceRecorder } from './components/VoiceRecorder'
+import { describeFileProblem, kindForFile, prepareImage, baseMime } from './lib/chatFiles'
 
 // ProfileItem Component
 const ProfileItem = ({ profile, isSelected, onChat, onToggle, isOnline, isStarting }: {
@@ -60,8 +63,8 @@ const ProfileItem = ({ profile, isSelected, onChat, onToggle, isOnline, isStarti
                     {profile.first_name} {profile.last_name_paternal}
                 </h4>
                 <div className="flex flex-col gap-0.5">
-                    <p className="text-xs text-slate-500 font-medium uppercase tracking-tighter">
-                        {profile.role === 'TUTOR' ? 'Padre de Familia' : profile.role === 'TEACHER' ? 'Docente' : profile.role}
+                    <p className="text-xs text-slate-500 font-medium tracking-tight">
+                        {profile.label || (profile.role === 'TUTOR' ? 'Madre, padre o tutor' : profile.role === 'TEACHER' ? 'Docente' : profile.role)}
                     </p>
                     {profile.student_names && (
                         <p className="text-[11px] text-blue-600 font-bold uppercase truncate max-w-[150px]">
@@ -86,7 +89,41 @@ const ProfileItem = ({ profile, isSelected, onChat, onToggle, isOnline, isStarti
 
 export const ChatModule = () => {
     const { roomId } = useParams<{ roomId: string }>()
-    const { messages, rooms, loading, sendMessage, startDirectChat, createGroupChat, deleteRoom } = useChat(roomId)
+    const { messages, rooms, loading, sendMessage, sendAttachment, startDirectChat, createGroupChat, deleteRoom } = useChat(roomId)
+    const fileInputRef = useRef<HTMLInputElement>(null)
+    const [sendingFile, setSendingFile] = useState<string | null>(null)
+    const [attachError, setAttachError] = useState<string | null>(null)
+    const [recordingVoice, setRecordingVoice] = useState(false)
+
+    const sendFile = async (file: File) => {
+        setAttachError(null)
+        const problem = describeFileProblem(file)
+        if (problem) { setAttachError(problem); return }
+        const kind = kindForFile(file.type)!
+        setSendingFile(kind === 'IMAGE' ? 'Enviando foto…' : 'Enviando documento…')
+        try {
+            const prepared = kind === 'IMAGE' ? await prepareImage(file) : { blob: file, mime: baseMime(file.type), name: file.name }
+            await sendAttachment(prepared.blob, { kind, mime: prepared.mime, name: prepared.name })
+        } catch (e) {
+            console.error('Error sending file:', e)
+            setAttachError('No se pudo enviar el archivo. Revisa tu conexión e intenta de nuevo.')
+        } finally {
+            setSendingFile(null)
+        }
+    }
+
+    const sendVoice = async (blob: Blob, mime: string, seconds: number) => {
+        setAttachError(null)
+        setSendingFile('Enviando nota de voz…')
+        try {
+            await sendAttachment(blob, { kind: 'AUDIO', mime, name: 'Nota de voz', duration: seconds })
+        } catch (e) {
+            console.error('Error sending voice note:', e)
+            setAttachError('No se pudo enviar la nota de voz. Revisa tu conexión e intenta de nuevo.')
+        } finally {
+            setSendingFile(null)
+        }
+    }
     const [inputText, setInputText] = useState('')
     const [currentUserId, setCurrentUserId] = useState<string | null>(null)
     const [showNewChatModal, setShowNewChatModal] = useState(false)
@@ -248,7 +285,17 @@ export const ChatModule = () => {
             query = query.or(`first_name.ilike.%${searchQuery}%,last_name_paternal.ilike.%${searchQuery}%`)
         }
 
-        const { data } = await query.order('first_name', { ascending: true })
+        let data: any[] | null
+        if (tenant?.role === 'TUTOR' || tenant?.role === 'STUDENT') {
+            // Familias y alumnos: solo el personal, y solo nombre/puesto/foto (sin teléfono ni datos personales)
+            const { data: contacts } = await supabase.rpc('chat_contacts')
+            const q = searchQuery.trim().toLowerCase()
+            data = ((contacts ?? []) as any[])
+                .filter(c => !q || `${c.first_name ?? ''} ${c.last_name_paternal ?? ''}`.toLowerCase().includes(q))
+                .sort((x, y) => String(x.first_name ?? '').localeCompare(String(y.first_name ?? '')))
+        } else {
+            data = (await query.order('first_name', { ascending: true })).data
+        }
 
         // Fetch relationships to identify teachers of the tutor's children or students of a tutor
         let profileListWithStudents = data || []
@@ -472,7 +519,12 @@ export const ChatModule = () => {
                                                 <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
                                             )}
                                         </div>
-                                        <p className="text-xs text-slate-500 truncate font-medium">{room.last_message?.content || 'Inicia una conversación'}</p>
+                                        <p className="text-xs text-slate-500 truncate font-medium">{
+                                            room.last_message?.type === 'IMAGE' ? 'Foto'
+                                                : room.last_message?.type === 'AUDIO' ? 'Nota de voz'
+                                                    : room.last_message?.type === 'DOCUMENT' ? `Documento${room.last_message?.content ? ': ' + room.last_message.content : ''}`
+                                                        : room.last_message?.content || 'Inicia una conversación'
+                                        }</p>
                                     </div>
                                     <button
                                         onClick={async (e) => {
@@ -624,14 +676,41 @@ export const ChatModule = () => {
                                 </div>
                             )}
 
+                            {(sendingFile || attachError) && (
+                                <p role={attachError ? 'alert' : 'status'} className={`mb-2 text-sm font-bold flex items-center gap-2 ${attachError ? 'text-rose-700' : 'text-blue-700'}`}>
+                                    {sendingFile && <Loader2 className="w-4 h-4 animate-spin" />}
+                                    {attachError || sendingFile}
+                                    {attachError && <button type="button" onClick={() => setAttachError(null)} className="ml-auto text-slate-500 hover:text-slate-700" aria-label="Cerrar aviso"><X className="w-4 h-4" /></button>}
+                                </p>
+                            )}
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,application/pdf"
+                                className="hidden"
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0]
+                                    e.target.value = ''
+                                    if (file) void sendFile(file)
+                                }}
+                            />
                             <div className="flex items-end gap-3 bg-slate-50 p-2 rounded-[2rem] border border-slate-200 focus-within:border-blue-300 focus-within:ring-4 focus-within:ring-blue-100 transition-all">
+                                {!recordingVoice && <>
                                 <button
                                     onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                                    aria-label="Emojis"
                                     className={`p-3 transition-colors ${showEmojiPicker ? 'text-blue-600' : 'text-slate-500 hover:text-blue-600'}`}
                                 >
                                     <Smile className="h-6 w-6" />
                                 </button>
-                                <button aria-label="Adjuntar" className="p-3 text-slate-500 hover:text-blue-600 transition-colors"><Paperclip className="h-6 w-6" /></button>
+                                <button
+                                    type="button"
+                                    aria-label="Adjuntar foto o PDF"
+                                    title="Adjuntar foto o PDF"
+                                    disabled={isReadOnly || !!sendingFile}
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="p-3 text-slate-500 hover:text-blue-600 transition-colors disabled:opacity-40"
+                                ><Paperclip className="h-6 w-6" /></button>
                                 <textarea
                                     value={inputText}
                                     onChange={(e) => setInputText(e.target.value)}
@@ -646,13 +725,23 @@ export const ChatModule = () => {
                                         }
                                     }}
                                 />
-                                <button aria-label="Enviar"
-                                    onClick={handleSend}
-                                    disabled={!inputText.trim() || isReadOnly}
-                                    className="p-4 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 shadow-lg shadow-blue-100 transform active:scale-95 transition-all"
-                                >
-                                    <Send className="h-5 w-5" />
-                                </button>
+                                </>}
+                                {inputText.trim() ? (
+                                    <button aria-label="Enviar"
+                                        onClick={handleSend}
+                                        disabled={isReadOnly}
+                                        className="p-4 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 shadow-lg shadow-blue-100 transform active:scale-95 transition-all"
+                                    >
+                                        <Send className="h-5 w-5" />
+                                    </button>
+                                ) : (
+                                    <VoiceRecorder
+                                        disabled={isReadOnly || !!sendingFile}
+                                        onRecorded={(blob, mime, secs) => { void sendVoice(blob, mime, secs) }}
+                                        onRecordingChange={setRecordingVoice}
+                                        onError={setAttachError}
+                                    />
+                                )}
                             </div>
                         </div>
                     </>

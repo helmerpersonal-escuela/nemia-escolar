@@ -161,6 +161,12 @@ export const LandingPage = () => {
                                 <span className="text-[11px] font-black uppercase tracking-widest text-slate-400 group-hover:text-white transition-colors">Ver Video</span>
                             </button>
                         </div>
+                        <button
+                            onClick={() => navigate('/familia')}
+                            className="text-sm font-bold text-rose-300 hover:text-white underline underline-offset-4"
+                        >
+                            ¿Eres madre, padre o tutor? Entra con el código de tu hijo(a)
+                        </button>
                     </div>
 
                     <div className="relative animate-in zoom-in-95 duration-1000">

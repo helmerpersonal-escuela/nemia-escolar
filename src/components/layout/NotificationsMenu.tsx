@@ -131,38 +131,23 @@ export const NotificationsMenu = () => {
                     }
                 }
 
-                // --- 2. MESSENGER NOTIFICATIONS (UNREAD) ---
-                const { data: unreadRooms } = await supabase
-                    .from('chat_participants')
-                    .select('room_id, last_read_at, chat_rooms!inner(name, type)')
-                    .eq('profile_id', user.id)
-
-                if (unreadRooms) {
-                    const roomIds = unreadRooms.map(r => r.room_id)
-                    const { data: lastMessages } = await supabase
-                        .from('chat_messages')
-                        .select('room_id, created_at, content')
-                        .in('room_id', roomIds)
-                        .order('created_at', { ascending: false })
-
-                    unreadRooms.forEach(roomInfo => {
-                        const lastMsg = lastMessages?.find(m => m.room_id === roomInfo.room_id)
-                        if (lastMsg && new Date(lastMsg.created_at) > new Date(roomInfo.last_read_at)) {
-                            const rId = `chat_${roomInfo.room_id}`
-                            if (dismissedIds.includes(rId)) return
-
-                            allPending.push({
-                                id: rId,
-                                type: 'MENS_UNREAD',
-                                title: 'Mensaje sin leer',
-                                message: (roomInfo.chat_rooms as any).name || 'Conversación Directa',
-                                link: `/messages/${roomInfo.room_id}`,
-                                date: lastMsg.created_at,
-                                priority: 1
-                            })
-                        }
+                // --- 2. MENSAJES SIN LEER: dicen quién escribe ---
+                // "Profra. Daniela López · Tecnología" o "Mamá de Helmer Ferras · 1° C"
+                const { data: unread } = await supabase.rpc('my_unread_chats')
+                ;((unread ?? []) as any[]).forEach(c => {
+                    // El id incluye la hora del último mensaje: si llega otro, vuelve a avisar aunque se haya descartado
+                    const rId = `chat_${c.room_id}_${c.last_at}`
+                    if (dismissedIds.includes(rId)) return
+                    allPending.push({
+                        id: rId,
+                        type: 'MENS_UNREAD',
+                        title: c.sender_label ? `Mensaje de ${c.sender_label}` : 'Mensaje sin leer',
+                        message: c.unread > 1 ? `${c.unread} mensajes sin leer · ${c.preview ?? ''}` : (c.preview || 'Mensaje nuevo'),
+                        link: `/messages/${c.room_id}`,
+                        date: c.last_at,
+                        priority: 1
                     })
-                }
+                })
 
                 // --- 3. AGENDA NOTIFICATIONS (TODAY) ---
                 const today = todayISO()

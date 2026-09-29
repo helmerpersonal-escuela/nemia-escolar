@@ -87,8 +87,17 @@ export const useProfile = () => {
 
             if (error) throw error
 
+            // Los datos personales (CURP, RFC, teléfono, domicilio…) viven en profile_private:
+            // solo los ve la persona y la dirección / control escolar.
+            const { data: privateData } = await supabase
+                .from('profile_private')
+                .select('nationality, birth_date, sex, marital_status, curp, rfc, address_particular, phone_contact')
+                .eq('profile_id', targetUserId)
+                .maybeSingle()
+
             return {
                 ...data,
+                ...(privateData ?? {}),
                 isSuperAdmin,
                 isImpersonating,
                 email_confirmed_at: user.email_confirmed_at,

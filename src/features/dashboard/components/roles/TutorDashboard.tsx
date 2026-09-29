@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
     Users, GraduationCap, Calendar, Mail, Star, Clock,
     Loader2, AlertCircle, CheckCircle2, Info, Bell
@@ -169,9 +170,10 @@ export const TutorDashboard = () => {
                 <div className="bg-blue-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Users className="w-10 h-10 text-blue-500" />
                 </div>
-                <h2 className="text-xl font-bold text-gray-900">No hay estudiantes vinculados</h2>
-                <p className="text-gray-500 mt-2">No hemos encontrado alumnos asociados a tu cuenta de tutor.</p>
-                <p className="text-xs text-gray-500 mt-4">Contacta a la escuela para vincular a tu hijo(a).</p>
+                <h2 className="text-xl font-bold text-gray-900">Aún no ligas a tu hijo(a)</h2>
+                <p className="text-gray-600 mt-2">Escribe el código que viene en la hoja que te dio la escuela.</p>
+                <Link to="/familia" className="inline-flex mt-5 px-5 py-3 rounded-2xl bg-rose-500 hover:bg-rose-600 text-white font-black text-sm">Escribir el código</Link>
+                <p className="text-xs text-gray-500 mt-4">¿No tienes la hoja? Pídela en control escolar.</p>
             </div>
         )
     }
@@ -184,6 +186,7 @@ export const TutorDashboard = () => {
                     <h1 className="text-2xl md:text-4xl font-black text-gray-900 tracking-tight leading-none mb-2">Panel del Tutor</h1>
                     <p className="text-gray-500 font-bold uppercase tracking-widest text-[11px] md:text-xs">Acompañamiento Académico</p>
                 </div>
+                <Link to="/familia" className="text-sm font-bold text-rose-600 hover:underline">+ Agregar otro hijo(a) con su código</Link>
             </div>
 
             {/* Children Cards Grid (The "Mis Hijos" Selector) */}

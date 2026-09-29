@@ -460,6 +460,7 @@ export const DashboardLayout = () => {
             { icon: Users, label: 'Control de Personal', path: '/admin/staff' },
             { icon: Users, label: 'Grupos (Inscripciones)', path: '/groups' },
             { icon: GraduationCap, label: 'Alumnos (Expedientes)', path: '/students' },
+            { icon: HeartHandshake, label: 'Códigos para familias', path: '/familias/codigos' },
             { icon: Mail, label: 'Comunicados', path: '/messages' },
             {
                 icon: TrendingUp,
@@ -513,6 +514,7 @@ export const DashboardLayout = () => {
             { icon: LayoutDashboard, label: 'Panel Administrativo', path: '/' },
             { icon: Users, label: 'Inscripciones', path: '/groups' },
             { icon: GraduationCap, label: 'Expedientes / CURP', path: '/students' },
+            { icon: HeartHandshake, label: 'Códigos para familias', path: '/familias/codigos' },
             { icon: Mail, label: 'Comunicados', path: '/messages' },
             {
                 icon: CheckSquare,

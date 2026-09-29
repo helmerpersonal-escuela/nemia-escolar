@@ -173,6 +173,9 @@ export const LoginPage = () => {
                                         <span className="flex-1 border-t-2 border-slate-100" /> o <span className="flex-1 border-t-2 border-slate-100" />
                                     </div>
                                     <GoogleButton label="Entrar con Google" />
+                                    <Link to="/familia" className="block text-center text-sm font-bold text-rose-600 hover:underline">
+                                        ¿Eres madre, padre o tutor? Entra con el código de tu hijo(a)
+                                    </Link>
                                 </>
                             )}
                         </form>

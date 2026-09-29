@@ -312,7 +312,7 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
 
             let msg = '¡Acceso enviado correctamente!'
             if (data.tempPassword) {
-                msg += `\n\nContraseña temporal generada: ${data.tempPassword}\n\nSe ha enviado un correo con las instrucciones.`
+                msg += `\n\nContraseña temporal: ${data.tempPassword}\n\nNo se envía por correo: entrégala en persona. Otra opción más sencilla: imprime su código en "Códigos para familias".`
             } else {
                 msg += `\n\nEl usuario ya existe, se ha vinculado correctamente.`
             }

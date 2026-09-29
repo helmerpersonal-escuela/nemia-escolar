@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import { User, School, Loader2, LogOut, Sparkles } from 'lucide-react'
+import { User, School, Loader2, LogOut, Sparkles, HeartHandshake } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { queryClient } from '../../../lib/queryClient'
 import { clearPendingSignup, readPendingSignup } from '../lib/googleAuth'
+import { isCompleteFamilyCode, normalizeFamilyCode, redeemFamilyCode } from '../../family/lib/familyCode'
 
-type Mode = 'INDEPENDENT' | 'SCHOOL'
+type Mode = 'INDEPENDENT' | 'SCHOOL' | 'FAMILY'
 
 interface SignupStatus {
     has_workspace: boolean
@@ -29,7 +30,8 @@ export const CompleteSignupPage = () => {
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const pending = readPendingSignup()
-    const [mode, setMode] = useState<Mode | null>(pending?.mode === 'INDEPENDENT' || pending?.mode === 'SCHOOL' ? pending.mode : null)
+    const [mode, setMode] = useState<Mode | null>(pending?.mode === 'INDEPENDENT' || pending?.mode === 'SCHOOL' || pending?.mode === 'FAMILY' ? pending.mode : null)
+    const [familyCode, setFamilyCode] = useState(normalizeFamilyCode(pending?.familyCode ?? ''))
     const [form, setForm] = useState({ firstName: '', lastNamePaternal: '', lastNameMaternal: '', organizationName: pending?.organizationName ?? '' })
     const [termsAccepted, setTermsAccepted] = useState(false)
     const invitation = pending?.invitationToken || null
@@ -60,6 +62,10 @@ export const CompleteSignupPage = () => {
     if (noSession) return <Navigate to="/login" replace />
 
     if (status && (status.has_workspace || status.is_super_admin)) {
+        // Ya tenía espacio y vino a ligar a un hijo: se termina en /familia
+        if (pending?.mode === 'FAMILY' && pending.familyCode) {
+            return <Navigate to={`/familia?codigo=${encodeURIComponent(pending.familyCode)}`} replace />
+        }
         clearPendingSignup()
         return <Navigate to="/" replace />
     }
@@ -77,9 +83,20 @@ export const CompleteSignupPage = () => {
         if (!form.firstName.trim() || !form.lastNamePaternal.trim()) { setError('Escribe tu nombre y primer apellido.'); return }
         if (brokenName) { setError('Corrige la letra marcada con \uFFFD en tu nombre (normalmente es una Ñ o una vocal con acento).'); return }
         if (!invitation && mode === 'SCHOOL' && !form.organizationName.trim()) { setError('Escribe el nombre de la escuela.'); return }
+        if (!invitation && mode === 'FAMILY' && !isCompleteFamilyCode(familyCode)) { setError('Escribe el código de 8 letras y números que te dio la escuela.'); return }
         if (!termsAccepted) { setError('Debes aceptar los Términos y la Política de Privacidad.'); return }
         setSaving(true)
         setError(null)
+        if (!invitation && mode === 'FAMILY') {
+            const res = await redeemFamilyCode(familyCode, {
+                firstName: form.firstName, lastNamePaternal: form.lastNamePaternal, lastNameMaternal: form.lastNameMaternal,
+            })
+            if (!res.ok) { setError(res.error || 'No se pudo usar el código.'); setSaving(false); return }
+            clearPendingSignup()
+            queryClient.clear()
+            navigate('/', { replace: true })
+            return
+        }
         const { error: rpcError } = await supabase.rpc('complete_signup', {
             p_mode: invitation ? 'JOIN' : mode,
             p_organization_name: form.organizationName || null,
@@ -128,10 +145,11 @@ export const CompleteSignupPage = () => {
                         Vas a unirte a la escuela que te invitó. Confirma tu nombre para continuar.
                     </p>
                 ) : (
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         {([
                             { id: 'INDEPENDENT', icon: User, title: 'Soy docente', text: 'Mi espacio para planear, evaluar y llevar mis grupos.' },
                             { id: 'SCHOOL', icon: School, title: 'Registrar escuela', text: 'Para dirección: personal, grupos, CTE y control escolar.' },
+                            { id: 'FAMILY', icon: HeartHandshake, title: 'Soy madre, padre o tutor', text: 'Tengo el código que me dio la escuela.' },
                         ] as const).map(o => (
                             <button
                                 type="button"
@@ -164,7 +182,18 @@ export const CompleteSignupPage = () => {
                     </p>
                 )}
 
-                {!invitation && mode && (
+                {!invitation && mode === 'FAMILY' && (
+                    <input
+                        value={familyCode}
+                        onChange={e => setFamilyCode(normalizeFamilyCode(e.target.value))}
+                        placeholder="Código de tu hijo(a): ABCD-2345"
+                        autoComplete="off"
+                        className="w-full border-2 border-slate-100 rounded-xl px-3 py-3 text-lg font-black tracking-[0.2em] text-center"
+                        aria-label="Código de tu hijo o hija"
+                    />
+                )}
+
+                {!invitation && mode && mode !== 'FAMILY' && (
                     <input
                         value={form.organizationName}
                         onChange={set('organizationName')}

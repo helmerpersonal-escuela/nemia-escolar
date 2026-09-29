@@ -1,19 +1,22 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import type { RealtimePostgresInsertPayload } from '@supabase/supabase-js'
+import { uploadChatFile, baseMime } from '../features/communications/lib/chatFiles'
 
 export type Message = {
     id: string
     room_id: string
     sender_id: string
     content: string
-    type: 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT' | 'REPORT' | 'STICKER' | 'SYSTEM'
+    type: 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT' | 'AUDIO' | 'REPORT' | 'STICKER' | 'SYSTEM'
     metadata: any
     created_at: string
     profiles?: {
         first_name: string
         last_name_paternal: string
         avatar_url?: string
+        /** "Profra. Daniela López · Tecnología", "Mamá de Helmer · 1° C" */
+        label?: string | null
     }
 }
 
@@ -23,6 +26,21 @@ export type ChatRoom = {
     type: 'DIRECT' | 'GROUP' | 'CHANNEL' | 'SYSTEM'
     last_message?: Message
     unread_count: number
+}
+
+type ChatPerson = { id: string; first_name: string; last_name_paternal: string; avatar_url?: string; role?: string; label?: string | null }
+
+// Nombres para el chat: se piden con chat_people (solo nombre, puesto y foto).
+// Las familias no pueden leer el perfil completo del personal (teléfono, CURP, domicilio).
+const peopleCache = new Map<string, ChatPerson>()
+async function fetchPeople(ids: string[]): Promise<Map<string, ChatPerson>> {
+    const missing = Array.from(new Set(ids.filter(id => id && !peopleCache.has(id))))
+    if (missing.length) {
+        const { data, error } = await supabase.rpc('chat_people', { p_ids: missing })
+        if (error) console.error('Error loading chat names:', error)
+        for (const p of (data ?? []) as ChatPerson[]) peopleCache.set(p.id, p)
+    }
+    return peopleCache
 }
 
 export const useChat = (roomId?: string) => {
@@ -51,7 +69,7 @@ export const useChat = (roomId?: string) => {
                 .from('chat_rooms')
                 .select(`
                 *,
-                chat_participants!inner(profile_id, profiles(id, first_name, last_name_paternal)),
+                chat_participants!inner(profile_id),
                 chat_messages(id, content, type, created_at, sender_id)
             `)
                 .order('created_at', { foreignTable: 'chat_messages', ascending: false })
@@ -65,6 +83,8 @@ export const useChat = (roomId?: string) => {
 
             console.log('Loaded rooms:', data?.length || 0)
 
+            const people = await fetchPeople(data.flatMap((r: any) => (r.chat_participants ?? []).map((p: any) => p.profile_id)))
+
             // Transform and set rooms
             const transformedRooms = data.map(r => {
                 let roomName = r.name || 'Chat'
@@ -74,8 +94,9 @@ export const useChat = (roomId?: string) => {
                     const otherParticipant = r.chat_participants.find(
                         (p: any) => p.profile_id !== user.id
                     )
-                    if (otherParticipant?.profiles) {
-                        roomName = `${otherParticipant.profiles.first_name} ${otherParticipant.profiles.last_name_paternal}`
+                    const other = otherParticipant ? people.get(otherParticipant.profile_id) : undefined
+                    if (other) {
+                        roomName = other.label || `${other.first_name ?? ''} ${other.last_name_paternal ?? ''}`.trim() || 'Chat'
                     }
                 }
 
@@ -100,12 +121,17 @@ export const useChat = (roomId?: string) => {
         setLoading(true)
         const { data, error } = await supabase
             .from('chat_messages')
-            .select('*, profiles(first_name, last_name_paternal)')
+            .select('*')
             .eq('room_id', rid)
             .order('created_at', { ascending: true })
 
         if (error) console.error('Error loading messages:', error)
-        else setMessages(data || [])
+        else {
+            const people = await fetchPeople((data ?? []).map(m => m.sender_id))
+            setMessages((data ?? []).map(m => ({ ...m, profiles: people.get(m.sender_id) })) as Message[])
+            // Al abrir la conversación queda como leída (la campana deja de avisar)
+            supabase.rpc('mark_chat_read', { p_room: rid }).then(() => undefined)
+        }
         setLoading(false)
     }, [])
 
@@ -126,6 +152,22 @@ export const useChat = (roomId?: string) => {
             })
 
         if (error) console.error('Error sending message:', error)
+    }
+
+    /** Foto, PDF o nota de voz: se sube al bucket privado de la conversación y se envía el mensaje. */
+    const sendAttachment = async (blob: Blob, opts: { kind: 'IMAGE' | 'DOCUMENT' | 'AUDIO'; mime: string; name: string; duration?: number; caption?: string }) => {
+        if (!roomId) throw new Error('Abre una conversación primero')
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) throw new Error('Sesión requerida')
+        const path = await uploadChatFile(roomId, blob, opts.mime)
+        const { error } = await supabase.from('chat_messages').insert({
+            room_id: roomId,
+            sender_id: user.id,
+            content: opts.caption ?? (opts.kind === 'DOCUMENT' ? opts.name : ''),
+            type: opts.kind,
+            metadata: { path, name: opts.name, size: blob.size, mime: baseMime(opts.mime), duration: opts.duration ? Math.round(opts.duration) : undefined },
+        })
+        if (error) throw error
     }
 
     // Load rooms on mount
@@ -158,11 +200,7 @@ export const useChat = (roomId?: string) => {
                     },
                     async (payload: RealtimePostgresInsertPayload<Message>) => {
                         if (!isMounted) return
-                        const { data: sender } = await supabase
-                            .from('profiles')
-                            .select('first_name, last_name_paternal')
-                            .eq('id', payload.new.sender_id)
-                            .single()
+                        const sender = (await fetchPeople([payload.new.sender_id])).get(payload.new.sender_id)
 
                         if (!isMounted) return
                         const newMessage = { ...payload.new, profiles: sender } as Message
@@ -171,6 +209,7 @@ export const useChat = (roomId?: string) => {
                         const { data: { user } } = await supabase.auth.getUser()
                         if (user && payload.new.sender_id !== user.id) {
                             playNotificationSound()
+                            if (document.visibilityState === 'visible') supabase.rpc('mark_chat_read', { p_room: roomId }).then(() => undefined)
                         }
                     }
                 )
@@ -358,6 +397,7 @@ export const useChat = (roomId?: string) => {
         rooms,
         loading,
         sendMessage,
+        sendAttachment,
         startDirectChat,
         createGroupChat,
         deleteRoom

@@ -82,14 +82,14 @@ export const PEMCPage = () => {
             if (existing) {
                 await supabase.from('pemc_diagnosis').update({
                     content,
-                    file_urls: fileUrls.length > 0 ? fileUrls : existing.file_urls
+                    evidence_urls: fileUrls.length > 0 ? fileUrls : (existing.evidence_urls ?? [])
                 }).eq('id', existing.id)
             } else {
                 await supabase.from('pemc_diagnosis').insert({
                     cycle_id: cycle.id,
                     field_name: fieldName,
                     content,
-                    file_urls: fileUrls
+                    evidence_urls: fileUrls
                 })
             }
             loadPEMCData()
@@ -104,25 +104,42 @@ export const PEMCPage = () => {
         if (!cycle) return
         setSaving(true)
         try {
-            const fileExt = file.name.split('.').pop()
-            const fileName = `${cycle.tenant_id}/${cycle.id}/${fieldName}/${Math.random()}.${fileExt}`
+            const fileExt = (file.name.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '')
+            const fieldSlug = fieldName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+            const fileName = `${cycle.tenant_id}/${cycle.id}/${fieldSlug}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${fileExt}`
             const { error: uploadError } = await supabase.storage
                 .from('pemc_evidence')
                 .upload(fileName, file)
 
             if (uploadError) throw uploadError
 
-            const { data: { publicUrl } } = supabase.storage.from('pemc_evidence').getPublicUrl(fileName)
-
+            // El bucket es privado: se guarda la ruta y el enlace se firma al abrirlo.
             const existing = diagnosis.find(d => d.field_name === fieldName)
-            const currentUrls = existing?.file_urls || []
-            await handleSaveDiagnosis(fieldName, existing?.content || '', [...currentUrls, publicUrl])
+            const currentUrls: string[] = existing?.evidence_urls || []
+            await handleSaveDiagnosis(fieldName, existing?.content || '', [...currentUrls, fileName])
 
         } catch (error) {
             console.error('Error uploading file:', error)
+            alert('No se pudo subir la evidencia. Revisa tu conexión e intenta de nuevo.')
         } finally {
             setSaving(false)
         }
+    }
+
+    // Rutas guardadas (o URLs públicas viejas) → enlace firmado de 5 minutos
+    const openEvidence = async (stored: string) => {
+        const path = stored.startsWith('http')
+            ? decodeURIComponent(stored.split('/pemc_evidence/')[1] ?? '')
+            : stored
+        const win = window.open('', '_blank')
+        const { data, error } = await supabase.storage.from('pemc_evidence').createSignedUrl(path, 300)
+        if (error || !data?.signedUrl) {
+            win?.close()
+            alert('No se pudo abrir la evidencia.')
+            return
+        }
+        if (win) win.location.href = data.signedUrl
+        else window.location.href = data.signedUrl
     }
 
     if (loading) return <div className="p-8 animate-pulse space-y-4">
@@ -204,12 +221,12 @@ export const PEMCPage = () => {
                                         />
                                         <div className="mt-6 flex items-center justify-between">
                                             <div className="flex -space-x-2">
-                                                {data?.file_urls?.map((url: string, i: number) => (
-                                                    <a key={i} href={url} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-[11px] font-black text-white hover:z-10 transition-transform hover:scale-110">
+                                                {data?.evidence_urls?.map((url: string, i: number) => (
+                                                    <a key={i} href="#" onClick={(e) => { e.preventDefault(); void openEvidence(url) }} title="Abrir evidencia" className="w-8 h-8 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-[11px] font-black text-white hover:z-10 transition-transform hover:scale-110">
                                                         DOC
                                                     </a>
                                                 ))}
-                                                {(!data?.file_urls || data.file_urls.length === 0) && (
+                                                {(!data?.evidence_urls || data.evidence_urls.length === 0) && (
                                                     <div className="w-8 h-8 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center text-[11px] font-black text-gray-500">0</div>
                                                 )}
                                             </div>
