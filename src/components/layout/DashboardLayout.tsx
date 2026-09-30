@@ -48,6 +48,7 @@ import { NotificationsMenu } from './NotificationsMenu'
 import { WorkspaceSwitcher } from './WorkspaceSwitcher'
 import { useAttendanceReminder } from '../../hooks/useAttendanceReminder'
 import { NotificationManager } from '../ui/NotificationManager'
+import { useChatNotifications } from '../../hooks/useChatNotifications'
 import { ErrorBoundary } from '../common/ErrorBoundary'
 import { setErrorContext } from '../../lib/errorReporting'
 import { OfflineCenter } from '../offline/OfflineCenter'
@@ -188,6 +189,8 @@ export const DashboardLayout = () => {
 
     // Attendance Reminder Hook
     useAttendanceReminder()
+    // Avisos y sonido de mensajes nuevos del chat en cualquier pantalla
+    useChatNotifications(!!profile)
 
     // Auto-close sidebar on route change (Mobile UX Only)
     useEffect(() => {

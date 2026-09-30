@@ -25,6 +25,11 @@ const config: CapacitorConfig = {
     },
     CapacitorHttp: {
       enabled: true
+    },
+    // Avisos del chat con el ícono y el sonido de VUNLEK
+    LocalNotifications: {
+      smallIcon: 'ic_stat_vunlek',
+      iconColor: '#42428F'
     }
   }
 };

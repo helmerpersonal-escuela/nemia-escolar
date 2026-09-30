@@ -139,7 +139,6 @@ export const ChatModule = () => {
     const [isCreating, setIsCreating] = useState(false)
     const [startingProfileId, setStartingProfileId] = useState<string | null>(null)
     const [showEmojiPicker, setShowEmojiPicker] = useState(false)
-    const [soundEnabled, setSoundEnabled] = useState(true)
     const [activeTab, setActiveTab] = useState<'chats' | 'announcements'>('chats')
     const [announcements, setAnnouncements] = useState<any[]>([])
     const [showNewAnnouncementModal, setShowNewAnnouncementModal] = useState(false)
@@ -442,25 +441,6 @@ export const ChatModule = () => {
         setInputText(prev => prev + emojiData.emoji)
     }
 
-    const playNotificationSound = () => {
-        if (!soundEnabled) return
-        // Create a simple notification beep using Web Audio API
-        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-        const oscillator = audioContext.createOscillator()
-        const gainNode = audioContext.createGain()
-
-        oscillator.connect(gainNode)
-        gainNode.connect(audioContext.destination)
-
-        oscillator.frequency.value = 800
-        oscillator.type = 'sine'
-
-        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5)
-
-        oscillator.start(audioContext.currentTime)
-        oscillator.stop(audioContext.currentTime + 0.5)
-    }
 
     return (
         <div className="flex flex-col md:flex-row h-[calc(100vh-8rem)] bg-white rounded-3xl overflow-hidden shadow-2xl border border-slate-100">

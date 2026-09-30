@@ -14,6 +14,7 @@ import { useTenant } from '../../../hooks/useTenant'
 import { useProfile } from '../../../hooks/useProfile'
 import { useSubscriptionLimits } from '../../../hooks/useSubscriptionLimits'
 import { askConfirm } from '../../../components/ui/ConfirmDialog'
+import { usePrerequisites } from '../../../components/prereq/Prerequisites'
 
 type Group = {
     id: string
@@ -53,6 +54,7 @@ export const GroupsPage = () => {
     const isIndependent = profile?.role === 'INDEPENDENT_TEACHER'
     const isStaff = ['ADMIN', 'DIRECTOR', 'SYSTEM_ADMIN', 'ACADEMIC_COORD', 'TECH_COORD', 'SCHOOL_CONTROL'].includes(profile?.role || '')
     const canCreateGroup = isStaff || isIndependent
+    const { ensure, dialog: prereqDialog } = usePrerequisites()
 
     // Fetch Groups with their subjects
     const { data: groups, isLoading } = useQuery({
@@ -278,6 +280,7 @@ export const GroupsPage = () => {
 
     return (
         <div className="space-y-4 sm:space-y-8 pb-20 animate-in fade-in duration-500 px-3 sm:px-0">
+            {prereqDialog}
             <div className="squishy-card bg-white p-5 sm:p-8 relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-cyan-50 opacity-50" />
                 <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -307,20 +310,8 @@ export const GroupsPage = () => {
                                     return
                                 }
 
-                                // Prerequisite Check: Academic Year and Periods
-                                const { data: years } = await supabase.from('academic_years').select('id').eq('is_active', true).eq('tenant_id', tenant?.id)
-                                const { data: periods } = await supabase.from('evaluation_periods').select('id').eq('tenant_id', tenant?.id)
-
-                                if (!years || years.length === 0 || !periods || periods.length === 0) {
-                                    setErrorModal({
-                                        isOpen: true,
-                                        title: 'Configuración Requerida',
-                                        message: 'Antes de crear grupos, debes configurar tu Ciclo Escolar y los Periodos de Evaluación para organizar correctamente tu ciclo académico.',
-                                        buttonText: 'Ir a Configuración',
-                                        action: () => navigate('/settings?tab=school')
-                                    })
-                                    return
-                                }
+                                // La regla de oro: sin ciclo y periodos no se puede crear un grupo
+                                if (!(await ensure(['ciclo'], 'crear un grupo'))) return
 
                                 setIsModalOpen(true)
                             }}

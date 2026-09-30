@@ -28,7 +28,9 @@ export default defineConfig({
       },
       workbox: {
         // Todo el código de la app (incluidas las pantallas de carga diferida) queda guardado.
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2,mp3}'],
+        // Al tocar un aviso se abre la conversación (y queda listo para avisos con la app cerrada)
+        importScripts: ['/sw-avisos.js'],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         // Las páginas se piden primero al servidor (así un enlace nuevo, como una invitación, abre la
         // versión más reciente). Sin señal o si tarda más de 3 s, se usa la copia guardada.

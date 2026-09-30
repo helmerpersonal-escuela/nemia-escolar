@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { LifeBuoy, Loader2, Send, CheckCircle2, Clock, XCircle, Save, History } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
@@ -45,7 +45,12 @@ export const SupportRequestsPage = () => {
     const [me, setMe] = useState<string | null>(null)
     const [loading, setLoading] = useState(true)
     const [tab, setTab] = useState<'open' | 'closed'>('open')
-    const [form, setForm] = useState({ kind: 'PERSONAL', title: '', details: '' })
+    const [params] = useSearchParams()
+    const [form, setForm] = useState(() => ({
+        kind: REQUEST_KINDS[params.get('tipo') ?? ''] ? params.get('tipo')! : 'PERSONAL',
+        title: (params.get('titulo') ?? '').slice(0, 140),
+        details: params.get('detalle') ?? '',
+    }))
     const [sending, setSending] = useState(false)
     const [edit, setEdit] = useState<Record<string, { status: Status; response: string }>>({})
     const [busy, setBusy] = useState<string | null>(null)

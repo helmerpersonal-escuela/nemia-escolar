@@ -148,6 +148,8 @@ for (const [d, k] of Object.entries(dens)) {
     await tile(`${RES}/mipmap-${d}/ic_launcher_round.png`, 48 * k, { shape: 'circle', scale: 0.62 })
     // Capa del icono adaptable: el dibujo cabe en la zona segura (66 de 108 dp)
     await tile(`${RES}/mipmap-${d}/ic_launcher_foreground.png`, 108 * k, { bg: 'transparent', scale: 0.47, transparent: true })
+    // Icono de la barra de estado para los avisos (Android lo pinta de un solo color: blanco sobre transparente)
+    await tile(`${RES}/drawable-${d}/ic_stat_vunlek.png`, 24 * k, { bg: 'transparent', scale: 0.92, transparent: true })
 }
 const sp = { 'drawable': [480, 320], 'drawable-land-mdpi': [480, 320], 'drawable-land-hdpi': [800, 480], 'drawable-land-xhdpi': [1280, 720], 'drawable-land-xxhdpi': [1600, 960], 'drawable-land-xxxhdpi': [1920, 1280],
     'drawable-port-mdpi': [320, 480], 'drawable-port-hdpi': [480, 800], 'drawable-port-xhdpi': [720, 1280], 'drawable-port-xxhdpi': [960, 1600], 'drawable-port-xxxhdpi': [1280, 1920] }

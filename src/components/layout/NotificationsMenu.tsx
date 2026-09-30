@@ -202,7 +202,9 @@ export const NotificationsMenu = () => {
 
         fetchAllNotifications()
         const interval = setInterval(fetchAllNotifications, 60000)
-        return () => clearInterval(interval)
+        // Al llegar un mensaje del chat, la campana se actualiza al momento (no hasta el siguiente minuto)
+        window.addEventListener('edu:chat-message', fetchAllNotifications)
+        return () => { clearInterval(interval); window.removeEventListener('edu:chat-message', fetchAllNotifications) }
     }, [tenant?.id, dismissedIds])
 
     return (

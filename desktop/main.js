@@ -1,6 +1,6 @@
 // VUNLEK para escritorio: una ventana propia que abre www.vunlek.com.
 // Como carga el sitio en línea, siempre tiene la versión más nueva (no hay que reinstalar).
-const { app, BrowserWindow, shell, session, Menu, dialog } = require('electron')
+const { app, BrowserWindow, shell, session, Menu, dialog, ipcMain } = require('electron')
 const path = require('path')
 
 const APP_URL = 'https://www.vunlek.com'
@@ -14,6 +14,17 @@ const CHROME_UA = (ua) => ua.replace(/\s?Electron\/[\d.]+/, '').replace(/\s?vunl
 
 let win = null
 
+// Windows muestra los avisos con el nombre e ícono de la app solo si tiene su identificador
+if (process.platform === 'win32') app.setAppUserModelId('com.vunlek.escritorio')
+
+// Avisos de mensajes: traer la ventana al frente o hacer parpadear el ícono
+ipcMain.on('vunlek:focus', () => {
+  if (!win) return
+  if (win.isMinimized()) win.restore()
+  win.show(); win.focus()
+})
+ipcMain.on('vunlek:attention', () => { if (win && !win.isFocused()) win.flashFrame(true) })
+
 function createWindow () {
   win = new BrowserWindow({
     width: 1280,
@@ -24,9 +35,10 @@ function createWindow () {
     icon: path.join(__dirname, 'build', 'icon.png'),
     backgroundColor: '#f8fafc',
     autoHideMenuBar: true,
-    webPreferences: { contextIsolation: true, sandbox: true, spellcheck: true }
+    webPreferences: { contextIsolation: true, sandbox: true, spellcheck: true, preload: path.join(__dirname, 'preload.js') }
   })
   win.webContents.setUserAgent(CHROME_UA(win.webContents.getUserAgent()))
+  win.on('focus', () => win && win.flashFrame(false))
   win.webContents.session.setSpellCheckerLanguages(['es-MX', 'es'])
 
   // Enlaces externos (PDF, WhatsApp, etc.) en el navegador del sistema

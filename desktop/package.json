@@ -26,6 +26,7 @@
     },
     "files": [
       "main.js",
+      "preload.js",
       "offline.html",
       "build/icon.png",
       "build/icon.ico"

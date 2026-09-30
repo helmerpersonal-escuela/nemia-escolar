@@ -48,12 +48,6 @@ export const useChat = (roomId?: string) => {
     const [rooms, setRooms] = useState<ChatRoom[]>([])
     const [loading, setLoading] = useState(true)
 
-    // Sound notification
-    const playNotificationSound = useCallback(() => {
-        const audio = new Audio('/sounds/notification.mp3')
-        audio.play().catch(e => console.log('Sound play blocked by browser:', e))
-    }, [])
-
     // Load rooms
     const loadRooms = useCallback(async () => {
         try {
@@ -207,8 +201,8 @@ export const useChat = (roomId?: string) => {
                         setMessages(prev => [...prev, newMessage])
 
                         const { data: { user } } = await supabase.auth.getUser()
+                        // El sonido y el aviso los maneja useChatNotifications (en toda la app)
                         if (user && payload.new.sender_id !== user.id) {
-                            playNotificationSound()
                             if (document.visibilityState === 'visible') supabase.rpc('mark_chat_read', { p_room: roomId }).then(() => undefined)
                         }
                     }
@@ -226,7 +220,7 @@ export const useChat = (roomId?: string) => {
                 supabase.removeChannel(activeChannel)
             }
         }
-    }, [roomId, loadMessages, playNotificationSound])
+    }, [roomId, loadMessages])
 
     // Start or get Direct Chat
     const startDirectChat = async (targetProfileId: string) => {

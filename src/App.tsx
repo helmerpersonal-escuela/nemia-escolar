@@ -61,6 +61,7 @@ const ReportsRoute = lazyNamed(() => import('./components/routes/RoleRoutes'), '
 const AttendanceRoute = lazyNamed(() => import('./components/routes/RoleRoutes'), 'AttendanceRoute')
 const IncidentsRoute = lazyNamed(() => import('./components/routes/RoleRoutes'), 'IncidentsRoute')
 import { ProtectedRoute } from './components/routes/ProtectedRoute'
+import { RequireSteps } from './components/prereq/Prerequisites'
 import { SubscriptionGuard } from './components/routes/SubscriptionGuard'
 const CTEPage = lazyNamed(() => import('./features/cte/pages/CTEPage'), 'CTEPage')
 const NewSchoolYearWizard = lazyNamed(() => import('./features/school-year/pages/NewSchoolYearWizard'), 'NewSchoolYearWizard')
@@ -262,7 +263,7 @@ function App() {
           } />
           <Route path="familias/codigos" element={
             <ProtectedRoute allowedRoles={['SYSTEM_ADMIN', 'DIRECTOR', 'ADMIN', 'SCHOOL_CONTROL', 'ACADEMIC_COORD', 'TECH_COORD']}>
-              <FamilyCodesPage />
+              <RequireSteps steps={['tutores']} action="generar los códigos para familias"><FamilyCodesPage /></RequireSteps>
             </ProtectedRoute>
           } />
           <Route path="solicitudes" element={
@@ -277,7 +278,7 @@ function App() {
           } />
           <Route path="onboarding/*" element={<OnboardingWizard onComplete={() => window.location.href = '/'} />} />
           <Route path="settings" element={<SettingsPage />} />
-          <Route path="schedule" element={<SchedulePage />} />
+          <Route path="schedule" element={<RequireSteps steps={['jornada', 'materias']} action="ver o armar el horario"><SchedulePage /></RequireSteps>} />
           <Route path="agenda" element={<AgendaPage />} />
           <Route path="formatos" element={
             <ProtectedRoute allowedRoles={['TEACHER', 'INDEPENDENT_TEACHER', 'DIRECTOR', 'ADMIN', 'ACADEMIC_COORD', 'TECH_COORD']}>
@@ -289,7 +290,7 @@ function App() {
               <AdvisoryGroupPage />
             </ProtectedRoute>
           } />
-          <Route path="evaluation/setup" element={<EvaluationSetupPage />} />
+          <Route path="evaluation/setup" element={<RequireSteps steps={['ciclo', 'asignacion']} action="configurar la evaluación"><EvaluationSetupPage /></RequireSteps>} />
           <Route path="rubrics" element={<RubricListPage />} />
           <Route path="rubrics/new" element={<InstrumentBuilderPage />} />
           <Route path="rubrics/ver/:id" element={<InstrumentViewPage />} />
@@ -298,7 +299,7 @@ function App() {
           <Route path="evaluation/portfolio" element={<StudentPortfolioPage />} />
           <Route path="gradebook" element={
             <ProtectedRoute allowedRoles={['TEACHER', 'DIRECTOR', 'INDEPENDENT_TEACHER']}>
-              <GradebookPage />
+              <RequireSteps steps={['asignacion', 'alumnos', 'ciclo']} action="pasar lista o calificar"><GradebookPage /></RequireSteps>
             </ProtectedRoute>
           } />
           <Route path="planning" element={
@@ -308,7 +309,7 @@ function App() {
           } />
           <Route path="planning/new" element={
             <ProtectedRoute allowedRoles={['TEACHER', 'DIRECTOR', 'ACADEMIC_COORD', 'INDEPENDENT_TEACHER']}>
-              <PlanningEditorPage />
+              <RequireSteps steps={['asignacion', 'ciclo']} action="hacer una planeación"><PlanningEditorPage /></RequireSteps>
             </ProtectedRoute>
           } />
           <Route path="planning/:id" element={
@@ -337,9 +338,9 @@ function App() {
           <Route path="tracking/:studentId" element={<StudentTrackingPage />} />
           <Route path="incidents" element={<IncidentsRoute />} />
           <Route path="bap" element={<StudentTrackingPage />} />
-          <Route path="stats" element={<SchoolStatsPage />} />
+          <Route path="stats" element={<RequireSteps steps={['alumnos']} action="ver las estadísticas"><SchoolStatsPage /></RequireSteps>} />
           <Route path="reports/student/:studentId" element={<StudentReportPage />} />
-          <Route path="reports/evaluation" element={<EvaluationReportPage />} />
+          <Route path="reports/evaluation" element={<RequireSteps steps={['alumnos', 'ciclo']} action="generar boletas"><EvaluationReportPage /></RequireSteps>} />
           <Route path="reports" element={<ReportsRoute />} />
           <Route path="messages" element={<ChatModule />} />
           <Route path="messages/:roomId" element={<ChatModule />} />
@@ -398,7 +399,7 @@ function App() {
           <Route path="attendance/staff" element={<StaffAttendancePortal />} />
           <Route path="attendance/justifications" element={<JustificationManager />} />
           <Route path="attendance/lates" element={<LatesPage />} />
-          <Route path="substitutions" element={<SubstitutionDashboard />} />
+          <Route path="substitutions" element={<RequireSteps steps={['jornada', 'materias']} action="cubrir suplencias"><SubstitutionDashboard /></RequireSteps>} />
           <Route path="citations" element={<CitationsPage />} />
           <Route path="interviews" element={<TrackingPage />} />
           <Route path="absences" element={

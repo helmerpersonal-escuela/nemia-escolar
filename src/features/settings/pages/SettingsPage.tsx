@@ -3,8 +3,9 @@ import { formatSubjectName } from '../../../lib/subjectName';
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
-import { Pencil, User, School, Lock, Save, BookOpen, Sparkles, Database, Copy, Trash2, Calendar, Users, Clock, Plus, CreditCard, ArrowLeft, GraduationCap, Check, Layers } from 'lucide-react'
+import { Pencil, User, School, Lock, Save, BookOpen, Sparkles, Database, Copy, Trash2, Calendar, Users, Clock, Plus, CreditCard, ArrowLeft, GraduationCap, Check, Layers, Bell } from 'lucide-react'
 import { StaffManager } from '../components/StaffManager'
+import { NotificationSettings } from '../components/NotificationSettings'
 import { PeriodManager } from '../../evaluation/components/PeriodManager'
 import { ScheduleConfig } from '../components/ScheduleConfig'
 import { SpecialScheduleManager } from '../components/SpecialScheduleManager'
@@ -65,7 +66,7 @@ export const SettingsPage = () => {
     const [loading, setLoading] = useState(true)
     const [updating, setUpdating] = useState(false)
     const queryClient = useQueryClient()
-    const [activeTab, setActiveTab] = useState<'profile' | 'school' | 'subjects' | 'periods' | 'cycle' | 'horarios' | 'personal' | 'security' | 'ai' | 'billing'>(initialTab)
+    const [activeTab, setActiveTab] = useState<'profile' | 'school' | 'subjects' | 'periods' | 'cycle' | 'horarios' | 'personal' | 'security' | 'avisos' | 'ai' | 'billing'>(initialTab)
     const location = useLocation()
     const [successMessage, setSuccessMessage] = useState('')
     const [profile, setProfile] = useState({
@@ -590,6 +591,7 @@ export const SettingsPage = () => {
                             title: 'Personal', items: [
                                 { id: 'profile', label: 'Mi perfil', icon: User },
                                 ...(['TEACHER', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD', 'ADMIN', 'INDEPENDENT_TEACHER'].includes(currentRole) ? [{ id: 'subjects', label: 'Mis materias', icon: BookOpen }] : []),
+                                { id: 'avisos', label: 'Avisos y sonido', icon: Bell },
                                 { id: 'security', label: 'Seguridad', icon: Lock },
                                 ...(profile.role?.toUpperCase() !== 'TUTOR' ? [{ id: 'billing', label: 'Mi cuenta', icon: CreditCard }] : []),
                             ]
@@ -1041,7 +1043,8 @@ export const SettingsPage = () => {
                                 )
                             }
 
-                            {/* SECURITY TAB */}
+                            {activeTab === 'avisos' && <NotificationSettings />}
+
                             {/* SECURITY TAB */}
                             {activeTab === 'security' && (
                                 <SecuritySettings
