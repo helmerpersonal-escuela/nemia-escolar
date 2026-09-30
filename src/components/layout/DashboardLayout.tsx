@@ -25,7 +25,6 @@ import {
     Clock,
     ShieldAlert,
     UserCheck,
-    Sparkles,
     Zap,
     Loader2,
     MessageSquare,
@@ -52,6 +51,7 @@ import { PageHelpButton } from '../help/PageHelp'
 import { TrialNotificationSystem } from '../../features/subscription/components/TrialNotificationSystem'
 import { NewCycleBanner } from '../../features/school-year/components/NewCycleBanner'
 import { useCooperativeRecord } from '../../features/cooperative/lib/useCooperative'
+import { BrandLogo } from '../brand/BrandLogo'
 
 const DocumentTitle = ({ title }: { title: string }) => {
     useEffect(() => { document.title = `${title} · Vunlek` }, [title])
@@ -403,7 +403,7 @@ export const DashboardLayout = () => {
             <div className="min-h-screen bg-slate-50 flex items-center justify-center p-8">
                 <div className="text-center max-w-md animate-in fade-in duration-700">
                     <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-xl shadow-indigo-100">
-                        <Sparkles className="w-10 h-10 animate-pulse" />
+                        <BrandLogo className="w-12 h-auto animate-pulse" alt="" />
                     </div>
                     <h2 className="text-3xl font-black text-slate-900 mb-3 tracking-tight">Preparando tu Espacio</h2>
                     <p className="text-slate-500 font-medium mb-8 leading-relaxed">
@@ -832,9 +832,7 @@ export const DashboardLayout = () => {
 
                     {/* Logo */}
                     <div className="h-24 flex items-center px-8 relative z-10">
-                        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-2.5 rounded-2xl mr-3 shadow-lg shadow-indigo-200 hover:scale-110 transition-transform cursor-pointer">
-                            <Sparkles className="h-6 w-6 text-white" />
-                        </div>
+                        <BrandLogo className="h-12 w-auto mr-3 shrink-0" alt="" />
                         <div>
                             <span className="text-2xl font-black text-slate-800 tracking-tight block leading-none">
                                 VUNLEK

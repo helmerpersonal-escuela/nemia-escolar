@@ -50,3 +50,6 @@ coverage/
 /*.log
 /*_output*.txt
 /push_error*.txt
+
+# Archivos que deja Claude al compartir vistas previas
+/Claude outputs/

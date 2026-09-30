@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { GoogleButton } from '../components/GoogleButton'
-import { Sparkles, Loader2, Lock, Mail, ArrowRight, AlertTriangle } from 'lucide-react'
+import { Loader2, Lock, Mail, ArrowRight, AlertTriangle } from 'lucide-react'
+import { BrandLogo } from '../../../components/brand/BrandLogo'
 
 export const LoginPage = () => {
     const [email, setEmail] = useState('')
@@ -74,7 +75,7 @@ export const LoginPage = () => {
 
                 <div className="relative z-20 max-w-xl px-12 text-center text-white">
                     <div className="w-24 h-24 bg-white/10 backdrop-blur-md rounded-[2rem] flex items-center justify-center mx-auto mb-8 border-2 border-white/20 shadow-2xl">
-                        <Sparkles className="w-12 h-12 text-white inflatable-icon" />
+                        <BrandLogo tone="blanco" className="w-16 h-auto" alt="" />
                     </div>
                     <h1 className="text-5xl font-black mb-6 tracking-tight leading-tight">
                         VUNLEK <br />
@@ -90,9 +91,7 @@ export const LoginPage = () => {
             <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 bg-gradient-to-b from-indigo-50 to-white relative overflow-hidden">
                 <div className="squishy-card bg-white max-w-md w-full animate-in fade-in slide-in-from-right-8 duration-500 p-6 sm:p-8 md:p-10 relative z-10">
                     <div className="text-center mb-10">
-                        <div className="w-16 h-16 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-indigo-200 lg:hidden">
-                            <Sparkles className="w-8 h-8 text-white" />
-                        </div>
+                        <BrandLogo variant="vertical" className="h-24 w-auto mx-auto mb-6 lg:hidden" />
                         <h2 className="text-3xl font-black text-slate-800 mb-2 tracking-tight">
                             {resetSent ? 'Revisa tu correo' : (forgotMode ? 'Recuperar Acceso' : 'Bienvenido')}
                         </h2>

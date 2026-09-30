@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import { User, School, Loader2, LogOut, Sparkles, HeartHandshake } from 'lucide-react'
+import { User, School, Loader2, LogOut, HeartHandshake } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { queryClient } from '../../../lib/queryClient'
 import { clearPendingSignup, readPendingSignup } from '../lib/googleAuth'
 import { isCompleteFamilyCode, normalizeFamilyCode, redeemFamilyCode } from '../../family/lib/familyCode'
+import { BrandLogo } from '../../../components/brand/BrandLogo'
 
 type Mode = 'INDEPENDENT' | 'SCHOOL' | 'FAMILY'
 
@@ -133,9 +134,7 @@ export const CompleteSignupPage = () => {
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
             <form onSubmit={submit} className="bg-white w-full max-w-xl rounded-[2rem] shadow-xl border border-slate-100 p-8 space-y-6">
                 <div className="text-center">
-                    <div className="w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center mx-auto mb-4">
-                        <Sparkles className="w-7 h-7" />
-                    </div>
+                    <BrandLogo className="h-14 w-auto mx-auto mb-4" />
                     <h1 className="text-2xl font-black text-slate-900">Completa tu registro</h1>
                     <p className="text-sm text-slate-500 mt-1">Entraste con <b>{status.email}</b></p>
                 </div>

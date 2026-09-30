@@ -10,7 +10,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: false, // se registra desde src/lib/offline/registerSW.ts
-      includeAssets: ['logo-nemia.png', 'pwa-192.png', 'pwa-512.png'],
+      includeAssets: ['favicon.ico', 'favicon.svg', 'apple-touch-icon.png', 'pwa-192.png', 'pwa-512.png', 'pwa-maskable-512.png', 'brand/*.svg'],
       manifest: {
         name: 'Vunlek — Gestión Escolar',
         short_name: 'Vunlek',
@@ -23,6 +23,7 @@ export default defineConfig({
         icons: [
           { src: '/pwa-192.png', sizes: '192x192', type: 'image/png' },
           { src: '/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/pwa-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {

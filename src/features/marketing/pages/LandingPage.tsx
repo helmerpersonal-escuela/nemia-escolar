@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { Rocket, Shield, Zap, Users, BookOpen, ChevronRight, Play, Star, Sparkles, Globe, Cpu, MousePointer2, Mail, MessageSquarePlus, X } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
+import { BrandLogo } from '../../../components/brand/BrandLogo'
 
 export const LandingPage = () => {
     const navigate = useNavigate()
@@ -91,9 +92,7 @@ export const LandingPage = () => {
                         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                         className="flex items-center gap-3 group cursor-pointer"
                     >
-                        <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-110 transition-transform">
-                            <Rocket className="w-6 h-6 text-white" />
-                        </div>
+                        <BrandLogo tone="blanco" className="h-10 w-auto group-hover:scale-110 transition-transform" alt="" />
                         <span className="text-2xl font-black tracking-tighter italic uppercase group-hover:tracking-normal transition-all duration-500">VUNLEK</span>
                     </div>
 
@@ -359,9 +358,7 @@ export const LandingPage = () => {
             <footer className="py-20 px-6 border-t border-white/5">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-10">
                     <div className="flex items-center gap-4">
-                        <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-                            <Rocket className="w-5 h-5 text-white" />
-                        </div>
+                        <BrandLogo tone="blanco" className="h-8 w-auto" alt="" />
                         <span className="text-xl font-black uppercase italic tracking-tighter">VUNLEK</span>
                     </div>
                     <div className="flex flex-col items-center gap-3">

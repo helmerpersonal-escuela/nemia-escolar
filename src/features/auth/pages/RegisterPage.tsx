@@ -3,12 +3,13 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { GoogleButton } from '../components/GoogleButton'
 import { Capacitor } from '@capacitor/core'
-import { School, User, Loader2, ArrowLeft, Mail, Lock, Building2, BookOpen, Check } from 'lucide-react'
+import { School, User, Loader2, ArrowLeft, Mail, Lock, Building2, Check } from 'lucide-react'
 
 type RegistrationMode = 'INDEPENDENT' | 'SCHOOL' | 'JOIN' | null
 
 import { TermsModal } from '../../../components/auth/TermsModal'
 import { PrivacyModal } from '../../../components/auth/PrivacyModal'
+import { BrandLogo } from '../../../components/brand/BrandLogo'
 
 export const RegisterPage = () => {
     const navigate = useNavigate()
@@ -260,7 +261,7 @@ export const RegisterPage = () => {
 
                 <div className="relative z-20 max-w-xl px-12 text-center text-white">
                     <div className="w-24 h-24 bg-white/10 backdrop-blur-md rounded-[2rem] flex items-center justify-center mx-auto mb-8 border-2 border-white/20 shadow-2xl">
-                        <BookOpen className="w-12 h-12 text-white inflatable-icon" />
+                        <BrandLogo tone="blanco" className="w-16 h-auto" alt="VUNLEK" />
                     </div>
                     <h1 className="text-4xl font-black mb-6 tracking-tight leading-tight">
                         Únete a la Revolución <br />
