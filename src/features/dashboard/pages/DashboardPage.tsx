@@ -4,6 +4,7 @@ import { useNavigate, Navigate } from 'react-router-dom'
 // Role Dashboards
 import { TeacherDashboard } from '../../evaluation/pages/TeacherDashboard'
 import { DirectorDashboard } from '../components/roles/DirectorDashboard'
+import { TechAdminDashboard } from '../components/roles/TechAdminDashboard'
 import { CoordinationDashboard } from '../components/roles/CoordinationDashboard'
 import { ControlEscolarDashboard } from '../components/roles/ControlEscolarDashboard'
 import { PrefecturaDashboard } from '../components/roles/PrefecturaDashboard'
@@ -23,7 +24,7 @@ export const DashboardPage = () => {
     let currentRole = (tenant as any)?.role || 'TEACHER'
 
     // Robust Role Enforcement for Independent Workspaces
-    const PROTECTED_ROLES = ['TUTOR', 'SCHOOL_CONTROL', 'PREFECT', 'SUPPORT', 'STUDENT', 'SUPER_ADMIN']
+    const PROTECTED_ROLES = ['TUTOR', 'SCHOOL_CONTROL', 'PREFECT', 'SUPPORT', 'STUDENT', 'SUPER_ADMIN', 'SYSTEM_ADMIN']
     if (workspaceType === 'INDEPENDENT' && !PROTECTED_ROLES.includes(currentRole)) {
         currentRole = 'INDEPENDENT_TEACHER'
     }
@@ -46,6 +47,7 @@ export const DashboardPage = () => {
 
     if (currentRole === 'ADMIN') return withCoop(<AdminDashboard />)
     if (currentRole === 'DIRECTOR') return withCoop(<DirectorDashboard />)
+    if (currentRole === 'SYSTEM_ADMIN') return <TechAdminDashboard />
     if (currentRole === 'ACADEMIC_COORD') return withCoop(<CoordinationDashboard />)
     if (currentRole === 'TECH_COORD') return withCoop(<TechCoordinationDashboard />)
     if (currentRole === 'SCHOOL_CONTROL') return <ControlEscolarDashboard />

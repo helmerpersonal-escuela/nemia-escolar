@@ -15,9 +15,9 @@ type Commission = { id: string; school_year: string; name: string; members: { ro
 
 const ROLES: Record<string, string> = {
     TEACHER: 'Docente', DIRECTOR: 'Directivo', ACADEMIC_COORD: 'Coordinación académica', TECH_COORD: 'Coordinación de tecnologías',
-    SCHOOL_CONTROL: 'Control escolar / Secretaría', PREFECT: 'Prefectura', SUPPORT: 'Apoyo educativo / USAER', ADMIN: 'Administración',
+    SCHOOL_CONTROL: 'Control escolar / Secretaría', PREFECT: 'Prefectura', SUPPORT: 'Apoyo educativo / USAER', ADMIN: 'Administración', SYSTEM_ADMIN: 'Administrador técnico',
 }
-const INVITABLE = ['TEACHER', 'ACADEMIC_COORD', 'TECH_COORD', 'SCHOOL_CONTROL', 'PREFECT', 'SUPPORT', 'DIRECTOR']
+const BASE_INVITABLE = ['TEACHER', 'ACADEMIC_COORD', 'TECH_COORD', 'SCHOOL_CONTROL', 'PREFECT', 'SUPPORT']
 const fullOf = (m: Member) => [m.first_name, m.last_name_paternal, m.last_name_maternal].filter(Boolean).join(' ')
 
 /**
@@ -25,7 +25,9 @@ const fullOf = (m: Member) => [m.first_name, m.last_name_paternal, m.last_name_m
  * cuenta. Desde aquí se les invita con su correo o se ligan con una cuenta que ya existe; al ligarlas,
  * reciben automáticamente las materias y grupos que el horario les asigna.
  */
-export function StaffRosterCard({ tenantId, canInvite, onChanged }: { tenantId: string; canInvite: boolean; onChanged?: () => void }) {
+export function StaffRosterCard({ tenantId, canInvite, myRole, onChanged }: { tenantId: string; canInvite: boolean; myRole?: string; onChanged?: () => void }) {
+    // El administrador técnico no invita directivos (eso lo hace la dirección)
+    const INVITABLE = myRole === 'SYSTEM_ADMIN' ? BASE_INVITABLE : [...BASE_INVITABLE, 'DIRECTOR', 'SYSTEM_ADMIN']
     const { showToast } = useToast()
     const [rows, setRows] = useState<RosterRow[]>([])
     const [members, setMembers] = useState<Member[]>([])

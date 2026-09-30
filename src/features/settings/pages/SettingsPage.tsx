@@ -139,13 +139,13 @@ export const SettingsPage = () => {
     // Robust Role Enforcement
     const workspaceType = tenant?.type || 'SCHOOL'
     let currentRole = (hookProfile?.role || profile?.role || '').toUpperCase()
-    const PROTECTED_ROLES = ['TUTOR', 'SCHOOL_CONTROL', 'PREFECT', 'SUPPORT', 'STUDENT', 'SUPER_ADMIN']
+    const PROTECTED_ROLES = ['TUTOR', 'SCHOOL_CONTROL', 'PREFECT', 'SUPPORT', 'STUDENT', 'SUPER_ADMIN', 'SYSTEM_ADMIN']
 
     if (workspaceType === 'INDEPENDENT' && !PROTECTED_ROLES.includes(currentRole)) {
         currentRole = 'INDEPENDENT_TEACHER'
     }
 
-    const isDirectorOrAdmin = ['DIRECTOR', 'ADMIN', 'SUPER_ADMIN', 'INDEPENDENT_TEACHER', 'ACADEMIC_COORD', 'TECH_COORD'].includes(currentRole)
+    const isDirectorOrAdmin = ['DIRECTOR', 'ADMIN', 'SUPER_ADMIN', 'SYSTEM_ADMIN', 'INDEPENDENT_TEACHER', 'ACADEMIC_COORD', 'TECH_COORD'].includes(currentRole)
     const isAcademicCoord = currentRole === 'ACADEMIC_COORD'
     const isSuperAdmin = hookIsSuperAdmin || ['helmerferras@gmail.com', 'helmerpersonal@gmail.com'].includes(profile?.email || '') || currentRole === 'SUPER_ADMIN'
     const isStaffReadOnly = !isDirectorOrAdmin
@@ -216,7 +216,7 @@ export const SettingsPage = () => {
 
                     if (tenantData) {
                         // Robust Role Enforcement
-                        const PROTECTED_ROLES = ['TUTOR', 'SCHOOL_CONTROL', 'PREFECT', 'SUPPORT', 'STUDENT', 'SUPER_ADMIN']
+                        const PROTECTED_ROLES = ['TUTOR', 'SCHOOL_CONTROL', 'PREFECT', 'SUPPORT', 'STUDENT', 'SUPER_ADMIN', 'SYSTEM_ADMIN']
                         if (tenantData.type === 'INDEPENDENT' && !PROTECTED_ROLES.includes(effectiveRole)) {
                             effectiveRole = 'INDEPENDENT_TEACHER'
                         }

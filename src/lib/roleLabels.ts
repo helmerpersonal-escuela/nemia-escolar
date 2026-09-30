@@ -3,6 +3,7 @@ export const ROLE_LABEL: Record<string, string> = {
     SUPER_ADMIN: 'Administración VUNLEK',
     ADMIN: 'Administración',
     DIRECTOR: 'Dirección',
+    SYSTEM_ADMIN: 'Administrador técnico',
     ACADEMIC_COORD: 'Coordinación académica',
     TECH_COORD: 'Coordinación de tecnologías',
     SCHOOL_CONTROL: 'Control escolar',

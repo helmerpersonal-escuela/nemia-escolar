@@ -39,7 +39,7 @@ export const EditGroupModal = ({ isOpen, onClose, onSuccess, group }: EditGroupM
     const [allStaff, setAllStaff] = useState<any[]>([])
     const [isCustomSection, setIsCustomSection] = useState(false)
 
-    const isStaff = ['ADMIN', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD', 'SCHOOL_CONTROL'].includes(profile?.role || '')
+    const isStaff = ['ADMIN', 'DIRECTOR', 'SYSTEM_ADMIN', 'ACADEMIC_COORD', 'TECH_COORD', 'SCHOOL_CONTROL'].includes(profile?.role || '')
 
     useEffect(() => {
         const loadData = async () => {

@@ -24,6 +24,15 @@ export interface SchoolOverview {
     hasSchedule: boolean
     hasPeriods: boolean
     announcements: { id: string; title: string; created_at: string }[]
+    /** Personas con puesto de administrador técnico y de dirección */
+    systemAdmins: number
+    directors: number
+    /** Solicitudes al técnico sin terminar (pendientes o en proceso) */
+    openRequests: number
+    /** Calidad de datos (lo revisa el técnico) */
+    guardiansNoPhone: number
+    studentsNoCurp: number
+    staffWithoutAccount: number
 }
 
 export const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : null)
@@ -43,7 +52,7 @@ export function useSchoolOverview() {
             const monthStart = new Date(); monthStart.setDate(1)
             const count = (r: { count: number | null }) => r.count ?? 0
 
-            const [students, staff, groups, gsNoTeacher, attToday, att30, plans, incidents, bap, staffAtt, sched, periods, ann, gsAll, families] = await Promise.all([
+            const [students, staff, groups, gsNoTeacher, attToday, att30, plans, incidents, bap, staffAtt, sched, periods, ann, gsAll, families, requests, noPhone, noCurp, roster] = await Promise.all([
                 supabase.from('students').select('id', { count: 'exact', head: true }).eq('tenant_id', t).or('status.is.null,status.not.in.(GRADUATED,INACTIVE)'),
                 supabase.rpc('school_staff'),
                 supabase.from('groups').select('id, grade, section').eq('tenant_id', t).is('archived_at', null),
@@ -59,6 +68,10 @@ export function useSchoolOverview() {
                 supabase.from('school_announcements').select('id, title, created_at').eq('tenant_id', t).order('created_at', { ascending: false }).limit(3),
                 supabase.from('group_subjects').select('id', { count: 'exact', head: true }).eq('tenant_id', t),
                 supabase.from('guardians').select('id', { count: 'exact', head: true }).eq('tenant_id', t).not('user_id', 'is', null),
+                supabase.from('support_requests').select('id', { count: 'exact', head: true }).eq('tenant_id', t).in('status', ['PENDING', 'IN_PROGRESS']),
+                supabase.from('guardians').select('id', { count: 'exact', head: true }).eq('tenant_id', t).or('phone.is.null,phone.eq.'),
+                supabase.from('students').select('id', { count: 'exact', head: true }).eq('tenant_id', t).or('status.is.null,status.not.in.(GRADUATED,INACTIVE)').is('curp', null),
+                supabase.from('staff_roster').select('id', { count: 'exact', head: true }).eq('tenant_id', t).is('profile_id', null),
             ])
 
             const staffRows = ((staff.data as any[]) || [])
@@ -101,6 +114,12 @@ export function useSchoolOverview() {
                 hasSchedule: !!sched.data,
                 hasPeriods: count(periods as any) > 0,
                 announcements: (ann.data as any[]) || [],
+                systemAdmins: staffRows.filter(s => String(s.role).toUpperCase() === 'SYSTEM_ADMIN').length,
+                directors: staffRows.filter(s => String(s.role).toUpperCase() === 'DIRECTOR').length,
+                openRequests: count(requests as any),
+                guardiansNoPhone: count(noPhone as any),
+                studentsNoCurp: count(noCurp as any),
+                staffWithoutAccount: count(roster as any),
             }
         },
     })

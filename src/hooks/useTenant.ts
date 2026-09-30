@@ -89,7 +89,7 @@ export const useTenant = () => {
                 // Only default to TEACHER/INDEPENDENT_TEACHER for school/independent workspaces
                 // DEFAULT INDEPENDENT OVERRIDE: 
                 // Any non-special role in an INDEPENDENT workspace becomes INDEPENDENT_TEACHER
-                const PROTECTED_ROLES = ['TUTOR', 'SCHOOL_CONTROL', 'PREFECT', 'SUPPORT', 'STUDENT', 'SUPER_ADMIN']
+                const PROTECTED_ROLES = ['TUTOR', 'SCHOOL_CONTROL', 'PREFECT', 'SUPPORT', 'STUDENT', 'SUPER_ADMIN', 'SYSTEM_ADMIN']
                 const fallbackRole = (tenant.type === 'INDEPENDENT' && !PROTECTED_ROLES.includes(profile.role))
                     ? 'INDEPENDENT_TEACHER'
                     : profile.role
@@ -128,7 +128,7 @@ export const useTenant = () => {
 
             // If the workspace is independent, the user MUST be treated as INDEPENDENT_TEACHER
             // UNLESS they have a special role that should be preserved (TUTOR, STUDENT, etc.)
-            const SPECIAL_ROLES = ['TUTOR', 'SCHOOL_CONTROL', 'PREFECT', 'SUPPORT', 'STUDENT', 'SUPER_ADMIN']
+            const SPECIAL_ROLES = ['TUTOR', 'SCHOOL_CONTROL', 'PREFECT', 'SUPPORT', 'STUDENT', 'SUPER_ADMIN', 'SYSTEM_ADMIN']
             if (tenant.type?.toUpperCase() === 'INDEPENDENT' && !SPECIAL_ROLES.includes(finalRole)) {
                 finalRole = 'INDEPENDENT_TEACHER'
             }

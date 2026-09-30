@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { InitialsAvatar } from '../../../components/ui/InitialsAvatar'
 import { supabase } from '../../../lib/supabase'
 import { useProfile } from '../../../hooks/useProfile'
-import { UserPlus, Mail, Copy, Trash2, Clock, Users, UserMinus, Loader2, KeyRound } from 'lucide-react'
+import { UserPlus, Mail, Copy, Trash2, Clock, Users, UserMinus, Loader2, KeyRound, ArrowRightLeft } from 'lucide-react'
 import { askConfirm } from '../../../components/ui/ConfirmDialog'
 import { useToast } from '../../../components/ui/Toast'
 import { SettingsCard, SettingsActionButton } from './SettingsUI'
@@ -20,13 +20,21 @@ const ROLES = [
     { id: 'SCHOOL_CONTROL', name: 'Control escolar / Secretaría' },
     { id: 'PREFECT', name: 'Prefectura' },
     { id: 'SUPPORT', name: 'Apoyo educativo / USAER' },
+    { id: 'SYSTEM_ADMIN', name: 'Administrador técnico' },
 ]
+/** Puestos que el administrador técnico no puede asignar ni modificar (los decide la dirección). */
+const DIRECTIVE_ROLES = ['DIRECTOR', 'ADMIN', 'SYSTEM_ADMIN', 'SUPER_ADMIN']
 
 export const StaffManager = () => {
     const { profile } = useProfile()
     const [loading, setLoading] = useState(true)
 
-    const isDirectorOrAdmin = ['DIRECTOR', 'ADMIN', 'SUPER_ADMIN'].includes((profile?.role || '').toUpperCase())
+    const myRole = (profile?.role || '').toUpperCase()
+    const isTech = myRole === 'SYSTEM_ADMIN'
+    const isDirectorOrAdmin = ['DIRECTOR', 'ADMIN', 'SUPER_ADMIN', 'SYSTEM_ADMIN'].includes(myRole)
+    // El técnico da de alta a docentes y personal, pero no a directivos ni a otros técnicos
+    const roleOptions = isTech ? ROLES.filter(r => !DIRECTIVE_ROLES.includes(r.id)) : ROLES
+    const canTouch = (m: any) => !isTech || !DIRECTIVE_ROLES.includes(String(m.role || '').toUpperCase())
     const { showToast } = useToast()
     const [busyId, setBusyId] = useState<string | null>(null)
     const { data: tenantCtx } = useTenant()
@@ -210,6 +218,17 @@ export const StaffManager = () => {
         loadData()
     }
 
+    const [handingOver, setHandingOver] = useState(false)
+    const handOver = async () => {
+        if (!(await askConfirm('Tu puesto cambiará a Administrador técnico: seguirás cargando y corrigiendo datos, pero ya no verás calificaciones, asistencia ni expedientes. ¿Continuar?', { title: 'Ceder la dirección', confirmLabel: 'Sí, ceder' }))) return
+        setHandingOver(true)
+        const { error } = await supabase.rpc('hand_over_direction')
+        setHandingOver(false)
+        if (error) { showToast(error.message, 'error'); return }
+        showToast('Listo: ahora eres Administrador técnico.', 'success')
+        window.location.href = '/'
+    }
+
     const roleName = (id: string) => ROLES.find(r => r.id === (id || '').toUpperCase())?.name || id
 
     if (loading && staff.length === 0) return <p className="text-sm text-slate-500 flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Cargando personal…</p>
@@ -222,9 +241,11 @@ export const StaffManager = () => {
                         <button type="button" role="radio" aria-checked={registrationMethod === 'invite'} onClick={() => setRegistrationMethod('invite')} className={wizardChoice(registrationMethod === 'invite')}>
                             <Radio checked={registrationMethod === 'invite'} /> Enviarle una invitación
                         </button>
-                        <button type="button" role="radio" aria-checked={registrationMethod === 'direct'} onClick={() => setRegistrationMethod('direct')} className={wizardChoice(registrationMethod === 'direct')}>
-                            <Radio checked={registrationMethod === 'direct'} /> Crear su acceso yo
-                        </button>
+                        {!isTech && (
+                            <button type="button" role="radio" aria-checked={registrationMethod === 'direct'} onClick={() => setRegistrationMethod('direct')} className={wizardChoice(registrationMethod === 'direct')}>
+                                <Radio checked={registrationMethod === 'direct'} /> Crear su acceso yo
+                            </button>
+                        )}
                     </div>
                     <p className="text-sm text-slate-500">
                         {registrationMethod === 'invite'
@@ -240,7 +261,7 @@ export const StaffManager = () => {
                             </WizardField>
                             <WizardField label="Puesto" required>
                                 <select aria-label="Puesto" className={wizardInput} value={inviteData.role} onChange={(e) => setInviteData({ ...inviteData, role: e.target.value })}>
-                                    {ROLES.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                    {roleOptions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                                 </select>
                             </WizardField>
                             {registrationMethod === 'direct' && (
@@ -257,7 +278,7 @@ export const StaffManager = () => {
                                 </>
                             )}
                         </div>
-                        {inviteData.role !== 'TEACHER' && (
+                        {!['TEACHER', 'SYSTEM_ADMIN'].includes(inviteData.role) && (
                             <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 space-y-2">
                                 <p className="text-sm font-bold text-slate-700">Su encargo (opcional; puedes cambiarlo después)</p>
                                 <StaffAssignmentFields role={inviteData.role} level={level} value={newAssignment} onChange={setNewAssignment} />
@@ -334,11 +355,11 @@ export const StaffManager = () => {
                                         {m.duties && <p className="mt-1 text-sm text-slate-600 line-clamp-2">Actividades: {m.duties}</p>}
                                     </div>
                                 </div>
-                                {isDirectorOrAdmin && !m.is_me ? (
+                                {isDirectorOrAdmin && !m.is_me && canTouch(m) ? (
                                     <div className="flex flex-wrap items-center justify-end gap-2">
                                         <select aria-label={`Puesto de ${name}`} disabled={busy} className={`${wizardInput} !py-2 flex-1 min-w-[11rem] sm:max-w-xs`} value={(m.role || '').toUpperCase()} onChange={e => changeRole(m, e.target.value)}>
-                                            {ROLES.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                                            {!ROLES.some(r => r.id === (m.role || '').toUpperCase()) && <option value={m.role}>{m.role}</option>}
+                                            {roleOptions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                            {!roleOptions.some(r => r.id === (m.role || '').toUpperCase()) && <option value={m.role}>{m.role}</option>}
                                         </select>
                                         <SettingsActionButton icon={Pencil} disabled={busy} onClick={() => setEditing({ id: m.profile_id, a: { job_title: m.job_title || '', assigned_grades: m.assigned_grades || [], duties: m.duties || '' } })}>Encargo</SettingsActionButton>
                                         <SettingsActionButton tone="danger" icon={busy ? Loader2 : UserMinus} disabled={busy} onClick={() => removeMember(m)}>Dar de baja</SettingsActionButton>
@@ -361,7 +382,14 @@ export const StaffManager = () => {
                     })}
                 </ul>
             </SettingsCard>
-            {tenantCtx?.id && <StaffRosterCard tenantId={(tenantCtx as any).id} canInvite={isDirectorOrAdmin} onChanged={loadData} />}
+            {['DIRECTOR', 'ADMIN'].includes(myRole) && staff.some(m => !m.is_me && String(m.role).toUpperCase() === 'DIRECTOR') && (
+                <SettingsCard icon={ArrowRightLeft} title="Ceder la dirección" hint="Si abriste la escuela en VUNLEK como técnico y el director(a) ya aceptó su invitación, cédele la dirección: tu puesto cambia a Administrador técnico.">
+                    <div className="flex justify-end">
+                        <SettingsActionButton icon={handingOver ? Loader2 : ArrowRightLeft} disabled={handingOver} onClick={handOver}>Ceder la dirección</SettingsActionButton>
+                    </div>
+                </SettingsCard>
+            )}
+            {tenantCtx?.id && <StaffRosterCard tenantId={(tenantCtx as any).id} canInvite={isDirectorOrAdmin} myRole={myRole} onChanged={loadData} />}
         </div>
     )
 }

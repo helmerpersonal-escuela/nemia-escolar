@@ -34,6 +34,9 @@ import {
     FileUp,
     MoreHorizontal,
     ClipboardCheck,
+    Wrench,
+    LifeBuoy,
+    School,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { queryClient } from '../../lib/queryClient'
@@ -456,32 +459,60 @@ export const DashboardLayout = () => {
             { icon: UserCheck, label: 'Portal Docente', path: '/' },
             { icon: Settings, label: 'Configuración', path: '/settings' }
         ],
+        // Administrador técnico: arranque y mantenimiento de datos; sin información pedagógica.
+        SYSTEM_ADMIN: [
+            { icon: Wrench, label: 'Inicio', path: '/' },
+            { icon: Users, label: 'Grupos, materias y horario', path: '/groups' },
+            { icon: UserCheck, label: 'Personal y accesos', path: '/settings?tab=personal' },
+            { icon: LifeBuoy, label: 'Solicitudes', path: '/solicitudes' },
+            { icon: ClipboardList, label: 'Bitácora de cambios', path: '/bitacora' },
+            {
+                icon: School,
+                label: 'Escuela',
+                path: '#school',
+                subItems: [
+                    { label: 'Datos de la escuela', path: '/settings?tab=school' },
+                    { label: 'Ciclo escolar y periodos', path: '/settings?tab=cycle' },
+                    { label: 'Jornada escolar', path: '/settings?tab=horarios' },
+                ]
+            },
+            {
+                icon: HeartHandshake,
+                label: 'Alumnos y familias',
+                path: '#families',
+                subItems: [
+                    { label: 'Importar datos de la escuela', path: '/importar-datos' },
+                    { label: 'Códigos para familias', path: '/familias/codigos' },
+                ]
+            }
+        ],
+        // Dirección: solo lo directivo-pedagógico; lo técnico lo atiende el administrador técnico.
         DIRECTOR: [
             { icon: LayoutDashboard, label: 'Inicio', path: '/' },
-            { icon: Users, label: 'Control de Personal', path: '/admin/staff' },
-            { icon: Users, label: 'Grupos (Inscripciones)', path: '/groups' },
-            { icon: GraduationCap, label: 'Alumnos (Expedientes)', path: '/students' },
-            { icon: HeartHandshake, label: 'Códigos para familias', path: '/familias/codigos' },
-            { icon: FileUp, label: 'Importar datos de la escuela', path: '/importar-datos' },
+            { icon: Users, label: 'Personal', path: '/admin/staff' },
+            { icon: Users, label: 'Grupos', path: '/groups' },
+            { icon: GraduationCap, label: 'Alumnos', path: '/students' },
             { icon: Mail, label: 'Comunicados', path: '/messages' },
+            { icon: LifeBuoy, label: 'Solicitudes al técnico', path: '/solicitudes' },
             {
                 icon: TrendingUp,
-                label: 'Gestión NEM',
+                label: 'Gestión pedagógica',
                 path: '#institution',
                 subItems: [
                     { label: 'Consejo Técnico (CTE)', path: '/cte' },
                     { label: 'Programa de Mejora (PEMC)', path: '/admin/pemc' },
-                    { label: 'Libros de Texto', path: '/libros' },
-                    { label: 'Programa Analítico', path: '/analytical-program' },
+                    { label: 'Validar planeaciones', path: '/planning' },
+                    { label: 'Estadísticas', path: '/stats' },
+                    { label: 'Programa analítico', path: '/analytical-program' },
                     { label: 'PDAs, ejes y metodologías', path: '/mis-pdas' },
-                    { label: 'Estadísticas Globales', path: '/stats' },
-                    { label: 'Validar Planeaciones', path: '/planning' }
+                    { label: 'Libros de texto', path: '/libros' }
                 ]
             }
         ],
         ACADEMIC_COORD: [
             { icon: LayoutDashboard, label: 'Panel Pedagógico', path: '/' },
             { icon: Users, label: 'Grupos / Docentes', path: '/groups' },
+            { icon: LifeBuoy, label: 'Solicitudes al técnico', path: '/solicitudes' },
             { icon: Mail, label: 'Comunicados', path: '/messages' },
             {
                 icon: ClipboardList,
@@ -499,6 +530,7 @@ export const DashboardLayout = () => {
         TECH_COORD: [
             { icon: LayoutDashboard, label: 'Panel Tecnológico', path: '/' },
             { icon: Users, label: 'Talleres y Laboratorios', path: '/groups' },
+            { icon: LifeBuoy, label: 'Solicitudes al técnico', path: '/solicitudes' },
             { icon: Mail, label: 'Comunicados', path: '/messages' },
             {
                 icon: Package,
@@ -518,6 +550,7 @@ export const DashboardLayout = () => {
             { icon: GraduationCap, label: 'Expedientes / CURP', path: '/students' },
             { icon: HeartHandshake, label: 'Códigos para familias', path: '/familias/codigos' },
             { icon: FileUp, label: 'Importar datos de la escuela', path: '/importar-datos' },
+            { icon: LifeBuoy, label: 'Solicitudes al técnico', path: '/solicitudes' },
             { icon: Mail, label: 'Comunicados', path: '/messages' },
             {
                 icon: CheckSquare,
@@ -562,7 +595,8 @@ export const DashboardLayout = () => {
                     { label: 'Grupo que asesoro', path: '/asesoria' },
                     { label: 'Mi horario', path: '/schedule' },
                     { label: 'Consejo Técnico (CTE)', path: '/cte' },
-                    { label: 'Guardias (ausencias)', path: '/absences' }
+                    { label: 'Guardias (ausencias)', path: '/absences' },
+                    { label: 'Pedir un cambio al técnico', path: '/solicitudes' }
                 ]
             }
         ],
@@ -600,10 +634,12 @@ export const DashboardLayout = () => {
             },
             { icon: Calendar, label: 'Agenda Escolar', path: '/agenda' },
             { icon: Mail, label: 'Comunicados', path: '/messages' },
+            { icon: LifeBuoy, label: 'Solicitudes al técnico', path: '/solicitudes' },
         ],
         SUPPORT: [
             { icon: LayoutDashboard, label: 'Panel de Apoyo', path: '/' },
             { icon: GraduationCap, label: 'Seguimiento', path: '/students' },
+            { icon: LifeBuoy, label: 'Solicitudes al técnico', path: '/solicitudes' },
             { icon: Mail, label: 'Comunicados', path: '/messages' },
             {
                 icon: HeartHandshake,
@@ -701,7 +737,7 @@ export const DashboardLayout = () => {
 
     // Robust Role Enforcement for Independent Workspaces
     // Only override to INDEPENDENT_TEACHER if NOT a special institutional role
-    const PROTECTED_ROLES = ['TUTOR', 'SCHOOL_CONTROL', 'PREFECT', 'SUPPORT', 'STUDENT', 'SUPER_ADMIN']
+    const PROTECTED_ROLES = ['TUTOR', 'SCHOOL_CONTROL', 'PREFECT', 'SUPPORT', 'STUDENT', 'SUPER_ADMIN', 'SYSTEM_ADMIN']
     if (workspaceType === 'INDEPENDENT' && !PROTECTED_ROLES.includes(currentRole)) {
         currentRole = 'INDEPENDENT_TEACHER'
     }
@@ -731,6 +767,7 @@ export const DashboardLayout = () => {
         '/messages': 'Mensajes', '/agenda': 'Calendario', '/cte': 'Consejo Técnico', '/libros': 'Libros de texto',
         '/paywall': 'Planes y licencia', '/suscripcion': 'Suscripción', '/students': 'Alumnos', '/groups': 'Grupos', '/nem-assistant': 'Asistente NEM', '/asesoria': 'Grupo que asesoro', '/formatos': 'Mis formatos', '/mis-pdas': 'PDAs, ejes y metodologías',
         '/rubrics': 'Instrumentos', '/schedule': 'Horario', '/admin/pemc': 'PEMC', '/admin/staff': 'Personal',
+        '/solicitudes': 'Solicitudes', '/bitacora': 'Bitácora de cambios', '/importar-datos': 'Importar datos', '/familias/codigos': 'Códigos para familias',
     }
     const path = location.pathname
     const pageTitle = path === '/'

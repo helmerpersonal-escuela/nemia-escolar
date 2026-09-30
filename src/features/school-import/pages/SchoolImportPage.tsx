@@ -57,7 +57,7 @@ export const SchoolImportPage = () => {
     }, [tenantId])
 
     useEffect(() => {
-        if (!CTE_ROLES.includes(role) && role) setSections(s => ({ ...s, cte: false, pemc: false }))
+        if (!CTE_ROLES.includes(role) && role) setSections(s => ({ ...s, cte: false, pemc: false, ...(role === 'SYSTEM_ADMIN' ? { antecedentes: false } : {}) }))
     }, [role])
 
     const addFiles = async (list: FileList | null) => {
@@ -129,6 +129,7 @@ export const SchoolImportPage = () => {
         { id: 'cte', detail: `${plan.cte.length} sesiones ordinarias`, disabled: CTE_ROLES.includes(role) ? undefined : 'Solo dirección o coordinación' },
         { id: 'pemc', detail: `${plan.pemc.objectives.length} objetivos · ${counts?.actions} acciones · diagnóstico de ${plan.pemc.diagnosis.length} ámbitos`, disabled: CTE_ROLES.includes(role) ? undefined : 'Solo dirección o coordinación' },
         { id: 'antecedentes', detail: `${plan.history.length} registros (promedios, adeudos, bajas y altas, anotaciones)`,
+          disabled: role === 'SYSTEM_ADMIN' ? 'Datos académicos: los carga la dirección o control escolar' : undefined,
           extra: <label className="flex items-center gap-2 text-xs text-slate-600">Ciclo de los promedios y adeudos:
               <input value={historyYear} onChange={e => setHistoryYear(e.target.value)} className="w-28 border-2 border-slate-200 rounded-lg px-2 py-1 font-bold" /></label> },
     ] : []

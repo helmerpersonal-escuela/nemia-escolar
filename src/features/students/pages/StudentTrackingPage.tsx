@@ -145,6 +145,16 @@ export const StudentTrackingPage = () => {
         `${s.first_name} ${s.last_name_paternal} ${s.last_name_maternal}`.toLowerCase().includes(searchQuery.toLowerCase())
     )
 
+    // El administrador técnico mantiene los datos de inscripción desde Grupos; el seguimiento es pedagógico.
+    if (String(tenant?.role || '').toUpperCase() === 'SYSTEM_ADMIN') {
+        return (
+            <div className="max-w-xl mx-auto bg-white rounded-3xl border border-slate-100 p-6 text-center space-y-2">
+                <h1 className="text-xl font-black text-slate-900">Seguimiento de alumnos</h1>
+                <p className="text-slate-600 text-sm">Esta sección es de uso pedagógico (dirección, docentes y apoyo). Para inscribir alumnos o corregir tutores y teléfonos, entra a <b>Grupos</b>.</p>
+            </div>
+        )
+    }
+
     return (
         <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 pb-24">
             {/* Header */}

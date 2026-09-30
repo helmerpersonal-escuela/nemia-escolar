@@ -51,7 +51,7 @@ export const GroupsPage = () => {
 
     const isTeacher = profile?.role === 'TEACHER'
     const isIndependent = profile?.role === 'INDEPENDENT_TEACHER'
-    const isStaff = ['ADMIN', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD', 'SCHOOL_CONTROL'].includes(profile?.role || '')
+    const isStaff = ['ADMIN', 'DIRECTOR', 'SYSTEM_ADMIN', 'ACADEMIC_COORD', 'TECH_COORD', 'SCHOOL_CONTROL'].includes(profile?.role || '')
     const canCreateGroup = isStaff || isIndependent
 
     // Fetch Groups with their subjects

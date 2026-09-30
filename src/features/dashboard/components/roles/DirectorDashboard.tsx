@@ -1,27 +1,14 @@
 import { Link } from 'react-router-dom'
-import { LayoutDashboard, Users, GraduationCap, School, CalendarCheck, Bell, CheckCircle2, Circle, ArrowRight, AlertTriangle, Loader2, Megaphone, FileUp } from 'lucide-react'
+import { LayoutDashboard, Users, GraduationCap, School, CalendarCheck, Bell, CheckCircle2, AlertTriangle, Loader2, Megaphone } from 'lucide-react'
 import { useTenant } from '../../../../hooks/useTenant'
 import { formatDateEs } from '../../../../components/ui/DateInput'
 import { useSchoolOverview, pct } from '../../lib/useSchoolOverview'
+import { SetupStatusLine } from '../SchoolSetupChecklist'
 
 /** Inicio de la dirección: solo datos reales de la escuela; si aún no hay, dice qué hacer. */
 export const DirectorDashboard = () => {
     const { data: tenant } = useTenant()
     const { data: o, isLoading } = useSchoolOverview()
-
-    // Orden de arranque: cada paso necesita los datos del anterior (ver manual de implementación)
-    const steps = o ? [
-        { done: true, label: 'Crear el espacio de la escuela (datos, logo, CCT)', to: '/settings?tab=school' },
-        { done: o.hasPeriods, label: 'Ciclo escolar y periodos de evaluación', to: '/settings?tab=cycle' },
-        { done: o.hasSchedule, label: 'Jornada escolar: entrada, salida, módulos y recesos', to: '/settings?tab=horarios' },
-        { done: o.schoolControl > 0, label: 'Dar de alta a control escolar (inscribe a los alumnos)', to: '/settings?tab=personal' },
-        { done: o.teachers > 0, label: 'Dar de alta a docentes, coordinación, prefectura y apoyo', to: '/settings?tab=personal' },
-        { done: o.groups > 0, label: 'Crear los grupos (grado, grupo y turno)', to: '/groups' },
-        { done: o.groupSubjects > 0 && o.subjectsWithoutTeacher === 0, label: 'Asignar materias y docente a cada grupo', to: '/groups' },
-        { done: o.students > 0, label: 'Inscribir a los alumnos con sus tutores y teléfonos', to: '/groups' },
-        { done: o.familiesLinked > 0, label: 'Entregar los códigos a las familias', to: '/familias/codigos' },
-    ] : []
-    const pending = steps.filter(s => !s.done).length
 
     const todayPct = o ? pct(o.today.present, o.today.recorded) : null
     const alerts: { tone: 'warn' | 'bad'; title: string; text: string; to?: string }[] = []
@@ -30,6 +17,7 @@ export const DirectorDashboard = () => {
         for (const g of o.lowAttendance.slice(0, 3)) alerts.push({ tone: 'bad', title: `Asistencia baja en ${g.group}`, text: `${g.pct}% en los últimos 30 días.`, to: '/groups' })
         if (o.groups > 0 && o.today.recorded === 0 && new Date().getDay() % 6 !== 0 && new Date().getHours() >= 10)
             alerts.push({ tone: 'warn', title: 'Hoy no se ha pasado lista', text: 'Ningún grupo tiene asistencia registrada hoy.' })
+        if (o.openRequests > 0) alerts.push({ tone: 'warn', title: 'Solicitudes al técnico', text: `${o.openRequests} solicitud(es) sin terminar.`, to: '/solicitudes' })
     }
 
     return (
@@ -42,36 +30,18 @@ export const DirectorDashboard = () => {
                         <p className="text-slate-600">{tenant?.name || 'Tu escuela'}</p>
                     </div>
                 </div>
-                <Link to="/messages" className="inline-flex items-center justify-center gap-2 min-h-[48px] px-5 rounded-2xl bg-indigo-600 text-white font-bold hover:bg-indigo-700">
-                    <Bell className="w-5 h-5" /> Enviar comunicado
-                </Link>
+                <div className="flex flex-wrap gap-2">
+                    <Link to="/messages" className="inline-flex items-center justify-center gap-2 min-h-[48px] px-5 rounded-2xl bg-indigo-600 text-white font-bold hover:bg-indigo-700">
+                        <Bell className="w-5 h-5" /> Enviar comunicado
+                    </Link>
+                </div>
             </div>
 
             {isLoading || !o ? (
                 <p className="flex items-center gap-2 text-slate-500"><Loader2 className="w-5 h-5 animate-spin" /> Cargando datos de la escuela…</p>
             ) : (
                 <>
-                    {pending > 0 && (
-                        <section className="bg-white rounded-3xl p-5 sm:p-6 border-2 border-indigo-100">
-                            <h2 className="text-lg font-black text-slate-900">Para arrancar tu escuela</h2>
-                            <p className="text-sm text-slate-500 mb-4">{steps.length - pending} de {steps.length} listos. Los números de abajo se llenan conforme tu personal trabaja.</p>
-                            <Link to="/importar-datos" className="mb-4 flex items-center gap-3 rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50/60 p-3 text-sm text-indigo-900 hover:border-indigo-400">
-                                <FileUp className="w-5 h-5 shrink-0" />
-                                <span><b>¿La escuela ya tiene listas, directorios u horarios en Excel o Word?</b> Súbelos y VUNLEK llena grupos, alumnos, tutores, personal y horario de una vez.</span>
-                            </Link>
-                            <ol className="space-y-2">
-                                {steps.map((s, i) => (
-                                    <li key={i}>
-                                        <Link to={s.to} className={`flex items-center gap-3 rounded-2xl px-4 py-3 border ${s.done ? 'border-emerald-100 bg-emerald-50/50 text-slate-500' : 'border-slate-200 bg-white hover:border-indigo-300 text-slate-900 font-semibold'}`}>
-                                            {s.done ? <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" /> : <Circle className="w-5 h-5 text-slate-300 shrink-0" />}
-                                            <span className={`flex-1 ${s.done ? 'line-through' : ''}`}>{s.label}</span>
-                                            {!s.done && <ArrowRight className="w-4 h-4 text-indigo-600" />}
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ol>
-                        </section>
-                    )}
+                    <SetupStatusLine o={o} />
 
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
                         <Stat icon={GraduationCap} title="Alumnos" value={o.students} hint={o.students ? 'Inscritos y activos' : 'Aún sin alumnos'} to="/students" />
@@ -83,7 +53,7 @@ export const DirectorDashboard = () => {
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <section className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-100">
-                            <h3 className="text-lg font-black text-slate-900 mb-4">Pendientes</h3>
+                            <h3 className="text-lg font-black text-slate-900 mb-4">Requiere tu atención</h3>
                             {alerts.length === 0 ? (
                                 <p className="text-sm text-slate-500 flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> Nada pendiente por ahora.</p>
                             ) : (

@@ -18,7 +18,7 @@ export const SchedulePage = () => {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
     const isTeacher = userRole === 'TEACHER' || userRole === 'INDEPENDENT_TEACHER' || isIndependent
-    const isStaff = ['ADMIN', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD', 'SCHOOL_CONTROL', 'INDEPENDENT_TEACHER'].includes(userRole || '') || isIndependent
+    const isStaff = ['ADMIN', 'DIRECTOR', 'SYSTEM_ADMIN', 'ACADEMIC_COORD', 'TECH_COORD', 'SCHOOL_CONTROL', 'INDEPENDENT_TEACHER'].includes(userRole || '') || isIndependent
 
     const [viewType, setViewType] = useState<'GROUP' | 'TEACHER'>('GROUP')
     const [selectedGroupId, setSelectedGroupId] = useState<string>('')

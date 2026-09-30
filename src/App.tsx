@@ -71,6 +71,8 @@ const LegalPage = lazyNamed(() => import('./features/legal/LegalPage'), 'LegalPa
 const FamilyAccessPage = lazyNamed(() => import('./features/family/pages/FamilyAccessPage'), 'FamilyAccessPage')
 const FamilyCodesPage = lazyNamed(() => import('./features/family/pages/FamilyCodesPage'), 'FamilyCodesPage')
 const SchoolImportPage = lazyNamed(() => import('./features/school-import/pages/SchoolImportPage'), 'SchoolImportPage')
+const SupportRequestsPage = lazyNamed(() => import('./features/support/pages/SupportRequestsPage'), 'SupportRequestsPage')
+const ActivityLogPage = lazyNamed(() => import('./features/support/pages/ActivityLogPage'), 'ActivityLogPage')
 const AdvisoryGroupPage = lazyNamed(() => import('./features/advisory/pages/AdvisoryGroupPage'), 'AdvisoryGroupPage')
 const PedagogyCatalogPage = lazyNamed(() => import('./features/pdas/pages/PedagogyCatalogPage'), 'PedagogyCatalogPage')
 const FormatsPage = lazyNamed(() => import('./features/formats/pages/FormatsPage'), 'FormatsPage')
@@ -254,13 +256,23 @@ function App() {
           <Route path="groups" element={<GroupsPage />} />
           <Route path="groups/:groupId" element={<GroupDetailsPage />} />
           <Route path="importar-datos" element={
-            <ProtectedRoute allowedRoles={['DIRECTOR', 'ADMIN', 'SCHOOL_CONTROL', 'ACADEMIC_COORD', 'TECH_COORD']}>
+            <ProtectedRoute allowedRoles={['SYSTEM_ADMIN', 'DIRECTOR', 'ADMIN', 'SCHOOL_CONTROL', 'ACADEMIC_COORD', 'TECH_COORD']}>
               <SchoolImportPage />
             </ProtectedRoute>
           } />
           <Route path="familias/codigos" element={
-            <ProtectedRoute allowedRoles={['DIRECTOR', 'ADMIN', 'SCHOOL_CONTROL', 'ACADEMIC_COORD', 'TECH_COORD']}>
+            <ProtectedRoute allowedRoles={['SYSTEM_ADMIN', 'DIRECTOR', 'ADMIN', 'SCHOOL_CONTROL', 'ACADEMIC_COORD', 'TECH_COORD']}>
               <FamilyCodesPage />
+            </ProtectedRoute>
+          } />
+          <Route path="solicitudes" element={
+            <ProtectedRoute allowedRoles={['SYSTEM_ADMIN', 'DIRECTOR', 'ADMIN', 'SCHOOL_CONTROL', 'ACADEMIC_COORD', 'TECH_COORD', 'TEACHER', 'PREFECT', 'SUPPORT']}>
+              <SupportRequestsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="bitacora" element={
+            <ProtectedRoute allowedRoles={['SYSTEM_ADMIN', 'DIRECTOR', 'ADMIN']}>
+              <ActivityLogPage />
             </ProtectedRoute>
           } />
           <Route path="onboarding/*" element={<OnboardingWizard onComplete={() => window.location.href = '/'} />} />
