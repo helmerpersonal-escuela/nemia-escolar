@@ -70,6 +70,7 @@ const CompleteSignupPage = lazyNamed(() => import('./features/auth/pages/Complet
 const LegalPage = lazyNamed(() => import('./features/legal/LegalPage'), 'LegalPage')
 const FamilyAccessPage = lazyNamed(() => import('./features/family/pages/FamilyAccessPage'), 'FamilyAccessPage')
 const FamilyCodesPage = lazyNamed(() => import('./features/family/pages/FamilyCodesPage'), 'FamilyCodesPage')
+const SchoolImportPage = lazyNamed(() => import('./features/school-import/pages/SchoolImportPage'), 'SchoolImportPage')
 const AdvisoryGroupPage = lazyNamed(() => import('./features/advisory/pages/AdvisoryGroupPage'), 'AdvisoryGroupPage')
 const PedagogyCatalogPage = lazyNamed(() => import('./features/pdas/pages/PedagogyCatalogPage'), 'PedagogyCatalogPage')
 const FormatsPage = lazyNamed(() => import('./features/formats/pages/FormatsPage'), 'FormatsPage')
@@ -252,6 +253,11 @@ function App() {
           <Route path="teacher-dashboard" element={<TeacherDashboard />} />
           <Route path="groups" element={<GroupsPage />} />
           <Route path="groups/:groupId" element={<GroupDetailsPage />} />
+          <Route path="importar-datos" element={
+            <ProtectedRoute allowedRoles={['DIRECTOR', 'ADMIN', 'SCHOOL_CONTROL', 'ACADEMIC_COORD', 'TECH_COORD']}>
+              <SchoolImportPage />
+            </ProtectedRoute>
+          } />
           <Route path="familias/codigos" element={
             <ProtectedRoute allowedRoles={['DIRECTOR', 'ADMIN', 'SCHOOL_CONTROL', 'ACADEMIC_COORD', 'TECH_COORD']}>
               <FamilyCodesPage />

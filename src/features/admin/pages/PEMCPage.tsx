@@ -280,7 +280,9 @@ export const PEMCPage = () => {
                                                 <Target className="w-6 h-6" />
                                             </div>
                                             <div className="flex-1">
+                                                {obj.area && <p className="text-[11px] font-black text-blue-700 uppercase tracking-widest mb-1">{obj.area}</p>}
                                                 <h3 className="text-xl font-black text-gray-900 mb-2">{obj.description}</h3>
+                                                {obj.problem && <p className="text-sm text-gray-600 mb-2"><b>Problema:</b> {obj.problem}</p>}
                                                 <div className="inline-flex items-center px-4 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-[11px] font-black uppercase tracking-widest border border-emerald-100">
                                                     Meta: {obj.goal}
                                                 </div>
@@ -290,13 +292,18 @@ export const PEMCPage = () => {
                                         <div className="bg-gray-50/50 p-8 space-y-4">
                                             <h4 className="text-[11px] font-black text-gray-500 uppercase tracking-widest px-2">Acciones Vinculadas</h4>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {obj.indicator && <p className="md:col-span-2 text-xs text-gray-600 bg-white rounded-2xl border border-gray-100 p-3"><b>Seguimiento:</b> {obj.indicator}</p>}
                                                 {obj.pemc_actions?.map((action: any) => (
                                                     <div key={action.id} className="bg-white p-5 rounded-3xl border border-gray-100 flex items-center justify-between group/action">
                                                         <div className="flex items-center gap-4">
                                                             {action.status === 'COMPLETED' ? <CheckCircle2 className="w-5 h-5 text-emerald-700" /> : <Clock className="w-5 h-5 text-amber-700" />}
                                                             <div>
-                                                                <p className="text-xs font-bold text-gray-900 line-clamp-1">{action.description}</p>
-                                                                <p className="text-[11px] text-gray-500 font-bold uppercase tracking-tight">Fin: {new Date(action.deadline).toLocaleDateString()}</p>
+                                                                <p className="text-xs font-bold text-gray-900 line-clamp-2">{action.description}</p>
+                                                                <p className="text-[11px] text-gray-500 font-bold tracking-tight">
+                                                                    {action.deadline ? `Fin: ${new Date(action.deadline + 'T12:00:00').toLocaleDateString()}` : action.period_label || 'Sin fecha'}
+                                                                    {action.responsible_label ? ` · ${action.responsible_label}` : ''}
+                                                                    {action.progress_label ? ` · ${action.progress_label}` : ''}
+                                                                </p>
                                                             </div>
                                                         </div>
                                                         <ChevronRight className="w-4 h-4 text-gray-300 group-hover/action:text-blue-600 group-hover/action:translate-x-1 transition-all" />

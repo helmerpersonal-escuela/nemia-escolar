@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { LayoutDashboard, Users, GraduationCap, School, CalendarCheck, Bell, CheckCircle2, Circle, ArrowRight, AlertTriangle, Loader2, Megaphone } from 'lucide-react'
+import { LayoutDashboard, Users, GraduationCap, School, CalendarCheck, Bell, CheckCircle2, Circle, ArrowRight, AlertTriangle, Loader2, Megaphone, FileUp } from 'lucide-react'
 import { useTenant } from '../../../../hooks/useTenant'
 import { formatDateEs } from '../../../../components/ui/DateInput'
 import { useSchoolOverview, pct } from '../../lib/useSchoolOverview'
@@ -55,6 +55,10 @@ export const DirectorDashboard = () => {
                         <section className="bg-white rounded-3xl p-5 sm:p-6 border-2 border-indigo-100">
                             <h2 className="text-lg font-black text-slate-900">Para arrancar tu escuela</h2>
                             <p className="text-sm text-slate-500 mb-4">{steps.length - pending} de {steps.length} listos. Los números de abajo se llenan conforme tu personal trabaja.</p>
+                            <Link to="/importar-datos" className="mb-4 flex items-center gap-3 rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50/60 p-3 text-sm text-indigo-900 hover:border-indigo-400">
+                                <FileUp className="w-5 h-5 shrink-0" />
+                                <span><b>¿La escuela ya tiene listas, directorios u horarios en Excel o Word?</b> Súbelos y VUNLEK llena grupos, alumnos, tutores, personal y horario de una vez.</span>
+                            </Link>
                             <ol className="space-y-2">
                                 {steps.map((s, i) => (
                                     <li key={i}>

@@ -10,6 +10,7 @@ import { StaffAssignmentFields, emptyAssignment, gradesLabel, type Assignment } 
 import { useTenant } from '../../../hooks/useTenant'
 import { Pencil, Save } from 'lucide-react'
 import { WizardField, wizardInput, wizardChoice, Radio } from '../../../components/wizard/Wizard'
+import { StaffRosterCard } from './StaffRosterCard'
 
 const ROLES = [
     { id: 'TEACHER', name: 'Docente' },
@@ -360,6 +361,7 @@ export const StaffManager = () => {
                     })}
                 </ul>
             </SettingsCard>
+            {tenantCtx?.id && <StaffRosterCard tenantId={(tenantCtx as any).id} canInvite={isDirectorOrAdmin} onChanged={loadData} />}
         </div>
     )
 }

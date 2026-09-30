@@ -31,6 +31,7 @@ import {
     Home,
     Store,
     BookOpen,
+    FileUp,
     MoreHorizontal,
     ClipboardCheck,
 } from 'lucide-react'
@@ -461,6 +462,7 @@ export const DashboardLayout = () => {
             { icon: Users, label: 'Grupos (Inscripciones)', path: '/groups' },
             { icon: GraduationCap, label: 'Alumnos (Expedientes)', path: '/students' },
             { icon: HeartHandshake, label: 'Códigos para familias', path: '/familias/codigos' },
+            { icon: FileUp, label: 'Importar datos de la escuela', path: '/importar-datos' },
             { icon: Mail, label: 'Comunicados', path: '/messages' },
             {
                 icon: TrendingUp,
@@ -515,6 +517,7 @@ export const DashboardLayout = () => {
             { icon: Users, label: 'Inscripciones', path: '/groups' },
             { icon: GraduationCap, label: 'Expedientes / CURP', path: '/students' },
             { icon: HeartHandshake, label: 'Códigos para familias', path: '/familias/codigos' },
+            { icon: FileUp, label: 'Importar datos de la escuela', path: '/importar-datos' },
             { icon: Mail, label: 'Comunicados', path: '/messages' },
             {
                 icon: CheckSquare,

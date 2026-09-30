@@ -5,6 +5,7 @@ import { supabase } from '../../../lib/supabase'
 import { saveOrQueue } from '../../../lib/offline/outbox'
 import { useTenant } from '../../../hooks/useTenant'
 import { EmergencyContactsCard } from '../components/EmergencyContactsCard'
+import { StudentHistoryCard } from '../components/StudentHistoryCard'
 import {
     Activity,
     Plus,
@@ -293,6 +294,7 @@ export const StudentTrackingPage = () => {
                             </div>
 
                             {tenant?.role !== 'STUDENT' && tenant?.role !== 'TUTOR' && <EmergencyContactsCard studentId={selectedStudent.id} />}
+                            {tenant?.role !== 'STUDENT' && tenant?.role !== 'TUTOR' && <StudentHistoryCard studentId={selectedStudent.id} />}
 
                             {/* Full Timeline List */}
                             <div className="squishy-card bg-white overflow-hidden">
