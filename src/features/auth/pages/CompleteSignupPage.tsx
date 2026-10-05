@@ -4,7 +4,7 @@ import { User, School, Loader2, LogOut, HeartHandshake } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { queryClient } from '../../../lib/queryClient'
 import { clearPendingSignup, readPendingSignup } from '../lib/googleAuth'
-import { isCompleteFamilyCode, normalizeFamilyCode, redeemFamilyCode } from '../../family/lib/familyCode'
+import { isCompleteFamilyCode, isValidCurp, normalizeCurp, normalizeFamilyCode, redeemFamilyCode } from '../../family/lib/familyCode'
 import { BrandLogo } from '../../../components/brand/BrandLogo'
 
 type Mode = 'INDEPENDENT' | 'SCHOOL' | 'FAMILY'
@@ -33,6 +33,7 @@ export const CompleteSignupPage = () => {
     const pending = readPendingSignup()
     const [mode, setMode] = useState<Mode | null>(pending?.mode === 'INDEPENDENT' || pending?.mode === 'SCHOOL' || pending?.mode === 'FAMILY' ? pending.mode : null)
     const [familyCode, setFamilyCode] = useState(normalizeFamilyCode(pending?.familyCode ?? ''))
+    const [familyCurp, setFamilyCurp] = useState(normalizeCurp(pending?.familyCurp ?? ''))
     const [form, setForm] = useState({ firstName: '', lastNamePaternal: '', lastNameMaternal: '', organizationName: pending?.organizationName ?? '' })
     const [termsAccepted, setTermsAccepted] = useState(false)
     const invitation = pending?.invitationToken || null
@@ -85,11 +86,12 @@ export const CompleteSignupPage = () => {
         if (brokenName) { setError('Corrige la letra marcada con \uFFFD en tu nombre (normalmente es una Ñ o una vocal con acento).'); return }
         if (!invitation && mode === 'SCHOOL' && !form.organizationName.trim()) { setError('Escribe el nombre de la escuela.'); return }
         if (!invitation && mode === 'FAMILY' && !isCompleteFamilyCode(familyCode)) { setError('Escribe el código de 8 letras y números que te dio la escuela.'); return }
+        if (!invitation && mode === 'FAMILY' && !isValidCurp(familyCurp)) { setError('Escribe la CURP de tu hijo(a): son 18 letras y números.'); return }
         if (!termsAccepted) { setError('Debes aceptar los Términos y la Política de Privacidad.'); return }
         setSaving(true)
         setError(null)
         if (!invitation && mode === 'FAMILY') {
-            const res = await redeemFamilyCode(familyCode, {
+            const res = await redeemFamilyCode(familyCode, familyCurp, {
                 firstName: form.firstName, lastNamePaternal: form.lastNamePaternal, lastNameMaternal: form.lastNameMaternal,
             })
             if (!res.ok) { setError(res.error || 'No se pudo usar el código.'); setSaving(false); return }
@@ -189,6 +191,16 @@ export const CompleteSignupPage = () => {
                         autoComplete="off"
                         className="w-full border-2 border-slate-100 rounded-xl px-3 py-3 text-lg font-black tracking-[0.2em] text-center"
                         aria-label="Código de tu hijo o hija"
+                    />
+                )}
+                {!invitation && mode === 'FAMILY' && (
+                    <input
+                        value={familyCurp}
+                        onChange={e => setFamilyCurp(normalizeCurp(e.target.value))}
+                        placeholder="CURP de tu hijo(a) (18 caracteres)"
+                        autoComplete="off"
+                        className="w-full border-2 border-slate-100 rounded-xl px-3 py-3 font-mono font-bold tracking-[0.1em] text-center"
+                        aria-label="CURP de tu hijo o hija"
                     />
                 )}
 

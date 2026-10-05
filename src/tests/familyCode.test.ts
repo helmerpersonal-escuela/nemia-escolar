@@ -23,3 +23,14 @@ describe('códigos para familias', () => {
         expect(familyAccessUrl()).toMatch(/\/familia$/)
     })
 })
+
+import { isValidCurp, normalizeCurp } from '../features/family/lib/familyCode'
+describe('CURP del alumno (segundo dato para ligar a la familia)', () => {
+    it('limpia y valida', () => {
+        expect(normalizeCurp(' pexa-120305 hcsrrn07 ')).toBe('PEXA120305HCSRRN07')
+        expect(isValidCurp('PEXA120305HCSRRN07')).toBe(true)
+        expect(isValidCurp('PEXA120305HCSRRN0')).toBe(false)   // 17 caracteres
+        expect(isValidCurp('1234120305HCSRRN07')).toBe(false)
+        expect(isValidCurp('')).toBe(false)
+    })
+})

@@ -189,7 +189,7 @@ export const TutorDashboard = () => {
                     <p className="text-gray-500 font-bold uppercase tracking-widest text-[11px] md:text-xs">Acompañamiento Académico</p>
                 </div>
                 <div className="flex flex-col items-center md:items-end gap-1">
-                    <Link to="/familia" className="text-sm font-bold text-rose-600 hover:underline">+ Agregar otro hijo(a) con su código</Link>
+                    <Link to="/familia" className="text-sm font-bold text-rose-600 hover:underline">+ Agregar a otro hijo(a) o tutorado</Link>
                     <button type="button" onClick={() => setShowPhones(v => !v)} className="text-sm font-bold text-slate-600 hover:underline">
                         {showPhones ? 'Ocultar mis teléfonos' : 'Mis teléfonos de emergencia'}
                     </button>

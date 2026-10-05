@@ -6,7 +6,7 @@ import { supabase } from '../../../lib/supabase'
 import { queryClient } from '../../../lib/queryClient'
 import { GoogleButton } from '../../auth/components/GoogleButton'
 import { savePendingSignup, readPendingSignup, clearPendingSignup } from '../../auth/lib/googleAuth'
-import { isCompleteFamilyCode, normalizeFamilyCode, redeemFamilyCode } from '../lib/familyCode'
+import { isCompleteFamilyCode, isValidCurp, normalizeCurp, normalizeFamilyCode, redeemFamilyCode } from '../lib/familyCode'
 import { EmergencyPhonesForm } from '../components/EmergencyPhonesForm'
 
 const input = 'w-full border-2 border-slate-200 rounded-xl px-3 py-3 text-base font-bold focus:border-rose-400 focus:outline-none'
@@ -22,6 +22,7 @@ export const FamilyAccessPage = () => {
     const [params] = useSearchParams()
     const pending = readPendingSignup()
     const [code, setCode] = useState(normalizeFamilyCode(params.get('codigo') || pending?.familyCode || ''))
+    const [curp, setCurp] = useState(normalizeCurp(pending?.familyCurp || ''))
     const [session, setSession] = useState<Session | null | undefined>(undefined)
     const [busy, setBusy] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -38,14 +39,15 @@ export const FamilyAccessPage = () => {
         return () => sub.subscription.unsubscribe()
     }, [])
 
-    const codeProblem = () => (isCompleteFamilyCode(code) ? null : 'Escribe primero el código de 8 letras y números que te dio la escuela.')
+    const codeProblem = () => (!isCompleteFamilyCode(code) ? 'Escribe primero el código de 8 letras y números que te dio la escuela.'
+        : !isValidCurp(curp) ? 'Escribe la CURP de tu hijo(a): son 18 letras y números, como viene en su acta o constancia.' : null)
 
     const redeem = async () => {
         const problem = codeProblem()
         if (problem) { setError(problem); return }
         setBusy(true)
         setError(null)
-        const res = await redeemFamilyCode(code)
+        const res = await redeemFamilyCode(code, curp)
         setBusy(false)
         if (!res.ok) { setError(res.error || 'No se pudo usar el código.'); return }
         clearPendingSignup()
@@ -64,7 +66,7 @@ export const FamilyAccessPage = () => {
         setBusy(true)
         setError(null)
         const familyCode = normalizeFamilyCode(code)
-        savePendingSignup({ mode: 'FAMILY', familyCode })
+        savePendingSignup({ mode: 'FAMILY', familyCode, familyCurp: normalizeCurp(curp) })
         const { data, error: signError } = await supabase.auth.signUp({
             email: form.email.trim().toLowerCase(),
             password: form.password,
@@ -82,7 +84,7 @@ export const FamilyAccessPage = () => {
         }
         if (data.session) {
             setSession(data.session)
-            const res = await redeemFamilyCode(familyCode, { firstName: form.firstName, lastNamePaternal: form.lastNamePaternal })
+            const res = await redeemFamilyCode(familyCode, curp, { firstName: form.firstName, lastNamePaternal: form.lastNamePaternal })
             setBusy(false)
             if (!res.ok) { setError(res.error || 'No se pudo usar el código.'); return }
             clearPendingSignup()
@@ -95,7 +97,7 @@ export const FamilyAccessPage = () => {
     }
 
     const goLogin = () => {
-        if (isCompleteFamilyCode(code)) savePendingSignup({ mode: 'FAMILY', familyCode: normalizeFamilyCode(code) })
+        if (isCompleteFamilyCode(code)) savePendingSignup({ mode: 'FAMILY', familyCode: normalizeFamilyCode(code), familyCurp: normalizeCurp(curp) })
         navigate('/login')
     }
 
@@ -132,10 +134,14 @@ export const FamilyAccessPage = () => {
                             </div>
                         ) : (
                             <>
-                                <p className="text-sm text-slate-500">¿Tienes otro hijo(a) en la escuela? Escribe su código después desde tu panel.</p>
+                                <p className="text-sm text-slate-500">¿Tienes otro hijo(a) o tutorado en la escuela? Agrégalo ahora o después desde tu panel, con su propio código y CURP: los verás a todos en la misma cuenta.</p>
+                                <button type="button" onClick={() => { setDone(null); setCode(''); setCurp(''); setError(null) }}
+                                    className="w-full py-3 rounded-2xl border-2 border-rose-200 text-rose-700 font-black text-sm hover:bg-rose-50">
+                                    + Agregar a otro hijo(a)
+                                </button>
                                 <button type="button" onClick={() => { window.location.href = '/' }}
                                     className="w-full py-3.5 rounded-2xl bg-rose-500 hover:bg-rose-600 text-white font-black text-base">
-                                    Ver a mi hijo(a)
+                                    Ver a mis hijos
                                 </button>
                             </>
                         )}
@@ -166,12 +172,30 @@ export const FamilyAccessPage = () => {
                             <p className="text-xs text-slate-500 mt-1.5">Viene en la hoja que te entregó la escuela. Si no la tienes, pídela a control escolar.</p>
                         </div>
 
+                        <div>
+                            <label htmlFor="family-curp" className="block text-sm font-black text-slate-800 mb-1.5">2. CURP de tu hijo(a)</label>
+                            <input
+                                id="family-curp"
+                                value={curp}
+                                onChange={e => { setCurp(normalizeCurp(e.target.value)); setError(null) }}
+                                placeholder="18 letras y números"
+                                autoComplete="off"
+                                autoCapitalize="characters"
+                                spellCheck={false}
+                                aria-describedby="family-curp-help"
+                                className={`${input} tracking-[0.12em] text-center font-mono`}
+                            />
+                            <p id="family-curp-help" className="text-xs text-slate-500 mt-1.5">
+                                {curp.length > 0 && curp.length < 18 ? `Llevas ${curp.length} de 18. ` : ''}Está en su acta de nacimiento o constancia. La pedimos para confirmar que el código es de tu hijo(a).
+                            </p>
+                        </div>
+
                         {session ? (
                             <div className="space-y-3">
                                 <p className="text-sm text-slate-600">Entraste como <b>{session.user.email}</b>.</p>
                                 <button type="button" onClick={redeem} disabled={busy}
                                     className="w-full py-3.5 rounded-2xl bg-rose-500 hover:bg-rose-600 text-white font-black text-base disabled:opacity-50 flex items-center justify-center gap-2">
-                                    {busy && <Loader2 className="w-4 h-4 animate-spin" />} Ligar a mi hijo(a)
+                                    {busy && <Loader2 className="w-4 h-4 animate-spin" />} Agregar a mi hijo(a)
                                 </button>
                                 <button type="button" onClick={signOut} className="w-full flex items-center justify-center gap-2 text-sm font-bold text-slate-500 hover:text-slate-700">
                                     <LogOut className="w-4 h-4" /> Usar otra cuenta
@@ -179,10 +203,10 @@ export const FamilyAccessPage = () => {
                             </div>
                         ) : (
                             <div className="space-y-3">
-                                <p className="text-sm font-black text-slate-800">2. Entra con tu cuenta</p>
+                                <p className="text-sm font-black text-slate-800">3. Entra con tu cuenta</p>
                                 <GoogleButton
                                     label="Continuar con Google"
-                                    intent={{ mode: 'FAMILY', familyCode: normalizeFamilyCode(code) }}
+                                    intent={{ mode: 'FAMILY', familyCode: normalizeFamilyCode(code), familyCurp: normalizeCurp(curp) }}
                                     beforeStart={codeProblem}
                                 />
                                 {!emailMode ? (

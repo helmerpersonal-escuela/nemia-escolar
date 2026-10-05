@@ -30,9 +30,10 @@ function buildPrintHtml(school: string, sections: { group: string; rows: CodeRow
               <div class="code">${escapeHtml(r.code)}</div>
               <ol>
                 <li>Entra a <b>${escapeHtml(baseUrl.replace(/^https?:\/\//, ''))}</b> o escanea el código QR.</li>
-                <li>Escribe el código y entra con tu cuenta de Google o tu correo.</li>
+                <li>Escribe el código y la <b>CURP</b> de tu hijo(a), y entra con tu cuenta de Google o tu correo.</li>
+                <li>¿Más hijos en la escuela? Agrégalos en la misma cuenta con el código de cada uno.</li>
               </ol>
-              <div class="note">Guárdalo. Es personal: con él se ven las calificaciones de tu hijo(a).</div>
+              <div class="note">Guárdalo. Es personal: junto con la CURP da acceso a las calificaciones de tu hijo(a).</div>
             </div>
             <div class="qr">${qr}</div>
           </div>

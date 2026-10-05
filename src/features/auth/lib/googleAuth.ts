@@ -20,6 +20,8 @@ export interface SignupIntent {
     organizationName?: string
     /** Código impreso que liga a madre/padre con su hijo(a) */
     familyCode?: string
+    /** CURP del alumno (se guarda solo en este dispositivo mientras termina el registro; nunca va en la dirección) */
+    familyCurp?: string
     invitationToken?: string | null
 }
 
