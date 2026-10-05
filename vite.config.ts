@@ -16,7 +16,7 @@ export default defineConfig({
         short_name: 'Vunlek',
         description: 'Planeación, asistencia y evaluación para docentes',
         lang: 'es-MX',
-        theme_color: '#4f46e5',
+        theme_color: '#42428F',
         background_color: '#ffffff',
         display: 'standalone',
         start_url: '/',

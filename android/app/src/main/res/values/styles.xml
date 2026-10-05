@@ -16,7 +16,12 @@
     </style>
 
 
+    <!-- Pantalla de bienvenida: símbolo de VUNLEK en blanco sobre el color de la marca
+         (Android 12+ usa estos valores; en versiones anteriores se ve drawable/splash). -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/ic_launcher_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
         <item name="android:background">@drawable/splash</item>
     </style>
 </resources>
