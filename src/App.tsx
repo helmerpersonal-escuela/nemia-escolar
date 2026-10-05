@@ -73,6 +73,10 @@ const FamilyAccessPage = lazyNamed(() => import('./features/family/pages/FamilyA
 const FamilyCodesPage = lazyNamed(() => import('./features/family/pages/FamilyCodesPage'), 'FamilyCodesPage')
 const SchoolImportPage = lazyNamed(() => import('./features/school-import/pages/SchoolImportPage'), 'SchoolImportPage')
 const SupportRequestsPage = lazyNamed(() => import('./features/support/pages/SupportRequestsPage'), 'SupportRequestsPage')
+const MergeWorkspacePage = lazyNamed(() => import('./features/workspace-merge/MergeWorkspacePage'), 'MergeWorkspacePage')
+const AccessControlPage = lazyNamed(() => import('./features/cards/pages/AccessControlPage'), 'AccessControlPage')
+const CardsPage = lazyNamed(() => import('./features/cards/pages/CardsPage'), 'CardsPage')
+const CardLandingPage = lazyNamed(() => import('./features/cards/pages/CardLandingPage'), 'CardLandingPage')
 const ActivityLogPage = lazyNamed(() => import('./features/support/pages/ActivityLogPage'), 'ActivityLogPage')
 const AdvisoryGroupPage = lazyNamed(() => import('./features/advisory/pages/AdvisoryGroupPage'), 'AdvisoryGroupPage')
 const PedagogyCatalogPage = lazyNamed(() => import('./features/pdas/pages/PedagogyCatalogPage'), 'PedagogyCatalogPage')
@@ -229,6 +233,7 @@ function App() {
         <Route path="/register" element={session ? <Navigate to={new URLSearchParams(window.location.search).get('token') ? `/invitacion${window.location.search}` : '/'} replace /> : <RegisterPage />} />
         <Route path="/invitacion" element={<InvitationPage />} />
         <Route path="/familia" element={<FamilyAccessPage />} />
+        <Route path="/c/:token" element={<CardLandingPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/privacidad" element={<LegalPage kind="privacy" />} />
         <Route path="/privacy" element={<LegalPage kind="privacy" />} />
@@ -269,6 +274,21 @@ function App() {
           <Route path="solicitudes" element={
             <ProtectedRoute allowedRoles={['SYSTEM_ADMIN', 'DIRECTOR', 'ADMIN', 'SCHOOL_CONTROL', 'ACADEMIC_COORD', 'TECH_COORD', 'TEACHER', 'PREFECT', 'SUPPORT']}>
               <SupportRequestsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="sumar-mi-espacio" element={
+            <ProtectedRoute allowedRoles={['DIRECTOR', 'ADMIN', 'SCHOOL_CONTROL', 'ACADEMIC_COORD', 'TECH_COORD', 'TEACHER', 'PREFECT', 'SUPPORT', 'INDEPENDENT_TEACHER']}>
+              <MergeWorkspacePage />
+            </ProtectedRoute>
+          } />
+          <Route path="acceso" element={
+            <ProtectedRoute allowedRoles={['DIRECTOR', 'ADMIN', 'SCHOOL_CONTROL', 'ACADEMIC_COORD', 'TECH_COORD', 'PREFECT', 'SUPPORT']}>
+              <RequireSteps steps={['alumnos']} action="registrar entradas con credencial"><AccessControlPage /></RequireSteps>
+            </ProtectedRoute>
+          } />
+          <Route path="credenciales" element={
+            <ProtectedRoute allowedRoles={['SYSTEM_ADMIN', 'DIRECTOR', 'ADMIN', 'SCHOOL_CONTROL', 'ACADEMIC_COORD', 'TECH_COORD', 'PREFECT', 'TEACHER', 'INDEPENDENT_TEACHER']}>
+              <RequireSteps steps={['alumnos']} action="preparar las credenciales"><CardsPage /></RequireSteps>
             </ProtectedRoute>
           } />
           <Route path="bitacora" element={

@@ -21,9 +21,11 @@ type StudentCredentialProps = {
         cct: string
         logo_url?: string
     }
+    /** Código de la credencial (VK:…). Si falta, se usa la CURP como en las credenciales anteriores. */
+    code?: string | null
 }
 
-export const StudentCredential = ({ student, school }: StudentCredentialProps) => {
+export const StudentCredential = ({ student, school, code }: StudentCredentialProps) => {
     const fullName = `${student.first_name} ${student.last_name_paternal} ${student.last_name_maternal || ''}`.toUpperCase()
 
     return (
@@ -78,8 +80,8 @@ export const StudentCredential = ({ student, school }: StudentCredentialProps) =
                         </div>
 
                         <div className="self-end mt-auto">
-                            {student.curp ? (
-                                <QRCodeSVG value={student.curp} size={50} />
+                            {code || student.curp ? (
+                                <QRCodeSVG value={code || student.curp!} size={50} />
                             ) : (
                                 <div className="w-[50px] h-[50px] bg-gray-100 flex items-center justify-center text-[11px] text-gray-500 text-center">
                                     SIN CURP

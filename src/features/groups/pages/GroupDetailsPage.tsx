@@ -29,6 +29,13 @@ export const GroupDetailsPage = () => {
     })
     const [selectedStudent, setSelectedStudent] = useState<any>(null)
     const [showCredential, setShowCredential] = useState(false)
+    // Código opaco de cada credencial (para el QR y la etiqueta NFC)
+    const [cardTokens, setCardTokens] = useState<Record<string, string>>({})
+    useEffect(() => {
+        if (!showCredential || !groupId || Object.keys(cardTokens).length) return
+        supabase.rpc('ensure_card_tokens', { p_group: groupId }).then(({ data }) =>
+            setCardTokens(Object.fromEntries((((data as any[]) ?? [])).map(r => [r.student_id, r.token]))))
+    }, [showCredential, groupId])
     const [activeTab, setActiveTab] = useState<'students' | 'evaluation'>('students')
     const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null)
 
@@ -396,6 +403,7 @@ Esta acción NO se puede deshacer.`
 
                             <div className="flex justify-center p-4 border rounded bg-gray-100 mb-4 print:p-0 print:border-none print:bg-white">
                                 <StudentCredential
+                                    code={cardTokens[selectedStudent.id] ? `VK:${cardTokens[selectedStudent.id]}` : null}
                                     student={{ ...selectedStudent, group: { grade: group.grade, section: group.section } }}
                                     school={{
                                         name: tenant.name || 'Escuela',

@@ -37,18 +37,22 @@ import {
     Wrench,
     LifeBuoy,
     School,
+    Pin,
+    PinOff,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { queryClient } from '../../lib/queryClient'
 import { OnboardingWizard } from '../../features/onboarding/components/OnboardingWizard'
 import { SchoolOnboardingWizard } from '../../features/onboarding/components/SchoolOnboardingWizard'
-import { useTenant } from '../../hooks/useTenant'
+import { useTenant, useWorkspaces } from '../../hooks/useTenant'
+import { useRetractableMenu } from './useRetractableMenu'
 import { useProfile } from '../../hooks/useProfile'
 import { NotificationsMenu } from './NotificationsMenu'
 import { WorkspaceSwitcher } from './WorkspaceSwitcher'
 import { useAttendanceReminder } from '../../hooks/useAttendanceReminder'
 import { NotificationManager } from '../ui/NotificationManager'
 import { useChatNotifications } from '../../hooks/useChatNotifications'
+import { disablePush } from '../../lib/push'
 import { ErrorBoundary } from '../common/ErrorBoundary'
 import { setErrorContext } from '../../lib/errorReporting'
 import { OfflineCenter } from '../offline/OfflineCenter'
@@ -57,33 +61,37 @@ import { TrialNotificationSystem } from '../../features/subscription/components/
 import { NewCycleBanner } from '../../features/school-year/components/NewCycleBanner'
 import { useCooperativeRecord } from '../../features/cooperative/lib/useCooperative'
 import { BrandLogo } from '../brand/BrandLogo'
+import { MergeWorkspaceBanner } from '../../features/workspace-merge/MergeWorkspaceBanner'
 
 const DocumentTitle = ({ title }: { title: string }) => {
     useEffect(() => { document.title = `${title} · Vunlek` }, [title])
     return null
 }
 
-const MenuSection = ({ title, items, location }: any) => {
+const MenuSection = ({ title, items, location, collapsed }: any) => {
     return (
         <section className={title ? 'mb-6' : 'mb-1'} aria-labelledby={title ? `section-title-${title.toLowerCase().replace(/\s+/g, '-')}` : undefined}>
             {title && (
                 <h3
                     id={`section-title-${title.toLowerCase().replace(/\s+/g, '-')}`}
-                    className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 opacity-80"
+                    className={`px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 opacity-80 ${collapsed ? 'lg:sr-only' : ''}`}
                 >
                     {title}
                 </h3>
             )}
             <div className="space-y-1">
                 {items.map((item: any) => (
-                    <MenuItem key={item.label} item={item} location={location} />
+                    <MenuItem key={item.label} item={item} location={location} collapsed={collapsed} />
                 ))}
             </div>
         </section>
     )
 }
 
-const MenuItem = ({ item, location }: any) => {
+const MenuItem = ({ item, location, collapsed }: any) => {
+    // Con el menú plegado (computadora) solo se ve el icono; el texto queda para lectores de pantalla
+    const hideLg = collapsed ? 'lg:sr-only' : ''
+    const tight = collapsed ? 'lg:px-0 lg:justify-center' : ''
     const hasSubItems = item.subItems && item.subItems.length > 0
     const full = location.pathname + location.search
     // Rutas con ?tab= comparten la misma página: se compara la dirección completa
@@ -102,23 +110,25 @@ const MenuItem = ({ item, location }: any) => {
             <div className="mb-2">
                 <button
                     onClick={() => setIsOpen(!isOpen)}
+                    aria-expanded={isOpen}
+                    title={collapsed ? item.label : undefined}
                     className={`
-                        w-full flex items-center justify-between px-4 py-3 text-sm font-bold rounded-2xl transition-all duration-300 btn-tactile
+                        w-full flex items-center justify-between px-4 py-3 text-sm font-bold rounded-2xl transition-all duration-300 btn-tactile ${tight}
                         ${isActiveParent
                             ? 'bg-indigo-100/50 text-indigo-700 shadow-sm'
                             : 'text-slate-500 hover:bg-white/50 hover:text-slate-900 hover:shadow-sm'}
                     `}
                 >
                     <div className="flex items-center">
-                        <div className={`p-1.5 rounded-xl mr-3 transition-colors ${isActiveParent ? 'bg-indigo-200 text-indigo-700' : 'bg-transparent text-slate-500'}`}>
+                        <div className={`p-1.5 rounded-xl mr-3 transition-colors ${collapsed ? 'lg:mr-0' : ''} ${isActiveParent ? 'bg-indigo-200 text-indigo-700' : 'bg-transparent text-slate-500'}`}>
                             <item.icon className="h-5 w-5" />
                         </div>
-                        {item.label}
+                        <span className={hideLg}>{item.label}</span>
                     </div>
-                    {isOpen ? <ChevronDown className="h-4 w-4 text-slate-500" /> : <ChevronRight className="h-4 w-4 text-slate-500" />}
+                    <span className={collapsed ? 'lg:hidden' : ''}>{isOpen ? <ChevronDown className="h-4 w-4 text-slate-500" /> : <ChevronRight className="h-4 w-4 text-slate-500" />}</span>
                 </button>
                 {isOpen && (
-                    <div className="ml-4 mt-2 space-y-1 border-l-2 border-indigo-100/50 pl-3 animate-in fade-in slide-in-from-left-2 duration-300">
+                    <div className={`ml-4 mt-2 space-y-1 border-l-2 border-indigo-100/50 pl-3 animate-in fade-in slide-in-from-left-2 duration-300 ${collapsed ? 'lg:hidden' : ''}`}>
                         {item.subItems.map((sub: any, idx: number) => {
                             const isSubActive = subActive(sub)
                             return (
@@ -147,18 +157,20 @@ const MenuItem = ({ item, location }: any) => {
     return (
         <Link
             to={item.path}
+            title={collapsed ? item.label : undefined}
+            aria-current={isActive ? 'page' : undefined}
             className={`
-                flex items-center px-4 py-3 text-sm font-bold rounded-2xl transition-all duration-300 mb-1 btn-tactile
+                flex items-center px-4 py-3 text-sm font-bold rounded-2xl transition-all duration-300 mb-1 btn-tactile ${tight}
                 ${isActive
                     ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-200 hover:shadow-indigo-300 transform scale-[1.02]'
                     : 'text-slate-500 hover:bg-white/50 hover:text-slate-900 hover:shadow-sm'
                 }
             `}
         >
-            <div className={`p-1.5 rounded-xl mr-3 transition-colors ${isActive ? 'bg-white/20 text-white' : 'bg-transparent text-slate-500'}`}>
+            <div className={`p-1.5 rounded-xl mr-3 transition-colors ${collapsed ? 'lg:mr-0' : ''} ${isActive ? 'bg-white/20 text-white' : 'bg-transparent text-slate-500'}`}>
                 <item.icon className="h-5 w-5" />
             </div>
-            {item.label}
+            <span className={hideLg}>{item.label}</span>
         </Link>
     )
 }
@@ -191,6 +203,10 @@ export const DashboardLayout = () => {
     useAttendanceReminder()
     // Avisos y sonido de mensajes nuevos del chat en cualquier pantalla
     useChatNotifications(!!profile)
+
+    // Menú retráctil: tira de iconos que se despliega al acercar el puntero (computadora) o con gesto desde el borde (celular)
+    const { pinned, togglePinned, collapsed, hover } = useRetractableMenu(isSidebarOpen, setIsSidebarOpen)
+    const { data: workspaces } = useWorkspaces()
 
     // Auto-close sidebar on route change (Mobile UX Only)
     useEffect(() => {
@@ -333,6 +349,8 @@ export const DashboardLayout = () => {
         sessionStorage.removeItem('vunlek_onboarding_year_data')
         sessionStorage.removeItem('vunlek_onboarding_schedule_data')
         sessionStorage.removeItem('vunlek_payment_syncing')
+        // Este dispositivo deja de recibir los avisos de la cuenta que sale
+        await disablePush()
         await supabase.auth.signOut()
         window.location.href = '/login'
     }
@@ -486,6 +504,7 @@ export const DashboardLayout = () => {
                 subItems: [
                     { label: 'Importar datos de la escuela', path: '/importar-datos' },
                     { label: 'Códigos para familias', path: '/familias/codigos' },
+                    { label: 'Credenciales (NFC / QR)', path: '/credenciales' },
                 ]
             }
         ],
@@ -506,6 +525,7 @@ export const DashboardLayout = () => {
                     { label: 'Programa de Mejora (PEMC)', path: '/admin/pemc' },
                     { label: 'Validar planeaciones', path: '/planning' },
                     { label: 'Estadísticas', path: '/stats' },
+                    { label: 'Control de acceso (credencial)', path: '/acceso' },
                     { label: 'Programa analítico', path: '/analytical-program' },
                     { label: 'PDAs, ejes y metodologías', path: '/mis-pdas' },
                     { label: 'Libros de texto', path: '/libros' }
@@ -562,7 +582,9 @@ export const DashboardLayout = () => {
                 subItems: [
                     { label: 'Boletas Oficiales', path: '/reports/evaluation' },
                     { label: 'Horarios de Docentes', path: '/schedule' },
-                    { label: 'Expedientes Digitales', path: '/students' }
+                    { label: 'Expedientes Digitales', path: '/students' },
+                    { label: 'Credenciales (NFC / QR)', path: '/credenciales' },
+                    { label: 'Control de acceso (credencial)', path: '/acceso' }
                 ]
             }
         ],
@@ -596,6 +618,7 @@ export const DashboardLayout = () => {
                     { label: 'Portafolio de alumnos', path: '/evaluation/portfolio' },
                     { label: 'Herramientas formativas', path: '/evaluation/formative' },
                     { label: 'Grupo que asesoro', path: '/asesoria' },
+                    { label: 'Credenciales de mis alumnos', path: '/credenciales' },
                     { label: 'Mi horario', path: '/schedule' },
                     { label: 'Consejo Técnico (CTE)', path: '/cte' },
                     { label: 'Guardias (ausencias)', path: '/absences' },
@@ -612,6 +635,7 @@ export const DashboardLayout = () => {
                 subItems: [
                     { label: 'Cobertura de Suplencias', path: '/substitutions' },
                     { label: 'Bitácora de Incidencias', path: '/incidents' },
+                    { label: 'Control de acceso (credencial)', path: '/acceso' },
                     { label: 'Control de Retardos', path: '/attendance' },
                 ]
             },
@@ -632,7 +656,8 @@ export const DashboardLayout = () => {
                 subItems: [
                     { label: 'Grupos', path: '/groups' },
                     { label: 'Alumnos', path: '/students' },
-                    { label: 'Citatorios', path: '/citations' }
+                    { label: 'Citatorios', path: '/citations' },
+                    { label: 'Credenciales (NFC / QR)', path: '/credenciales' }
                 ]
             },
             { icon: Calendar, label: 'Agenda Escolar', path: '/agenda' },
@@ -770,7 +795,7 @@ export const DashboardLayout = () => {
         '/messages': 'Mensajes', '/agenda': 'Calendario', '/cte': 'Consejo Técnico', '/libros': 'Libros de texto',
         '/paywall': 'Planes y licencia', '/suscripcion': 'Suscripción', '/students': 'Alumnos', '/groups': 'Grupos', '/nem-assistant': 'Asistente NEM', '/asesoria': 'Grupo que asesoro', '/formatos': 'Mis formatos', '/mis-pdas': 'PDAs, ejes y metodologías',
         '/rubrics': 'Instrumentos', '/schedule': 'Horario', '/admin/pemc': 'PEMC', '/admin/staff': 'Personal',
-        '/solicitudes': 'Solicitudes', '/bitacora': 'Bitácora de cambios', '/importar-datos': 'Importar datos', '/familias/codigos': 'Códigos para familias',
+        '/sumar-mi-espacio': 'Sumar mi espacio personal', '/acceso': 'Control de acceso', '/credenciales': 'Credenciales', '/solicitudes': 'Solicitudes', '/bitacora': 'Bitácora de cambios', '/importar-datos': 'Importar datos', '/familias/codigos': 'Códigos para familias',
     }
     const path = location.pathname
     const pageTitle = path === '/'
@@ -860,11 +885,16 @@ export const DashboardLayout = () => {
             <aside
                 id="app-sidebar"
                 aria-label="Menú"
+                onMouseEnter={() => hover(true)}
+                onMouseLeave={() => hover(false)}
+                onFocus={() => hover(true)}
+                onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) hover(false) }}
                 className={`
-                    fixed lg:static inset-y-0 left-0 z-40
+                    fixed inset-y-0 left-0 z-40
                     w-72 transform transition-all duration-300 ease-elastic
                     ${!isSidebarOpen ? '-translate-x-full' : 'translate-x-0'}
-                    lg:static lg:translate-x-0 lg:block lg:m-4 lg:rounded-[2.5rem] lg:h-[calc(100vh-2rem)]
+                    lg:translate-x-0 lg:top-4 lg:bottom-4 lg:left-4 lg:rounded-[2.5rem]
+                    ${collapsed ? 'lg:w-20' : 'lg:w-72'} ${!collapsed && !pinned ? 'lg:shadow-2xl lg:shadow-indigo-200/60 lg:!bg-white/95' : ''}
                     glass-panel flex flex-col overflow-hidden border-2 border-white/60
                     pb-24 lg:pb-[env(safe-area-inset-bottom)]
                 `}
@@ -874,9 +904,9 @@ export const DashboardLayout = () => {
                     <div className="absolute -top-20 -left-20 w-40 h-40 bg-indigo-200/50 rounded-full blur-3xl pointer-events-none" />
 
                     {/* Logo */}
-                    <div className="h-24 flex items-center px-8 relative z-10">
-                        <BrandLogo className="h-12 w-auto mr-3 shrink-0" alt="" />
-                        <div>
+                    <div className={`h-24 flex items-center px-8 relative z-10 ${collapsed ? 'lg:px-0 lg:justify-center' : ''}`}>
+                        <BrandLogo className={`h-12 w-auto mr-3 shrink-0 ${collapsed ? 'lg:mr-0 lg:h-10' : ''}`} alt="" />
+                        <div className={collapsed ? 'lg:hidden' : ''}>
                             <span className="text-2xl font-black text-slate-800 tracking-tight block leading-none">
                                 VUNLEK
                             </span>
@@ -884,14 +914,28 @@ export const DashboardLayout = () => {
                                 Escolar
                             </span>
                         </div>
+                        <button type="button" onClick={togglePinned} aria-pressed={pinned}
+                            title={pinned ? 'Soltar el menú (se plegará solo)' : 'Fijar el menú abierto'}
+                            aria-label={pinned ? 'Soltar el menú' : 'Fijar el menú abierto'}
+                            className={`hidden ml-auto w-9 h-9 items-center justify-center rounded-xl text-slate-500 hover:bg-white hover:text-indigo-600 ${collapsed ? '' : 'lg:flex'}`}>
+                            {pinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
+                        </button>
                     </div>
 
+                    {/* Quien tiene más de un espacio o puesto cambia aquí (p. ej. control escolar ↔ administrador técnico) */}
+                    {(workspaces?.length ?? 0) > 1 && !(isSuperAdmin || (profile as any)?.isSuperAdmin) && (
+                        <div className={`px-4 relative z-20 ${collapsed ? 'lg:hidden' : ''}`}>
+                            <WorkspaceSwitcher />
+                        </div>
+                    )}
+
                     {/* Navigation */}
-                    <nav className="flex-1 px-4 py-2 space-y-4 overflow-y-auto scrollbar-hide">
+                    <nav className={`flex-1 px-4 py-2 space-y-4 overflow-y-auto scrollbar-hide ${collapsed ? 'lg:px-2' : ''}`}>
                         <MenuSection
                             title={isTeacherRole ? 'USO DIARIO' : 'PRINCIPAL'}
                             items={principalMenu}
                             location={location}
+                            collapsed={collapsed}
                         />
 
                         {academicMenu.length > 0 && academicMenu.map((section: any) => (
@@ -901,32 +945,35 @@ export const DashboardLayout = () => {
                                 title={isTeacherRole ? '' : section.label.toUpperCase()}
                                 items={[section]}
                                 location={location}
+                                collapsed={collapsed}
                             />
                         ))}
                     </nav>
 
                     {/* Bottom Actions */}
-                    <div className="p-4 bg-white/40 backdrop-blur-md border-t border-indigo-50 space-y-2">
+                    <div className={`p-4 bg-white/40 backdrop-blur-md border-t border-indigo-50 space-y-2 ${collapsed ? 'lg:px-2' : ''}`}>
                         <Link
                             to="/settings"
-                            className="group flex items-center px-4 py-3 text-sm font-bold rounded-2xl text-slate-600 hover:bg-white hover:text-indigo-600 transition-all shadow-sm border border-transparent hover:border-indigo-50 btn-tactile"
+                            title={collapsed ? 'Configuración' : undefined}
+                            className={`group flex items-center px-4 py-3 text-sm font-bold rounded-2xl text-slate-600 hover:bg-white hover:text-indigo-600 transition-all shadow-sm border border-transparent hover:border-indigo-50 btn-tactile ${collapsed ? 'lg:px-0 lg:justify-center' : ''}`}
                         >
-                            <Settings className="mr-3 h-5 w-5 text-slate-500 group-hover:text-indigo-500" />
-                            Configuración
+                            <Settings className={`mr-3 h-5 w-5 text-slate-500 group-hover:text-indigo-500 ${collapsed ? 'lg:mr-0' : ''}`} />
+                            <span className={collapsed ? 'lg:sr-only' : ''}>Configuración</span>
                         </Link>
                         <button
                             onClick={handleLogout}
-                            className="w-full flex items-center px-4 py-3 text-sm font-bold text-red-500 rounded-2xl hover:bg-red-50 hover:text-red-600 transition-all border border-transparent hover:border-red-100 btn-tactile"
+                            title={collapsed ? 'Cerrar sesión' : undefined}
+                            className={`w-full flex items-center px-4 py-3 text-sm font-bold text-red-500 rounded-2xl hover:bg-red-50 hover:text-red-600 transition-all border border-transparent hover:border-red-100 btn-tactile ${collapsed ? 'lg:px-0 lg:justify-center' : ''}`}
                         >
-                            <LogOut className="h-5 w-5 mr-3" />
-                            Cerrar Sesión
+                            <LogOut className={`h-5 w-5 mr-3 ${collapsed ? 'lg:mr-0' : ''}`} />
+                            <span className={collapsed ? 'lg:sr-only' : ''}>Cerrar Sesión</span>
                         </button>
                     </div>
                 </div>
             </aside >
 
             {/* Main Content */}
-            <div className="flex-1 min-w-0 flex flex-col min-h-screen relative overflow-hidden transition-all duration-300 pb-24 lg:pb-0">
+            <div className={`flex-1 min-w-0 flex flex-col min-h-screen relative overflow-hidden transition-[padding] duration-300 pb-24 lg:pb-0 ${pinned ? 'lg:pl-[19.5rem]' : 'lg:pl-[6.5rem]'}`}>
                 {/* Header */}
                 <header className={`
                     h-16 sm:h-20 px-4 sm:px-8 flex items-center justify-between gap-3 transition-all duration-300 z-20 mt-3 mx-3 sm:mt-4 sm:mx-4 rounded-[1.5rem] sm:rounded-[2rem]
@@ -1035,6 +1082,7 @@ export const DashboardLayout = () => {
                     )}
 
                     <NewCycleBanner />
+                    <MergeWorkspaceBanner />
                     <ErrorBoundary key={location.pathname} area={location.pathname}>
                         <Suspense fallback={<PageLoader />}>
                             <Outlet />

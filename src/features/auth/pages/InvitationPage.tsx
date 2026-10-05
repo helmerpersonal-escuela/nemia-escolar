@@ -9,10 +9,10 @@ export const PENDING_INVITE_KEY = 'vunlek.pendingInvite'
 
 export const ROLE_LABEL_ES: Record<string, string> = {
     DIRECTOR: 'Directivo', ADMIN: 'Administración', ACADEMIC_COORD: 'Coordinación académica', TECH_COORD: 'Coordinación de tecnologías',
-    SCHOOL_CONTROL: 'Control escolar', TEACHER: 'Docente', PREFECT: 'Prefectura', SUPPORT: 'Apoyo / USAER', TUTOR: 'Madre, padre o tutor', STUDENT: 'Alumno',
+    SCHOOL_CONTROL: 'Control escolar', TEACHER: 'Docente', PREFECT: 'Prefectura', SUPPORT: 'Apoyo / USAER', SYSTEM_ADMIN: 'Administrador técnico', TUTOR: 'Madre, padre o tutor', STUDENT: 'Alumno',
 }
 
-type Preview = { tenant_name: string; role: string; email: string; status: 'PENDING' | 'ACCEPTED' | 'EXPIRED' | string }
+type Preview = { tenant_name: string; role: string; email: string; status: 'PENDING' | 'ACCEPTED' | 'EXPIRED' | string; replacement_token?: string | null; still_member?: boolean }
 
 /**
  * Enlace de invitación (/invitacion?token=…). Funciona con o sin sesión:
@@ -35,11 +35,17 @@ export const InvitationPage = () => {
         ;(async () => {
             try { localStorage.removeItem(PENDING_INVITE_KEY) } catch { /* nada */ }
             const [{ data: prev }, { data: { session } }] = await Promise.all([
-                supabase.rpc('invitation_preview', { p_token: token }),
+                supabase.rpc('invitation_status', { p_token: token }),
                 supabase.auth.getSession(),
             ])
             if (!alive) return
-            setInfo(((prev as any[]) || [])[0] ?? null)
+            const row = (((prev as any[]) || [])[0] ?? null) as Preview | null
+            // Enlace viejo (ya usado o vencido) y la escuela envió una invitación nueva: se abre la nueva
+            if (row && row.status !== 'PENDING' && row.replacement_token) {
+                window.location.replace(`/invitacion?token=${encodeURIComponent(row.replacement_token)}`)
+                return
+            }
+            setInfo(row)
             setSessionEmail(session?.user.email ?? null)
             if (session) {
                 const { data: st } = await supabase.rpc('my_signup_status')
@@ -87,6 +93,9 @@ export const InvitationPage = () => {
                 ) : !info ? (
                     <Message icon={MailWarning} title="Enlace no válido" text="Este enlace de invitación no existe o está incompleto. Pide a tu escuela que te lo envíe de nuevo." />
                 ) : info.status === 'ACCEPTED' ? (
+                    info.still_member === false ? (
+                        <Message icon={MailWarning} title="Este enlace ya se usó" text={`Esta invitación a ${info.tenant_name} ya se había aceptado, pero esa cuenta ya no pertenece a la escuela. Pide a la dirección que te envíe una invitación nueva al correo ${info.email}: llegará con otro enlace.`} />
+                    ) :
                     <Message icon={CheckCircle2} title="Invitación ya aceptada" text={`La invitación a ${info.tenant_name} ya se usó. Si eres tú, solo inicia sesión.`}
                         action={<Link to={sessionEmail ? '/' : '/login'} className="inline-flex items-center justify-center min-h-[48px] px-6 rounded-2xl bg-indigo-600 text-white font-black">{sessionEmail ? 'Ir a mi inicio' : 'Iniciar sesión'}</Link>} />
                 ) : info.status === 'EXPIRED' ? (
@@ -121,7 +130,7 @@ export const InvitationPage = () => {
                                     className="w-full inline-flex items-center justify-center gap-2 min-h-[48px] rounded-2xl bg-emerald-500 text-white font-black hover:bg-emerald-600 disabled:opacity-60">
                                     {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />} Aceptar y entrar
                                 </button>
-                                <p className="text-xs text-slate-500 text-center">Si ya tienes otros espacios, podrás cambiar entre ellos desde el menú.</p>
+                                <p className="text-xs text-slate-500 text-center">Si ya tienes otro espacio u otro puesto en esta escuela, no pierdes nada: podrás cambiar entre ellos desde el menú «Espacio de trabajo».</p>
                             </div>
                         ) : (
                             <div className="mt-6 space-y-3">

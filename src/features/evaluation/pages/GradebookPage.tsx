@@ -42,8 +42,7 @@ import { NoPlanningAlert } from '../components/NoPlanningAlert'
 import { ConductReportsTab } from '../components/ConductReportsTab'
 import { ActivitiesManagerModal } from '../components/ActivitiesManagerModal'
 import { DictationModeModal } from '../components/DictationModeModal'
-import { QRScanner } from '../components/QRScanner'
-import { BiometricScannerMock } from '../components/BiometricScannerMock'
+import { GradebookCardMode } from '../../cards/components/GradebookCardMode'
 import { Sparkles } from 'lucide-react'
 import { GeminiService } from '../../../lib/gemini'
 import { useMemo } from 'react'
@@ -697,8 +696,7 @@ export const GradebookPage = () => {
                         <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-100 max-w-full overflow-x-auto">
                             {[
                                 { id: 'MANUAL', label: 'Manual', icon: Users },
-                                { id: 'QR', label: 'Lector QR', icon: QrCode },
-                                { id: 'BIOMETRIC', label: 'Biométrico', icon: Activity }
+                                { id: 'QR', label: 'Credencial (QR / NFC)', icon: QrCode }
                             ].map(method => (
                                 <button
                                     key={method.id}
@@ -827,54 +825,19 @@ export const GradebookPage = () => {
 
             {
                 activeTab === 'ATTENDANCE' && attendanceMethod !== 'MANUAL' && (
-                    <div className="squishy-card bg-white p-8 text-center flex flex-col items-center justify-center space-y-4">
-                        {isScanningActive ? (
-                            <div className="w-full">
-                                {attendanceMethod === 'QR' ? (
-                                    <QRScanner
-                                        onScanSuccess={(decodedText) => {
-                                            // Handle scanned ID
-                                            const studentExists = students.find(s => s.id === decodedText || s.curp === decodedText)
-                                            if (studentExists) {
-                                                handleAttendanceChange(studentExists.id, 'PRESENT')
-                                            } else {
-                                                console.warn("Student not found:", decodedText)
-                                            }
-                                        }}
-                                        onClose={() => setIsScanningActive(false)}
-                                    />
-                                ) : (
-                                    <BiometricScannerMock
-                                        students={students}
-                                        onScanSuccess={(studentId) => {
-                                            handleAttendanceChange(studentId, 'PRESENT')
-                                        }}
-                                        onClose={() => setIsScanningActive(false)}
-                                    />
-                                )}
-                            </div>
-                        ) : (
-                            <>
-                                <div className="bg-blue-50 p-6 rounded-full">
-                                    {attendanceMethod === 'QR' ? <QrCode className="w-12 h-12 text-blue-600 animate-pulse" /> : <Activity className="w-12 h-12 text-blue-600 animate-pulse" />}
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-black text-gray-900">
-                                        {attendanceMethod === 'QR' ? 'Escaneo de Código QR Listo' : 'Lectura Biométrica en Espera'}
-                                    </h3>
-                                    <p className="text-gray-500 mt-1 max-w-sm">
-                                        {attendanceMethod === 'QR'
-                                            ? 'Los alumnos pueden escanear su credencial digital para registrar asistencia automáticamente.'
-                                            : 'Coloque el sensor para iniciar la identificación de alumnos por huella digital.'}
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => setIsScanningActive(true)}
-                                    className="px-8 py-3 bg-gray-900 text-white rounded-2xl font-bold hover:bg-gray-800 transition-all shadow-lg btn-tactile"
-                                >
-                                    {attendanceMethod === 'QR' ? 'Encender Cámara' : 'Sincronizar Lector'}
-                                </button>
-                            </>
+                    <div className="squishy-card bg-white p-4 sm:p-6">
+                        {/* Modo escucha: cada alumno acerca su credencial (QR, NFC o lector USB) y queda registrado */}
+                        {tenant?.id && groupId && (
+                            <GradebookCardMode
+                                tenantId={tenant.id}
+                                groupId={groupId}
+                                subjectId={subjectId || null}
+                                date={attendanceDate}
+                                students={students}
+                                assignments={assignments}
+                                attendance={attendance}
+                                onAttendance={(rows, queued) => setAttendance(prev => mergeRows(prev, rows, attendanceKey).map(r => (queued ? r : { ...r, __pending: false })))}
+                            />
                         )}
                     </div>
                 )

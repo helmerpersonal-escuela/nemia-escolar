@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useTenant, useWorkspaces } from '../../hooks/useTenant'
 import { useProfile } from '../../hooks/useProfile'
+import { roleLabel } from '../../lib/roleLabels'
 import {
     ChevronDown,
     Layout,
@@ -18,16 +19,20 @@ export const WorkspaceSwitcher = () => {
     const [isOpen, setIsOpen] = useState(false)
     const [switching, setSwitching] = useState<string | null>(null)
 
-    const handleSwitch = async (tenantId: string) => {
-        if (tenantId === currentTenant?.id) return
+    const activeRole = String((currentTenant as any)?.role || '').toUpperCase()
+    const isActiveSpace = (w: { id: string; role: string; type: string }) =>
+        w.id === currentTenant?.id && (w.role === activeRole || (String(w.type).toUpperCase() === 'INDEPENDENT' && activeRole === 'INDEPENDENT_TEACHER') || (workspaces ?? []).filter(x => x.id === w.id).length === 1)
 
-        setSwitching(tenantId)
+    const handleSwitch = async (w: { id: string; role: string; type: string; key: string }) => {
+        if (isActiveSpace(w)) return
+
+        setSwitching(w.key)
         try {
-            const { error } = await supabase.rpc('switch_workspace', { new_tenant_id: tenantId })
+            const { error } = await supabase.rpc('switch_workspace_role', { new_tenant_id: w.id, p_role: w.role })
             if (error) throw error
 
             // Full reload to clear cache and reset all state for the new workspace
-            window.location.reload()
+            window.location.href = '/'
         } catch (error: any) {
             console.error('Error switching workspace:', error.message)
             setSwitching(null)
@@ -59,6 +64,7 @@ export const WorkspaceSwitcher = () => {
                     <div className="text-left overflow-hidden">
                         <p className="text-[11px] font-black text-gray-500 uppercase tracking-widest leading-none mb-1">Espacio de Trabajo</p>
                         <p className="text-sm font-black text-gray-900 truncate max-w-[120px]">{currentTenant.name}</p>
+                        {(workspaces ?? []).filter(w => w.id === currentTenant.id).length > 1 && <p className="text-[11px] font-bold text-indigo-600 truncate max-w-[120px]">{roleLabel(activeRole)}</p>}
                     </div>
                 </div>
                 <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -77,14 +83,14 @@ export const WorkspaceSwitcher = () => {
 
                         <div className="space-y-1">
                             {workspaces?.map((w) => {
-                                const isActive = w.id === currentTenant.id
-                                const isSwitching = switching === w.id
+                                const isActive = isActiveSpace(w)
+                                const isSwitching = switching === w.key
 
                                 return (
                                     <button
-                                        key={w.id}
+                                        key={w.key}
                                         disabled={switching !== null}
-                                        onClick={() => handleSwitch(w.id)}
+                                        onClick={() => handleSwitch(w)}
                                         className={`
                                             w-full flex items-center justify-between p-3 rounded-xl transition-all
                                             ${isActive ? 'bg-blue-50 cursor-default' : 'hover:bg-gray-50'}
@@ -94,8 +100,9 @@ export const WorkspaceSwitcher = () => {
                                             <div className={`p-1.5 rounded-lg mr-3 ${w.type === 'SCHOOL' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
                                                 {w.type === 'SCHOOL' ? <School className="w-4 h-4" /> : <User className="w-4 h-4" />}
                                             </div>
-                                            <span className={`text-sm truncate ${isActive ? 'font-black text-blue-700' : 'font-bold text-gray-700'}`}>
-                                                {w.name}
+                                            <span className="min-w-0 text-left">
+                                                <span className={`block text-sm truncate ${isActive ? 'font-black text-blue-700' : 'font-bold text-gray-700'}`}>{w.name}</span>
+                                                <span className="block text-xs text-gray-500 truncate">{String(w.type).toUpperCase() === 'INDEPENDENT' ? 'Mi espacio personal' : roleLabel(w.role)}</span>
                                             </span>
                                         </div>
                                         {isActive && <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />}

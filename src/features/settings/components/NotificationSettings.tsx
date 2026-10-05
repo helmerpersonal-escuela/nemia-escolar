@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Bell, BellOff, BellRing, Volume2, VolumeX, Loader2 } from 'lucide-react'
 import { SettingsCard, SettingsActionButton } from './SettingsUI'
+import { supabase } from '../../../lib/supabase'
+import { enablePush, pushState, type PushState } from '../../../lib/push'
 import { currentPlatform, getPermission, isMuted, notificationSupport, playChatSound, requestPermission, showSystemNotification, type Permission, type Platform } from '../../../lib/notify'
 
 const PLATFORM: Record<Platform, string> = {
@@ -26,19 +28,24 @@ export function NotificationSettings() {
     const platform = currentPlatform()
     const support = notificationSupport()
 
-    useEffect(() => { getPermission().then(setPerm) }, [])
+    const [push, setPush] = useState<PushState | null>(null)
+    useEffect(() => { getPermission().then(async p => { setPerm(p); setPush(p === 'granted' ? await enablePush() : await pushState()) }) }, [])
 
     const activate = async () => {
         setBusy(true)
         const r = await requestPermission()
         setPerm(r); setBusy(false)
         window.dispatchEvent(new Event('edu:permission-changed'))
-        if (r === 'granted') test()
+        if (r === 'granted') { setPush(await enablePush()); test() }
     }
     const test = async () => {
         await playChatSound(true)
         const ok = await showSystemNotification({ title: 'Prueba de VUNLEK', body: 'Así se verán los mensajes nuevos del chat.', url: '/messages', tag: 'vunlek-prueba' })
         setTested(ok ? '¿Escuchaste el sonido y viste el aviso? Si no, revisa el volumen y el modo "No molestar".' : 'Sonó en la app, pero el sistema no mostró el aviso: revisa los permisos.')
+    }
+    const closedTest = async () => {
+        const { data, error } = await supabase.rpc('push_test', { p_delay: 10 })
+        setTested(error || !data ? 'No se pudo pedir la prueba. Revisa tu conexión.' : 'Cierra VUNLEK ahora (o bloquea el celular). En unos 10 segundos debe llegarte "Prueba de VUNLEK".')
     }
     const toggleMute = () => {
         const v = !muted
@@ -70,7 +77,20 @@ export function NotificationSettings() {
                         </div>
                     )}
                 {tested && <p className="text-sm text-slate-600">{tested}</p>}
-                <p className="text-xs text-slate-500">Con la app o el navegador completamente cerrados, los avisos aún no llegan; mantenla abierta o minimizada.</p>
+                {perm === 'granted' && push === 'on' && (
+                    <div className="text-xs text-emerald-800 bg-emerald-50 rounded-2xl p-3 space-y-2">
+                        <p>Este dispositivo también recibe avisos <b>con VUNLEK cerrada</b> (mensajes, reportes de alumnos, citatorios y alertas).</p>
+                        <button type="button" className="font-bold underline" onClick={closedTest}>Probarlo: enviarme un aviso en 10 segundos</button>
+                    </div>
+                )}
+                {perm === 'granted' && push === 'off' && (
+                    <p className="text-xs text-amber-900 bg-amber-50 rounded-2xl p-3">Aún no quedó registrado para avisos con la app cerrada. <button type="button" className="font-bold underline" onClick={async () => setPush(await enablePush())}>Intentar de nuevo</button></p>
+                )}
+                {perm === 'granted' && push === 'unsupported' && (
+                    <p className="text-xs text-slate-500">{platform === 'desktop-app' || platform === 'android-app' || platform === 'ios-app'
+                        ? 'En esta app los avisos llegan mientras esté abierta o minimizada. Para recibirlos con todo cerrado, abre VUNLEK en el navegador de tu celular e instálala desde ahí.'
+                        : 'Este navegador solo avisa mientras VUNLEK esté abierta.'}</p>
+                )}
             </SettingsCard>
             <SettingsCard icon={muted ? VolumeX : Volume2} title="Sonido" hint="El sonido de VUNLEK suena al llegar un mensaje.">
                 <div className="flex flex-wrap gap-2">

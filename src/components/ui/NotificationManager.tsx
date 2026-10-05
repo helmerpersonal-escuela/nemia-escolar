@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Bell, VolumeX, X, Smartphone } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { enablePush } from '../../lib/push'
 import { getPermission, isMuted as readMuted, notificationSupport, playChatSound, requestPermission, setSoundUrl, showSystemNotification, type Permission } from '../../lib/notify'
 
 const DISMISS_KEY = 'edu_notifications_dismissed'
@@ -15,7 +16,10 @@ export const NotificationManager = () => {
     const support = notificationSupport()
 
     useEffect(() => {
-        getPermission().then(setPermission)
+        // Si ya dio permiso, este dispositivo queda (o sigue) registrado para avisos con la app cerrada
+        getPermission().then(p => { setPermission(p); if (p === 'granted') enablePush() })
+        const onSw = (e: MessageEvent) => { if (e.data?.type === 'vunlek:push-renew') enablePush() }
+        navigator.serviceWorker?.addEventListener('message', onSw)
         // Sonido personalizado desde God Mode (system_settings.chat_sound_url); si no hay, el de VUNLEK
         supabase.from('system_settings').select('value').eq('key', 'chat_sound_url').maybeSingle()
             .then(({ data }) => { if (data?.value && !String(data.value).includes('aveqziaewxcglhteufft')) setSoundUrl(String(data.value)) }, () => {})
@@ -29,6 +33,7 @@ export const NotificationManager = () => {
             window.removeEventListener('edu:mute-changed', readMute)
             window.removeEventListener('edu:playsound', onSound)
             window.removeEventListener('edu:permission-changed', onPerm)
+            navigator.serviceWorker?.removeEventListener('message', onSw)
         }
     }, [])
 
@@ -38,6 +43,7 @@ export const NotificationManager = () => {
         safeSet(DISMISS_KEY, 'true')
         setIsDismissed(true)
         if (result === 'granted') {
+            enablePush()
             playChatSound(true)
             showSystemNotification({ title: 'Avisos activados', body: 'Te avisaremos con este sonido cuando llegue un mensaje.', url: '/messages', tag: 'vunlek-prueba' })
         }

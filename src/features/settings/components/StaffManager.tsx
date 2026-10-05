@@ -40,7 +40,7 @@ export const StaffManager = () => {
     const { data: tenantCtx } = useTenant()
     const level = (tenantCtx as any)?.educationalLevel || (tenantCtx as any)?.educational_level
     const [newAssignment, setNewAssignment] = useState<Assignment>(emptyAssignment)
-    const [editing, setEditing] = useState<{ id: string; a: Assignment } | null>(null)
+    const [editing, setEditing] = useState<{ id: string; key: string; a: Assignment } | null>(null)
     const [emailStatus, setEmailStatus] = useState<{ state: 'sending' | 'sent' | 'manual'; to: string; detail?: string } | null>(null)
 
     /** Envía el correo de la invitación. Si el servicio de correo no está configurado, pide compartir el enlace. */
@@ -187,20 +187,40 @@ export const StaffManager = () => {
         loadData()
     }
 
+    // Una persona puede tener varios puestos (p. ej. control escolar y administrador técnico): una tarjeta por puesto
+    const rowKey = (m: any) => `${m.profile_id}:${String(m.role).toUpperCase()}`
+    const rolesOf = (m: any) => staff.filter(x => x.profile_id === m.profile_id).map(x => String(x.role).toUpperCase())
+
     const removeMember = async (m: any) => {
         const name = [m.first_name, m.last_name_paternal].filter(Boolean).join(' ') || m.email
-        if (!(await askConfirm(`¿Dar de baja a ${name}? Dejará de tener acceso a esta escuela y se le quitarán sus grupos asignados. Sus registros (calificaciones, asistencia) se conservan.`, { title: 'Dar de baja', confirmLabel: 'Sí, dar de baja', danger: true }))) return
-        setBusyId(m.profile_id)
-        const { error } = await supabase.rpc('remove_staff_member', { p_profile_id: m.profile_id })
+        const several = rolesOf(m).length > 1
+        const msg = several
+            ? `¿Quitar a ${name} el puesto de ${roleName(m.role)}? Conserva sus otros puestos en la escuela.`
+            : `¿Dar de baja a ${name}? Dejará de tener acceso a esta escuela y se le quitarán sus grupos asignados. Sus registros (calificaciones, asistencia) se conservan.`
+        if (!(await askConfirm(msg, { title: several ? 'Quitar puesto' : 'Dar de baja', confirmLabel: several ? 'Sí, quitar' : 'Sí, dar de baja', danger: true }))) return
+        setBusyId(rowKey(m))
+        const { error } = several
+            ? await supabase.rpc('remove_staff_role', { p_profile_id: m.profile_id, p_role: m.role })
+            : await supabase.rpc('remove_staff_member', { p_profile_id: m.profile_id })
         setBusyId(null)
-        if (error) { showToast('No se pudo dar de baja: ' + error.message, 'error'); return }
-        showToast(`${name} ya no tiene acceso a la escuela.`, 'success')
+        if (error) { showToast('No se pudo: ' + error.message, 'error'); return }
+        showToast(several ? 'Puesto retirado.' : `${name} ya no tiene acceso a la escuela.`, 'success')
+        loadData()
+    }
+
+    const addRole = async (m: any, role: string) => {
+        if (!role) return
+        setBusyId(rowKey(m))
+        const { error } = await supabase.rpc('add_staff_role', { p_profile_id: m.profile_id, p_role: role })
+        setBusyId(null)
+        if (error) { showToast('No se pudo agregar el puesto: ' + error.message, 'error'); return }
+        showToast('Puesto agregado. La persona cambia entre sus puestos desde el menú "Espacio de trabajo".', 'success')
         loadData()
     }
 
     const changeRole = async (m: any, role: string) => {
-        setBusyId(m.profile_id)
-        const { error } = await supabase.rpc('set_staff_role', { p_profile_id: m.profile_id, p_role: role })
+        setBusyId(rowKey(m))
+        const { error } = await supabase.rpc('change_staff_role', { p_profile_id: m.profile_id, p_role: role, p_old_role: m.role })
         setBusyId(null)
         if (error) { showToast('No se pudo cambiar el puesto: ' + error.message, 'error'); return }
         showToast('Puesto actualizado', 'success')
@@ -209,7 +229,7 @@ export const StaffManager = () => {
 
     const saveAssignment = async () => {
         if (!editing) return
-        setBusyId(editing.id)
+        setBusyId(editing.key)
         const { error } = await supabase.rpc('set_staff_assignment', { p_profile_id: editing.id, p_job_title: editing.a.job_title, p_grades: editing.a.assigned_grades, p_duties: editing.a.duties })
         setBusyId(null)
         if (error) { showToast('No se pudo guardar el encargo: ' + error.message, 'error'); return }
@@ -319,11 +339,11 @@ export const StaffManager = () => {
                             <li key={inv.id} className="flex items-center justify-between gap-3 p-3 rounded-2xl border border-slate-100 bg-white">
                                 <div className="min-w-0">
                                     <p className="font-bold text-slate-900 break-all">{inv.email}</p>
-                                    <p className="text-sm text-slate-500">{roleName(inv.role)}</p>
+                                    <p className="text-sm text-slate-500">{roleName(inv.role)}{inv.expires_at && new Date(inv.expires_at) < new Date() ? ' · vencida: reenvíala para renovarla' : ''}</p>
                                 </div>
                                 {isDirectorOrAdmin && (
                                     <div className="flex gap-1 shrink-0">
-                                        <button type="button" onClick={() => sendInviteEmail(inv.id, inv.email)} aria-label={`Enviar correo a ${inv.email}`} title="Enviar el correo otra vez" className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-slate-500 hover:text-indigo-700 hover:bg-indigo-50"><Mail className="w-4 h-4" /></button>
+                                        <button type="button" onClick={async () => { await supabase.rpc('refresh_invitation', { p_id: inv.id }); sendInviteEmail(inv.id, inv.email); loadData() }} aria-label={`Enviar correo a ${inv.email}`} title="Enviar el correo otra vez" className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-slate-500 hover:text-indigo-700 hover:bg-indigo-50"><Mail className="w-4 h-4" /></button>
                                         <button type="button" onClick={() => copyInviteLink(inv.token)} aria-label={`Copiar enlace de ${inv.email}`} className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-slate-500 hover:text-indigo-700 hover:bg-indigo-50"><Copy className="w-4 h-4" /></button>
                                         <button type="button" onClick={() => deleteInvitation(inv.id)} aria-label={`Cancelar invitación de ${inv.email}`} className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-slate-500 hover:text-red-600 hover:bg-red-50"><Trash2 className="w-4 h-4" /></button>
                                     </div>
@@ -338,9 +358,11 @@ export const StaffManager = () => {
                 <ul className="space-y-2">
                     {staff.map(m => {
                         const name = [m.first_name, m.last_name_paternal, m.last_name_maternal].filter(Boolean).join(' ') || m.email
-                        const busy = busyId === m.profile_id
+                        const busy = busyId === rowKey(m)
+                        const several = rolesOf(m).length > 1
+                        const addable = roleOptions.filter(r => !rolesOf(m).includes(r.id))
                         return (
-                            <li key={m.profile_id} className="flex flex-col gap-3 p-3 rounded-2xl border border-slate-100 bg-white">
+                            <li key={rowKey(m)} className="flex flex-col gap-3 p-3 rounded-2xl border border-slate-100 bg-white">
                                 <div className="flex items-center gap-3 min-w-0">
                                     {m.avatar_url ? <img src={m.avatar_url} alt="" className="w-11 h-11 rounded-2xl bg-slate-50 shrink-0 object-cover" /> : <InitialsAvatar name={name} className="w-11 h-11 rounded-2xl text-sm" />}
                                     <div className="min-w-0">
@@ -358,19 +380,25 @@ export const StaffManager = () => {
                                 {isDirectorOrAdmin && !m.is_me && canTouch(m) ? (
                                     <div className="flex flex-wrap items-center justify-end gap-2">
                                         <select aria-label={`Puesto de ${name}`} disabled={busy} className={`${wizardInput} !py-2 flex-1 min-w-[11rem] sm:max-w-xs`} value={(m.role || '').toUpperCase()} onChange={e => changeRole(m, e.target.value)}>
-                                            {roleOptions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                            {roleOptions.filter(r => r.id === String(m.role).toUpperCase() || !rolesOf(m).includes(r.id)).map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                                             {!roleOptions.some(r => r.id === (m.role || '').toUpperCase()) && <option value={m.role}>{m.role}</option>}
                                         </select>
-                                        <SettingsActionButton icon={Pencil} disabled={busy} onClick={() => setEditing({ id: m.profile_id, a: { job_title: m.job_title || '', assigned_grades: m.assigned_grades || [], duties: m.duties || '' } })}>Encargo</SettingsActionButton>
-                                        <SettingsActionButton tone="danger" icon={busy ? Loader2 : UserMinus} disabled={busy} onClick={() => removeMember(m)}>Dar de baja</SettingsActionButton>
+                                        <SettingsActionButton icon={Pencil} disabled={busy} onClick={() => setEditing({ id: m.profile_id, key: rowKey(m), a: { job_title: m.job_title || '', assigned_grades: m.assigned_grades || [], duties: m.duties || '' } })}>Encargo</SettingsActionButton>
+                                        {addable.length > 0 && (
+                                            <select aria-label={`Agregar otro puesto a ${name}`} disabled={busy} className={`${wizardInput} !py-2 w-auto`} value="" onChange={e => addRole(m, e.target.value)}>
+                                                <option value="">+ Otro puesto…</option>
+                                                {addable.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                            </select>
+                                        )}
+                                        <SettingsActionButton tone="danger" icon={busy ? Loader2 : UserMinus} disabled={busy} onClick={() => removeMember(m)}>{several ? 'Quitar puesto' : 'Dar de baja'}</SettingsActionButton>
                                     </div>
                                 ) : (
                                     <span className="text-sm font-bold text-slate-600 bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 self-start">{roleName(m.role)}</span>
                                 )}
-                                {editing?.id === m.profile_id && (
+                                {editing?.key === rowKey(m) && (
                                     <div className="w-full rounded-2xl border-2 border-indigo-100 bg-indigo-50/30 p-4 space-y-3">
                                         <p className="font-bold text-slate-900">Encargo de {name}</p>
-                                        <StaffAssignmentFields role={m.role} level={level} value={editing!.a} onChange={a => setEditing({ id: m.profile_id, a })} />
+                                        <StaffAssignmentFields role={m.role} level={level} value={editing!.a} onChange={a => setEditing({ id: m.profile_id, key: rowKey(m), a })} />
                                         <div className="flex justify-end gap-2">
                                             <button type="button" onClick={() => setEditing(null)} className="min-h-[44px] px-4 rounded-2xl text-sm font-bold text-slate-600 hover:bg-white">Cancelar</button>
                                             <button type="button" onClick={saveAssignment} disabled={busy} className="inline-flex items-center gap-2 min-h-[44px] px-5 rounded-2xl bg-emerald-500 text-white text-sm font-black hover:bg-emerald-600 disabled:opacity-60"><Save className="w-4 h-4" /> Guardar encargo</button>

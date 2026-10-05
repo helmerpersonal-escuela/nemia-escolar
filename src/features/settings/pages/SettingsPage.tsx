@@ -61,7 +61,7 @@ export const SettingsPage = () => {
     const [searchParams] = useSearchParams()
     // Enlaces antiguos: "periods" ahora vive junto con el ciclo escolar
     const rawTab = searchParams.get('tab')
-    const initialTab = (rawTab === 'periods' ? 'cycle' : rawTab as any) || 'profile'
+    const initialTab = (rawTab === 'periods' ? 'cycle' : rawTab === 'ai' ? 'profile' : rawTab as any) || 'profile'
 
     const [loading, setLoading] = useState(true)
     const [updating, setUpdating] = useState(false)
@@ -606,7 +606,6 @@ export const SettingsPage = () => {
                         ...(((isDirectorOrAdmin || isSuperAdmin) && profile.role?.toUpperCase() !== 'INDEPENDENT_TEACHER' && tenant.type !== 'INDEPENDENT') ? [{
                             title: 'Gestión', items: [
                                 ...(isDirectorOrAdmin ? [{ id: 'personal', label: 'Personal: altas y bajas', icon: Users }] : []),
-                                ...(isSuperAdmin ? [{ id: 'ai', label: 'Inteligencia artificial', icon: Sparkles }] : []),
                             ]
                         }] : []),
                     ].filter(g => g.items.length)
@@ -669,7 +668,6 @@ export const SettingsPage = () => {
                                     cycle: { icon: Calendar, title: 'Ciclo escolar y periodos', description: 'Las fechas del ciclo y los periodos de evaluación (trimestres). Organizan tus calificaciones, asistencia y planeaciones.' },
                                     horarios: { icon: Clock, title: 'Jornada escolar', description: 'Hora de entrada y salida, duración de cada clase y recesos. Se usa para armar tu horario y tus planeaciones.' },
                                     personal: { icon: Users, title: 'Personal: altas y bajas', description: 'Da de alta a docentes, directivos y demás personal, cambia su puesto o dales de baja cuando ya no trabajen en la escuela.' },
-                                    ai: { icon: Sparkles, title: 'Inteligencia artificial', description: 'Claves de los servicios de IA que generan planeaciones y evaluaciones.' },
                                 }
                                 const h = H[activeTab]
                                 return h ? <SettingsHeader icon={h.icon} title={h.title} description={h.description} /> : null
@@ -874,167 +872,6 @@ export const SettingsPage = () => {
 
 
 
-                            {
-                                activeTab === 'ai' && (
-                                    <div className="space-y-12">
-
-                                        <div className="space-y-8 max-w-2xl">
-                                            <div className="bg-gradient-to-br from-indigo-600 to-blue-700 p-8 rounded-[2.5rem] text-white shadow-2xl shadow-indigo-200 relative overflow-hidden">
-                                                <div className="absolute top-0 right-0 p-8 opacity-20">
-                                                    <Sparkles className="w-32 h-32" />
-                                                </div>
-                                                <div className="relative z-10">
-                                                    <div className="flex items-center mb-6">
-                                                        <div className="p-3 bg-white/20 backdrop-blur rounded-2xl mr-4">
-                                                            <Sparkles className="w-6 h-6" />
-                                                        </div>
-                                                        <span className="text-[11px] font-black uppercase tracking-[0.2em] opacity-80">AI Core Engine</span>
-                                                    </div>
-                                                    <h4 className="text-xl font-black mb-4">Potencia tu labor docente</h4>
-                                                    <p className="text-sm text-indigo-50 leading-relaxed opacity-90">
-                                                        El sistema detecta automáticamente si utilizas <b>Groq (Llama 3)</b> o <b>Google Gemini</b> basándose en tu clave.
-                                                        Recomendamos Groq por su velocidad y estabilidad en tareas de redacción pedagógica.
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-8">
-                                                {/* Groq Key */}
-                                                <div className="space-y-3">
-                                                    <div className="flex justify-between items-center px-1">
-                                                        <label className="text-[11px] font-black text-gray-500 uppercase tracking-widest">Groq API Key (Recomendado)</label>
-                                                        <button
-                                                            onClick={() => window.open('https://console.groq.com/keys', '_blank')}
-                                                            className="text-[11px] font-black text-indigo-500 hover:text-indigo-700 uppercase"
-                                                        >
-                                                            Obtener Key
-                                                        </button>
-                                                    </div>
-                                                    <div className="relative">
-                                                        <input
-                                                            type="password"
-                                                            placeholder="gsk_..."
-                                                            value={aiSettings.groq_key}
-                                                            onChange={(e) => setAiSettings({ ...aiSettings, groq_key: e.target.value })}
-                                                            className="w-full px-5 py-4 bg-gray-50 border-transparent rounded-2xl text-sm font-mono focus:bg-white focus:ring-0 focus:border-indigo-500 transition-all shadow-inner"
-                                                        />
-                                                        <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                                                            <span className="text-[11px] font-black bg-orange-100 text-orange-600 px-3 py-1 rounded-full uppercase tracking-tighter">Llama 3</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* Gemini Key */}
-                                                <div className="space-y-3">
-                                                    <div className="flex justify-between items-center px-1">
-                                                        <label className="text-[11px] font-black text-gray-500 uppercase tracking-widest">Google Gemini API Key</label>
-                                                        <button
-                                                            onClick={() => window.open('https://aistudio.google.com/app/apikey', '_blank')}
-                                                            className="text-[11px] font-black text-indigo-500 hover:text-indigo-700 uppercase"
-                                                        >
-                                                            Obtener Key
-                                                        </button>
-                                                    </div>
-                                                    <div className="relative">
-                                                        <input
-                                                            type="password"
-                                                            placeholder="AIza..."
-                                                            value={aiSettings.gemini_key}
-                                                            onChange={(e) => setAiSettings({ ...aiSettings, gemini_key: e.target.value })}
-                                                            className="w-full px-5 py-4 bg-gray-50 border-transparent rounded-2xl text-sm font-mono focus:bg-white focus:ring-0 focus:border-indigo-500 transition-all shadow-inner"
-                                                        />
-                                                        <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                                                            <span className="text-[11px] font-black bg-blue-100 text-blue-600 px-3 py-1 rounded-full uppercase tracking-tighter">Gemini 1.5</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* OpenAI Key */}
-                                                <div className="space-y-3">
-                                                    <div className="flex justify-between items-center px-1">
-                                                        <label className="text-[11px] font-black text-gray-500 uppercase tracking-widest">OpenAI API Key (Opcional)</label>
-                                                        <button
-                                                            onClick={() => window.open('https://platform.openai.com/api-keys', '_blank')}
-                                                            className="text-[11px] font-black text-indigo-500 hover:text-indigo-700 uppercase"
-                                                        >
-                                                            Obtener Key
-                                                        </button>
-                                                    </div>
-                                                    <div className="relative">
-                                                        <input
-                                                            type="password"
-                                                            placeholder="sk-..."
-                                                            value={aiSettings.openai_key}
-                                                            onChange={(e) => setAiSettings({ ...aiSettings, openai_key: e.target.value })}
-                                                            className="w-full px-5 py-4 bg-gray-50 border-transparent rounded-2xl text-sm font-mono focus:bg-white focus:ring-0 focus:border-indigo-500 transition-all shadow-inner"
-                                                        />
-                                                        <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                                                            <span className="text-[11px] font-black bg-gray-100 text-gray-600 px-3 py-1 rounded-full uppercase tracking-tighter">GPT-4o</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {(aiSettings.groq_key || aiSettings.gemini_key) && (
-                                                    <div className="flex items-center bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
-                                                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse mr-3" />
-                                                        <span className="text-[11px] font-black text-emerald-700 uppercase tracking-widest">
-                                                            {aiSettings.groq_key && aiSettings.gemini_key ? 'Motores Configurados y Activos' : 'Motor IA Habilitado'}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <SaveBar dirty={savedAiKey !== JSON.stringify(aiSettings)} saving={updating} onSave={handleUpdateAiSettings}
-                                                onDiscard={() => setAiSettings(JSON.parse(savedAiKey))} what="cambios en la configuración de IA" />
-
-                                            <div className="pt-12 border-t border-gray-50">
-                                                <div className="flex items-center mb-6">
-                                                    <div className="w-1 h-8 bg-amber-400 rounded-full mr-4" />
-                                                    <h3 className="text-sm font-black text-gray-500 uppercase tracking-widest">Developer Toolkit</h3>
-                                                </div>
-                                                <div className="bg-gray-50 p-8 rounded-[2.5rem] border border-gray-100 group transition-all hover:bg-white hover:shadow-xl hover:shadow-gray-100">
-                                                    <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-                                                        <div className="flex-1 text-center sm:text-left">
-                                                            <h4 className="font-black text-gray-900 uppercase tracking-tight mb-1">Poblar Base de Datos</h4>
-                                                            <p className="text-xs text-gray-500 font-medium">Genera alumnos, grupos y calificaciones de prueba para demostraciones.</p>
-                                                        </div>
-                                                        <button
-                                                            onClick={async () => {
-                                                                const confirm = (await askConfirm('¿Estas seguro? Esto creará muchos datos de prueba.'))
-                                                                if (!confirm) return
-                                                                setUpdating(true)
-                                                                try {
-                                                                    const { seedDatabase } = await import('../../../utils/seed_data')
-                                                                    const result = await seedDatabase(tenant.id)
-                                                                    if (result.success) {
-                                                                        showSuccess('Datos generados correctamente')
-                                                                        alert('Log:\n' + result.log.join('\n'))
-                                                                    } else {
-                                                                        alert('Error:\n' + result.log.join('\n'))
-                                                                    }
-                                                                } catch (e) {
-                                                                    console.error(e)
-                                                                    alert('Error fatal al ejecutar seed')
-                                                                } finally {
-                                                                    setUpdating(false)
-                                                                }
-                                                            }}
-                                                            disabled={updating}
-                                                            className="px-6 py-3 bg-white border border-gray-200 text-gray-900 font-black text-[11px] uppercase tracking-widest rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm"
-                                                        >
-                                                            Ejecutar Seed
-                                                        </button>
-                                                    </div>
-                                                    <div className="mt-6 flex items-center justify-center sm:justify-start text-[11px] font-black text-amber-700 bg-amber-50 py-2 px-4 rounded-full border border-amber-100 inline-flex">
-                                                        <Lock className="w-3 h-3 mr-2" />
-                                                        ENTORNO DE PRUEBAS SOLAMENTE
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )
-                            }
 
                             {/* BILLING TAB */}
                             {

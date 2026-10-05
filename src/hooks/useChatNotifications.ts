@@ -22,6 +22,20 @@ export function useChatNotifications(enabled: boolean) {
     useEffect(() => { unlockAudioOnFirstGesture() }, [])
     useEffect(() => onNotificationTap(url => navigate(url)), [navigate])
 
+    // Avisos del servidor que llegan con VUNLEK abierta y a la vista (reportes, citatorios, alertas):
+    // el service worker los pasa a la página para mostrarlos aquí. Los de chat ya los maneja el aviso de abajo.
+    useEffect(() => {
+        const onMsg = (e: MessageEvent) => {
+            const d = e.data
+            if (d?.type !== 'vunlek:push' || String(d.tag ?? '').startsWith('chat-')) return
+            playChatSound()
+            showToast(`${d.title ?? 'VUNLEK'}: ${d.body ?? ''}`, 'info')
+            window.dispatchEvent(new Event('edu:chat-message'))
+        }
+        navigator.serviceWorker?.addEventListener('message', onMsg)
+        return () => navigator.serviceWorker?.removeEventListener('message', onMsg)
+    }, [showToast])
+
     useEffect(() => {
         if (!enabled) return
         let channel: ReturnType<typeof supabase.channel> | null = null

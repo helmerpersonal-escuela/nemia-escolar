@@ -77,7 +77,9 @@ export const useTenant = () => {
                 `)
                 .eq('profile_id', targetUserId)
                 .eq('tenant_id', profile.tenant_id)
-                .maybeSingle()
+            // Una persona puede tener varios puestos en la misma escuela (p. ej. control escolar y técnico):
+            // se usa el puesto activo (profiles.role); si no coincide, el primero.
+            .then(r => ({ error: r.error, data: (r.data ?? []).find((x: any) => String(x.role).toUpperCase() === String(profile.role).toUpperCase()) ?? (r.data ?? [])[0] ?? null }))
 
 
             if (!ptData || ptError) {
@@ -195,11 +197,13 @@ export const useWorkspaces = () => {
 
             if (error) throw error
 
-            return data.map((pt: any) => ({
-                id: pt.tenants.id,
-                name: pt.tenants.name,
-                type: pt.tenants.type,
-                role: pt.role
+            // Una entrada por puesto: la misma escuela aparece dos veces si la persona tiene dos puestos ahí
+            return data.filter((pt: any) => pt.tenants).map((pt: any) => ({
+                id: pt.tenants.id as string,
+                name: pt.tenants.name as string,
+                type: pt.tenants.type as string,
+                role: String(pt.role).toUpperCase(),
+                key: `${pt.tenants.id}:${String(pt.role).toUpperCase()}`,
             }))
         }
     })
