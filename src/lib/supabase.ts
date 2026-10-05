@@ -18,13 +18,46 @@ export interface ApiResult { method: string; url: string; status: number; ok: bo
 let apiListener: ((r: ApiResult) => void) | null = null
 export function onApiResult(fn: (r: ApiResult) => void) { apiListener = fn }
 
+// Momento en que la pestaña estuvo oculta por última vez (computadora suspendida, celular bloqueado…)
+let lastHidden = typeof document !== 'undefined' && document.visibilityState === 'hidden' ? performance.now() : -1
+if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => { lastHidden = performance.now() })
+}
+
+let refreshing: Promise<string | null> | null = null
+/** Renueva la sesión una sola vez aunque varias consultas fallen al mismo tiempo. */
+function renewToken(): Promise<string | null> {
+    refreshing ??= supabase.auth.refreshSession()
+        .then(({ data }) => data.session?.access_token ?? null, () => null)
+        .finally(() => { setTimeout(() => { refreshing = null }, 2000) })
+    return refreshing
+}
+
 const trackedFetch: typeof fetch = async (input, init) => {
     const started = performance.now()
-    const res = await fetch(input, init)
+    let res = await fetch(input, init)
+    // Al volver de suspensión el permiso de la sesión puede haber vencido: se renueva y se repite la consulta,
+    // en vez de mostrar pantallas vacías o errores hasta que la persona recargue.
+    try {
+        const url0 = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+        if (res.status === 401 && !url0.includes('/auth/v1/') && !(input instanceof Request)) {
+            const body = await res.clone().json().catch(() => null) as { code?: string; message?: string; msg?: string } | null
+            if (body?.code === 'PGRST303' || /jwt expired|invalid jwt/i.test(`${body?.message ?? ''}${body?.msg ?? ''}`)) {
+                const token = await renewToken()
+                if (token) {
+                    const headers = new Headers(init?.headers)
+                    headers.set('Authorization', `Bearer ${token}`)
+                    res = await fetch(input, { ...init, headers })
+                }
+            }
+        }
+    } catch { /* si no se pudo renovar, se entrega la respuesta original */ }
     try {
         const listener = apiListener
         const ms = performance.now() - started
-        if (listener && (!res.ok || ms > 8000)) {
+        // Si la pestaña estuvo oculta durante la consulta, el tiempo no dice nada del servidor
+        const slept = lastHidden >= started
+        if (listener && (!res.ok || (ms > 8000 && !slept))) {
             const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
             if (!url.includes('/client_errors')) {
                 const method = (init?.method || (input instanceof Request ? input.method : 'GET')).toUpperCase()

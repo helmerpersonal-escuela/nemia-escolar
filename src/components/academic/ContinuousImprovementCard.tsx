@@ -16,7 +16,8 @@ export const ContinuousImprovementCard = ({ compact = false }: { compact?: boole
         staleTime: 1000 * 60 * 60 * 6,
         queryFn: async () => {
             const { data } = await supabase.from('cte_calendar').select('date, session_number, session_type').gte('date', todayISO()).order('date').limit(1)
-            return data?.[0] as { date: string; session_number: number; session_type: string } | undefined
+            // null (no undefined): React Query marca error si la consulta regresa undefined
+            return (data?.[0] ?? null) as { date: string; session_number: number; session_type: string } | null
         },
     })
     const days = nextCte ? Math.round((new Date(nextCte.date + 'T12:00:00').getTime() - new Date(todayISO() + 'T12:00:00').getTime()) / 86400000) : null

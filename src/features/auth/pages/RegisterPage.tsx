@@ -1,4 +1,5 @@
 import { useNavigate, Link, useSearchParams } from 'react-router-dom'
+import { authMessage } from '../../../lib/authMessages'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { GoogleButton } from '../components/GoogleButton'
@@ -199,7 +200,7 @@ export const RegisterPage = () => {
 
         } catch (error: any) {
             console.error('Registration error:', error)
-            alert(error.message || 'Error al completar la operación')
+            alert(authMessage(error, 'No se pudo completar el registro. Intenta de nuevo.'))
         } finally {
             setLoading(false)
         }

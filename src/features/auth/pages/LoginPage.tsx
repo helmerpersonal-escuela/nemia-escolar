@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { authMessage } from '../../../lib/authMessages'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { GoogleButton } from '../components/GoogleButton'
@@ -37,10 +38,8 @@ export const LoginPage = () => {
             if (error) throw error
         } catch (err: any) {
             console.error('Captura de error en LoginPage:', err)
-            setError(err.message === 'Invalid login credentials'
-                ? 'Credenciales incorrectas. Por favor verifica tu correo y contraseña.'
-                : err.message)
-            alert("Error de Inicio de Sesión: " + err.message)
+            // El mensaje se muestra en la propia pantalla, en español (antes salía una ventana en inglés)
+            setError(authMessage(err, 'No se pudo iniciar sesión. Intenta de nuevo.'))
         } finally {
             setLoading(false)
         }

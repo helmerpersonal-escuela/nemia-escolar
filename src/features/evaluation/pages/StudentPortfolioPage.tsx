@@ -59,7 +59,7 @@ export const StudentPortfolioPage = () => {
                     first_name,
                     last_name_paternal,
                     last_name_maternal,
-                    group:groups(name)
+                    group:groups(grade, section)
                 `)
                 .eq('tenant_id', tenant?.id)
                 .order('first_name')
@@ -68,7 +68,7 @@ export const StudentPortfolioPage = () => {
             const formatted = data.map((s: any) => ({
                 id: s.id,
                 full_name: `${s.first_name} ${s.last_name_paternal} ${s.last_name_maternal || ''}`,
-                group_name: s.group?.name || 'Sin grupo'
+                group_name: s.group ? `${s.group.grade}° ${s.group.section}` : 'Sin grupo'
             }))
             setStudents(formatted)
         } catch (err) {

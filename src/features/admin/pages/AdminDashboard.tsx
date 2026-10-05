@@ -88,8 +88,8 @@ export const AdminDashboard = () => {
         setIsSearching(true)
         const { data } = await supabase
             .from('students')
-            .select('*, groups(name)')
-            .ilike('full_name', `%${query}%`)
+            .select('*, groups(grade, section)')
+            .or(`first_name.ilike.%${query.replace(/[%,()]/g, '')}%,last_name_paternal.ilike.%${query.replace(/[%,()]/g, '')}%,last_name_maternal.ilike.%${query.replace(/[%,()]/g, '')}%`)
             .limit(5)
         setSearchResults(data || [])
         setIsSearching(false)
@@ -140,7 +140,7 @@ export const AdminDashboard = () => {
                                     </div>
                                     <div>
                                         <p className="text-sm font-bold text-gray-900 uppercase">{s.first_name} {s.last_name_paternal}</p>
-                                        <p className="text-[11px] text-gray-500 font-black uppercase tracking-widest">{s.groups?.name || 'Sin Grupo'}</p>
+                                        <p className="text-[11px] text-gray-500 font-black uppercase tracking-widest">{s.groups ? `${s.groups.grade}° ${s.groups.section}` : 'Sin Grupo'}</p>
                                     </div>
                                     <ArrowUpRight className="w-4 h-4 ml-auto text-gray-300" />
                                 </Link>
