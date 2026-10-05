@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { BILLING_ENABLED } from '../../../lib/billing'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
@@ -650,7 +651,7 @@ export const OnboardingWizard = ({ onComplete }: { onComplete: () => void }) => 
             {step === 3 && (
                 <div className="space-y-5">
                     <WizardStepHeader icon={BookOpen} title="Tus materias" description="Toca las materias que darás este ciclo. Si no ves la tuya, búscala o agrégala al final." />
-                    <WizardAlert tone="success"><span className="inline-flex items-start gap-2"><Gift className="w-4 h-4 mt-0.5 shrink-0" /><span>Tu espacio incluye <b>30 días gratis con todas las herramientas</b>. No necesitas tarjeta; te avisaremos una semana antes de que termine.</span></span></WizardAlert>
+                    {BILLING_ENABLED && <WizardAlert tone="success"><span className="inline-flex items-start gap-2"><Gift className="w-4 h-4 mt-0.5 shrink-0" /><span>Tu espacio incluye <b>30 días gratis con todas las herramientas</b>. No necesitas tarjeta; te avisaremos una semana antes de que termine.</span></span></WizardAlert>}
                     <div className="rounded-2xl border border-slate-100 p-3 sm:p-4">
                         <SubjectSelector educationalLevel={schoolData.educationalLevel} selectedSubjects={selectedSubjects} onChange={setSelectedSubjects} />
                     </div>

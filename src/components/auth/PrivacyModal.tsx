@@ -78,7 +78,7 @@ export const PrivacyContent = () => (
         <ul className="list-disc pl-5 space-y-1">
             <li><strong>Registro y Uso Directo:</strong> Cuando crea una cuenta, carga información (e.g., datos de alumnos), realiza pagos o interactúa con funciones del Servicio.</li>
             <li><strong>Tecnologías Automáticas:</strong> Cookies, web beacons, píxeles y similares para rastrear uso y mejorar la experiencia (ver Sección 8 para detalles).</li>
-            <li><strong>Terceros:</strong> Información proporcionada por instituciones educativas, proveedores de pago (e.g., Mercado Pago, bancos mexicanos) o integraciones con herramientas externas (e.g., sistemas de la SEP, si aplica).</li>
+            <li><strong>Terceros:</strong> Información proporcionada por instituciones educativas, proveedores de pago (e.g., App Store de Apple, Google Play) o integraciones con herramientas externas (e.g., sistemas de la SEP, si aplica).</li>
             <li><strong>Fuentes Públicas:</strong> Datos accesibles públicamente, como perfiles educativos verificados, solo si es necesario para el Servicio.</li>
         </ul>
         <p>

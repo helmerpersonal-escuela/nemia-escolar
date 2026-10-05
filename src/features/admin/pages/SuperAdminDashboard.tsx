@@ -80,7 +80,7 @@ export const SuperAdminDashboard = () => {
 
     const [billingSettings, setBillingSettingsState] = useState<any>(() => {
         try { localStorage.removeItem('godmode_billing_settings') } catch { /* sin acceso */ }
-        return { mercadopago_public_key: '', mercadopago_access_token: '', mercadopago_webhook_secret: '', auto_license_activation: 'true' }
+        return { auto_license_activation: 'true' }
     })
     const setBillingSettings = (settings: any) => {
         setBillingSettingsState(settings)
@@ -538,17 +538,6 @@ export const SuperAdminDashboard = () => {
 
                     {activeTab === 'billing' && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="squishy-card p-8 bg-white rounded-3xl shadow-lg border border-indigo-50">
-                                <h4 className="font-black text-indigo-950 uppercase mb-6 flex items-center gap-2">
-                                    <CreditCard className="w-5 h-5 text-indigo-500" /> Mercado Pago Config
-                                </h4>
-                                <div className="space-y-4">
-                                    <input type="text" placeholder="Public Key" value={billingSettings.mercadopago_public_key} onChange={e => setBillingSettings({ ...billingSettings, mercadopago_public_key: e.target.value })} className="input-squishy w-full px-4 py-3 text-sm border-2 border-slate-50" />
-                                    <input type="password" placeholder="Access Token" value={billingSettings.mercadopago_access_token} onChange={e => setBillingSettings({ ...billingSettings, mercadopago_access_token: e.target.value })} className="input-squishy w-full px-4 py-3 text-sm border-2 border-slate-50" />
-                                    <input type="password" placeholder="Clave secreta del webhook (Tus integraciones → Webhooks)" value={billingSettings.mercadopago_webhook_secret || ''} onChange={e => setBillingSettings({ ...billingSettings, mercadopago_webhook_secret: e.target.value })} className="input-squishy w-full px-4 py-3 text-sm border-2 border-slate-50" />
-                                    <button onClick={() => handleSaveGroup('billing')} disabled={isSaving} className="w-full py-3 bg-indigo-600 text-white rounded-xl font-black uppercase text-xs tracking-widest hover:bg-indigo-700 transition-all shadow-lg active:scale-95">Guardar Billing</button>
-                                </div>
-                            </div>
                             <div className="squishy-card p-8 bg-white rounded-3xl shadow-lg border border-indigo-50">
                                 <h4 className="font-black text-indigo-950 uppercase mb-6 flex items-center gap-2">
                                     <History className="w-5 h-5 text-indigo-500" /> Transacciones Recientes

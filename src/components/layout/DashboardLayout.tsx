@@ -58,6 +58,7 @@ import { setErrorContext } from '../../lib/errorReporting'
 import { OfflineCenter } from '../offline/OfflineCenter'
 import { PageHelpButton } from '../help/PageHelp'
 import { TrialNotificationSystem } from '../../features/subscription/components/TrialNotificationSystem'
+import { useStoreSync } from '../../hooks/useStoreSync'
 import { NewCycleBanner } from '../../features/school-year/components/NewCycleBanner'
 import { useCooperativeRecord } from '../../features/cooperative/lib/useCooperative'
 import { BrandLogo } from '../brand/BrandLogo'
@@ -176,6 +177,8 @@ const MenuItem = ({ item, location, collapsed }: any) => {
 }
 
 export const DashboardLayout = () => {
+    // Suscripción comprada en la tienda (solo app móvil y con cobros activos)
+    useStoreSync()
     // Start closed on mobile, open could be controlled by media query, but false is safer default to avoid flash
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const location = useLocation()

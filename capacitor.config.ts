@@ -6,9 +6,6 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   server: {
     allowNavigation: [
-      '*.mercadopago.com',
-      '*.mercadopago.com.mx',
-      '*.mercadocdn.com',
       'fonts.googleapis.com'
     ]
   },

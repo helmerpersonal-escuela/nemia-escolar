@@ -1,4 +1,5 @@
 import { useSubscription } from './useSubscription'
+import { BILLING_ENABLED } from '../lib/billing'
 
 export const useTrialStatus = () => {
     const { subscription, isTrialExpired } = useSubscription()
@@ -20,6 +21,8 @@ export const useTrialStatus = () => {
 
         return days
     }
+
+    if (!BILLING_ENABLED) return { daysRemaining: -1, isTrial: false, isExpired: false }
 
     return {
         daysRemaining: getDaysRemaining(),

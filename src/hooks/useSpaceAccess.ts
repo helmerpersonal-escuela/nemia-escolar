@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useTenant } from './useTenant'
+import { BILLING_ENABLED } from '../lib/billing'
 
 /** Estado de la suscripción del espacio (escuela o docente independiente). */
 export interface SpaceAccess {
@@ -25,12 +26,14 @@ export function useSpaceAccess() {
     const { data: tenant } = useTenant()
     const tenantId = (tenant as any)?.id as string | undefined
     return useQuery<SpaceAccess>({
-        queryKey: [SPACE_ACCESS_KEY, tenantId ?? 'none'],
+        queryKey: [SPACE_ACCESS_KEY, tenantId ?? 'none', BILLING_ENABLED ? 'on' : 'free'],
         enabled: !!tenant,
         staleTime: 5 * 60_000,
         retry: (failures, err) => failures < 3 && !/JWT|permission|401|403/i.test(String((err as Error)?.message ?? '')),
         retryDelay: attempt => Math.min(1000 * 2 ** attempt, 4000),
         queryFn: async () => {
+            // Cobros apagados: acceso libre para todos, sin consultar suscripción.
+            if (!BILLING_ENABLED) return { has_access: true, status: 'ACTIVE', plan: 'LICENSE', can_manage: false, auto_renew: true, tenant_id: tenantId } as SpaceAccess
             const god = tenantId === '00000000-0000-0000-0000-000000000000'
             const { data, error } = await supabase.rpc('space_access' as any, { p_tenant: god ? null : tenantId ?? null })
             if (error) throw error

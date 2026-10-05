@@ -14,6 +14,7 @@ import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
 import { SecuritySettings } from '../components/SecuritySettings'
 import L from 'leaflet'
 import { BillingSection } from '../components/BillingSection'
+import { BILLING_ENABLED } from '../../../lib/billing'
 import { useLocation } from 'react-router-dom'
 import { AcademicYearManager } from '../components/AcademicYearManager'
 import { useProfile } from '../../../hooks/useProfile'
@@ -155,7 +156,7 @@ export const SettingsPage = () => {
         loadData()
 
         // Handle redirection for expired trials
-        if (location.state?.trialExpired) {
+        if (BILLING_ENABLED && location.state?.trialExpired) {
             setActiveTab('billing')
         }
     }, [location.state])
@@ -593,7 +594,7 @@ export const SettingsPage = () => {
                                 ...(['TEACHER', 'DIRECTOR', 'ACADEMIC_COORD', 'TECH_COORD', 'ADMIN', 'INDEPENDENT_TEACHER'].includes(currentRole) ? [{ id: 'subjects', label: 'Mis materias', icon: BookOpen }] : []),
                                 { id: 'avisos', label: 'Avisos y sonido', icon: Bell },
                                 { id: 'security', label: 'Seguridad', icon: Lock },
-                                ...(profile.role?.toUpperCase() !== 'TUTOR' ? [{ id: 'billing', label: 'Mi cuenta', icon: CreditCard }] : []),
+                                ...(BILLING_ENABLED && profile.role?.toUpperCase() !== 'TUTOR' ? [{ id: 'billing', label: 'Mi cuenta', icon: CreditCard }] : []),
                             ]
                         },
                         ...((isDirectorOrAdmin || ['TEACHER', 'ACADEMIC_COORD', 'TECH_COORD', 'PREFECT', 'SUPPORT'].includes(currentRole)) ? [{

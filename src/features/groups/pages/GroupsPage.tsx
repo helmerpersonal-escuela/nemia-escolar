@@ -6,7 +6,6 @@ import { buildSubjectOptions, type CatalogSubject } from '../../../lib/subjectCa
 import { useNavigate } from 'react-router-dom'
 import { Plus, Users, School, Trash2, Edit, ArrowRight, BookOpen, GraduationCap, ClipboardList } from 'lucide-react'
 import { EditGroupModal } from '../components/EditGroupModal'
-import { UpgradeModal } from '../../../components/UpgradeModal'
 import { ErrorModal } from '../../planning/components/editor/modals/ErrorModal'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../../lib/supabase'
@@ -37,7 +36,6 @@ export const GroupsPage = () => {
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isModifyingGroup, setIsModifyingGroup] = useState<Group | null>(null)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-    const [showUpgradeModal, setShowUpgradeModal] = useState(false)
     const [errorModal, setErrorModal] = useState<{ isOpen: boolean; title: string; message: string; action?: () => void; buttonText?: string }>({
         isOpen: false,
         title: '',
@@ -305,10 +303,6 @@ export const GroupsPage = () => {
                     {canCreateGroup && (
                         <button
                             onClick={async () => {
-                                if (!limits.canAddGroup) {
-                                    setShowUpgradeModal(true)
-                                    return
-                                }
 
                                 // La regla de oro: sin ciclo y periodos no se puede crear un grupo
                                 if (!(await ensure(['ciclo'], 'crear un grupo'))) return
@@ -344,7 +338,6 @@ export const GroupsPage = () => {
                         label: 'Crear mi primer grupo',
                         icon: Plus,
                         onClick: () => {
-                            if (!limits.canAddGroup) { setShowUpgradeModal(true); return }
                             setIsModalOpen(true)
                         },
                     } : undefined}
@@ -569,14 +562,6 @@ export const GroupsPage = () => {
                 />
             )}
 
-            <UpgradeModal
-                isOpen={showUpgradeModal}
-                onClose={() => setShowUpgradeModal(false)}
-                currentPlan={limits.planType}
-                currentGroups={limits.currentGroups}
-                maxGroups={limits.maxGroups}
-                reason="groups"
-            />
 
             <ErrorModal
                 isOpen={errorModal.isOpen}

@@ -63,6 +63,7 @@ const IncidentsRoute = lazyNamed(() => import('./components/routes/RoleRoutes'),
 import { ProtectedRoute } from './components/routes/ProtectedRoute'
 import { RequireSteps } from './components/prereq/Prerequisites'
 import { SubscriptionGuard } from './components/routes/SubscriptionGuard'
+import { BILLING_ENABLED } from './lib/billing'
 const CTEPage = lazyNamed(() => import('./features/cte/pages/CTEPage'), 'CTEPage')
 const NewSchoolYearWizard = lazyNamed(() => import('./features/school-year/pages/NewSchoolYearWizard'), 'NewSchoolYearWizard')
 const CooperativePage = lazyNamed(() => import('./features/cooperative/pages/CooperativePage'), 'CooperativePage')
@@ -259,7 +260,7 @@ function App() {
           }
         >
           <Route path="paywall" element={<Navigate to={`/suscripcion${window.location.search}`} replace />} />
-          <Route path="suscripcion" element={<SubscriptionPage />} />
+          <Route path="suscripcion" element={BILLING_ENABLED ? <SubscriptionPage /> : <Navigate to="/" replace />} />
           <Route index element={<DashboardPage />} />
           <Route path="teacher-dashboard" element={<TeacherDashboard />} />
           <Route path="groups" element={<GroupsPage />} />

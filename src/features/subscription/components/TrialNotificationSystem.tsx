@@ -33,7 +33,8 @@ export const TrialNotificationSystem = () => {
         setVisible(true)
     }, [kind, access?.tenant_id])
 
-    if (!visible || !kind) return null
+    // En la pantalla de suscripción el aviso estorba: ahí ya está toda la información
+    if (!visible || !kind || window.location.pathname.startsWith('/suscripcion')) return null
 
     const title = kind === 'trial' ? 'Tu mes de prueba está por terminar' : kind === 'renew' ? 'Tu suscripción vence pronto' : 'No pudimos realizar el cobro'
     const when = days === 1 ? 'mañana' : days != null && days <= 0 ? 'hoy' : `en ${days} días`
@@ -44,7 +45,7 @@ export const TrialNotificationSystem = () => {
             : `Tu prueba gratuita termina ${when}. Tu información se conserva; solo elige tu plan para seguir usando todas las herramientas.`
         : kind === 'renew'
             ? `Tu periodo termina ${when} y no tiene cobro automático.`
-            : 'Mercado Pago no pudo cobrar tu suscripción. Tienes unos días de gracia para actualizar tu forma de pago.'
+            : 'No se pudo cobrar tu suscripción. Tienes unos días de gracia para actualizar tu forma de pago.'
 
     return (
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/40" role="dialog" aria-modal="true" aria-label={title}>

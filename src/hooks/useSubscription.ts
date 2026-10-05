@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
+import { BILLING_ENABLED } from '../lib/billing'
 
 export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid' | 'none'
 
@@ -44,12 +45,14 @@ export const useSubscription = () => {
     })
 
     const isTrialExpired = () => {
+        if (!BILLING_ENABLED) return false
         if (!subscription) return true
         if (subscription.status !== 'trialing') return false
         return new Date(subscription.current_period_end) < new Date()
     }
 
     const isActive = () => {
+        if (!BILLING_ENABLED) return true
         if (!subscription) return false
         if (subscription.status === 'active') return true
         if (subscription.status === 'trialing' && !isTrialExpired()) return true

@@ -5,7 +5,6 @@ import { createPortal } from 'react-dom'
 import { WizardFooter, WizardProgress, WizardModalHeader, wizardInput } from '../../../components/wizard/Wizard'
 import { supabase } from '../../../lib/supabase'
 import { useSubscriptionLimits } from '../../../hooks/useSubscriptionLimits'
-import { UpgradeModal } from '../../../components/UpgradeModal'
 import { normalizePhone, phonesProblem } from '../../../lib/phones'
 
 type Guardian = {
@@ -81,7 +80,6 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
     const [invitedProfileId, setInvitedProfileId] = useState<string | null>(null)
     const [existingProfile, setExistingProfile] = useState<{ id: string, first_name: string, last_name_paternal: string } | null>(null)
     const [searchingProfile, setSearchingProfile] = useState(false)
-    const [showUpgradeModal, setShowUpgradeModal] = useState(false)
     const [currentStudentCount, setCurrentStudentCount] = useState(0)
     const limits = useSubscriptionLimits()
 
@@ -344,11 +342,6 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
             }
         }
 
-        // Check student limit only when creating new student (not editing)
-        if (!studentId && currentStudentCount >= limits.maxStudentsPerGroup) {
-            setShowUpgradeModal(true)
-            return
-        }
 
         setLoading(true)
         try {
@@ -723,14 +716,6 @@ export const AddStudentModal = ({ isOpen, onClose, groupId, tenantId, onSuccess,
                 </div>
             </div>
 
-            <UpgradeModal
-                isOpen={showUpgradeModal}
-                onClose={() => setShowUpgradeModal(false)}
-                currentPlan={limits.planType}
-                currentGroups={limits.currentGroups}
-                maxGroups={limits.maxGroups}
-                reason="students"
-            />
         </div>,
         document.body
     )

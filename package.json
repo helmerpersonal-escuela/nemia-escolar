@@ -32,7 +32,6 @@
     "@capacitor/share": "^8.0.2",
     "@capacitor/splash-screen": "^8.0.1",
     "@google/generative-ai": "^0.24.1",
-    "@mercadopago/sdk-react": "^1.0.7",
     "@react-pdf/renderer": "^4.3.2",
     "@supabase/supabase-js": "^2.95.3",
     "@tanstack/query-async-storage-persister": "^5.103.2",
