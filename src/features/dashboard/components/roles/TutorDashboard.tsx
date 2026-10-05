@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { FamilyAccessCard } from '../../../family/components/FamilyAccessCard'
 import { Link } from 'react-router-dom'
 import { EmergencyPhonesForm } from '../../../family/components/EmergencyPhonesForm'
 import {
@@ -195,6 +196,8 @@ export const TutorDashboard = () => {
                     </button>
                 </div>
             </div>
+
+            <FamilyAccessCard />
             {showPhones && (
                 <div className="max-w-md">
                     <EmergencyPhonesForm onSaved={() => setShowPhones(false)} />

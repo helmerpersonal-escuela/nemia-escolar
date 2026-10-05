@@ -62,6 +62,8 @@ export const CompleteSignupPage = () => {
     }, [])
 
     if (noSession) return <Navigate to="/login" replace />
+    // Viene a activar una cuenta adicional: termina en su propia pantalla (pide sus datos básicos)
+    if (pending?.mode === 'FAMILY' && pending.extraCode) return <Navigate to="/familia/adicional" replace />
 
     if (status && (status.has_workspace || status.is_super_admin)) {
         // Ya tenía espacio y vino a ligar a un hijo: se termina en /familia

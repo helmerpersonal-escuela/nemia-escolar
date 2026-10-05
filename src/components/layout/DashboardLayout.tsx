@@ -504,6 +504,7 @@ export const DashboardLayout = () => {
                 subItems: [
                     { label: 'Importar datos de la escuela', path: '/importar-datos' },
                     { label: 'Códigos para familias', path: '/familias/codigos' },
+                    { label: 'Cuentas con acceso (familias)', path: '/familias/accesos' },
                     { label: 'Credenciales (NFC / QR)', path: '/credenciales' },
                 ]
             }
@@ -525,6 +526,7 @@ export const DashboardLayout = () => {
                     { label: 'Programa de Mejora (PEMC)', path: '/admin/pemc' },
                     { label: 'Validar planeaciones', path: '/planning' },
                     { label: 'Estadísticas', path: '/stats' },
+                    { label: 'Cuentas con acceso (familias)', path: '/familias/accesos' },
                     { label: 'Control de acceso (credencial)', path: '/acceso' },
                     { label: 'Programa analítico', path: '/analytical-program' },
                     { label: 'PDAs, ejes y metodologías', path: '/mis-pdas' },
@@ -583,6 +585,7 @@ export const DashboardLayout = () => {
                     { label: 'Boletas Oficiales', path: '/reports/evaluation' },
                     { label: 'Horarios de Docentes', path: '/schedule' },
                     { label: 'Expedientes Digitales', path: '/students' },
+                    { label: 'Cuentas con acceso (familias)', path: '/familias/accesos' },
                     { label: 'Credenciales (NFC / QR)', path: '/credenciales' },
                     { label: 'Control de acceso (credencial)', path: '/acceso' }
                 ]
@@ -795,7 +798,7 @@ export const DashboardLayout = () => {
         '/messages': 'Mensajes', '/agenda': 'Calendario', '/cte': 'Consejo Técnico', '/libros': 'Libros de texto',
         '/paywall': 'Planes y licencia', '/suscripcion': 'Suscripción', '/students': 'Alumnos', '/groups': 'Grupos', '/nem-assistant': 'Asistente NEM', '/asesoria': 'Grupo que asesoro', '/formatos': 'Mis formatos', '/mis-pdas': 'PDAs, ejes y metodologías',
         '/rubrics': 'Instrumentos', '/schedule': 'Horario', '/admin/pemc': 'PEMC', '/admin/staff': 'Personal',
-        '/sumar-mi-espacio': 'Sumar mi espacio personal', '/acceso': 'Control de acceso', '/credenciales': 'Credenciales', '/solicitudes': 'Solicitudes', '/bitacora': 'Bitácora de cambios', '/importar-datos': 'Importar datos', '/familias/codigos': 'Códigos para familias',
+        '/sumar-mi-espacio': 'Sumar mi espacio personal', '/familias/accesos': 'Cuentas con acceso', '/acceso': 'Control de acceso', '/credenciales': 'Credenciales', '/solicitudes': 'Solicitudes', '/bitacora': 'Bitácora de cambios', '/importar-datos': 'Importar datos', '/familias/codigos': 'Códigos para familias',
     }
     const path = location.pathname
     const pageTitle = path === '/'

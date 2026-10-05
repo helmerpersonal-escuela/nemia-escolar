@@ -22,6 +22,8 @@ export interface SignupIntent {
     familyCode?: string
     /** CURP del alumno (se guarda solo en este dispositivo mientras termina el registro; nunca va en la dirección) */
     familyCurp?: string
+    /** Código de un solo uso de una cuenta adicional autorizada por la escuela */
+    extraCode?: string
     invitationToken?: string | null
 }
 

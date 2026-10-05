@@ -245,6 +245,7 @@ export const FamilyAccessPage = () => {
                 )}
 
                 {error && <p role="alert" className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2 text-center">{error}</p>}
+                {!done && <p className="text-center text-xs text-slate-500">¿El tutor te dio un código de <b>cuenta adicional</b>? <Link to="/familia/adicional" className="font-bold underline">Actívala aquí</Link></p>}
             </div>
         </div>
     )

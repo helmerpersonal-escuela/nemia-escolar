@@ -77,6 +77,8 @@ const MergeWorkspacePage = lazyNamed(() => import('./features/workspace-merge/Me
 const AccessControlPage = lazyNamed(() => import('./features/cards/pages/AccessControlPage'), 'AccessControlPage')
 const CardsPage = lazyNamed(() => import('./features/cards/pages/CardsPage'), 'CardsPage')
 const CardLandingPage = lazyNamed(() => import('./features/cards/pages/CardLandingPage'), 'CardLandingPage')
+const ExtraAccessPage = lazyNamed(() => import('./features/family/pages/ExtraAccessPage'), 'ExtraAccessPage')
+const FamilyAccessAdminPage = lazyNamed(() => import('./features/family/pages/FamilyAccessAdminPage'), 'FamilyAccessAdminPage')
 const ActivityLogPage = lazyNamed(() => import('./features/support/pages/ActivityLogPage'), 'ActivityLogPage')
 const AdvisoryGroupPage = lazyNamed(() => import('./features/advisory/pages/AdvisoryGroupPage'), 'AdvisoryGroupPage')
 const PedagogyCatalogPage = lazyNamed(() => import('./features/pdas/pages/PedagogyCatalogPage'), 'PedagogyCatalogPage')
@@ -234,6 +236,7 @@ function App() {
         <Route path="/invitacion" element={<InvitationPage />} />
         <Route path="/familia" element={<FamilyAccessPage />} />
         <Route path="/c/:token" element={<CardLandingPage />} />
+        <Route path="/familia/adicional" element={<ExtraAccessPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/privacidad" element={<LegalPage kind="privacy" />} />
         <Route path="/privacy" element={<LegalPage kind="privacy" />} />
@@ -289,6 +292,11 @@ function App() {
           <Route path="credenciales" element={
             <ProtectedRoute allowedRoles={['SYSTEM_ADMIN', 'DIRECTOR', 'ADMIN', 'SCHOOL_CONTROL', 'ACADEMIC_COORD', 'TECH_COORD', 'PREFECT', 'TEACHER', 'INDEPENDENT_TEACHER']}>
               <RequireSteps steps={['alumnos']} action="preparar las credenciales"><CardsPage /></RequireSteps>
+            </ProtectedRoute>
+          } />
+          <Route path="familias/accesos" element={
+            <ProtectedRoute allowedRoles={['SYSTEM_ADMIN', 'DIRECTOR', 'ADMIN', 'SCHOOL_CONTROL', 'ACADEMIC_COORD']}>
+              <FamilyAccessAdminPage />
             </ProtectedRoute>
           } />
           <Route path="bitacora" element={
