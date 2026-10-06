@@ -1,5 +1,5 @@
 import { AiUsagePanel } from '../components/AiUsagePanel'
-import { SpaceSubscriptionsPanel, PromoAndLicensesPanel } from '../components/BillingAdminPanel'
+import { SpaceSubscriptionsPanel, PromoAndLicensesPanel, SalesLeadsCard } from '../components/BillingAdminPanel'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../../lib/supabase'
@@ -13,7 +13,7 @@ import { ClientIssuesPanel } from '../components/ClientIssuesPanel'
 import { ADMIN_PEOPLE_KEY, ADMIN_SPACES_KEY, fetchAdminPeople, PeoplePanel, type Notify } from '../components/PeoplePanel'
 import { fetchAdminSpaces, SpacesPanel } from '../components/SpacesPanel'
 
-type TabId = 'errors' | 'tenants' | 'users' | 'subscriptions' | 'licenses' | 'billing' | 'textbooks' | 'synthetic' | 'landing' | 'ai' | 'settings' | 'sounds' | 'backups'
+type TabId = 'leads' | 'errors' | 'tenants' | 'users' | 'subscriptions' | 'licenses' | 'billing' | 'textbooks' | 'synthetic' | 'landing' | 'ai' | 'settings' | 'sounds' | 'backups'
 
 /** Secciones del panel, agrupadas por lo que el administrador viene a hacer. */
 const SECTIONS: { group: string; items: { id: TabId; label: string; icon: any; help: string }[] }[] = [
@@ -23,6 +23,7 @@ const SECTIONS: { group: string; items: { id: TabId; label: string; icon: any; h
         { id: 'errors', label: 'Errores y mejoras', icon: Bug, help: 'Lo que la app reportó sola y lo que pidieron los usuarios.' },
     ] },
     { group: 'Suscripciones', items: [
+        { id: 'leads', label: 'Presupuestos de escuelas', icon: Building2, help: 'Escuelas que pidieron presupuesto: sus datos, docentes y alumnos, para contactarlas.' },
         { id: 'subscriptions', label: 'Suscripciones', icon: RefreshCw, help: 'Estado de la suscripción de cada espacio.' },
         { id: 'licenses', label: 'Claves y códigos', icon: Key, help: 'Claves de licencia y códigos promocionales.' },
         { id: 'billing', label: 'Movimientos', icon: CreditCard, help: 'Pagos registrados.' },
@@ -355,6 +356,8 @@ export const SuperAdminDashboard = () => {
                     )}
 
                     {activeTab === 'subscriptions' && <SpaceSubscriptionsPanel search={searchTerm} />}
+
+                    {activeTab === 'leads' && <SalesLeadsCard />}
 
                     {activeTab === 'licenses' && <PromoAndLicensesPanel />}
 

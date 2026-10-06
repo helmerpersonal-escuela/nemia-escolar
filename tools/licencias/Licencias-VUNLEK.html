@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Licencias VUNLEK</title>
+<style>
+  :root { --ink:#1b1b3a; --muted:#5b6078; --line:#dfe2ee; --bg:#f3f4fa; --card:#fff; --brand:#42428F; --brand-soft:#ececfa; --ok:#0f7a4d; --ok-soft:#e5f6ee; --bad:#b3261e; --bad-soft:#fdecea; --warn:#8a5a00; --warn-soft:#fff4dc; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; background:var(--bg); color:var(--ink); line-height:1.45; }
+  header { background:var(--brand); color:#fff; padding:22px 16px; }
+  header .in, main { max-width: 860px; margin: 0 auto; }
+  header h1 { margin:0; font-size:1.5rem; }
+  header p { margin:4px 0 0; opacity:.85; font-size:.95rem; }
+  main { padding: 18px 16px 60px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:20px; margin-bottom:16px; }
+  .card h2 { margin:0 0 4px; font-size:1.15rem; display:flex; align-items:center; gap:10px; }
+  .num { width:28px; height:28px; border-radius:50%; background:var(--brand); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:.9rem; flex:none; }
+  .num.done { background:var(--ok); }
+  .hint { color:var(--muted); font-size:.92rem; margin:0 0 14px; }
+  label { display:block; font-weight:600; font-size:.9rem; margin-bottom:5px; }
+  label small { font-weight:400; color:var(--muted); }
+  input[type=text], input[type=date], textarea { width:100%; padding:11px 12px; border:1.5px solid var(--line); border-radius:10px; font:inherit; color:inherit; background:#fff; }
+  input:focus, textarea:focus, button:focus-visible { outline:3px solid #b9b9ee; outline-offset:1px; border-color:var(--brand); }
+  textarea { resize:vertical; font-family: Consolas, ui-monospace, monospace; font-size:.85rem; word-break:break-all; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .full { grid-column:1 / -1; }
+  @media (max-width:640px){ .grid { grid-template-columns:1fr; } }
+  button { font:inherit; font-weight:700; border:0; border-radius:10px; padding:11px 18px; cursor:pointer; min-height:44px; }
+  .primary { background:var(--brand); color:#fff; }
+  .primary:hover { background:#34347a; }
+  .ghost { background:var(--brand-soft); color:var(--brand); }
+  .ghost:hover { background:#dedef5; }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  .row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  .msg { border-radius:10px; padding:11px 13px; font-size:.93rem; margin-top:12px; }
+  .msg.ok { background:var(--ok-soft); color:var(--ok); }
+  .msg.bad { background:var(--bad-soft); color:var(--bad); }
+  .msg.warn { background:var(--warn-soft); color:var(--warn); }
+  .pill { display:inline-block; padding:3px 10px; border-radius:999px; font-size:.8rem; font-weight:700; background:var(--ok-soft); color:var(--ok); }
+  .pill.off { background:#eceef5; color:var(--muted); }
+  code.key { display:block; background:#f6f7fb; border:1px solid var(--line); border-radius:8px; padding:9px 10px; font-size:.85rem; word-break:break-all; margin-top:6px; }
+  table { width:100%; border-collapse:collapse; font-size:.88rem; }
+  th, td { text-align:left; padding:8px 6px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; }
+  .scroll { overflow-x:auto; }
+  .hidden { display:none !important; }
+  dl { display:grid; grid-template-columns:auto 1fr; gap:4px 14px; margin:10px 0 0; font-size:.93rem; }
+  dt { color:var(--muted); } dd { margin:0; font-weight:600; word-break:break-word; }
+  details { margin-top:10px; } summary { cursor:pointer; color:var(--brand); font-weight:600; }
+</style>
+</head>
+<body>
+<header><div class="in">
+  <h1>Licencias VUNLEK</h1>
+  <p>Herramienta del administrador. Funciona sin internet y nada sale de esta computadora.</p>
+</div></header>
+
+<main>
+  <div id="unsupported" class="msg bad hidden">Este navegador no puede firmar licencias. Abre este archivo con Google Chrome o Microsoft Edge actualizados.</div>
+
+  <!-- 1. CLAVE -->
+  <section class="card" aria-labelledby="h-key">
+    <h2 id="h-key"><span class="num" id="n1">1</span> Tu clave para firmar <span id="keyPill" class="pill off">Sin cargar</span></h2>
+    <p class="hint">La clave privada es un archivo que solo tú debes tener. Aquí se usa para firmar y no se guarda en el navegador: hay que cargarla cada vez que abras esta página.</p>
+    <div class="row">
+      <button class="primary" id="btnLoad">Cargar mi clave privada…</button>
+      <button class="ghost" id="btnNew">Es mi primera vez: crear mis claves</button>
+      <input type="file" id="fileKey" accept=".pem,.txt" class="hidden">
+    </div>
+    <div id="keyInfo" class="hidden">
+      <div class="msg ok" id="keyMsg"></div>
+      <label style="margin-top:14px">Clave pública <small>(esta sí se puede compartir; es la que lleva la app)</small></label>
+      <code class="key" id="pubKey"></code>
+      <div class="row" style="margin-top:10px">
+        <button class="ghost" id="btnCopyPub">Copiar clave pública</button>
+        <button class="ghost" id="btnInstall">Instalarla en la app…</button>
+      </div>
+      <p class="hint" id="installHelp" style="margin-top:10px">“Instalarla en la app” te pide elegir el archivo <b>src\lib\offlineLicenseKey.ts</b> dentro de <b>C:\SistemaGestionEscolar</b> y la agrega ahí. Solo hace falta una vez; después sube el cambio y publica la app.</p>
+      <div id="installMsg"></div>
+    </div>
+    <div id="newKeyWarn" class="msg warn hidden"></div>
+  </section>
+
+  <!-- 2. LICENCIA -->
+  <section class="card" aria-labelledby="h-lic">
+    <h2 id="h-lic"><span class="num">2</span> Generar una licencia</h2>
+    <p class="hint">Cada licencia sirve para una sola computadora y hasta la fecha que indiques.</p>
+    <form id="form" class="grid" novalidate>
+      <div class="full"><label for="escuela">Nombre de la escuela</label><input type="text" id="escuela" autocomplete="off" placeholder="Escuela Secundaria Técnica No. 37"></div>
+      <div><label for="cct">CCT o ID escolar</label><input type="text" id="cct" autocomplete="off" placeholder="07DST0037X" style="text-transform:uppercase"></div>
+      <div><label for="expira">Válida hasta</label><input type="date" id="expira"></div>
+      <div class="full"><label for="hwid">Identificador del equipo <small>(HWID que la escuela ve en su app; empieza con PC-)</small></label><input type="text" id="hwid" autocomplete="off" placeholder="PC-ABCDE-FGHJK-MNPQR-STVWX" style="text-transform:uppercase"></div>
+      <div><label for="plan">Plan <small>(opcional)</small></label><input type="text" id="plan" autocomplete="off" placeholder="Anual"></div>
+      <div><label for="notas">Notas <small>(opcional, van dentro de la licencia)</small></label><input type="text" id="notas" autocomplete="off" placeholder="Recibo 123"></div>
+      <div class="full row">
+        <button class="primary" type="submit" id="btnGen" disabled>Generar licencia</button>
+        <span class="hint" id="genHint" style="margin:0">Primero carga tu clave (paso 1).</span>
+      </div>
+    </form>
+    <div id="formErr" class="msg bad hidden" role="alert"></div>
+
+    <div id="result" class="hidden">
+      <div class="msg ok" id="resMsg"></div>
+      <label style="margin-top:14px" for="code">Código para enviar a la escuela <small>(lo pegan en su app)</small></label>
+      <textarea id="code" rows="4" readonly></textarea>
+      <div class="row" style="margin-top:10px">
+        <button class="primary" id="btnCopy">Copiar código</button>
+        <button class="ghost" id="btnFile">Descargar archivo de licencia</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. HISTORIAL -->
+  <section class="card" aria-labelledby="h-hist">
+    <h2 id="h-hist"><span class="num">3</span> Licencias que has generado aquí</h2>
+    <p class="hint">Se guarda en este navegador para que sepas a quién le diste qué y cuándo vence. Descárgala de vez en cuando como respaldo.</p>
+    <div class="scroll"><table><thead><tr><th>Escuela</th><th>CCT</th><th>Vence</th><th>Equipo</th><th>Folio</th></tr></thead><tbody id="hist"></tbody></table></div>
+    <p class="hint hidden" id="histEmpty" style="margin-top:10px">Todavía no has generado ninguna.</p>
+    <div class="row" style="margin-top:12px"><button class="ghost" id="btnCsv">Descargar lista (Excel / CSV)</button></div>
+  </section>
+
+  <!-- 4. REVISAR -->
+  <section class="card" aria-labelledby="h-ver">
+    <h2 id="h-ver"><span class="num">4</span> Revisar una licencia</h2>
+    <p class="hint">Pega un código o el contenido de un archivo de licencia para saber si es auténtico y qué dice. Necesita tu clave cargada (paso 1).</p>
+    <textarea id="verIn" rows="3" placeholder="VNLK1.…  o el contenido del archivo .json"></textarea>
+    <div class="row" style="margin-top:10px"><button class="ghost" id="btnVer">Revisar</button></div>
+    <div id="verOut"></div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const FORMATO = 'vunlek-licencia-v1', PREFIJO = 'VNLK1', HIST = 'vunlek_licencias_emitidas'
+  const $ = id => document.getElementById(id)
+  const enc = new TextEncoder(), dec = new TextDecoder()
+  let privateKey = null, publicKey = null, publicB64 = '', keyId = '', last = null
+
+  // ---------- utilidades
+  const b64 = bytes => { let s = ''; for (const b of new Uint8Array(bytes)) s += String.fromCharCode(b); return btoa(s) }
+  const b64url = bytes => b64(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  const fromB64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0))
+  const fromB64url = s => { const t = s.replace(/-/g, '+').replace(/_/g, '/'); return fromB64(t.padEnd(Math.ceil(t.length / 4) * 4, '=')) }
+  const hex = bytes => [...new Uint8Array(bytes)].map(b => b.toString(16).padStart(2, '0')).join('')
+  const limpio = v => String(v ?? '').trim().replace(/\s+/g, ' ')
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+  const fecha = iso => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) }
+  const show = (el, on = true) => el.classList.toggle('hidden', !on)
+  function download(name, text, type = 'application/octet-stream') {
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+  }
+  async function copy(text, btn) {
+    try { await navigator.clipboard.writeText(text) } catch { const t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove() }
+    const old = btn.textContent; btn.textContent = '✓ Copiado'; setTimeout(() => btn.textContent = old, 1600)
+  }
+
+  // ---------- claves
+  async function supported() {
+    try { await crypto.subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify']); return true } catch { return false }
+  }
+  const pemOf = der => `-----BEGIN PRIVATE KEY-----\n${b64(der).match(/.{1,64}/g).join('\n')}\n-----END PRIVATE KEY-----\n`
+
+  async function useKey(priv, origin) {
+    const jwk = await crypto.subtle.exportKey('jwk', priv)
+    const raw = fromB64url(jwk.x)
+    publicKey = await crypto.subtle.importKey('raw', raw, { name: 'Ed25519' }, true, ['verify'])
+    privateKey = priv; publicB64 = b64(raw)
+    keyId = hex(await crypto.subtle.digest('SHA-256', raw)).slice(0, 8)
+    $('keyPill').textContent = 'Clave cargada'; $('keyPill').classList.remove('off'); $('n1').classList.add('done'); $('n1').textContent = '✓'
+    $('keyMsg').textContent = `${origin} Identificador de la clave: ${keyId}.`
+    $('pubKey').textContent = publicB64
+    show($('keyInfo')); $('btnGen').disabled = false; show($('genHint'), false)
+    $('installMsg').innerHTML = ''
+    if (!window.showOpenFilePicker) { $('btnInstall').disabled = true; $('installHelp').textContent = 'Para instalarla en la app: copia la clave pública y pégala en el chat con Claude, o dentro de LICENSE_PUBLIC_KEYS en src\\lib\\offlineLicenseKey.ts.' }
+  }
+
+  $('btnLoad').onclick = () => $('fileKey').click()
+  $('fileKey').onchange = async e => {
+    const file = e.target.files[0]; e.target.value = ''
+    if (!file) return
+    show($('newKeyWarn'), false)
+    try {
+      const body = (await file.text()).replace(/-----[^-]+-----/g, '').replace(/\s+/g, '')
+      const priv = await crypto.subtle.importKey('pkcs8', fromB64(body), { name: 'Ed25519' }, true, ['sign'])
+      await useKey(priv, `Se cargó “${file.name}”.`)
+    } catch {
+      $('newKeyWarn').className = 'msg bad'; $('newKeyWarn').textContent = 'Ese archivo no es una clave privada de VUNLEK (clave-privada.pem). Elige el archivo correcto.'; show($('newKeyWarn'))
+    }
+  }
+
+  $('btnNew').onclick = async () => {
+    if (!confirm('Esto crea un par de claves NUEVO.\n\nHazlo solo la primera vez. Si ya entregaste licencias con otra clave y cambias de clave, la app dejará de aceptar las anteriores salvo que conserve también la clave pública anterior.\n\n¿Crear claves nuevas?')) return
+    const pair = await crypto.subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify'])
+    download('clave-privada.pem', pemOf(await crypto.subtle.exportKey('pkcs8', pair.privateKey)), 'application/x-pem-file')
+    await useKey(pair.privateKey, 'Claves creadas.')
+    $('newKeyWarn').className = 'msg warn'
+    $('newKeyWarn').innerHTML = '<b>Se descargó “clave-privada.pem”.</b> Muévela de Descargas a una carpeta segura (no dentro de C:\\SistemaGestionEscolar) y haz una copia en una memoria USB. Si la pierdes no podrás emitir más licencias; si alguien la copia, podrá emitirlas. Después instala la clave pública en la app (botón de arriba).'
+    show($('newKeyWarn'))
+  }
+
+  $('btnCopyPub').onclick = e => copy(publicB64, e.currentTarget)
+
+  $('btnInstall').onclick = async () => {
+    const out = $('installMsg')
+    try {
+      const [handle] = await showOpenFilePicker({ types: [{ description: 'offlineLicenseKey.ts', accept: { 'text/plain': ['.ts'] } }] })
+      if (handle.name !== 'offlineLicenseKey.ts') { out.innerHTML = '<div class="msg bad">Ese no es el archivo. Debe llamarse offlineLicenseKey.ts y está en C:\\SistemaGestionEscolar\\src\\lib.</div>'; return }
+      const text = await (await handle.getFile()).text()
+      const mark = '    // <claves-publicas>'
+      if (text.includes(`'${publicB64}'`)) { out.innerHTML = '<div class="msg ok">Esta clave ya estaba instalada en la app.</div>'; return }
+      if (!text.includes(mark)) { out.innerHTML = '<div class="msg bad">El archivo no tiene el formato esperado. Copia la clave pública y pégala a mano dentro de LICENSE_PUBLIC_KEYS.</div>'; return }
+      const w = await handle.createWritable(); await w.write(text.replace(mark, `${mark}\n    '${publicB64}',`)); await w.close()
+      out.innerHTML = '<div class="msg ok"><b>Clave pública instalada en la app.</b> Falta subir el cambio (git add, commit, push) y publicar la app para que acepte tus licencias.</div>'
+    } catch (err) {
+      if (err && err.name === 'AbortError') return
+      out.innerHTML = '<div class="msg bad">No se pudo escribir el archivo. Copia la clave pública y pégala a mano, o envíasela a Claude para que la instale.</div>'
+    }
+  }
+
+  // ---------- licencia
+  const hoy = new Date(); const en1 = new Date(hoy.getFullYear() + 1, hoy.getMonth(), hoy.getDate())
+  const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  $('expira').min = ymd(hoy); $('expira').value = ymd(en1)
+
+  $('form').onsubmit = async e => {
+    e.preventDefault()
+    const datos = {
+      id: `LIC-${ymd(new Date()).replace(/-/g, '')}-${hex(crypto.getRandomValues(new Uint8Array(3))).toUpperCase()}`,
+      escuela: limpio($('escuela').value), cct: limpio($('cct').value).toUpperCase(), expira: $('expira').value,
+      hwid: limpio($('hwid').value).toUpperCase(), emitida: new Date().toISOString(),
+    }
+    if (limpio($('plan').value)) datos.plan = limpio($('plan').value)
+    if (limpio($('notas').value)) datos.notas = limpio($('notas').value)
+    const errores = []
+    if (datos.escuela.length < 3) errores.push('Escribe el nombre de la escuela.')
+    if (!datos.cct) errores.push('Escribe la CCT o ID escolar.')
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(datos.expira)) errores.push('Elige la fecha hasta la que será válida.')
+    else if (datos.expira < ymd(new Date())) errores.push('La fecha de vencimiento ya pasó.')
+    if (datos.hwid.length < 8) errores.push('Escribe el identificador del equipo que te dio la escuela.')
+    else if (!datos.hwid.startsWith('PC-') && !datos.hwid.startsWith('NAV-')) errores.push('El identificador del equipo debe empezar con PC- (o NAV-). Revisa que esté completo.')
+    show($('result'), false)
+    if (errores.length) { $('formErr').innerHTML = errores.map(esc).join('<br>'); show($('formErr')); return }
+    show($('formErr'), false)
+
+    const carga = b64url(enc.encode(JSON.stringify(datos)))
+    const mensaje = enc.encode(`${FORMATO}\n${carga}`)
+    const firmaBytes = await crypto.subtle.sign({ name: 'Ed25519' }, privateKey, mensaje)
+    // Se comprueba de inmediato con la clave pública: si no pasa, no se entrega
+    if (!(await crypto.subtle.verify({ name: 'Ed25519' }, publicKey, firmaBytes, mensaje))) { $('formErr').textContent = 'La licencia no pasó la comprobación. No se generó.'; show($('formErr')); return }
+    last = { formato: FORMATO, datos, carga, firma: b64url(firmaBytes), clave: keyId }
+
+    $('code').value = `${PREFIJO}.${last.carga}.${last.firma}`
+    $('resMsg').innerHTML = `<b>Licencia lista</b> para ${esc(datos.escuela)} (${esc(datos.cct)}), equipo ${esc(datos.hwid)}, válida hasta el ${esc(fecha(datos.expira))}. Folio ${esc(datos.id)}.`
+    show($('result')); $('result').scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    const lista = leerHist(); lista.unshift({ ...datos, clave: keyId }); guardarHist(lista); pintarHist()
+  }
+  $('btnCopy').onclick = e => copy($('code').value, e.currentTarget)
+  $('btnFile').onclick = () => { if (last) download(`${last.datos.cct}_${last.datos.expira}_${last.datos.id}.vunlek-licencia.json`.replace(/[^\w.\-]/g, '_'), JSON.stringify(last, null, 2) + '\n', 'application/json') }
+
+  // ---------- historial
+  function leerHist() { try { return JSON.parse(localStorage.getItem(HIST) || '[]') } catch { return [] } }
+  function guardarHist(l) { try { localStorage.setItem(HIST, JSON.stringify(l.slice(0, 2000))) } catch { /* sin almacenamiento */ } }
+  function pintarHist() {
+    const l = leerHist(), today = ymd(new Date())
+    $('hist').innerHTML = l.map(d => `<tr><td>${esc(d.escuela)}</td><td>${esc(d.cct)}</td><td>${esc(d.expira)}${d.expira < today ? ' <b style="color:var(--bad)">vencida</b>' : ''}</td><td>${esc(d.hwid)}</td><td>${esc(d.id)}</td></tr>`).join('')
+    show($('histEmpty'), !l.length); $('btnCsv').disabled = !l.length
+  }
+  $('btnCsv').onclick = () => {
+    const c = v => `"${String(v ?? '').replace(/"/g, '""')}"`
+    const filas = leerHist().map(d => [d.id, d.emitida, d.escuela, d.cct, d.expira, d.hwid, d.plan, d.notas, d.clave].map(c).join(','))
+    download('licencias-emitidas.csv', '\ufeffid,emitida,escuela,cct,expira,hwid,plan,notas,clave\n' + filas.join('\n') + '\n', 'text/csv')
+  }
+
+  // ---------- revisar
+  $('btnVer').onclick = async () => {
+    const out = $('verOut'), text = $('verIn').value.trim()
+    const say = (cls, html) => out.innerHTML = `<div class="msg ${cls}">${html}</div>`
+    if (!publicKey) return say('warn', 'Primero carga tu clave (paso 1).')
+    if (!text) return say('warn', 'Pega el código o el contenido del archivo.')
+    let lic = null
+    if (text.startsWith(PREFIJO + '.')) { const [, carga, firma, ...r] = text.replace(/\s+/g, '').split('.'); if (carga && firma && !r.length) lic = { carga, firma } }
+    else { try { const o = JSON.parse(text); if (o && o.carga && o.firma) lic = o } catch { /* no es JSON */ } }
+    if (!lic) return say('bad', 'Eso no es una licencia de VUNLEK o está incompleta.')
+    let ok = false
+    try { ok = await crypto.subtle.verify({ name: 'Ed25519' }, publicKey, fromB64url(lic.firma), enc.encode(`${FORMATO}\n${lic.carga}`)) } catch { ok = false }
+    if (!ok) return say('bad', '<b>No es auténtica:</b> fue modificada o no se firmó con la clave que tienes cargada.')
+    let d; try { d = JSON.parse(dec.decode(fromB64url(lic.carga))) } catch { return say('bad', 'La licencia está dañada.') }
+    if (lic.datos && JSON.stringify(Object.entries(lic.datos).sort()) !== JSON.stringify(Object.entries(d).sort())) return say('bad', '<b>Archivo alterado:</b> los datos visibles no coinciden con los firmados.')
+    const vencida = d.expira < ymd(new Date())
+    say(vencida ? 'warn' : 'ok', `<b>${vencida ? 'Auténtica, pero ya venció.' : 'Auténtica y vigente.'}</b><dl><dt>Escuela</dt><dd>${esc(d.escuela)}</dd><dt>CCT</dt><dd>${esc(d.cct)}</dd><dt>Equipo</dt><dd>${esc(d.hwid)}</dd><dt>Válida hasta</dt><dd>${esc(fecha(d.expira))}</dd><dt>Folio</dt><dd>${esc(d.id)}</dd></dl>`)
+  }
+
+  // ---------- inicio
+  pintarHist()
+  supported().then(ok => { if (!ok) { show($('unsupported')); $('btnLoad').disabled = $('btnNew').disabled = true } })
+  // Para pruebas automáticas
+  window.__licencias = { get last() { return last }, get publicB64() { return publicB64 } }
+})()
+</script>
+</body>
+</html>

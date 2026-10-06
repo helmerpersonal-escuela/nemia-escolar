@@ -1,4 +1,7 @@
 apply plugin: 'com.android.application'
+// Kotlin para el complemento de suscripciones (billing/VunlekBillingPlugin.kt).
+// Misma forma en que lo activan los complementos de Capacitor (archivos, notificaciones).
+apply plugin: 'kotlin-android'
 
 android {
     namespace = "com.nemia.app"
@@ -42,6 +45,10 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+}
+
+kotlin {
+    jvmToolchain(21)
 }
 
 apply from: 'capacitor.build.gradle'

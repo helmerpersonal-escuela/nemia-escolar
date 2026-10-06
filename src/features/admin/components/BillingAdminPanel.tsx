@@ -115,7 +115,7 @@ export const SpaceSubscriptionsPanel = ({ search = '' }: { search?: string }) =>
                 </Card>
             </div>
 
-            <SalesLeadsCard />
+            
 
             <Card title="Espacios" icon={Timer}>
                 {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-indigo-500" /> : list.length === 0 ? <p className="text-sm text-slate-500">Aún no hay espacios.</p> : (
@@ -317,7 +317,7 @@ export const PromoAndLicensesPanel = () => {
 const LEAD_STATUS: Record<string, string> = { NEW: 'Nueva', CONTACTED: 'Contactada', WON: 'Ganada', LOST: 'Perdida' }
 
 /** Solicitudes de cotización de escuelas (la anualidad depende del número de usuarios). */
-const SalesLeadsCard = () => {
+export const SalesLeadsCard = () => {
     const qc = useQueryClient()
     const [salesEmail, setSalesEmail] = useState<string | null>(null)
     const { data: leads = [] } = useQuery({
@@ -339,24 +339,30 @@ const SalesLeadsCard = () => {
     }
     const nuevas = leads.filter(l => l.status === 'NEW').length
     return (
-        <Card title={`Cotizaciones de escuelas${nuevas ? ` (${nuevas} nuevas)` : ''}`} icon={Building2}>
+        <Card title={`Solicitudes de presupuesto${nuevas ? ` (${nuevas} nuevas)` : ''}`} icon={Building2}>
             <div className="flex flex-col sm:flex-row gap-2 mb-4">
                 <input className={`${input} sm:flex-1`} type="email" placeholder="Correo de ventas que recibe los avisos" value={salesEmail ?? currentEmail} onChange={e => setSalesEmail(e.target.value)} />
                 <button onClick={saveEmail} disabled={salesEmail === null} className="px-4 py-2.5 rounded-2xl bg-indigo-600 text-white text-sm font-black disabled:opacity-40">Guardar correo</button>
             </div>
             <p className="text-xs text-slate-500 mb-3">Para cerrar una venta: genera una clave de 12 meses en “Claves y códigos” y envíala a la escuela; la dirección la activa en Suscripción.</p>
             {leads.length === 0 ? <p className="text-sm text-slate-500">Aún no hay solicitudes.</p> : (
-                <div className="overflow-x-auto"><table className="w-full text-sm min-w-[720px]">
-                    <thead><tr className="text-left text-xs text-slate-500"><th className="py-2">Escuela</th><th>Contacto</th><th>Usuarios</th><th>Fecha</th><th>Estado</th></tr></thead>
+                <div className="overflow-x-auto"><table className="w-full text-sm min-w-[860px]">
+                    <thead><tr className="text-left text-xs text-slate-500"><th className="py-2">Escuela</th><th>Contacto</th><th>Docentes</th><th>Alumnos</th><th>Fecha</th><th>Estado</th></tr></thead>
                     <tbody className="divide-y divide-slate-100">
                         {leads.map(l => (
-                            <tr key={l.id}>
-                                <td className="py-2 font-bold text-slate-800">{l.tenant?.name ?? '—'}{l.message && <div className="text-xs font-normal text-slate-500">{l.message}</div>}</td>
-                                <td>{l.contact_name}<div className="text-xs text-slate-500">{l.email}{l.phone ? ` · ${l.phone}` : ''}</div></td>
-                                <td>{l.users_count ?? '—'}</td>
-                                <td>{date(l.created_at)}</td>
-                                <td>
-                                    <select className="px-2 py-1.5 rounded-xl border border-slate-200 text-xs font-bold" value={l.status} onChange={e => setStatus(l.id, e.target.value)}>
+                            <tr key={l.id} className="align-top">
+                                <td className="py-2 font-bold text-slate-800">{l.school_name ?? l.tenant?.name ?? '—'}
+                                    <div className="text-xs font-normal text-slate-500">{[l.cct, l.educational_level, l.locality].filter(Boolean).join(' · ')}</div>
+                                    <div className="text-xs font-normal text-slate-500">{l.source === 'PUBLIC' ? 'Desde la página pública (aún sin espacio)' : `Ya usa VUNLEK${l.tenant?.name ? `: ${l.tenant.name}` : ''}`}</div>
+                                    {l.message && <div className="text-xs font-normal text-slate-600 mt-1">“{l.message}”</div>}</td>
+                                <td className="py-2">{l.contact_name}{l.role_title ? <span className="text-slate-500"> · {l.role_title}</span> : null}
+                                    <div className="text-xs"><a className="text-indigo-700 underline" href={`mailto:${l.email}`}>{l.email}</a></div>
+                                    {l.phone && <div className="text-xs"><a className="text-indigo-700 underline" href={`tel:${String(l.phone).replace(/[^\d+]/g, '')}`}>{l.phone}</a></div>}</td>
+                                <td className="py-2">{l.teachers_count ?? l.users_count ?? '—'}</td>
+                                <td className="py-2">{l.students_count ?? '—'}</td>
+                                <td className="py-2">{date(l.created_at)}</td>
+                                <td className="py-2">
+                                    <select aria-label="Estado de la solicitud" className="px-2 py-1.5 rounded-xl border border-slate-200 text-xs font-bold" value={l.status} onChange={e => setStatus(l.id, e.target.value)}>
                                         {Object.entries(LEAD_STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                                     </select>
                                 </td>

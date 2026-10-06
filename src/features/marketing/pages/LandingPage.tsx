@@ -166,6 +166,12 @@ export const LandingPage = () => {
                         >
                             ¿Eres madre, padre o tutor? Entra con el código de tu hijo(a)
                         </button>
+                        <button
+                            onClick={() => navigate('/escuelas')}
+                            className="block text-sm font-bold text-indigo-300 hover:text-white underline underline-offset-4"
+                        >
+                            ¿Diriges una escuela? Solicita un presupuesto y pruébalo un mes
+                        </button>
                     </div>
 
                     <div className="relative animate-in zoom-in-95 duration-1000">

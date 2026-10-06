@@ -4,6 +4,7 @@ import { useTenant } from '../../../../hooks/useTenant'
 import { formatDateEs } from '../../../../components/ui/DateInput'
 import { useSchoolOverview, pct } from '../../lib/useSchoolOverview'
 import { SetupStatusLine } from '../SchoolSetupChecklist'
+import { SchoolTrialCard } from '../../../sales/SchoolTrialCard'
 
 /** Inicio de la dirección: solo datos reales de la escuela; si aún no hay, dice qué hacer. */
 export const DirectorDashboard = () => {
@@ -36,6 +37,8 @@ export const DirectorDashboard = () => {
                     </Link>
                 </div>
             </div>
+
+            <SchoolTrialCard />
 
             {isLoading || !o ? (
                 <p className="flex items-center gap-2 text-slate-500"><Loader2 className="w-5 h-5 animate-spin" /> Cargando datos de la escuela…</p>

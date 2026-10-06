@@ -47,6 +47,8 @@ const JustificationManager = lazyNamed(() => import('./features/attendance/pages
 const LatesPage = lazyNamed(() => import('./features/attendance/pages/LatesPage'), 'LatesPage')
 const AbsenceManagerPage = lazyNamed(() => import('./features/absences/pages/AbsenceManagerPage'), 'AbsenceManagerPage')
 const SubscriptionPage = lazyNamed(() => import('./features/subscription/pages/SubscriptionPage'), 'SubscriptionPage')
+const SchoolQuotePage = lazyNamed(() => import('./features/sales/SchoolQuotePage'), 'SchoolQuotePage')
+const SchoolQuoteAppPage = lazyNamed(() => import('./features/sales/SchoolQuoteAppPage'), 'SchoolQuoteAppPage')
 const LandingPage = lazyNamed(() => import('./features/marketing/pages/LandingPage'), 'LandingPage')
 
 const SuperAdminDashboard = lazyNamed(() => import('./features/admin/pages/SuperAdminDashboard'), 'SuperAdminDashboard')
@@ -239,6 +241,7 @@ function App() {
         <Route path="/c/:token" element={<CardLandingPage />} />
         <Route path="/familia/adicional" element={<ExtraAccessPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/escuelas" element={<SchoolQuotePage />} />
         <Route path="/privacidad" element={<LegalPage kind="privacy" />} />
         <Route path="/privacy" element={<LegalPage kind="privacy" />} />
         <Route path="/terminos" element={<LegalPage kind="terms" />} />
@@ -278,6 +281,11 @@ function App() {
           <Route path="solicitudes" element={
             <ProtectedRoute allowedRoles={['SYSTEM_ADMIN', 'DIRECTOR', 'ADMIN', 'SCHOOL_CONTROL', 'ACADEMIC_COORD', 'TECH_COORD', 'TEACHER', 'PREFECT', 'SUPPORT']}>
               <SupportRequestsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="presupuesto" element={
+            <ProtectedRoute allowedRoles={['DIRECTOR', 'ADMIN', 'SYSTEM_ADMIN', 'SCHOOL_CONTROL', 'ACADEMIC_COORD']}>
+              <SchoolQuoteAppPage />
             </ProtectedRoute>
           } />
           <Route path="sumar-mi-espacio" element={
