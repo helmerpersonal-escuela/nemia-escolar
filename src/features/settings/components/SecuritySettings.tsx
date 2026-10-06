@@ -125,7 +125,7 @@ export const SecuritySettings = ({ profile, tenant, isDirectorOrAdmin }: Securit
             'Se cerrará tu cuenta: ya no podrás entrar y saldrás de todos tus espacios. Tus grupos, alumnos y planeaciones dejarán de estar disponibles. Si después vuelves a entrar con el mismo correo, empezarás desde cero. Te recomendamos descargar antes tu respaldo.',
             { title: '¿Eliminar tu cuenta?', confirmLabel: 'Continuar', danger: true }
         ))) return
-        if (!(await askConfirm('Esta acción no se puede deshacer. ¿Eliminar tu cuenta definitivamente?', { title: 'Última confirmación', confirmLabel: 'Sí, eliminar mi cuenta', danger: true }))) return
+        if (!(await askConfirm('Tu acceso se cierra ahora y tus datos personales se borran de forma definitiva en un máximo de 30 días. Si te arrepientes antes, escribe a soporte@vunlek.com. ¿Eliminar tu cuenta?', { title: 'Última confirmación', confirmLabel: 'Sí, eliminar mi cuenta', danger: true }))) return
 
         setLoading(true)
         try {
@@ -210,9 +210,10 @@ export const SecuritySettings = ({ profile, tenant, isDirectorOrAdmin }: Securit
             <SettingsCard icon={Database} title="Respaldo de tus datos" hint="Descarga una copia de tu información y configuración (archivo JSON)."
                 action={<SettingsActionButton icon={DownloadCloud} onClick={handleBackup} disabled={loading}>Descargar respaldo</SettingsActionButton>} />
 
-            {(isDirectorOrAdmin || profile?.role?.toUpperCase() === 'INDEPENDENT_TEACHER' || profile?.role?.toUpperCase() === 'TEACHER') && (
+            {/* Cualquier persona puede eliminar su propia cuenta (lo exigen las tiendas de aplicaciones) */}
+            {profile?.role?.toUpperCase() !== 'SUPER_ADMIN' && (
                 <SettingsCard tone="danger" icon={AlertCircle} title="Eliminar mi cuenta"
-                    hint="Cierra tu cuenta y sales de tus espacios. No se puede deshacer; descarga antes tu respaldo."
+                    hint="Tu acceso se cierra de inmediato y tus datos personales se borran de forma definitiva en un máximo de 30 días. Descarga antes tu respaldo."
                     action={<SettingsActionButton tone="danger" icon={Trash2} onClick={handleDeleteAccount} disabled={loading}>Eliminar mi cuenta</SettingsActionButton>} />
             )}
         </div>

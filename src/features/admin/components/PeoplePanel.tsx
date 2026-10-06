@@ -50,6 +50,9 @@ const tableLabel = (t: string) => TABLE_LABEL[t.replace(/^public\./, '')] ?? t.r
 
 const fullName = (p: AdminPerson) => [p.first_name, p.last_name_paternal, p.last_name_maternal].filter(Boolean).join(' ') || 'Sin nombre'
 const shortDate = (iso: string | null) => iso ? new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : null
+/** Día en que la tarea automática borra definitivamente una cuenta dada de baja (25 días después). */
+const PURGE_START = Date.parse('2026-10-06T00:00:00Z')
+export const purgeDate = (deletedAt: string) => new Date(Math.max(Date.parse(deletedAt), PURGE_START) + 25 * 86_400_000).toISOString()
 const missingFunction = (e: any) => e?.code === 'PGRST202' || /could not find the function|does not exist/i.test(String(e?.message ?? ''))
 
 type Filter = 'active' | 'admins' | 'deleted'
@@ -63,6 +66,7 @@ export const PeoplePanel = ({ search, notify, spaceFilter, onClearSpace, initial
 }) => {
     const qc = useQueryClient()
     const { data: people = [], isLoading, error } = useQuery({ queryKey: ADMIN_PEOPLE_KEY, queryFn: fetchAdminPeople, staleTime: 30_000 })
+    const { data: purges } = useQuery({ queryKey: ['admin-purges'], staleTime: 5 * 60_000, queryFn: async () => ((await supabase.rpc('admin_account_purges' as any)).data ?? null) as { failed: { error: string }[] } | null })
     const [filter, setFilter] = useState<Filter>(initialFilter ?? 'active')
     const [open, setOpen] = useState<string | null>(null)
     const [busy, setBusy] = useState<string | null>(null)
@@ -156,7 +160,7 @@ export const PeoplePanel = ({ search, notify, spaceFilter, onClearSpace, initial
 
             {filter === 'deleted' && (
                 <p className="text-sm text-slate-600 bg-white border border-slate-200 rounded-2xl p-4">
-                    Estas cuentas ya no pueden entrar, pero su información sigue guardada. <b>Restaurar</b> les devuelve el acceso; <b>Eliminar definitivamente</b> borra la cuenta y libera el correo para registrarse de nuevo.
+                    Estas cuentas ya no pueden entrar. <b>Se eliminan solas, de forma definitiva, 25 días después de la baja</b> (para cumplir el plazo de 30 días de la Política de Privacidad). Antes de esa fecha puedes <b>Restaurar</b> la cuenta o <b>Eliminarla definitivamente</b> de una vez.
                 </p>
             )}
 
@@ -167,6 +171,7 @@ export const PeoplePanel = ({ search, notify, spaceFilter, onClearSpace, initial
                 </div>
             )}
 
+            {filter === 'deleted' && purges?.failed?.length ? <p role="alert" className="bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl p-4 text-sm font-bold">{purges.failed.length} cuenta(s) no se pudieron eliminar automáticamente ({purges.failed[0].error}). Elimínalas a mano o avisa a soporte técnico.</p> : null}
             {isLoading && <div className="py-16 flex justify-center"><Loader2 className="w-8 h-8 text-indigo-500 animate-spin" /></div>}
             {error && <p role="alert" className="bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl p-4 text-sm font-bold">No se pudo cargar la lista: {(error as any).message}</p>}
 
@@ -197,6 +202,7 @@ export const PeoplePanel = ({ search, notify, spaceFilter, onClearSpace, initial
                                         ))}
                                         {!p.deleted_at && !p.email_confirmed && <span className="px-2 py-0.5 rounded-lg bg-amber-100 text-amber-800 text-[11px] font-black">Correo sin verificar</span>}
                                         {p.deleted_at && <span className="px-2 py-0.5 rounded-lg bg-rose-100 text-rose-800 text-[11px] font-black">Baja: {shortDate(p.deleted_at)}</span>}
+                                        {p.deleted_at && <span className="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 text-[11px] font-bold">Se elimina el {shortDate(purgeDate(p.deleted_at))}</span>}
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2 ml-auto">

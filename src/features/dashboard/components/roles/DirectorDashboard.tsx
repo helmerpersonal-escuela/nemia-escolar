@@ -47,8 +47,8 @@ export const DirectorDashboard = () => {
                     <SetupStatusLine o={o} />
 
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-                        <Stat icon={GraduationCap} title="Alumnos" value={o.students} hint={o.students ? 'Inscritos y activos' : 'Aún sin alumnos'} to="/students" />
-                        <Stat icon={Users} title="Personal" value={o.staff} hint={`${o.teachers} docente${o.teachers === 1 ? '' : 's'}`} to="/settings?tab=personal" />
+                        <Stat icon={GraduationCap} title="Alumnos" value={o.students} hint={o.students ? 'Inscritos y activos' : 'Aún sin alumnos'} to="/alumnos/consulta" />
+                        <Stat icon={Users} title="Personal" value={o.staff} hint={`${o.teachers} docente${o.teachers === 1 ? '' : 's'}`} to="/admin/staff" />
                         <Stat icon={School} title="Grupos" value={o.groups} hint={o.groups ? 'Del ciclo actual' : 'Aún sin grupos'} to="/groups" />
                         <Stat icon={CalendarCheck} title="Asistencia de hoy" value={todayPct === null ? '—' : `${todayPct}%`}
                             hint={o.today.recorded ? `${o.today.groupsTaken} de ${o.groups} grupos pasaron lista` : 'Sin registro hoy'} />

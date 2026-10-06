@@ -55,6 +55,7 @@ const LandingPage = lazyNamed(() => import('./features/marketing/pages/LandingPa
 const SuperAdminDashboard = lazyNamed(() => import('./features/admin/pages/SuperAdminDashboard'), 'SuperAdminDashboard')
 const AdminDashboard = lazyNamed(() => import('./features/admin/pages/AdminDashboard'), 'AdminDashboard')
 const PEMCPage = lazyNamed(() => import('./features/admin/pages/PEMCPage'), 'PEMCPage')
+const StudentLookupPage = lazyNamed(() => import('./features/students/pages/StudentLookupPage'), 'StudentLookupPage')
 const StaffControlCenter = lazyNamed(() => import('./features/admin/pages/StaffControlCenter'), 'StaffControlCenter')
 const SchoolStatsPage = lazyNamed(() => import('./features/dashboard/pages/SchoolStatsPage'), 'SchoolStatsPage')
 const RoleSelectionPage = lazyNamed(() => import('./features/auth/pages/RoleSelectionPage'), 'RoleSelectionPage')
@@ -427,8 +428,13 @@ function App() {
               <PEMCPage />
             </ProtectedRoute>
           } />
+          <Route path="alumnos/consulta" element={
+            <ProtectedRoute allowedRoles={['DIRECTOR', 'ADMIN', 'ACADEMIC_COORD', 'SCHOOL_CONTROL', 'PREFECT', 'SUPPORT', 'TECH_COORD']}>
+              <StudentLookupPage />
+            </ProtectedRoute>
+          } />
           <Route path="admin/staff" element={
-            <ProtectedRoute allowedRoles={['DIRECTOR', 'ADMIN', 'PREFECT']}>
+            <ProtectedRoute allowedRoles={['DIRECTOR', 'ADMIN', 'ACADEMIC_COORD', 'PREFECT']}>
               <StaffControlCenter />
             </ProtectedRoute>
           } />

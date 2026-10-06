@@ -38,8 +38,7 @@ import {
     LifeBuoy,
     School,
     Pin,
-    PinOff,
-} from 'lucide-react'
+    PinOff, Search, } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { queryClient } from '../../lib/queryClient'
 import { OnboardingWizard } from '../../features/onboarding/components/OnboardingWizard'
@@ -518,6 +517,7 @@ export const DashboardLayout = () => {
             { icon: Users, label: 'Personal', path: '/admin/staff' },
             { icon: Users, label: 'Grupos', path: '/groups' },
             { icon: GraduationCap, label: 'Alumnos', path: '/students' },
+            { icon: Search, label: 'Consulta de alumnos', path: '/alumnos/consulta' },
             { icon: Mail, label: 'Comunicados', path: '/messages' },
             { icon: LifeBuoy, label: 'Solicitudes al técnico', path: '/solicitudes' },
             {
@@ -799,7 +799,7 @@ export const DashboardLayout = () => {
     const EXTRA_TITLES: Record<string, string> = {
         '/settings': 'Configuración', '/gradebook': 'Libreta', '/planning/new': 'Nueva planeación', '/planning': 'Planeaciones',
         '/messages': 'Mensajes', '/agenda': 'Calendario', '/cte': 'Consejo Técnico', '/libros': 'Libros de texto',
-        '/paywall': 'Planes y licencia', '/suscripcion': 'Suscripción', '/students': 'Alumnos', '/groups': 'Grupos', '/nem-assistant': 'Asistente NEM', '/asesoria': 'Grupo que asesoro', '/formatos': 'Mis formatos', '/mis-pdas': 'PDAs, ejes y metodologías',
+        '/paywall': 'Planes y licencia', '/suscripcion': 'Suscripción', '/students': 'Alumnos', '/alumnos/consulta': 'Consulta de alumnos', '/groups': 'Grupos', '/nem-assistant': 'Asistente NEM', '/asesoria': 'Grupo que asesoro', '/formatos': 'Mis formatos', '/mis-pdas': 'PDAs, ejes y metodologías',
         '/rubrics': 'Instrumentos', '/schedule': 'Horario', '/admin/pemc': 'PEMC', '/admin/staff': 'Personal',
         '/sumar-mi-espacio': 'Sumar mi espacio personal', '/familias/accesos': 'Cuentas con acceso', '/acceso': 'Control de acceso', '/credenciales': 'Credenciales', '/solicitudes': 'Solicitudes', '/bitacora': 'Bitácora de cambios', '/importar-datos': 'Importar datos', '/familias/codigos': 'Códigos para familias',
     }

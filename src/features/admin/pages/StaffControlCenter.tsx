@@ -1,471 +1,491 @@
-import { useState, useEffect } from 'react'
-import { roleLabel } from '../../../lib/roleLabels'
+import { useMemo, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { AlertTriangle, BookOpen, CheckCircle2, ClipboardList, GraduationCap, Loader2, Plus, Search, Trash2, Users, UsersRound, X } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
+import { roleLabel } from '../../../lib/roleLabels'
+import { useTenant } from '../../../hooks/useTenant'
+import { niceSubjectCase } from '../../../lib/subjectName'
+import { askConfirm } from '../../../components/ui/ConfirmDialog'
 import {
-    Users,
-    Calendar,
-    Clock,
-    ClipboardCheck,
-    Stethoscope,
-    Plus,
-    ArrowUpRight,
-    Search,
-    CheckCircle2,
-    XCircle,
-    BookOpen,
-    GraduationCap,
-    X,
-    Trash2
-} from 'lucide-react'
-import { todayISO } from '../../../lib/dates'
+    CARGOS, SUGGESTED_COMMISSIONS, commissionsOf, removeMember, sortMembers, takenUniqueCargo, upsertMember,
+    type Commission,
+} from '../lib/commissions'
+
+interface Person { id: string; name: string; roles: string[]; jobTitle: string | null; teaches: boolean }
+interface GroupSubject { id: string; group_id: string; subject_catalog_id: string | null; custom_name: string | null; teacher_id: string | null; groups: { grade: string; section: string } | null; subject_catalog: { name: string } | null }
+interface Group { id: string; grade: string; section: string }
+
+const TEACHING = ['TEACHER', 'INDEPENDENT_TEACHER']
+const groupLabel = (g?: { grade: string; section: string } | null) => g ? `${g.grade}° ${g.section}` : 'Sin grupo'
+const subjectLabel = (gs: GroupSubject) => gs.custom_name || niceSubjectCase(gs.subject_catalog?.name ?? 'Materia')
+const input = 'min-h-11 px-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-800 focus:border-indigo-400 outline-none'
+const btn = 'inline-flex items-center justify-center gap-1.5 min-h-11 px-4 rounded-xl text-sm font-black disabled:opacity-50'
+
+const KEY = 'staff-control'
+
+function useStaffData() {
+    const { data: tenant } = useTenant()
+    const tenantId = (tenant as any)?.id as string | undefined
+    return useQuery({
+        queryKey: [KEY, tenantId],
+        enabled: !!tenantId,
+        queryFn: async () => {
+            const [staff, gs, groups, profs, year, plans, subjects] = await Promise.all([
+                supabase.rpc('school_staff'),
+                supabase.from('group_subjects').select('id, group_id, subject_catalog_id, custom_name, teacher_id, groups(grade, section), subject_catalog(name)').eq('tenant_id', tenantId!),
+                supabase.from('groups').select('id, grade, section').eq('tenant_id', tenantId!).is('archived_at', null).order('grade').order('section'),
+                supabase.from('profiles').select('id, advisory_group_id').eq('tenant_id', tenantId!),
+                supabase.from('academic_years').select('id, name').eq('tenant_id', tenantId!).eq('is_active', true).maybeSingle(),
+                supabase.from('lesson_plans').select('id, group_id, subject_id, status').eq('tenant_id', tenantId!),
+                supabase.from('subject_catalog').select('id, name, educational_level').order('name'),
+            ])
+            if (staff.error) throw staff.error
+            const schoolYear = year.data?.name ?? String(new Date().getFullYear())
+            const comm = await supabase.from('school_commissions').select('id, name, school_year, members').eq('tenant_id', tenantId!).eq('school_year', schoolYear).order('name')
+
+            // Una persona puede tener varios puestos: se muestra una sola vez con todos
+            const byId = new Map<string, Person>()
+            for (const s of (staff.data ?? []) as any[]) {
+                const name = [s.first_name, s.last_name_paternal, s.last_name_maternal].filter(Boolean).join(' ') || s.email || 'Sin nombre'
+                const p: Person = byId.get(s.profile_id) ?? { id: s.profile_id, name, roles: [], jobTitle: s.job_title ?? null, teaches: false }
+                if (!p.roles.includes(s.role)) p.roles.push(s.role)
+                byId.set(s.profile_id, p)
+            }
+            const groupSubjects = (gs.data ?? []) as unknown as GroupSubject[]
+            for (const p of byId.values()) p.teaches = p.roles.some(r => TEACHING.includes(r)) || groupSubjects.some(g => g.teacher_id === p.id)
+
+            // Catálogo de materias sin repetidos (hay registros en mayúsculas y minúsculas)
+            const seen = new Set<string>()
+            const catalog = ((subjects.data ?? []) as any[]).filter(s => {
+                const k = String(s.name).toLowerCase()
+                if (seen.has(k)) return false
+                seen.add(k); return true
+            }).map(s => ({ id: s.id as string, name: niceSubjectCase(s.name) }))
+
+            return {
+                tenantId: tenantId!, schoolYear,
+                people: [...byId.values()].sort((a, b) => a.name.localeCompare(b.name, 'es')),
+                groupSubjects,
+                groups: (groups.data ?? []) as Group[],
+                advisory: new Map(((profs.data ?? []) as any[]).map(p => [p.id as string, p.advisory_group_id as string | null])),
+                plans: (plans.data ?? []) as { id: string; group_id: string; subject_id: string | null; status: string | null }[],
+                commissions: ((comm.data ?? []) as any[]).map(c => ({ ...c, members: Array.isArray(c.members) ? c.members : [] })) as Commission[],
+                catalog,
+            }
+        },
+    })
+}
+type Data = NonNullable<ReturnType<typeof useStaffData>['data']>
 
 export const StaffControlCenter = () => {
-    const [loading, setLoading] = useState(true)
-    const [staff, setStaff] = useState<any[]>([])
-    const [attendance, setAttendance] = useState<any[]>([])
-    const [activeTab, setActiveTab] = useState<'roster' | 'attendance' | 'permits'>('roster')
-    const [searchQuery, setSearchQuery] = useState('')
-    const [selectedStaff, setSelectedStaff] = useState<any>(null)
-    const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false)
-    const [groups, setGroups] = useState<any[]>([])
-    const [subjects, setSubjects] = useState<any[]>([])
-    const [assignments, setAssignments] = useState<any[]>([])
-    const [schedules, setSchedules] = useState<any[]>([])
-    const [newAssignmentData, setNewAssignmentData] = useState({ groupId: '', subjectId: '' })
+    const { data, isLoading, error } = useStaffData()
+    const qc = useQueryClient()
+    const refresh = () => qc.invalidateQueries({ queryKey: [KEY] })
+    const [tab, setTab] = useState<'people' | 'commissions'>('people')
+    const [query, setQuery] = useState('')
+    const [filter, setFilter] = useState<'all' | 'teachers' | 'nocommission' | 'noclasses'>('all')
+    const [openId, setOpenId] = useState<string | null>(null)
 
-    useEffect(() => {
-        loadStaffData()
-    }, [])
-
-    const loadStaffData = async () => {
-        setLoading(true)
-        try {
-            const { data: { user } } = await supabase.auth.getUser()
-            const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).single()
-            if (!profile) return
-
-            // Load all staff
-            const { data: staffData } = await supabase
-                .from('profiles')
-                .select('*, staff_commissions(*)')
-                .eq('tenant_id', profile.tenant_id)
-                .order('first_name')
-            setStaff(staffData || [])
-
-            // Load today's attendance
-            const { data: attData } = await supabase
-                .from('staff_attendance')
-                .select('*')
-                .eq('tenant_id', profile.tenant_id)
-                .eq('date', todayISO())
-            setAttendance(attData || [])
-
-            // Load groups and subjects for assignments
-            const { data: groupsData } = await supabase.from('groups').select('*').eq('tenant_id', profile.tenant_id).is('archived_at', null)
-            const { data: subjectsData } = await supabase.from('subject_catalog').select('*')
-            setGroups(groupsData || [])
-            setSubjects(subjectsData || [])
-
-        } catch (error) {
-            console.error('Error loading staff data:', error)
-        } finally {
-            setLoading(false)
+    const stats = useMemo(() => {
+        if (!data) return null
+        const teachers = data.people.filter(p => p.teaches)
+        return {
+            staff: data.people.length,
+            teachers: teachers.length,
+            noCommission: teachers.filter(p => commissionsOf(data.commissions, p.id, p.name).length === 0),
+            unassigned: data.groupSubjects.filter(g => !g.teacher_id).length,
         }
-    }
+    }, [data])
 
-    const loadStaffAssignments = async (staffId: string) => {
-        const { data: gsData } = await supabase
-            .from('group_subjects')
-            .select('*, groups(grade, section), subject_catalog(name)')
-            .eq('teacher_id', staffId)
-        setAssignments(gsData || [])
+    if (isLoading) return <div className="py-24 flex justify-center"><Loader2 className="w-10 h-10 text-indigo-500 animate-spin" /></div>
+    if (error || !data || !stats) return <p role="alert" className="m-6 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl p-4 text-sm font-bold">No se pudo cargar el personal: {(error as any)?.message ?? 'sin datos'}</p>
 
-        const { data: schData } = await supabase
-            .from('schedules')
-            .select('*, groups(grade, section), subject_catalog(name)')
-            .in('group_id', gsData?.map(a => a.group_id) || [])
-        setSchedules(schData || [])
-    }
-
-    const handleAssignGroup = async (groupId: string, subjectId: string) => {
-        if (!selectedStaff) return
-        const { error } = await supabase.from('group_subjects').insert({
-            tenant_id: selectedStaff.tenant_id,
-            group_id: groupId,
-            subject_id: subjectId,
-            teacher_id: selectedStaff.id
-        })
-        if (!error) loadStaffAssignments(selectedStaff.id)
-    }
-
-    const handleDeleteAssignment = async (id: string) => {
-        const { error } = await supabase.from('group_subjects').delete().eq('id', id)
-        if (!error && selectedStaff) loadStaffAssignments(selectedStaff.id)
-    }
-
-    const handleUpdateAdvisory = async (groupId: string | null) => {
-        if (!selectedStaff) return
-        const { error } = await supabase
-            .from('profiles')
-            .update({ advisory_group_id: groupId })
-            .eq('id', selectedStaff.id)
-        if (!error) {
-            setSelectedStaff({ ...selectedStaff, advisory_group_id: groupId })
-            loadStaffData()
-        }
-    }
-
-    const handleAddCommission = async (name: string) => {
-        if (!selectedStaff || !name) return
-        const { error } = await supabase.from('staff_commissions').insert({
-            profile_id: selectedStaff.id,
-            tenant_id: selectedStaff.tenant_id,
-            name
-        })
-        if (!error) loadStaffData()
-    }
-
-    const filteredStaff = staff.filter(s =>
-        `${s.first_name} ${s.last_name_paternal}`.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-
-    if (loading) return <div className="p-8 animate-pulse">Cargando gestión de personal...</div>
+    const q = query.trim().toLowerCase()
+    const shown = data.people.filter(p => {
+        if (q && !`${p.name} ${p.roles.map(roleLabel).join(' ')}`.toLowerCase().includes(q)) return false
+        if (filter === 'teachers') return p.teaches
+        if (filter === 'nocommission') return p.teaches && commissionsOf(data.commissions, p.id, p.name).length === 0
+        if (filter === 'noclasses') return p.teaches && !data.groupSubjects.some(g => g.teacher_id === p.id)
+        return true
+    })
+    const open = data.people.find(p => p.id === openId) ?? null
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div>
-                    <h1 className="text-4xl font-black text-gray-900 tracking-tight">Centro de Control de Personal</h1>
-                    <p className="text-gray-500 font-medium">Supervisión, asistencia y asignación de responsabilidades.</p>
-                </div>
-                <div className="flex items-center gap-3">
-                    <button className="px-6 py-3 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Nueva Comisión
+        <div className="space-y-6">
+            <header>
+                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Centro de Control de Personal</h1>
+                <p className="text-slate-600">Supervisión, asistencia y asignación de responsabilidades. Ciclo {data.schoolYear}.</p>
+            </header>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <Tile icon={Users} value={stats.staff} label="Personal" onClick={() => { setTab('people'); setFilter('all') }} />
+                <Tile icon={GraduationCap} value={stats.teachers} label="Docentes frente a grupo" onClick={() => { setTab('people'); setFilter('teachers') }} />
+                <Tile icon={UsersRound} value={stats.noCommission.length} label="Docentes sin comisión" warn={stats.noCommission.length > 0} onClick={() => { setTab('people'); setFilter('nocommission') }} />
+                <Tile icon={BookOpen} value={stats.unassigned} label="Materias sin docente" warn={stats.unassigned > 0} />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Sección">
+                {([['people', 'Personal', Users], ['commissions', `Comisiones (${data.commissions.length})`, ClipboardList]] as const).map(([id, label, Icon]) => (
+                    <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}
+                        className={`${btn} border-2 ${tab === id ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-200 text-slate-700'}`}>
+                        <Icon className="w-4 h-4" /> {label}
                     </button>
-                </div>
+                ))}
             </div>
 
-            {/* Stats Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-                    <p className="text-[11px] font-black text-gray-500 uppercase tracking-widest mb-4">Presentes Hoy</p>
-                    <div className="flex items-end justify-between">
-                        <h3 className="text-3xl font-black text-emerald-700">{attendance.filter(a => a.status === 'PRESENT').length}</h3>
-                        <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-700">
-                            <CheckCircle2 className="w-5 h-5" />
+            {tab === 'people' && (
+                <section className="space-y-3">
+                    <div className="flex flex-col sm:flex-row gap-2">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <input type="search" aria-label="Buscar personal" placeholder="Buscar por nombre o puesto" value={query} onChange={e => setQuery(e.target.value)} className={`${input} w-full pl-10`} />
                         </div>
+                        <select aria-label="Filtrar" value={filter} onChange={e => setFilter(e.target.value as any)} className={input}>
+                            <option value="all">Todo el personal</option>
+                            <option value="teachers">Docentes frente a grupo</option>
+                            <option value="nocommission">Docentes sin comisión</option>
+                            <option value="noclasses">Docentes sin clases asignadas</option>
+                        </select>
                     </div>
-                </div>
-                <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-                    <p className="text-[11px] font-black text-gray-500 uppercase tracking-widest mb-4">Inasistencias</p>
-                    <div className="flex items-end justify-between">
-                        <h3 className="text-3xl font-black text-rose-600">{attendance.filter(a => a.status === 'ABSENT').length}</h3>
-                        <div className="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center text-rose-600">
-                            <XCircle className="w-5 h-5" />
-                        </div>
+                    {shown.length === 0 && <p className="bg-white border border-slate-200 rounded-3xl py-12 text-center text-slate-600 font-bold">Nadie coincide con la búsqueda.</p>}
+                    <ul className="space-y-2">
+                        {shown.map(p => {
+                            const classes = data.groupSubjects.filter(g => g.teacher_id === p.id)
+                            const groupsCount = new Set(classes.map(c => c.group_id)).size
+                            const comms = commissionsOf(data.commissions, p.id, p.name)
+                            const adv = data.groups.find(g => g.id === data.advisory.get(p.id))
+                            return (
+                                <li key={p.id} className="bg-white border border-slate-200 rounded-3xl p-4 flex flex-wrap items-center gap-3">
+                                    <div className="w-11 h-11 shrink-0 rounded-2xl bg-indigo-50 text-indigo-700 font-black text-sm flex items-center justify-center uppercase">{p.name.split(' ').slice(0, 2).map(w => w[0]).join('')}</div>
+                                    <div className="min-w-0 flex-1 basis-60">
+                                        <p className="font-black text-slate-900 truncate">{p.name}</p>
+                                        <p className="text-sm text-slate-600">{p.roles.map(roleLabel).join(' · ')}{p.jobTitle && !p.roles.map(roleLabel).includes(p.jobTitle) ? ` · ${p.jobTitle}` : ''}</p>
+                                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                            {p.teaches && <Chip tone={classes.length ? 'slate' : 'warn'}>{classes.length ? `${classes.length} clase${classes.length === 1 ? '' : 's'} en ${groupsCount} grupo${groupsCount === 1 ? '' : 's'}` : 'Sin clases asignadas'}</Chip>}
+                                            {adv && <Chip tone="indigo">Asesora {groupLabel(adv)}</Chip>}
+                                            {comms.map(c => <Chip key={c.commission.id} tone="emerald">{c.commission.name}: {c.role}</Chip>)}
+                                            {p.teaches && comms.length === 0 && <Chip tone="warn">Sin comisión</Chip>}
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setOpenId(p.id)} className={`${btn} bg-indigo-50 text-indigo-700 hover:bg-indigo-100 ml-auto`}>Gestionar</button>
+                                </li>
+                            )
+                        })}
+                    </ul>
+                </section>
+            )}
+
+            {tab === 'commissions' && <CommissionsTab data={data} missing={stats.noCommission} onChanged={refresh} />}
+
+            {open && <PersonPanel person={open} data={data} onClose={() => setOpenId(null)} onChanged={refresh} />}
+        </div>
+    )
+}
+
+const Tile = ({ icon: Icon, value, label, warn, onClick }: { icon: any; value: number; label: string; warn?: boolean; onClick?: () => void }) => {
+    const cls = `text-left rounded-2xl border p-4 ${warn ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-200'} ${onClick ? 'hover:border-indigo-300 transition' : ''}`
+    const body = <><Icon className={`w-5 h-5 ${warn ? 'text-amber-700' : 'text-indigo-500'}`} /><p className="text-2xl font-black text-slate-900 leading-tight mt-1">{value}</p><p className="text-xs font-bold text-slate-600">{label}</p></>
+    return onClick ? <button onClick={onClick} className={cls}>{body}</button> : <div className={cls}>{body}</div>
+}
+
+const Chip = ({ tone, children }: { tone: 'slate' | 'indigo' | 'emerald' | 'warn'; children: React.ReactNode }) => (
+    <span className={`px-2 py-0.5 rounded-lg text-[11px] font-bold ${{ slate: 'bg-slate-100 text-slate-700', indigo: 'bg-indigo-50 text-indigo-700', emerald: 'bg-emerald-50 text-emerald-800', warn: 'bg-amber-100 text-amber-900' }[tone]}`}>{children}</span>
+)
+
+// ---------------------------------------------------------------- Comisiones
+
+async function saveMembers(commission: Commission, members: Commission['members']) {
+    return supabase.from('school_commissions').update({ members: sortMembers(members) } as any).eq('id', commission.id)
+}
+
+/** Selector de cargo: los habituales o uno escrito a mano. */
+const CargoSelect = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
+    const custom = !CARGOS.includes(value)
+    return (
+        <span className="inline-flex gap-2">
+            <select aria-label="Cargo" value={custom ? '__otro' : value} onChange={e => onChange(e.target.value === '__otro' ? '' : e.target.value)} className={input}>
+                {CARGOS.map(c => <option key={c}>{c}</option>)}
+                <option value="__otro">Otro cargo…</option>
+            </select>
+            {custom && <input aria-label="Nombre del cargo" placeholder="Escribe el cargo" value={value} onChange={e => onChange(e.target.value)} className={`${input} w-40`} maxLength={40} />}
+        </span>
+    )
+}
+
+const CommissionsTab = ({ data, missing, onChanged }: { data: Data; missing: Person[]; onChanged: () => void }) => {
+    const [name, setName] = useState('')
+    const [busy, setBusy] = useState(false)
+    const [err, setErr] = useState<string | null>(null)
+    const existing = new Set(data.commissions.map(c => c.name.toLowerCase()))
+    const suggestions = SUGGESTED_COMMISSIONS.filter(s => !existing.has(s.toLowerCase()))
+
+    const create = async (names: string[]) => {
+        const rows = names.map(n => n.trim()).filter(n => n && !existing.has(n.toLowerCase())).map(n => ({ tenant_id: data.tenantId, school_year: data.schoolYear, name: n, members: [], source: 'Dirección' }))
+        if (!rows.length) return setErr('Esa comisión ya existe.')
+        setBusy(true); setErr(null)
+        const { error } = await supabase.from('school_commissions').insert(rows as any)
+        setBusy(false)
+        if (error) return setErr(error.message)
+        setName(''); onChanged()
+    }
+
+    return (
+        <section className="space-y-4">
+            <div className="bg-white border border-slate-200 rounded-3xl p-5 space-y-3">
+                <h2 className="font-black text-slate-900">Nueva comisión</h2>
+                <p className="text-sm text-slate-600">Las comisiones se nombran en el CTE intensivo de inicio de ciclo. Cada docente debe estar en al menos una.</p>
+                {suggestions.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                        {suggestions.map(s => <button key={s} onClick={() => create([s])} disabled={busy} className={`${btn} bg-indigo-50 text-indigo-700 hover:bg-indigo-100`}><Plus className="w-4 h-4" /> {s}</button>)}
+                        {suggestions.length > 1 && <button onClick={() => create(suggestions)} disabled={busy} className={`${btn} border border-slate-200 text-slate-700`}>Crear todas</button>}
                     </div>
-                </div>
-                <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-                    <p className="text-[11px] font-black text-gray-500 uppercase tracking-widest mb-4">Permisos Activos</p>
-                    <div className="flex items-end justify-between">
-                        <h3 className="text-3xl font-black text-blue-600">1</h3>
-                        <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
-                            <Stethoscope className="w-5 h-5" />
-                        </div>
-                    </div>
-                </div>
-                <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-                    <p className="text-[11px] font-black text-gray-500 uppercase tracking-widest mb-4">Sin Registro</p>
-                    <div className="flex items-end justify-between">
-                        <h3 className="text-3xl font-black text-gray-500">{staff.length - attendance.length}</h3>
-                        <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-500">
-                            <Clock className="w-5 h-5" />
-                        </div>
-                    </div>
-                </div>
+                )}
+                <form onSubmit={e => { e.preventDefault(); void create([name]) }} className="flex flex-col sm:flex-row gap-2">
+                    <input aria-label="Nombre de la comisión" placeholder="Otra comisión (por ejemplo, Lectura o Cooperativa escolar)" value={name} onChange={e => setName(e.target.value)} className={`${input} flex-1`} maxLength={80} />
+                    <button type="submit" disabled={busy || name.trim().length < 3} className={`${btn} bg-indigo-600 text-white`}>{busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} Crear</button>
+                </form>
+                {err && <p role="alert" className="text-sm font-bold text-rose-700">{err}</p>}
             </div>
 
-            {/* Main Tabs and Search */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-2xl w-fit max-w-full overflow-x-auto scrollbar-hide">
-                    {[
-                        { id: 'roster', label: 'Personal y Comisiones', icon: Users },
-                        { id: 'attendance', label: 'Bitácora de Asistencia', icon: ClipboardCheck },
-                        { id: 'permits', label: 'Gestión de Permisos', icon: Stethoscope }
-                    ].map(tab => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
-                            className={`flex items-center shrink-0 whitespace-nowrap px-4 sm:px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-white text-blue-600 shadow-sm border border-gray-100' : 'text-gray-500 hover:text-gray-600'}`}
-                        >
-                            <tab.icon className="w-4 h-4 mr-2" />
-                            {tab.label}
-                        </button>
+            {missing.length > 0 && (
+                <p className="flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl p-4 text-sm">
+                    <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                    <span><b>{missing.length} docente{missing.length === 1 ? '' : 's'} sin comisión:</b> {missing.map(p => p.name).join(', ')}.</span>
+                </p>
+            )}
+
+            {data.commissions.length === 0 && <p className="bg-white border border-slate-200 rounded-3xl py-12 text-center text-slate-600 font-bold">Todavía no hay comisiones en este ciclo.</p>}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {data.commissions.map(c => <CommissionCard key={c.id} commission={c} data={data} onChanged={onChanged} />)}
+            </div>
+        </section>
+    )
+}
+
+const CommissionCard = ({ commission, data, onChanged }: { commission: Commission; data: Data; onChanged: () => void }) => {
+    const [personId, setPersonId] = useState('')
+    const [cargo, setCargo] = useState('Vocal')
+    const [busy, setBusy] = useState(false)
+    const [err, setErr] = useState<string | null>(null)
+    const members = sortMembers(commission.members)
+
+    const run = async (action: () => PromiseLike<{ error: any }>) => {
+        setBusy(true); setErr(null)
+        const { error } = await action()
+        setBusy(false)
+        if (error) return setErr(error.message)
+        onChanged()
+    }
+    const add = async () => {
+        const p = data.people.find(x => x.id === personId)
+        if (!p) return setErr('Elige a una persona.')
+        const role = cargo.trim() || 'Integrante'
+        const taken = takenUniqueCargo(commission, role, p.id, p.name)
+        if (taken && !(await askConfirm(`${taken.name} ya es ${role} de esta comisión. ¿Nombrar también a ${p.name} con ese cargo?`))) return
+        await run(() => saveMembers(commission, upsertMember(commission.members, p.id, p.name, role)))
+        setPersonId('')
+    }
+    const remove = async () => {
+        if (!(await askConfirm(`¿Eliminar la comisión "${commission.name}" y sus ${members.length} integrante(s)?`, { danger: true, confirmLabel: 'Eliminar' } as any))) return
+        await run(() => supabase.from('school_commissions').delete().eq('id', commission.id))
+    }
+
+    return (
+        <article className="bg-white border border-slate-200 rounded-3xl p-5 space-y-3">
+            <div className="flex items-start justify-between gap-2">
+                <h3 className="font-black text-slate-900">{commission.name} <span className="text-sm font-bold text-slate-500">· {members.length} integrante{members.length === 1 ? '' : 's'}</span></h3>
+                <button onClick={remove} disabled={busy} aria-label={`Eliminar la comisión ${commission.name}`} className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50"><Trash2 className="w-4 h-4" /></button>
+            </div>
+            {members.length === 0 ? <p className="text-sm text-slate-500">Sin integrantes todavía.</p> : (
+                <ul className="divide-y divide-slate-100">
+                    {members.map((m, i) => (
+                        <li key={`${m.profile_id ?? m.name}-${i}`} className="py-2 flex items-center gap-2">
+                            <span className="text-xs font-black text-indigo-700 bg-indigo-50 rounded-lg px-2 py-1 shrink-0">{m.role}</span>
+                            <span className="text-sm font-bold text-slate-800 flex-1 min-w-0 truncate">{m.name}</span>
+                            <button onClick={() => run(() => saveMembers(commission, removeMember(commission.members, m.profile_id ?? '', m.name)))} disabled={busy}
+                                aria-label={`Quitar a ${m.name}`} className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50"><X className="w-4 h-4" /></button>
+                        </li>
+                    ))}
+                </ul>
+            )}
+            <div className="flex flex-wrap gap-2 pt-1">
+                <select aria-label={`Persona para ${commission.name}`} value={personId} onChange={e => setPersonId(e.target.value)} className={`${input} flex-1 min-w-44`}>
+                    <option value="">Agregar a…</option>
+                    {data.people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+                <CargoSelect value={cargo} onChange={setCargo} />
+                <button onClick={add} disabled={busy || !personId} className={`${btn} bg-indigo-600 text-white`}>{busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} Agregar</button>
+            </div>
+            {err && <p role="alert" className="text-sm font-bold text-rose-700">{err}</p>}
+        </article>
+    )
+}
+
+// ---------------------------------------------------------------- Una persona
+
+const SECTIONS = [['classes', 'Clases'], ['advisory', 'Asesoría'], ['commissions', 'Comisiones'], ['plans', 'Planeaciones']] as const
+
+const PersonPanel = ({ person, data, onClose, onChanged }: { person: Person; data: Data; onClose: () => void; onChanged: () => void }) => {
+    const [show, setShow] = useState<Record<string, boolean>>({ classes: true, advisory: true, commissions: true, plans: true })
+    const [groupId, setGroupId] = useState('')
+    const [subjectId, setSubjectId] = useState('')
+    const [commissionId, setCommissionId] = useState('')
+    const [cargo, setCargo] = useState('Vocal')
+    const [busy, setBusy] = useState(false)
+    const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+    const classes = data.groupSubjects.filter(g => g.teacher_id === person.id)
+        .sort((a, b) => groupLabel(a.groups).localeCompare(groupLabel(b.groups)) || subjectLabel(a).localeCompare(subjectLabel(b), 'es'))
+    const comms = commissionsOf(data.commissions, person.id, person.name)
+    const advisory = data.advisory.get(person.id) ?? ''
+    const plans = data.plans.filter(p => classes.some(c => c.group_id === p.group_id && c.subject_catalog_id === p.subject_id))
+    const nameOf = (id: string | null) => data.people.find(p => p.id === id)?.name ?? 'otra persona'
+
+    // Materias que se pueden asignar en el grupo elegido: primero las que el grupo ya tiene
+    const inGroup = data.groupSubjects.filter(g => g.group_id === groupId && g.subject_catalog_id)
+    const options = groupId ? [
+        ...inGroup.map(g => ({ id: g.subject_catalog_id!, label: `${subjectLabel(g)}${g.teacher_id === person.id ? ' (ya la imparte)' : g.teacher_id ? ` (hoy: ${nameOf(g.teacher_id)})` : ' (sin docente)'}` })),
+        ...data.catalog.filter(c => !inGroup.some(g => g.subject_catalog_id === c.id || subjectLabel(g).toLowerCase() === c.name.toLowerCase())).map(c => ({ id: c.id, label: `${c.name} (nueva en el grupo)` })),
+    ] : []
+
+    const run = async (action: () => PromiseLike<{ error: any }>, ok: string) => {
+        setBusy(true); setMsg(null)
+        const { error } = await action()
+        setBusy(false)
+        if (error) return setMsg({ ok: false, text: error.message })
+        setMsg({ ok: true, text: ok }); onChanged()
+    }
+
+    const assignClass = async () => {
+        if (!groupId || !subjectId) return setMsg({ ok: false, text: 'Elige el grupo y la materia.' })
+        const existing = data.groupSubjects.find(g => g.group_id === groupId && g.subject_catalog_id === subjectId)
+        const label = `${options.find(o => o.id === subjectId)?.label.replace(/ \(.*\)$/, '') ?? 'la materia'} en ${groupLabel(data.groups.find(g => g.id === groupId))}`
+        if (existing?.teacher_id === person.id) return setMsg({ ok: false, text: 'Ya imparte esa materia en ese grupo.' })
+        if (existing?.teacher_id && !(await askConfirm(`${label} la imparte ${nameOf(existing.teacher_id)}. ¿Asignarla ahora a ${person.name}?`))) return
+        await run(() => existing
+            ? supabase.from('group_subjects').update({ teacher_id: person.id }).eq('id', existing.id)
+            : supabase.from('group_subjects').insert({ tenant_id: data.tenantId, group_id: groupId, subject_catalog_id: subjectId, teacher_id: person.id } as any),
+            `Asignada: ${label}.`)
+        setSubjectId('')
+    }
+    const unassign = async (gs: GroupSubject) => {
+        if (!(await askConfirm(`¿Quitar a ${person.name} de ${subjectLabel(gs)} en ${groupLabel(gs.groups)}? La materia queda en el grupo, sin docente.`))) return
+        await run(() => supabase.from('group_subjects').update({ teacher_id: null }).eq('id', gs.id), 'Clase retirada; la materia quedó sin docente.')
+    }
+    const setAdvisory = (value: string) => run(() => supabase.rpc('set_advisory_group' as any, { p_profile: person.id, p_group: value || null }), value ? 'Asesoría actualizada.' : 'Asesoría retirada.')
+    const addCommission = async () => {
+        const c = data.commissions.find(x => x.id === commissionId)
+        if (!c) return setMsg({ ok: false, text: 'Elige una comisión.' })
+        const role = cargo.trim() || 'Integrante'
+        const taken = takenUniqueCargo(c, role, person.id, person.name)
+        if (taken && !(await askConfirm(`${taken.name} ya es ${role} de ${c.name}. ¿Nombrar también a ${person.name} con ese cargo?`))) return
+        await run(() => saveMembers(c, upsertMember(c.members, person.id, person.name, role)), `${person.name} quedó como ${role} de ${c.name}.`)
+        setCommissionId('')
+    }
+
+    return (
+        <div className="fixed inset-0 z-[100] bg-slate-900/50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
+            <div role="dialog" aria-modal="true" aria-labelledby="pp-title" onClick={e => e.stopPropagation()} className="bg-white w-full sm:max-w-3xl rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[94dvh] flex flex-col">
+                <div className="p-5 border-b border-slate-100 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                        <h2 id="pp-title" className="text-xl font-black text-slate-900 truncate">{person.name}</h2>
+                        <p className="text-sm text-slate-600">{person.roles.map(roleLabel).join(' · ')}</p>
+                    </div>
+                    <button onClick={onClose} aria-label="Cerrar" className="p-2 rounded-xl hover:bg-slate-100"><X className="w-5 h-5" /></button>
+                </div>
+
+                <div className="px-5 pt-4 flex flex-wrap gap-2" aria-label="Qué mostrar">
+                    <span className="text-xs font-bold text-slate-500 self-center">Mostrar:</span>
+                    {SECTIONS.map(([id, label]) => (
+                        <label key={id} className={`inline-flex items-center gap-2 min-h-10 px-3 rounded-xl border text-xs font-black cursor-pointer ${show[id] ? 'bg-indigo-50 border-indigo-200 text-indigo-800' : 'bg-white border-slate-200 text-slate-500'}`}>
+                            <input type="checkbox" className="accent-indigo-600" checked={show[id]} onChange={e => setShow({ ...show, [id]: e.target.checked })} /> {label}
+                        </label>
                     ))}
                 </div>
 
-                <div className="relative group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-blue-600" />
-                    <input
-                        type="text"
-                        placeholder="Buscar personal..."
-                        className="pl-12 pr-6 py-3 bg-white border border-gray-100 rounded-2xl text-sm font-bold shadow-sm focus:ring-4 focus:ring-blue-100 transition-all outline-none md:w-64"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                </div>
-            </div>
+                <div className="p-5 space-y-6 overflow-y-auto">
+                    {msg && <p role={msg.ok ? 'status' : 'alert'} className={`flex items-start gap-2 text-sm font-bold rounded-2xl px-4 py-3 ${msg.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'}`}>{msg.ok ? <CheckCircle2 className="w-4 h-4 mt-0.5" /> : <AlertTriangle className="w-4 h-4 mt-0.5" />}{msg.text}</p>}
 
-            {/* List Content */}
-            <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
-                {activeTab === 'roster' && (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-gray-50/50 border-b border-gray-100">
-                                    <th className="px-8 py-5 text-[11px] font-black text-gray-500 uppercase tracking-widest">Personal</th>
-                                    <th className="px-8 py-5 text-[11px] font-black text-gray-500 uppercase tracking-widest">Rol</th>
-                                    <th className="px-8 py-5 text-[11px] font-black text-gray-500 uppercase tracking-widest text-center">Estado</th>
-                                    <th className="px-8 py-5 text-[11px] font-black text-gray-500 uppercase tracking-widest">Comisiones Activas</th>
-                                    <th className="px-8 py-5 text-[11px] font-black text-gray-500 uppercase tracking-widest text-right">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-50">
-                                {filteredStaff.map(member => {
-                                    const studentAttendance = attendance.find(a => a.profile_id === member.id)
-                                    return (
-                                        <tr key={member.id} className="hover:bg-blue-50/30 transition-colors group">
-                                            <td className="px-8 py-4">
-                                                <div className="flex items-center gap-4">
-                                                    {member.avatar_url
-                                                        ? <img src={member.avatar_url} className="w-10 h-10 rounded-xl shadow-sm border border-gray-100 object-cover" alt="" />
-                                                        : <span className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 font-black text-sm flex items-center justify-center shrink-0" aria-hidden="true">{(member.first_name?.[0] ?? '') + (member.last_name_paternal?.[0] ?? '')}</span>}
-                                                    <div>
-                                                        <p className="text-sm font-black text-gray-900 leading-tight uppercase">
-                                                            {member.first_name} {member.last_name_paternal}
-                                                        </p>
-                                                        <p className="text-[11px] text-gray-500 font-bold uppercase">{member.last_name_maternal || ''}</p>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-4">
-                                                <div className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-[11px] font-black uppercase tracking-widest">
-                                                    {roleLabel(member.role)}
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-4">
-                                                <div className="flex items-center justify-center">
-                                                    <div className={`w-2.5 h-2.5 rounded-full ${studentAttendance ? (studentAttendance.status === 'PRESENT' ? 'bg-emerald-500' : 'bg-rose-500') : 'bg-gray-300'} shadow-sm`} />
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-4">
-                                                <div className="flex flex-wrap gap-1.5 max-w-sm">
-                                                    {member.staff_commissions?.length > 0 ? (
-                                                        member.staff_commissions.slice(0, 2).map((c: any) => (
-                                                            <div key={c.id} className="px-2 py-0.5 bg-blue-50 text-blue-600 border border-blue-100 rounded-md text-[11px] font-bold flex items-center">
-                                                                {c.name}
-                                                            </div>
-                                                        ))
-                                                    ) : (
-                                                        <span className="text-[11px] text-gray-300 italic">Sin comisiones</span>
-                                                    )}
-                                                    {member.staff_commissions?.length > 2 && (
-                                                        <span className="text-[11px] font-black text-blue-400">+{member.staff_commissions.length - 2}</span>
-                                                    )}
-                                                    <button aria-label="Agregar"
-                                                        onClick={() => {
-                                                            const name = window.prompt('Nombre de la nueva comisión:')
-                                                            if (name) {
-                                                                setSelectedStaff(member)
-                                                                handleAddCommission(name)
-                                                            }
-                                                        }}
-                                                        className="w-5 h-5 flex items-center justify-center bg-gray-100 text-gray-500 rounded-md hover:bg-blue-600 hover:text-white transition-all opacity-0 group-hover:opacity-100"
-                                                    >
-                                                        <Plus className="w-3 h-3" />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-4 text-right">
-                                                <button
-                                                    onClick={() => {
-                                                        setSelectedStaff(member)
-                                                        loadStaffAssignments(member.id)
-                                                        setIsAssignmentModalOpen(true)
-                                                    }}
-                                                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-200 rounded-xl text-[11px] font-black uppercase text-blue-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all shadow-sm"
-                                                >
-                                                    Gestionar <ArrowUpRight className="w-3.5 h-3.5" />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    )
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </div>
-
-            {/* Assignment Management Modal */}
-            {isAssignmentModalOpen && selectedStaff && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-[2.5rem] w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-300">
-                        {/* Modal Header */}
-                        <div className="p-8 bg-blue-600 text-white flex items-center justify-between border-b border-blue-500 shrink-0">
-                            <div className="flex items-center gap-4">
-                                {selectedStaff.avatar_url
-                                    ? <img src={selectedStaff.avatar_url} className="w-14 h-14 rounded-2xl border-2 border-white/50 object-cover" alt="" />
-                                    : <span className="w-14 h-14 rounded-2xl border-2 border-white/50 bg-white/20 font-black text-lg flex items-center justify-center" aria-hidden="true">{(selectedStaff.first_name?.[0] ?? '') + (selectedStaff.last_name_paternal?.[0] ?? '')}</span>}
-                                <div>
-                                    <h3 className="text-xl font-black">{selectedStaff.first_name} {selectedStaff.last_name_paternal}</h3>
-                                    <p className="text-xs font-bold text-blue-100 uppercase tracking-widest">{roleLabel(selectedStaff.role)} • Gestión de Asignaciones</p>
-                                </div>
-                            </div>
-                            <button aria-label="Cerrar" onClick={() => setIsAssignmentModalOpen(false)} className="p-2 hover:bg-white/10 rounded-xl transition-all">
-                                <X className="w-6 h-6" />
-                            </button>
-                        </div>
-
-                        {/* Modal Body */}
-                        <div className="flex-1 overflow-y-auto p-8 space-y-10 custom-scrollbar">
-                            {/* Advisor Section */}
-                            <section>
-                                <h4 className="text-[11px] font-black text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                    <GraduationCap className="w-3 h-3" /> Asesoría de Grupo (Tutoría)
-                                </h4>
-                                <div className="p-6 bg-blue-50/50 rounded-3xl border border-blue-100 flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-3 bg-white rounded-2xl shadow-sm text-blue-600">
-                                            <Users className="w-5 h-5" />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-black text-gray-900">Grupo Asignado para Asesoría</p>
-                                            <p className="text-xs text-gray-500 font-medium">El docente será el tutor principal de este grupo.</p>
-                                        </div>
-                                    </div>
-                                    <select
-                                        className="bg-white border-2 border-blue-100 rounded-xl px-4 py-2 text-sm font-bold text-blue-900 focus:ring-4 focus:ring-blue-100 outline-none"
-                                        value={selectedStaff.advisory_group_id || ''}
-                                        onChange={(e) => handleUpdateAdvisory(e.target.value || null)}
-                                    >
-                                        <option value="">Sin Asignar</option>
-                                        {groups.map(g => (
-                                            <option key={g.id} value={g.id}>{g.grade}° {g.section}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </section>
-
-                            {/* Subjects & Groups Assignment */}
-                            <section>
-                                <h4 className="text-[11px] font-black text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                    <BookOpen className="w-3 h-3" /> Grupos y Materias Asignadas
-                                </h4>
-
-                                {/* Inline Add Form */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-100 mb-6">
-                                    <select
-                                        className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-xs font-bold"
-                                        value={newAssignmentData.groupId}
-                                        onChange={(e) => setNewAssignmentData({ ...newAssignmentData, groupId: e.target.value })}
-                                    >
-                                        <option value="">Seleccionar Grupo</option>
-                                        {groups.map(g => (
-                                            <option key={g.id} value={g.id}>{g.grade}° {g.section}</option>
-                                        ))}
-                                    </select>
-                                    <select
-                                        className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-xs font-bold"
-                                        value={newAssignmentData.subjectId}
-                                        onChange={(e) => setNewAssignmentData({ ...newAssignmentData, subjectId: e.target.value })}
-                                    >
-                                        <option value="">Seleccionar Materia</option>
-                                        {subjects.map(s => (
-                                            <option key={s.id} value={s.id}>{s.name}</option>
-                                        ))}
-                                    </select>
-                                    <button
-                                        onClick={() => {
-                                            if (newAssignmentData.groupId && newAssignmentData.subjectId) {
-                                                handleAssignGroup(newAssignmentData.groupId, newAssignmentData.subjectId)
-                                                setNewAssignmentData({ groupId: '', subjectId: '' })
-                                            }
-                                        }}
-                                        className="bg-blue-600 text-white rounded-xl px-4 py-2 text-[11px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all font-black"
-                                    >
-                                        Asignar Materia
-                                    </button>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {assignments.map(a => (
-                                        <div key={a.id} className="p-5 bg-white border border-gray-100 rounded-3xl shadow-sm hover:shadow-md transition-shadow group">
-                                            <div className="flex items-start justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-900 font-black text-sm">
-                                                        {a.groups?.grade}°
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-sm font-black text-gray-900 leading-tight">{a.subject_catalog?.name}</p>
-                                                        <p className="text-[11px] text-gray-500 font-bold uppercase">Sección {a.groups?.section}</p>
-                                                    </div>
-                                                </div>
-                                                <button aria-label="Eliminar"
-                                                    onClick={() => handleDeleteAssignment(a.id)}
-                                                    className="p-2 opacity-0 group-hover:opacity-100 text-gray-300 hover:text-rose-500 transition-all"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </div>
+                    {show.classes && (
+                        <section>
+                            <h3 className="font-black text-slate-900 mb-2">Clases que imparte ({classes.length})</h3>
+                            {classes.length === 0 ? <p className="text-sm text-slate-500 mb-3">No tiene clases asignadas.</p> : (
+                                <ul className="grid sm:grid-cols-2 gap-2 mb-3">
+                                    {classes.map(c => (
+                                        <li key={c.id} className="flex items-center gap-2 border border-slate-200 rounded-2xl px-3 py-2">
+                                            <span className="text-xs font-black bg-slate-100 text-slate-800 rounded-lg px-2 py-1 shrink-0">{groupLabel(c.groups)}</span>
+                                            <span className="text-sm font-bold text-slate-800 flex-1 min-w-0 truncate">{subjectLabel(c)}</span>
+                                            <button onClick={() => unassign(c)} disabled={busy} aria-label={`Quitar ${subjectLabel(c)} de ${groupLabel(c.groups)}`} className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50"><X className="w-4 h-4" /></button>
+                                        </li>
                                     ))}
-                                    {assignments.length === 0 && (
-                                        <div className="col-span-full py-12 border-4 border-dotted border-gray-50 rounded-[2.5rem] flex flex-col items-center justify-center text-gray-300">
-                                            <BookOpen className="w-12 h-12 mb-3" />
-                                            <p className="text-xs font-black uppercase tracking-widest">No hay materias asignadas</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </section>
+                                </ul>
+                            )}
+                            <div className="flex flex-wrap gap-2 bg-slate-50 rounded-2xl p-3">
+                                <select aria-label="Grupo" value={groupId} onChange={e => { setGroupId(e.target.value); setSubjectId('') }} className={input}>
+                                    <option value="">Grupo…</option>
+                                    {data.groups.map(g => <option key={g.id} value={g.id}>{groupLabel(g)}</option>)}
+                                </select>
+                                <select aria-label="Materia" value={subjectId} onChange={e => setSubjectId(e.target.value)} disabled={!groupId} className={`${input} flex-1 min-w-48 disabled:opacity-50`}>
+                                    <option value="">{groupId ? 'Materia…' : 'Primero elige el grupo'}</option>
+                                    {options.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+                                </select>
+                                <button onClick={assignClass} disabled={busy || !groupId || !subjectId} className={`${btn} bg-indigo-600 text-white`}><Plus className="w-4 h-4" /> Asignar clase</button>
+                            </div>
+                        </section>
+                    )}
 
-                            {/* Schedule Overview */}
-                            <section>
-                                <h4 className="text-[11px] font-black text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                    <Calendar className="w-3 h-3" /> Horario de Clases
-                                </h4>
-                                <div className="bg-gray-50 rounded-[2rem] p-6 border border-gray-100">
-                                    <div className="grid grid-cols-5 gap-4">
-                                        {['LUN', 'MAR', 'MIE', 'JUE', 'VIE'].map(day => (
-                                            <div key={day} className="space-y-4">
-                                                <p className="text-center text-[11px] font-black text-gray-500 uppercase tracking-widest">{day}</p>
-                                                <div className="space-y-2">
-                                                    {schedules.filter(s => s.day_of_week === (day === 'LUN' ? 'MONDAY' : day === 'MAR' ? 'TUESDAY' : day === 'MIE' ? 'WEDNESDAY' : day === 'JUE' ? 'THURSDAY' : 'FRIDAY')).map(s => (
-                                                        <div key={s.id} className="p-3 bg-white rounded-2xl border border-gray-100 shadow-sm">
-                                                            <p className="text-[11px] font-black text-gray-500">{s.start_time.slice(0, 5)} - {s.end_time.slice(0, 5)}</p>
-                                                            <p className="text-[11px] font-bold text-gray-900 truncate">{s.subject_catalog?.name}</p>
-                                                            <p className="text-[11px] text-blue-600 font-black">{s.groups?.grade}°{s.groups?.section}</p>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </section>
-                        </div>
+                    {show.advisory && (
+                        <section>
+                            <h3 className="font-black text-slate-900 mb-2">Asesoría de grupo (tutoría)</h3>
+                            <select aria-label="Grupo que asesora" value={advisory} onChange={e => setAdvisory(e.target.value)} disabled={busy} className={input}>
+                                <option value="">Sin grupo de asesoría</option>
+                                {data.groups.map(g => <option key={g.id} value={g.id}>{groupLabel(g)}</option>)}
+                            </select>
+                        </section>
+                    )}
 
-                        {/* Modal Footer */}
-                        <div className="p-8 bg-gray-50 border-t border-gray-100 flex justify-end shrink-0">
-                            <button onClick={() => setIsAssignmentModalOpen(false)} className="px-8 py-3 text-[11px] font-black uppercase tracking-widest text-gray-500 hover:text-gray-600">
-                                Cerrar
-                            </button>
-                        </div>
-                    </div>
+                    {show.commissions && (
+                        <section>
+                            <h3 className="font-black text-slate-900 mb-2">Comisiones ({comms.length})</h3>
+                            {comms.length === 0 ? <p className="text-sm text-amber-800 bg-amber-50 rounded-xl px-3 py-2 mb-3">No está en ninguna comisión. Cada docente debe estar en al menos una.</p> : (
+                                <ul className="space-y-2 mb-3">
+                                    {comms.map(({ commission, role }) => (
+                                        <li key={commission.id} className="flex items-center gap-2 border border-slate-200 rounded-2xl px-3 py-2">
+                                            <span className="text-sm font-bold text-slate-800 flex-1 min-w-0 truncate">{commission.name}</span>
+                                            <span className="text-xs font-black text-indigo-700 bg-indigo-50 rounded-lg px-2 py-1">{role}</span>
+                                            <button onClick={() => run(() => saveMembers(commission, removeMember(commission.members, person.id, person.name)), `Se quitó de ${commission.name}.`)} disabled={busy}
+                                                aria-label={`Quitar de ${commission.name}`} className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50"><X className="w-4 h-4" /></button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                            {data.commissions.length === 0 ? <p className="text-sm text-slate-600">Primero crea las comisiones del ciclo en la pestaña “Comisiones”.</p> : (
+                                <div className="flex flex-wrap gap-2 bg-slate-50 rounded-2xl p-3">
+                                    <select aria-label="Comisión" value={commissionId} onChange={e => setCommissionId(e.target.value)} className={`${input} flex-1 min-w-44`}>
+                                        <option value="">Comisión…</option>
+                                        {data.commissions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    </select>
+                                    <CargoSelect value={cargo} onChange={setCargo} />
+                                    <button onClick={addCommission} disabled={busy || !commissionId} className={`${btn} bg-indigo-600 text-white`}><Plus className="w-4 h-4" /> Asignar</button>
+                                </div>
+                            )}
+                        </section>
+                    )}
+
+                    {show.plans && (
+                        <section>
+                            <h3 className="font-black text-slate-900 mb-2">Planeaciones de sus clases ({plans.length})</h3>
+                            {plans.length === 0 ? <p className="text-sm text-slate-500">Aún no hay planeaciones registradas para sus grupos y materias.</p> : (
+                                <dl className="grid grid-cols-3 gap-2 text-center">
+                                    {([['APPROVED', 'Aprobadas'], ['SUBMITTED', 'Entregadas'], ['DRAFT', 'En borrador']] as const).map(([s, label]) => (
+                                        <div key={s} className="bg-slate-50 rounded-2xl py-3"><dd className="text-xl font-black text-slate-900">{plans.filter(p => (p.status ?? 'DRAFT') === s).length}</dd><dt className="text-xs font-bold text-slate-600">{label}</dt></div>
+                                    ))}
+                                </dl>
+                            )}
+                        </section>
+                    )}
                 </div>
-            )}
+            </div>
         </div>
     )
 }

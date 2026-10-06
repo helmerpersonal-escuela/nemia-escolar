@@ -53,6 +53,10 @@ console.log('Creando la escuela, grupos, alumnos, calificaciones, planeaciones y
 const { data: res, error: eSeed } = await db.rpc('demo_seed', { p_people: creadas.map(({ id, kind, n }) => ({ id, kind, n })) })
 if (eSeed) await deshacer(`No se pudo crear la escuela: ${eSeed.message}`)
 
+// 3b. Comisiones, asistencia e incidencias de ejemplo (si falla, la escuela ya quedó creada)
+const { error: eExtras } = await db.rpc('demo_extras')
+if (eExtras) console.warn(`  Aviso: no se agregaron comisiones ni asistencia de ejemplo (${eExtras.message}).`)
+
 // 4. Resultado y credenciales
 const correo = id => creadas.find(c => c.id === id)?.email
 const de = kind => res.people.filter(p => p.kind === kind).sort((a, b) => a.n - b.n)
