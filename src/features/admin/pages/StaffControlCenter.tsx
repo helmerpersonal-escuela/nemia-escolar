@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, BookOpen, CheckCircle2, ClipboardList, GraduationCap, Loader2, Plus, Search, Trash2, Users, UsersRound, X } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
@@ -10,6 +10,7 @@ import {
     CARGOS, SUGGESTED_COMMISSIONS, commissionsOf, removeMember, sortMembers, takenUniqueCargo, upsertMember,
     type Commission,
 } from '../lib/commissions'
+import { WEEK, hhmm, nowAndNext, slotsOfTeacher, type Slot } from '../lib/teacherSchedule'
 
 interface Person { id: string; name: string; roles: string[]; jobTitle: string | null; teaches: boolean }
 interface GroupSubject { id: string; group_id: string; subject_catalog_id: string | null; custom_name: string | null; teacher_id: string | null; groups: { grade: string; section: string } | null; subject_catalog: { name: string } | null }
@@ -21,7 +22,14 @@ const subjectLabel = (gs: GroupSubject) => gs.custom_name || niceSubjectCase(gs.
 const input = 'min-h-11 px-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-800 focus:border-indigo-400 outline-none'
 const btn = 'inline-flex items-center justify-center gap-1.5 min-h-11 px-4 rounded-xl text-sm font-black disabled:opacity-50'
 
-const KEY = 'staff-control-v2'
+const KEY = 'staff-control-v3'
+
+/** La hora actual, renovada cada medio minuto, para saber con qué grupo está cada docente. */
+function useNow() {
+    const [now, setNow] = useState(() => new Date())
+    useEffect(() => { const t = setInterval(() => setNow(new Date()), 30_000); return () => clearInterval(t) }, [])
+    return now
+}
 
 function useStaffData() {
     const { data: tenant } = useTenant()
@@ -30,7 +38,7 @@ function useStaffData() {
         queryKey: [KEY, tenantId],
         enabled: !!tenantId,
         queryFn: async () => {
-            const [staff, gs, groups, profs, year, plans, subjects] = await Promise.all([
+            const [staff, gs, groups, profs, year, plans, subjects, sched] = await Promise.all([
                 supabase.rpc('school_staff'),
                 supabase.from('group_subjects').select('id, group_id, subject_catalog_id, custom_name, teacher_id, groups(grade, section), subject_catalog(name)').eq('tenant_id', tenantId!),
                 supabase.from('groups').select('id, grade, section').eq('tenant_id', tenantId!).is('archived_at', null).order('grade').order('section'),
@@ -38,6 +46,7 @@ function useStaffData() {
                 supabase.from('academic_years').select('id, name').eq('tenant_id', tenantId!).eq('is_active', true).maybeSingle(),
                 supabase.from('lesson_plans').select('id, group_id, subject_id, status').eq('tenant_id', tenantId!),
                 supabase.from('subject_catalog').select('id, name, educational_level').order('name'),
+                supabase.from('schedules').select('id, group_id, subject_id, custom_subject, day_of_week, start_time, end_time').eq('tenant_id', tenantId!),
             ])
             if (staff.error) throw staff.error
             const schoolYear = year.data?.name ?? String(new Date().getFullYear())
@@ -72,6 +81,7 @@ function useStaffData() {
                 plans: (plans.data ?? []) as { id: string; group_id: string; subject_id: string | null; status: string | null }[],
                 commissions: ((comm.data ?? []) as any[]).map(c => ({ ...c, members: Array.isArray(c.members) ? c.members : [] })) as Commission[],
                 catalog,
+                schedule: (sched.data ?? []) as Slot[],
             }
         },
     })
@@ -86,6 +96,7 @@ export const StaffControlCenter = () => {
     const [query, setQuery] = useState('')
     const [filter, setFilter] = useState<'all' | 'teachers' | 'nocommission' | 'noclasses'>('all')
     const [openId, setOpenId] = useState<string | null>(null)
+    const now = useNow()
 
     const stats = useMemo(() => {
         if (!data) return null
@@ -155,6 +166,7 @@ export const StaffControlCenter = () => {
                             const groupsCount = new Set(classes.map(c => c.group_id)).size
                             const comms = commissionsOf(data.commissions, p.id, p.name)
                             const adv = data.groups.find(g => g.id === data.advisory[p.id])
+                            const current = nowAndNext(slotsOfTeacher(data.schedule, data.groupSubjects, p.id), now).current
                             return (
                                 <li key={p.id} className="bg-white border border-slate-200 rounded-3xl p-4 flex flex-wrap items-center gap-3">
                                     <div className="w-11 h-11 shrink-0 rounded-2xl bg-indigo-50 text-indigo-700 font-black text-sm flex items-center justify-center uppercase">{p.name.split(' ').slice(0, 2).map(w => w[0]).join('')}</div>
@@ -163,6 +175,7 @@ export const StaffControlCenter = () => {
                                         <p className="text-sm text-slate-600">{p.roles.map(roleLabel).join(' · ')}{p.jobTitle && !p.roles.map(roleLabel).includes(p.jobTitle) ? ` · ${p.jobTitle}` : ''}</p>
                                         <div className="flex flex-wrap gap-1.5 mt-1.5">
                                             {p.teaches && <Chip tone={classes.length ? 'slate' : 'warn'}>{classes.length ? `${classes.length} clase${classes.length === 1 ? '' : 's'} en ${groupsCount} grupo${groupsCount === 1 ? '' : 's'}` : 'Sin clases asignadas'}</Chip>}
+                                            {current && <Chip tone="indigo">Ahora en {groupLabel(current.assignment.groups)} · {subjectLabel(current.assignment)}</Chip>}
                                             {adv && <Chip tone="indigo">Asesora {groupLabel(adv)}</Chip>}
                                             {comms.map(c => <Chip key={c.commission.id} tone="emerald">{c.commission.name}: {c.role}</Chip>)}
                                             {p.teaches && comms.length === 0 && <Chip tone="warn">Sin comisión</Chip>}
@@ -324,10 +337,10 @@ const CommissionCard = ({ commission, data, onChanged }: { commission: Commissio
 
 // ---------------------------------------------------------------- Una persona
 
-const SECTIONS = [['classes', 'Clases'], ['advisory', 'Asesoría'], ['commissions', 'Comisiones'], ['plans', 'Planeaciones']] as const
+const SECTIONS = [['schedule', 'Horario'], ['classes', 'Clases'], ['advisory', 'Asesoría'], ['commissions', 'Comisiones'], ['plans', 'Planeaciones']] as const
 
 const PersonPanel = ({ person, data, onClose, onChanged }: { person: Person; data: Data; onClose: () => void; onChanged: () => void }) => {
-    const [show, setShow] = useState<Record<string, boolean>>({ classes: true, advisory: true, commissions: true, plans: true })
+    const [show, setShow] = useState<Record<string, boolean>>({ schedule: true, classes: true, advisory: true, commissions: true, plans: true })
     const [groupId, setGroupId] = useState('')
     const [subjectId, setSubjectId] = useState('')
     const [commissionId, setCommissionId] = useState('')
@@ -339,6 +352,9 @@ const PersonPanel = ({ person, data, onClose, onChanged }: { person: Person; dat
     const classes = data.groupSubjects.filter(g => g.teacher_id === person.id)
         .sort((a, b) => groupLabel(a.groups).localeCompare(groupLabel(b.groups)) || subjectLabel(a).localeCompare(subjectLabel(b), 'es'))
     const comms = commissionsOf(data.commissions, person.id, person.name)
+    const now = useNow()
+    const mySlots = slotsOfTeacher(data.schedule, data.groupSubjects, person.id)
+    const { current, next } = nowAndNext(mySlots, now)
     const advisory = data.advisory[person.id] ?? ''
     const plans = data.plans.filter(p => classes.some(c => c.group_id === p.group_id && c.subject_catalog_id === p.subject_id))
     const nameOf = (id: string | null) => data.people.find(p => p.id === id)?.name ?? 'otra persona'
@@ -424,6 +440,41 @@ const PersonPanel = ({ person, data, onClose, onChanged }: { person: Person; dat
 
                 <div className="p-5 space-y-6 overflow-y-auto">
                     {msg && <p role={msg.ok ? 'status' : 'alert'} className={`flex items-start gap-2 text-sm font-bold rounded-2xl px-4 py-3 ${msg.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'}`}>{msg.ok ? <CheckCircle2 className="w-4 h-4 mt-0.5" /> : <AlertTriangle className="w-4 h-4 mt-0.5" />}{msg.text}</p>}
+
+                    {show.schedule && (
+                        <section>
+                            <h3 className="font-black text-slate-900 mb-2">Horario ({mySlots.length} {mySlots.length === 1 ? 'clase' : 'clases'} a la semana)</h3>
+                            {mySlots.length === 0 ? (
+                                <p className="text-sm text-slate-600 bg-slate-50 rounded-xl px-3 py-2">{data.schedule.length === 0 ? 'La escuela todavía no ha armado su horario de clases.' : classes.length === 0 ? 'No tiene clases asignadas, por eso no aparece en el horario.' : 'Sus clases todavía no están colocadas en el horario de la escuela.'}</p>
+                            ) : (
+                                <>
+                                    <p role="status" className={`text-sm font-bold rounded-2xl px-4 py-3 mb-3 ${current ? 'bg-indigo-50 text-indigo-900' : 'bg-slate-50 text-slate-700'}`}>
+                                        {current
+                                            ? <>En este momento está con <span className="font-black">{groupLabel(current.assignment.groups)}</span> en {subjectLabel(current.assignment)} ({hhmm(current.slot.start_time)} a {hhmm(current.slot.end_time)}).</>
+                                            : <>En este momento no tiene clase.</>}
+                                        {next && <> {current ? 'Después' : 'Su siguiente clase de hoy'}: {groupLabel(next.assignment.groups)}, {subjectLabel(next.assignment)}, a las {hhmm(next.slot.start_time)}.</>}
+                                        {!current && !next && <> Hoy ya no tiene más clases.</>}
+                                    </p>
+                                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                                        {WEEK.filter(([d]) => mySlots.some(m => m.slot.day_of_week === d)).map(([d, label]) => (
+                                            <div key={d} className="border border-slate-200 rounded-2xl p-3">
+                                                <p className="text-xs font-black text-slate-500 uppercase mb-1.5">{label}</p>
+                                                <ul className="space-y-1">
+                                                    {mySlots.filter(m => m.slot.day_of_week === d).map(m => (
+                                                        <li key={m.slot.id} className={`flex items-center gap-2 text-sm rounded-lg px-1.5 py-1 ${current?.slot.id === m.slot.id ? 'bg-indigo-50' : ''}`}>
+                                                            <span className="font-bold text-slate-600 tabular-nums shrink-0">{hhmm(m.slot.start_time)}–{hhmm(m.slot.end_time)}</span>
+                                                            <span className="text-xs font-black bg-slate-100 text-slate-800 rounded-md px-1.5 py-0.5 shrink-0">{groupLabel(m.assignment.groups)}</span>
+                                                            <span className="font-bold text-slate-800 truncate">{subjectLabel(m.assignment)}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </section>
+                    )}
 
                     {show.classes && (
                         <section>

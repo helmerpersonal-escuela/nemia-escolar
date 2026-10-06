@@ -57,6 +57,10 @@ if (eSeed) await deshacer(`No se pudo crear la escuela: ${eSeed.message}`)
 const { error: eExtras } = await db.rpc('demo_extras')
 if (eExtras) console.warn(`  Aviso: no se agregaron comisiones ni asistencia de ejemplo (${eExtras.message}).`)
 
+// 3c. Horario de clases de ejemplo
+const { error: eHorario } = await db.rpc('demo_horario')
+if (eHorario) console.warn(`  Aviso: no se agregó el horario de ejemplo (${eHorario.message}).`)
+
 // 4. Resultado y credenciales
 const correo = id => creadas.find(c => c.id === id)?.email
 const de = kind => res.people.filter(p => p.kind === kind).sort((a, b) => a.n - b.n)
