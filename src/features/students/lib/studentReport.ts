@@ -59,3 +59,66 @@ export function summarizeAttendance(rows: { date: string; status: string }[]): A
         absences: rows.filter(r => r.status === 'ABSENT').map(r => r.date).sort().reverse(),
     }
 }
+
+// ---------------------------------------------------------------- Por periodo (trimestres)
+
+export interface Period { id: string; name: string; start_date: string; end_date: string }
+
+const round1 = (n: number) => Math.round(n * 10) / 10
+const mean = (xs: number[]) => (xs.length ? round1(xs.reduce((a, b) => a + b, 0) / xs.length) : null)
+
+/** Índice del periodo al que pertenece una fecha (AAAA-MM-DD o ISO), o -1 si no cae en ninguno. */
+export function periodIndex(periods: Period[], date: string | null | undefined): number {
+    if (!date) return -1
+    const d = date.slice(0, 10)
+    return periods.findIndex(p => d >= p.start_date && d <= p.end_date)
+}
+
+export interface SubjectPeriodRow {
+    subjectId: string
+    name: string
+    teacher: string | null
+    /** Promedio de la materia en cada periodo (null si aún no hay calificaciones). */
+    byPeriod: (number | null)[]
+    /** Promedio de los periodos que ya tienen calificación. */
+    average: number | null
+    atRisk: boolean
+}
+
+/** Calificación de cada materia por trimestre y su promedio; la última fila es el promedio general. */
+export function summarizeByPeriod(
+    subjects: { id: string; name: string; teacher: string | null }[],
+    grades: GradeRow[],
+    periods: Period[],
+): { rows: SubjectPeriodRow[]; general: (number | null)[]; average: number | null } {
+    const rows = subjects.map(s => {
+        const byPeriod = periods.map((_, i) => mean(grades
+            .filter(g => g.assignment?.subject_id === s.id && g.is_graded !== false && g.score != null && periodIndex(periods, g.assignment.due_date) === i)
+            .map(g => Number(g.score))))
+        const average = mean(byPeriod.filter((x): x is number => x != null))
+        return { subjectId: s.id, name: s.name, teacher: s.teacher, byPeriod, average, atRisk: average != null && average < 6 }
+    }).sort((a, b) => a.name.localeCompare(b.name, 'es'))
+    const general = periods.map((_, i) => mean(rows.map(r => r.byPeriod[i]).filter((x): x is number => x != null)))
+    return { rows, general, average: mean(general.filter((x): x is number => x != null)) }
+}
+
+export interface PeriodConduct { attendancePct: number | null; absences: number; incidents: number; positives: number }
+
+/** Asistencia e incidencias de cada periodo: el comportamiento del alumno a lo largo del ciclo. */
+export function conductByPeriod(
+    periods: Period[],
+    attendance: { date: string; status: string }[],
+    incidents: { created_at: string; type: string }[],
+): PeriodConduct[] {
+    return periods.map((_, i) => {
+        const att = attendance.filter(a => periodIndex(periods, a.date) === i)
+        const inc = incidents.filter(x => periodIndex(periods, x.created_at) === i)
+        const s = summarizeAttendance(att)
+        return { attendancePct: s.pct, absences: s.absent, incidents: inc.filter(x => x.type !== 'POSITIVO').length, positives: inc.filter(x => x.type === 'POSITIVO').length }
+    })
+}
+
+/** "Primer trimestre" → "Trim. 1"; otros nombres se dejan como están. */
+export function shortPeriodName(name: string, index: number): string {
+    return /trimestre|periodo|bimestre/i.test(name) ? `${/bimestre/i.test(name) ? 'Bim.' : 'Trim.'} ${index + 1}` : name
+}

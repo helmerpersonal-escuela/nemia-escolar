@@ -5,7 +5,7 @@ import { AlertTriangle, ArrowLeft, ChevronRight, ExternalLink, GraduationCap, Lo
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
 import { niceSubjectCase } from '../../../lib/subjectName'
-import { matchesName, overallAverage, summarizeAttendance, summarizeSubjects, type AssignmentRow, type GradeRow } from '../lib/studentReport'
+import { conductByPeriod, matchesName, overallAverage, shortPeriodName, summarizeAttendance, summarizeByPeriod, summarizeSubjects, type AssignmentRow, type GradeRow, type Period } from '../lib/studentReport'
 
 interface StudentRow { id: string; first_name: string; last_name_paternal: string; last_name_maternal: string | null; group_id: string | null; status: string | null }
 interface Group { id: string; grade: string; section: string }
@@ -17,6 +17,7 @@ const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&am
 
 const INCIDENT_TYPE: Record<string, string> = { CONDUCTA: 'Conducta', ACADEMICO: 'Académico', EMOCIONAL: 'Emocional', POSITIVO: 'Reconocimiento', SALUD: 'Salud' }
 const SEVERITY: Record<string, string> = { BAJA: 'Leve', MEDIA: 'Media', ALTA: 'Grave' }
+const OUTCOME: Record<string, string> = { PROMOVIDO: 'Promovido', REPITE: 'Repite', EGRESADO: 'Egresó', BAJA: 'Baja' }
 const SECTIONS = [['grades', 'Calificaciones por materia'], ['attendance', 'Asistencia'], ['conduct', 'Conducta e incidencias'], ['citations', 'Citatorios'], ['family', 'Familia']] as const
 type SectionId = typeof SECTIONS[number][0]
 
@@ -128,7 +129,7 @@ const StudentReport = ({ student, group, tenantId, schoolName, onBack }: { stude
         staleTime: 30_000,
         queryFn: async () => {
             const noGroup = '00000000-0000-0000-0000-000000000000'
-            const [grades, assignments, subjects, staff, attendance, incidents, citations, guardians] = await Promise.all([
+            const [grades, assignments, subjects, staff, attendance, incidents, citations, guardians, periodRows, history, activeYear] = await Promise.all([
                 supabase.from('grades').select('score, is_graded, assignment:assignments(id, title, due_date, subject_id)').eq('student_id', student.id),
                 supabase.from('assignments').select('id, title, due_date, subject_id').eq('group_id', student.group_id ?? noGroup),
                 supabase.from('group_subjects').select('subject_catalog_id, custom_name, teacher_id, subject_catalog(name)').eq('group_id', student.group_id ?? noGroup),
@@ -136,7 +137,9 @@ const StudentReport = ({ student, group, tenantId, schoolName, onBack }: { stude
                 supabase.from('attendance').select('date, status').eq('student_id', student.id).order('date', { ascending: false }).limit(2000),
                 supabase.from('student_incidents').select('id, type, severity, title, description, status, created_at').eq('student_id', student.id).order('created_at', { ascending: false }),
                 supabase.from('student_citations').select('id, reason, meeting_date, status').eq('student_id', student.id).order('meeting_date', { ascending: false }),
-                supabase.from('guardians').select('id, first_name, last_name_paternal, last_name_maternal, relationship, phone, user_id, access_status').eq('student_id', student.id),
+                supabase.from('guardians').select('id, first_name, last_name_paternal, last_name_maternal, relationship, phone, user_id, access_status').eq('student_id', student.id),                supabase.from('evaluation_periods').select('id, name, start_date, end_date').eq('tenant_id', tenantId).order('start_date'),
+                supabase.from('student_enrollments').select('id, grade, section, outcome, academic_years(name)').eq('student_id', student.id),
+                supabase.from('academic_years').select('start_date, end_date').eq('tenant_id', tenantId).eq('is_active', true).maybeSingle(),
             ])
             const firstError = [grades, assignments, subjects, attendance, incidents].find(r => r.error)?.error
             if (firstError) throw firstError
@@ -145,8 +148,18 @@ const StudentReport = ({ student, group, tenantId, schoolName, onBack }: { stude
                 id: s.subject_catalog_id as string, name: s.custom_name || niceSubjectCase(s.subject_catalog?.name ?? 'Materia'), teacher: s.teacher_id ? teacher.get(s.teacher_id) ?? null : null,
             }))
             const subjectRows = summarizeSubjects(subjectList, (grades.data ?? []) as unknown as GradeRow[], (assignments.data ?? []) as AssignmentRow[])
+            // Solo los periodos del ciclo en curso (la escuela puede conservar los de ciclos anteriores)
+            const allPeriods = (periodRows.data ?? []) as Period[]
+            const y = activeYear.data as { start_date: string; end_date: string } | null
+            const inYear = y ? allPeriods.filter(p => p.end_date >= y.start_date && p.start_date <= y.end_date) : []
+            const periods = inYear.length ? inYear : allPeriods.slice(-3)
+            const byPeriod = summarizeByPeriod(subjectList, (grades.data ?? []) as unknown as GradeRow[], periods)
             return {
-                subjectRows, average: overallAverage(subjectRows),
+                subjectRows, periods, byPeriod,
+                average: periods.length ? byPeriod.average : overallAverage(subjectRows),
+                conduct: conductByPeriod(periods, (attendance.data ?? []) as any[], (incidents.data ?? []) as any[]),
+                history: ((history.data ?? []) as any[]).map(h => ({ id: h.id as string, year: (h.academic_years?.name ?? '') as string, group: `${h.grade ?? ''}° ${h.section ?? ''}`.trim(), outcome: h.outcome as string }))
+                    .sort((a, b) => a.year.localeCompare(b.year)),
                 attendance: summarizeAttendance((attendance.data ?? []) as any[]),
                 incidents: (incidents.data ?? []) as any[],
                 citations: (citations.data ?? []) as any[],
@@ -162,9 +175,16 @@ const StudentReport = ({ student, group, tenantId, schoolName, onBack }: { stude
     const print = () => {
         if (!data) return
         const parts: string[] = []
-        if (show.grades) parts.push(`<h2>Calificaciones por materia${data.average != null ? ` · promedio general ${data.average}` : ''}</h2><table><tr><th>Materia</th><th>Docente</th><th>Promedio</th><th>Calificadas</th><th>Sin entregar</th></tr>${data.subjectRows.map(r => `<tr><td>${esc(r.name)}</td><td>${esc(r.teacher ?? '—')}</td><td>${r.average ?? '—'}</td><td>${r.graded}</td><td>${r.missing.length ? esc(r.missing.join('; ')) : '0'}</td></tr>`).join('')}</table>`)
+        if (show.grades) {
+            const P = data.periods
+            const cell = (v: number | null | undefined) => `<td style="text-align:center">${v ?? '—'}</td>`
+            parts.push(`<h2>Calificaciones por materia</h2><table><tr><th>Materia</th><th>Docente</th>${P.map((p, i) => `<th>${esc(shortPeriodName(p.name, i))}</th>`).join('')}<th>Promedio</th><th>Sin entregar</th></tr>${data.subjectRows.map(r => {
+                const pr = data.byPeriod.rows.find(x => x.subjectId === r.subjectId)
+                return `<tr><td>${esc(r.name)}</td><td>${esc(r.teacher ?? '—')}</td>${P.map((_, i) => cell(pr?.byPeriod[i])).join('')}${cell(P.length ? pr?.average : r.average)}<td>${r.missing.length ? esc(r.missing.join('; ')) : '0'}</td></tr>`
+            }).join('')}${P.length ? `<tr><th colspan="2">Promedio general</th>${data.byPeriod.general.map(cell).join('')}${cell(data.byPeriod.average)}<td></td></tr>` : ''}</table>${data.history.length ? `<p>Trayectoria: ${data.history.map(h => `${esc(h.year)} · ${esc(h.group)} · ${esc(OUTCOME[h.outcome] ?? h.outcome)}`).join('; ')}</p>` : ''}`)
+        }
         if (show.attendance) parts.push(`<h2>Asistencia</h2><p>${data.attendance.total ? `${data.attendance.pct}% de asistencia en ${data.attendance.total} registros: ${data.attendance.present} asistencias, ${data.attendance.late} retardos, ${data.attendance.absent} faltas, ${data.attendance.excused} justificadas.` : 'Sin registros de asistencia.'}${data.attendance.absences.length ? `<br>Faltas: ${data.attendance.absences.slice(0, 30).map(day).join(', ')}` : ''}</p>`)
-        if (show.conduct) parts.push(`<h2>Conducta e incidencias (${data.incidents.length})</h2>${data.incidents.length ? `<table><tr><th>Fecha</th><th>Tipo</th><th>Gravedad</th><th>Descripción</th></tr>${data.incidents.map(i => `<tr><td>${day(i.created_at)}</td><td>${esc(INCIDENT_TYPE[i.type] ?? i.type)}</td><td>${esc(SEVERITY[i.severity] ?? i.severity)}</td><td><b>${esc(i.title)}</b> ${esc(i.description)}</td></tr>`).join('')}</table>` : '<p>Sin incidencias registradas.</p>'}`)
+        if (show.conduct) parts.push(`<h2>Conducta e incidencias (${data.incidents.length})</h2>${data.periods.length ? `<table><tr><th>Por periodo</th>${data.periods.map((p, i) => `<th>${esc(shortPeriodName(p.name, i))}</th>`).join('')}</tr><tr><td>Asistencia</td>${data.conduct.map(c => `<td style="text-align:center">${c.attendancePct != null ? `${c.attendancePct}%` : '—'}</td>`).join('')}</tr><tr><td>Faltas</td>${data.conduct.map(c => `<td style="text-align:center">${c.attendancePct != null ? c.absences : '—'}</td>`).join('')}</tr><tr><td>Incidencias</td>${data.conduct.map(c => `<td style="text-align:center">${c.incidents}</td>`).join('')}</tr><tr><td>Reconocimientos</td>${data.conduct.map(c => `<td style="text-align:center">${c.positives}</td>`).join('')}</tr></table><br>` : ''}${data.incidents.length ? `<table><tr><th>Fecha</th><th>Tipo</th><th>Gravedad</th><th>Descripción</th></tr>${data.incidents.map(i => `<tr><td>${day(i.created_at)}</td><td>${esc(INCIDENT_TYPE[i.type] ?? i.type)}</td><td>${esc(SEVERITY[i.severity] ?? i.severity)}</td><td><b>${esc(i.title)}</b> ${esc(i.description)}</td></tr>`).join('')}</table>` : '<p>Sin incidencias registradas.</p>'}`)
         if (show.citations) parts.push(`<h2>Citatorios (${data.citations.length})</h2>${data.citations.length ? `<ul>${data.citations.map(c => `<li>${day(c.meeting_date)}: ${esc(c.reason)}</li>`).join('')}</ul>` : '<p>Sin citatorios.</p>'}`)
         if (show.family) parts.push(`<h2>Familia</h2>${data.guardians.length ? `<ul>${data.guardians.map(g => `<li>${esc([g.first_name, g.last_name_paternal, g.last_name_maternal].filter(Boolean).join(' '))} (${esc(g.relationship)})${g.phone ? ` · ${esc(g.phone)}` : ''}</li>`).join('')}</ul>` : '<p>Sin tutores registrados.</p>'}`)
         const w = window.open('', '_blank')
@@ -213,22 +233,36 @@ const StudentReport = ({ student, group, tenantId, schoolName, onBack }: { stude
                         <section>
                             <h3 className="font-black text-slate-900 mb-2">Calificaciones por materia</h3>
                             {data.subjectRows.length === 0 ? <p className="text-sm text-slate-500">Su grupo todavía no tiene materias asignadas.</p> : (
-                                <div className="overflow-x-auto"><table className="w-full text-sm min-w-[520px]">
-                                    <thead><tr className="text-left text-xs text-slate-500"><th className="py-2">Materia</th><th>Docente</th><th className="text-center">Promedio</th><th className="text-center">Calificadas</th><th className="text-center">Sin entregar</th></tr></thead>
+                                <div className="overflow-x-auto"><table className="w-full text-sm min-w-[560px]">
+                                    <thead><tr className="text-left text-xs text-slate-500"><th className="py-2">Materia</th><th>Docente</th>
+                                        {data.periods.map((p, i) => <th key={p.id} className="text-center" title={p.name}>{shortPeriodName(p.name, i)}</th>)}
+                                        <th className="text-center">Promedio</th><th className="text-center">Sin entregar</th></tr></thead>
                                     <tbody className="divide-y divide-slate-100">
-                                        {data.subjectRows.map(r => (
-                                            <tr key={r.subjectId}>
-                                                <td className="py-2 font-bold text-slate-800">{r.name}</td>
-                                                <td className="text-slate-600">{r.teacher ?? <span className="text-amber-700">Sin docente</span>}</td>
-                                                <td className="text-center"><span className={`inline-block min-w-10 px-2 py-0.5 rounded-lg font-black ${r.average == null ? 'text-slate-400' : r.atRisk ? 'bg-rose-100 text-rose-800' : 'bg-emerald-50 text-emerald-800'}`}>{r.average ?? '—'}</span></td>
-                                                <td className="text-center text-slate-700">{r.graded}</td>
-                                                <td className="text-center">{r.missing.length ? <span title={r.missing.join('\n')} className="inline-block px-2 py-0.5 rounded-lg bg-amber-100 text-amber-900 font-black">{r.missing.length}</span> : <span className="text-slate-400">0</span>}</td>
-                                            </tr>
-                                        ))}
+                                        {data.subjectRows.map(r => {
+                                            const pr = data.byPeriod.rows.find(x => x.subjectId === r.subjectId)
+                                            const avg = data.periods.length ? pr?.average ?? null : r.average
+                                            return (
+                                                <tr key={r.subjectId}>
+                                                    <td className="py-2 font-bold text-slate-800">{r.name}</td>
+                                                    <td className="text-slate-600">{r.teacher ?? <span className="text-amber-700">Sin docente</span>}</td>
+                                                    {data.periods.map((p, i) => <td key={p.id} className="text-center"><Score value={pr?.byPeriod[i] ?? null} /></td>)}
+                                                    <td className="text-center"><Score value={avg} strong /></td>
+                                                    <td className="text-center">{r.missing.length ? <span title={r.missing.join('\n')} className="inline-block px-2 py-0.5 rounded-lg bg-amber-100 text-amber-900 font-black">{r.missing.length}</span> : <span className="text-slate-400">0</span>}</td>
+                                                </tr>
+                                            )
+                                        })}
                                     </tbody>
+                                    {data.periods.length > 0 && (
+                                        <tfoot><tr className="border-t-2 border-slate-200">
+                                            <td className="py-2 font-black text-slate-900" colSpan={2}>Promedio general</td>
+                                            {data.byPeriod.general.map((v, i) => <td key={i} className="text-center"><Score value={v} strong /></td>)}
+                                            <td className="text-center"><Score value={data.byPeriod.average} strong /></td><td />
+                                        </tr></tfoot>
+                                    )}
                                 </table></div>
                             )}
-                            {data.subjectRows.some(r => r.atRisk) && <p className="mt-2 flex items-start gap-2 text-sm text-rose-800 bg-rose-50 rounded-xl px-3 py-2"><AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" /> Promedio menor a 6 en: {data.subjectRows.filter(r => r.atRisk).map(r => r.name).join(', ')}.</p>}
+                            {(data.periods.length ? data.byPeriod.rows : data.subjectRows).some(r => r.atRisk) && <p className="mt-2 flex items-start gap-2 text-sm text-rose-800 bg-rose-50 rounded-xl px-3 py-2"><AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" /> Promedio menor a 6 en: {(data.periods.length ? data.byPeriod.rows : data.subjectRows).filter(r => r.atRisk).map(r => r.name).join(', ')}.</p>}
+                            {data.periods.length > 0 && <p className="text-xs text-slate-500 mt-2">Cada trimestre promedia las actividades calificadas en sus fechas; el promedio es el de los trimestres que ya tienen calificación.</p>}
                         </section>
                     )}
 
@@ -250,6 +284,17 @@ const StudentReport = ({ student, group, tenantId, schoolName, onBack }: { stude
                     {show.conduct && (
                         <section>
                             <h3 className="font-black text-slate-900 mb-2">Conducta e incidencias ({data.incidents.length})</h3>
+                            {data.periods.length > 0 && (
+                                <div className="overflow-x-auto mb-3"><table className="w-full text-sm min-w-[420px]">
+                                    <thead><tr className="text-left text-xs text-slate-500"><th className="py-2">Comportamiento por periodo</th>{data.periods.map((p, i) => <th key={p.id} className="text-center" title={p.name}>{shortPeriodName(p.name, i)}</th>)}</tr></thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        <tr><td className="py-2 font-bold text-slate-800">Asistencia</td>{data.conduct.map((c, i) => <td key={i} className="text-center">{c.attendancePct != null ? <span className={`font-black ${c.attendancePct < 80 ? 'text-rose-700' : 'text-slate-800'}`}>{c.attendancePct}%</span> : <span className="text-slate-400">—</span>}</td>)}</tr>
+                                        <tr><td className="py-2 font-bold text-slate-800">Faltas</td>{data.conduct.map((c, i) => <td key={i} className="text-center text-slate-800">{c.attendancePct != null ? c.absences : <span className="text-slate-400">—</span>}</td>)}</tr>
+                                        <tr><td className="py-2 font-bold text-slate-800">Incidencias</td>{data.conduct.map((c, i) => <td key={i} className="text-center"><span className={c.incidents ? 'font-black text-amber-800' : 'text-slate-500'}>{c.incidents}</span></td>)}</tr>
+                                        <tr><td className="py-2 font-bold text-slate-800">Reconocimientos</td>{data.conduct.map((c, i) => <td key={i} className="text-center"><span className={c.positives ? 'font-black text-emerald-700' : 'text-slate-500'}>{c.positives}</span></td>)}</tr>
+                                    </tbody>
+                                </table></div>
+                            )}
                             {data.incidents.length === 0 ? <p className="text-sm text-slate-500">Sin incidencias registradas.</p> : (
                                 <ul className="space-y-2">
                                     {data.incidents.map(i => (
@@ -278,6 +323,16 @@ const StudentReport = ({ student, group, tenantId, schoolName, onBack }: { stude
                         </section>
                     )}
 
+                    {show.grades && data.history.length > 0 && (
+                        <section>
+                            <h3 className="font-black text-slate-900 mb-2">Trayectoria en la escuela</h3>
+                            <ul className="flex flex-wrap gap-2 text-sm">
+                                {data.history.map(h => <li key={h.id} className="border border-slate-200 rounded-xl px-3 py-2"><b>{h.year}</b> · {h.group} · {OUTCOME[h.outcome] ?? h.outcome}</li>)}
+                                <li className="border border-indigo-200 bg-indigo-50 rounded-xl px-3 py-2 text-indigo-900"><b>Ciclo actual</b> · {groupText}</li>
+                            </ul>
+                        </section>
+                    )}
+
                     {show.family && (
                         <section>
                             <h3 className="font-black text-slate-900 mb-2">Familia</h3>
@@ -300,6 +355,10 @@ const StudentReport = ({ student, group, tenantId, schoolName, onBack }: { stude
         </article>
     )
 }
+
+const Score = ({ value, strong }: { value: number | null; strong?: boolean }) => (
+    <span className={`inline-block min-w-10 px-2 py-0.5 rounded-lg ${strong ? 'font-black' : 'font-bold'} ${value == null ? 'text-slate-400' : value < 6 ? 'bg-rose-100 text-rose-800' : strong ? 'bg-emerald-50 text-emerald-800' : 'text-slate-800'}`}>{value ?? '—'}</span>
+)
 
 const Kpi = ({ label, value, warn, small }: { label: string; value: number | string; warn?: boolean; small?: boolean }) => (
     <div className={`rounded-2xl py-3 ${warn ? 'bg-rose-50' : 'bg-slate-50'}`}>
