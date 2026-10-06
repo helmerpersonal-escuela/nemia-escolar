@@ -12,6 +12,8 @@
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "test:run": "vitest run",
     "preview": "vite preview",
+    "demo:crear": "node tools/demo/crear-escuela-demo.mjs",
+    "demo:borrar": "node tools/demo/borrar-escuela-demo.mjs",
     "licencias:claves": "node tools/licencias/generar-claves.mjs --instalar",
     "licencias:nueva": "node tools/licencias/generar-licencia.mjs",
     "cap:sync": "npm run build && npx cap sync",
