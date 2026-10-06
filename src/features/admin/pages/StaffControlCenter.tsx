@@ -21,7 +21,7 @@ const subjectLabel = (gs: GroupSubject) => gs.custom_name || niceSubjectCase(gs.
 const input = 'min-h-11 px-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-800 focus:border-indigo-400 outline-none'
 const btn = 'inline-flex items-center justify-center gap-1.5 min-h-11 px-4 rounded-xl text-sm font-black disabled:opacity-50'
 
-const KEY = 'staff-control'
+const KEY = 'staff-control-v2'
 
 function useStaffData() {
     const { data: tenant } = useTenant()
@@ -67,7 +67,8 @@ function useStaffData() {
                 people: [...byId.values()].sort((a, b) => a.name.localeCompare(b.name, 'es')),
                 groupSubjects,
                 groups: (groups.data ?? []) as Group[],
-                advisory: new Map(((profs.data ?? []) as any[]).map(p => [p.id as string, p.advisory_group_id as string | null])),
+                // Objeto simple (no Map): lo consultado se guarda en el dispositivo y un Map no sobrevive a eso
+                advisory: Object.fromEntries(((profs.data ?? []) as any[]).map(p => [p.id as string, p.advisory_group_id as string | null])) as Record<string, string | null>,
                 plans: (plans.data ?? []) as { id: string; group_id: string; subject_id: string | null; status: string | null }[],
                 commissions: ((comm.data ?? []) as any[]).map(c => ({ ...c, members: Array.isArray(c.members) ? c.members : [] })) as Commission[],
                 catalog,
@@ -153,7 +154,7 @@ export const StaffControlCenter = () => {
                             const classes = data.groupSubjects.filter(g => g.teacher_id === p.id)
                             const groupsCount = new Set(classes.map(c => c.group_id)).size
                             const comms = commissionsOf(data.commissions, p.id, p.name)
-                            const adv = data.groups.find(g => g.id === data.advisory.get(p.id))
+                            const adv = data.groups.find(g => g.id === data.advisory[p.id])
                             return (
                                 <li key={p.id} className="bg-white border border-slate-200 rounded-3xl p-4 flex flex-wrap items-center gap-3">
                                     <div className="w-11 h-11 shrink-0 rounded-2xl bg-indigo-50 text-indigo-700 font-black text-sm flex items-center justify-center uppercase">{p.name.split(' ').slice(0, 2).map(w => w[0]).join('')}</div>
@@ -338,7 +339,7 @@ const PersonPanel = ({ person, data, onClose, onChanged }: { person: Person; dat
     const classes = data.groupSubjects.filter(g => g.teacher_id === person.id)
         .sort((a, b) => groupLabel(a.groups).localeCompare(groupLabel(b.groups)) || subjectLabel(a).localeCompare(subjectLabel(b), 'es'))
     const comms = commissionsOf(data.commissions, person.id, person.name)
-    const advisory = data.advisory.get(person.id) ?? ''
+    const advisory = data.advisory[person.id] ?? ''
     const plans = data.plans.filter(p => classes.some(c => c.group_id === p.group_id && c.subject_catalog_id === p.subject_id))
     const nameOf = (id: string | null) => data.people.find(p => p.id === id)?.name ?? 'otra persona'
 
