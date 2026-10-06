@@ -330,6 +330,7 @@ const PersonPanel = ({ person, data, onClose, onChanged }: { person: Person; dat
     const [groupId, setGroupId] = useState('')
     const [subjectId, setSubjectId] = useState('')
     const [commissionId, setCommissionId] = useState('')
+    const [newCommission, setNewCommission] = useState('')
     const [cargo, setCargo] = useState('Vocal')
     const [busy, setBusy] = useState(false)
     const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
@@ -373,10 +374,27 @@ const PersonPanel = ({ person, data, onClose, onChanged }: { person: Person; dat
         await run(() => supabase.from('group_subjects').update({ teacher_id: null }).eq('id', gs.id), 'Clase retirada; la materia quedó sin docente.')
     }
     const setAdvisory = (value: string) => run(() => supabase.rpc('set_advisory_group' as any, { p_profile: person.id, p_group: value || null }), value ? 'Asesoría actualizada.' : 'Asesoría retirada.')
+    const NEW = '__nueva'
     const addCommission = async () => {
+        const role = cargo.trim() || 'Integrante'
+        // Comisión que todavía no existe en la escuela: se crea y se le asigna de una vez
+        if (commissionId === NEW) {
+            const name = newCommission.trim().replace(/\s+/g, ' ')
+            if (name.length < 3) return setMsg({ ok: false, text: 'Escribe el nombre de la nueva comisión.' })
+            const same = data.commissions.find(c => c.name.toLowerCase() === name.toLowerCase())
+            if (same) {
+                await run(() => saveMembers(same, upsertMember(same.members, person.id, person.name, role)), `Esa comisión ya existía: ${person.name} quedó como ${role} de ${same.name}.`)
+            } else {
+                await run(() => supabase.from('school_commissions').insert({
+                    tenant_id: data.tenantId, school_year: data.schoolYear, name, source: 'Dirección',
+                    members: [{ profile_id: person.id, name: person.name, role }],
+                } as any), `Se creó la comisión "${name}" y ${person.name} quedó como ${role}.`)
+            }
+            setCommissionId(''); setNewCommission('')
+            return
+        }
         const c = data.commissions.find(x => x.id === commissionId)
         if (!c) return setMsg({ ok: false, text: 'Elige una comisión.' })
-        const role = cargo.trim() || 'Integrante'
         const taken = takenUniqueCargo(c, role, person.id, person.name)
         if (taken && !(await askConfirm(`${taken.name} ya es ${role} de ${c.name}. ¿Nombrar también a ${person.name} con ese cargo?`))) return
         await run(() => saveMembers(c, upsertMember(c.members, person.id, person.name, role)), `${person.name} quedó como ${role} de ${c.name}.`)
@@ -459,16 +477,16 @@ const PersonPanel = ({ person, data, onClose, onChanged }: { person: Person; dat
                                     ))}
                                 </ul>
                             )}
-                            {data.commissions.length === 0 ? <p className="text-sm text-slate-600">Primero crea las comisiones del ciclo en la pestaña “Comisiones”.</p> : (
-                                <div className="flex flex-wrap gap-2 bg-slate-50 rounded-2xl p-3">
-                                    <select aria-label="Comisión" value={commissionId} onChange={e => setCommissionId(e.target.value)} className={`${input} flex-1 min-w-44`}>
-                                        <option value="">Comisión…</option>
-                                        {data.commissions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                    </select>
-                                    <CargoSelect value={cargo} onChange={setCargo} />
-                                    <button onClick={addCommission} disabled={busy || !commissionId} className={`${btn} bg-indigo-600 text-white`}><Plus className="w-4 h-4" /> Asignar</button>
-                                </div>
-                            )}
+                            <div className="flex flex-wrap gap-2 bg-slate-50 rounded-2xl p-3">
+                                <select aria-label="Comisión" value={commissionId} onChange={e => setCommissionId(e.target.value)} className={`${input} flex-1 min-w-44`}>
+                                    <option value="">Comisión…</option>
+                                    {data.commissions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    <option value={NEW}>Otra comisión…</option>
+                                </select>
+                                {commissionId === NEW && <input aria-label="Nombre de la nueva comisión" placeholder="Nombre de la nueva comisión" value={newCommission} onChange={e => setNewCommission(e.target.value)} className={`${input} flex-1 min-w-44`} maxLength={80} autoFocus />}
+                                <CargoSelect value={cargo} onChange={setCargo} />
+                                <button onClick={addCommission} disabled={busy || !commissionId || (commissionId === NEW && newCommission.trim().length < 3)} className={`${btn} bg-indigo-600 text-white`}><Plus className="w-4 h-4" /> Asignar</button>
+                            </div>
                         </section>
                     )}
 
