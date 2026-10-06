@@ -53,3 +53,9 @@ coverage/
 
 # Archivos que deja Claude al compartir vistas previas
 /Claude outputs/
+
+# Licencias: la clave privada y las licencias emitidas nunca van al repositorio
+*.pem
+clave-privada*
+*.vunlek-licencia.json
+.vunlek-licencias/

@@ -23,6 +23,40 @@ ipcMain.on('vunlek:focus', () => {
   if (win.isMinimized()) win.restore()
   win.show(); win.focus()
 })
+// --- Identificador de la computadora para las licencias locales -----------------------------
+// Se toma el identificador que el sistema operativo le da al equipo (no cambia al reinstalar la
+// app) y se entrega su huella SHA-256 abreviada: el dato original nunca sale de la computadora.
+let hwidCache = null
+function machineId() {
+  const { execFileSync } = require('child_process')
+  const fs = require('fs')
+  try {
+    if (process.platform === 'win32') {
+      const out = execFileSync('reg', ['query', 'HKLM\\SOFTWARE\\Microsoft\\Cryptography', '/v', 'MachineGuid'], { encoding: 'utf8', windowsHide: true })
+      return (out.match(/MachineGuid\s+REG_SZ\s+([\w-]+)/i) || [])[1] || null
+    }
+    if (process.platform === 'darwin') {
+      const out = execFileSync('ioreg', ['-rd1', '-c', 'IOPlatformExpertDevice'], { encoding: 'utf8' })
+      return (out.match(/"IOPlatformUUID"\s*=\s*"([^"]+)"/) || [])[1] || null
+    }
+    for (const f of ['/etc/machine-id', '/var/lib/dbus/machine-id']) {
+      if (fs.existsSync(f)) return fs.readFileSync(f, 'utf8').trim() || null
+    }
+  } catch (e) { /* sin acceso: la app usa el identificador de la instalación */ }
+  return null
+}
+ipcMain.handle('vunlek:hwid', () => {
+  if (hwidCache) return hwidCache
+  const id = machineId()
+  if (!id) return null
+  const alphabet = 'ABCDEFGHJKMNPQRSTVWXYZ23456789'
+  const hash = require('crypto').createHash('sha256').update(`vunlek-hwid-v1:${id.toLowerCase()}`).digest()
+  let code = ''
+  for (let i = 0; i < 20; i++) code += alphabet[hash[i] % alphabet.length]
+  hwidCache = `PC-${code.match(/.{5}/g).join('-')}`
+  return hwidCache
+})
+
 ipcMain.on('vunlek:attention', () => { if (win && !win.isFocused()) win.flashFrame(true) })
 
 function createWindow () {

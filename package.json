@@ -12,6 +12,8 @@
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "test:run": "vitest run",
     "preview": "vite preview",
+    "licencias:claves": "node tools/licencias/generar-claves.mjs --instalar",
+    "licencias:nueva": "node tools/licencias/generar-licencia.mjs",
     "cap:sync": "npm run build && npx cap sync",
     "android": "npm run build && npx cap sync android && npx cap open android",
     "cap:open-android": "npx cap open android",
@@ -21,6 +23,7 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@noble/ed25519": "^3.2.0",
     "@capacitor/android": "^8.1.0",
     "@capacitor/app": "^8.0.1",
     "@capacitor/browser": "^8.0.1",

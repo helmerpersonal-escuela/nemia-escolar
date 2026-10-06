@@ -1,72 +1,75 @@
 import { AiUsagePanel } from '../components/AiUsagePanel'
 import { SpaceSubscriptionsPanel, PromoAndLicensesPanel } from '../components/BillingAdminPanel'
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../../lib/supabase'
 import {
-    Activity,
-    Shield,
-    Database,
-    Book,
-    BookOpen,
-    Search,
-    Users,
-    Zap,
-    Settings,
-    Building2,
-    CheckCircle2,
-    Brain,
-    CreditCard,
-    History,
-    DownloadCloud,
-    Save,
-    UserCheck,
-    LifeBuoy,
-    RefreshCw,
-    Mail,
-    Key,
-    Volume2,
-    Info,
-    LogOut,
-    ArrowLeftCircle,
-    Trash2,
-    LayoutGrid,
-    Bug
+    Database, Book, BookOpen, Search, Users, Zap, Settings, Building2, CheckCircle2, Brain, CreditCard, History,
+    Save, UserRound, RefreshCw, Mail, Key, Volume2, Info, LogOut, ArrowLeftCircle, LayoutGrid, Bug, Shield, UserMinus, X, AlertTriangle,
 } from 'lucide-react'
-import { AdminUserTable } from '../components/AdminUserTable'
-import { RegularUserTable } from '../components/RegularUserTable'
 import { TextbookManager } from '../components/TextbookManager'
 import { SyntheticProgramsManager } from '../components/SyntheticProgramsManager'
 import { ClientIssuesPanel } from '../components/ClientIssuesPanel'
-import { askConfirm } from '../../../components/ui/ConfirmDialog'
+import { ADMIN_PEOPLE_KEY, ADMIN_SPACES_KEY, fetchAdminPeople, PeoplePanel, type Notify } from '../components/PeoplePanel'
+import { fetchAdminSpaces, SpacesPanel } from '../components/SpacesPanel'
+
+type TabId = 'errors' | 'tenants' | 'users' | 'subscriptions' | 'licenses' | 'billing' | 'textbooks' | 'synthetic' | 'landing' | 'ai' | 'settings' | 'sounds' | 'backups'
+
+/** Secciones del panel, agrupadas por lo que el administrador viene a hacer. */
+const SECTIONS: { group: string; items: { id: TabId; label: string; icon: any; help: string }[] }[] = [
+    { group: 'Día a día', items: [
+        { id: 'users', label: 'Personas y cuentas', icon: Users, help: 'Busca a una persona, entra a ver lo que ve, ayúdale con su acceso o da de baja su cuenta.' },
+        { id: 'tenants', label: 'Escuelas y espacios', icon: Building2, help: 'Cada escuela o docente independiente, con sus miembros, grupos y alumnos.' },
+        { id: 'errors', label: 'Errores y mejoras', icon: Bug, help: 'Lo que la app reportó sola y lo que pidieron los usuarios.' },
+    ] },
+    { group: 'Suscripciones', items: [
+        { id: 'subscriptions', label: 'Suscripciones', icon: RefreshCw, help: 'Estado de la suscripción de cada espacio.' },
+        { id: 'licenses', label: 'Claves y códigos', icon: Key, help: 'Claves de licencia y códigos promocionales.' },
+        { id: 'billing', label: 'Movimientos', icon: CreditCard, help: 'Pagos registrados.' },
+    ] },
+    { group: 'Contenido', items: [
+        { id: 'textbooks', label: 'Libros de texto', icon: Book, help: 'Catálogo de libros de texto gratuitos.' },
+        { id: 'synthetic', label: 'Programas sintéticos', icon: BookOpen, help: 'Contenidos y procesos de desarrollo de aprendizaje.' },
+        { id: 'landing', label: 'Página de inicio', icon: LayoutGrid, help: 'Textos de la página pública.' },
+    ] },
+    { group: 'Sistema', items: [
+        { id: 'ai', label: 'Inteligencia artificial', icon: Brain, help: 'Proveedor, llaves y consumo.' },
+        { id: 'settings', label: 'Correo (SMTP)', icon: Mail, help: 'Servidor con el que se envían los correos.' },
+        { id: 'sounds', label: 'Sonidos', icon: Volume2, help: 'Sonidos de avisos y chat.' },
+        { id: 'backups', label: 'Respaldos', icon: Database, help: 'Dónde están los respaldos de la base de datos.' },
+    ] },
+]
+const ALL_TABS = SECTIONS.flatMap(g => g.items)
+// Pestañas de la versión anterior que ahora viven dentro de "Personas y cuentas"
+const OLD_TABS: Record<string, TabId> = { admins: 'users', rescue: 'users' }
 
 export const SuperAdminDashboard = () => {
-    const [stats, setStats] = useState({
-        totalTenants: 0,
-        schoolCount: 0,
-        independentCount: 0,
-        totalUsers: 0,
-        serverHealth: '100% stable',
-        dbSize: 0
+    const [activeTab, setActiveTabState] = useState<TabId>(() => {
+        const saved = localStorage.getItem('godmode_active_tab') ?? ''
+        const id = (OLD_TABS[saved] ?? saved) as TabId
+        return ALL_TABS.some(t => t.id === id) ? id : 'users'
     })
-    const [activeTab, setActiveTabState] = useState<'tenants' | 'admins' | 'users' | 'rescue' | 'ai' | 'backups' | 'billing' | 'settings' | 'sounds' | 'licenses' | 'subscriptions' | 'textbooks' | 'synthetic' | 'landing' | 'errors'>(() => {
-        const saved = localStorage.getItem('godmode_active_tab')
-        return (saved as any) || 'tenants'
-    })
-    const navigate = useNavigate()
-
-    const setActiveTab = (tab: 'tenants' | 'admins' | 'users' | 'rescue' | 'ai' | 'backups' | 'billing' | 'settings' | 'sounds' | 'licenses' | 'subscriptions' | 'textbooks' | 'synthetic' | 'landing' | 'errors') => {
+    const setActiveTab = (tab: TabId) => {
         localStorage.setItem('godmode_active_tab', tab)
         setActiveTabState(tab)
+        setSearchTerm('')
     }
-    const [tenants, setTenants] = useState<any[]>([])
-    const [allUsers, setAllUsers] = useState<any[]>([])
-    const [recentLogs, setRecentLogs] = useState<any[]>([])
-    const [deletedAccounts, setDeletedAccounts] = useState<any[]>([])
+    const [peopleFilter, setPeopleFilter] = useState<'active' | 'admins' | 'deleted' | undefined>(undefined)
+    const [spaceFilter, setSpaceFilter] = useState<{ id: string; name: string } | null>(null)
     const [transactions, setTransactions] = useState<any[]>([])
-    const [licenses, setLicenses] = useState<any[]>([])
-    const [subscriptionsData, setSubscriptionsData] = useState<any[]>([])
-    const [selectedUser, setSelectedUser] = useState<any>(null)
+
+    // Avisos de resultado (en lugar de ventanas emergentes y recargas de página)
+    const [notice, setNotice] = useState<{ tone: 'success' | 'error' | 'info'; text: string } | null>(null)
+    const noticeTimer = useRef<number | undefined>(undefined)
+    const notify: Notify = useCallback((tone, text) => {
+        window.clearTimeout(noticeTimer.current)
+        setNotice({ tone, text })
+        // Los errores se quedan hasta que se cierran; lo demás se va solo
+        if (tone !== 'error') noticeTimer.current = window.setTimeout(() => setNotice(null), 7000)
+    }, [])
+
+    const { data: people = [] } = useQuery({ queryKey: ADMIN_PEOPLE_KEY, queryFn: fetchAdminPeople, staleTime: 30_000 })
+    const { data: spaces = [] } = useQuery({ queryKey: ADMIN_SPACES_KEY, queryFn: fetchAdminSpaces, staleTime: 30_000 })
 
     // Las llaves de IA se guardan solo en system_settings (lectura exclusiva del servidor);
     // ya no se copian al navegador.
@@ -95,9 +98,6 @@ export const SuperAdminDashboard = () => {
     }
 
     const [isSaving, setIsSaving] = useState(false)
-    const [loading, setLoading] = useState(true)
-    const [purgeEmail, setPurgeEmail] = useState('')
-    const [backupStatus, setBackupStatus] = useState<'idle' | 'running' | 'success'>('idle')
     const [searchTerm, setSearchTerm] = useState('')
     const [soundSettings, setSoundSettingsState] = useState<any>(() => {
         const saved = localStorage.getItem('godmode_sound_settings')
@@ -132,34 +132,8 @@ export const SuperAdminDashboard = () => {
         localStorage.setItem('godmode_landing_settings', JSON.stringify(settings))
         setLandingSettingsState(settings)
     }
-    const [uploadingKey, setUploadingKey] = useState<string | null>(null)
 
     useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true)
-            try {
-                const { data: tenantsList, count: totalTenants } = await supabase.from('tenants').select('*, profiles(count)', { count: 'exact' }).order('created_at', { ascending: false })
-                const { data: profilesList, count: totalUsers } = await supabase.from('profiles').select('*', { count: 'exact' }).order('created_at', { ascending: false })
-                const { data: deletedCols } = await supabase.from('profiles').select('*').not('deleted_at', 'is', null)
-                const { data: txList } = await supabase.from('view_god_mode_transactions').select('*').order('created_at', { ascending: false }).limit(20)
-                const { data: subData } = await supabase.from('view_god_mode_subscriptions').select('*').order('created_at', { ascending: false })
-
-                setStats({
-                    totalTenants: totalTenants || 0,
-                    schoolCount: tenantsList?.filter(t => t.type === 'SCHOOL').length || 0,
-                    independentCount: tenantsList?.filter(t => t.type === 'INDEPENDENT').length || 0,
-                    totalUsers: totalUsers || 0,
-                    serverHealth: '100% stable',
-                    dbSize: 0
-                })
-                setTenants(tenantsList || [])
-                setAllUsers(profilesList || [])
-                setDeletedAccounts(deletedCols || [])
-                setTransactions(txList || [])
-                setSubscriptionsData(subData || [])
-            } catch (err) { console.error('Error fetching admin data:', err) } finally { setLoading(false) }
-        }
-
         const fetchSettings = async () => {
             const { data } = await supabase.from('system_settings').select('key, value')
             if (data) {
@@ -171,15 +145,12 @@ export const SuperAdminDashboard = () => {
                 setSoundSettings((prev: any) => ({ ...prev, ...settings }))
             }
         }
-
-        const getUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (user) setSelectedUser(user)
+        const fetchTransactions = async () => {
+            const { data } = await supabase.from('view_god_mode_transactions').select('*').order('created_at', { ascending: false }).limit(20)
+            setTransactions(data || [])
         }
-
-        fetchData()
-        fetchSettings()
-        getUser()
+        void fetchSettings()
+        void fetchTransactions()
     }, [])
 
     const handleSaveGroup = async (group: 'smtp' | 'ai' | 'billing' | 'sounds' | 'landing') => {
@@ -206,10 +177,10 @@ export const SuperAdminDashboard = () => {
                 localStorage.setItem('godmode_sound_settings', JSON.stringify(soundSettings))
             }
 
-            alert('Configuración guardada exitosamente.')
+            notify('success', 'Configuración guardada.')
         } catch (err: any) {
             console.error('Error saving settings group:', group, err)
-            alert('Error: ' + err.message)
+            notify('error', err.message)
         } finally {
             setIsSaving(false)
         }
@@ -228,253 +199,97 @@ export const SuperAdminDashboard = () => {
     }
 
     const handleSignOut = async () => { await supabase.auth.signOut(); window.location.href = '/login' }
-    const handleImpersonate = (id: string) => window.open(`${window.location.origin}/?impersonate=${id}`, '_blank')
-    const handleDeleteUser = async (userId: string) => {
-        if ((await askConfirm('¿Eliminar este usuario permanentemente?'))) {
-            await supabase.from('profiles').delete().eq('id', userId)
-            window.location.reload()
-        }
-    }
-    const handleDeleteSubscription = async (userId: string) => {
-        if ((await askConfirm('Eliminar suscripción?'))) {
-            await supabase.from('subscriptions').delete().eq('user_id', userId)
-            window.location.reload()
-        }
-    }
-    const handleResetPassword = async (email: string) => {
-        const { error } = await supabase.auth.resetPasswordForEmail(email)
-        if (error) alert('Error: ' + error.message)
-        else alert('Email de recuperación enviado a ' + email)
-    }
-    const handleSetProvisionalPassword = async (userId: string, email: string) => {
-        const password = Math.floor(100000 + Math.random() * 900000).toString()
-        if ((await askConfirm(`¿Resetear contraseña de ${email} a: ${password}?`))) {
-            try {
-                const { data, error } = await supabase.rpc('admin_set_any_password', {
-                    target_user_id: userId,
-                    new_password: password
-                })
-                if (error) throw error
-                alert(`Contrastela actualizada a: ${password}\n\nCompártela con el usuario.`)
-            } catch (err: any) { alert('Error: ' + err.message) }
-        }
-    }
-    const handleToggleDemo = async (userId: string, currentDemoStatus: boolean) => {
-        await supabase.from('profiles').update({ is_demo: !currentDemoStatus }).eq('id', userId)
-        window.location.reload()
-    }
-    const handleRestoreAccount = async (userId: string) => {
-        if ((await askConfirm('¿Restaurar esta cuenta?'))) {
-            await supabase.from('profiles').update({ deleted_at: null }).eq('id', userId)
-            window.location.reload()
-        }
-    }
-    const handlePermanentDelete = async (userId: string) => {
-        if ((await askConfirm('¿ELIMINAR PERMANENTEMENTE? Esta acción no se puede deshacer.'))) {
-            await supabase.from('profiles').delete().eq('id', userId)
-            window.location.reload()
-        }
-    }
-    const handleVerifyEmail = async (userId: string, email: string) => {
-        if ((await askConfirm(`¿Marcar el correo ${email} como verificado manualmente?`))) {
-            try {
-                const { data, error } = await supabase.rpc('admin_verify_email', {
-                    target_user_id: userId
-                })
-                if (error) throw error
-                alert('Correo verificado exitosamente.')
-                window.location.reload()
-            } catch (err: any) {
-                alert('Error: ' + err.message)
-            }
-        }
-    }
-    const handleRunBackup = async () => {
-        setBackupStatus('running')
-        setTimeout(() => {
-            setBackupStatus('success')
-            setTimeout(() => setBackupStatus('idle'), 2000)
-        }, 3000)
-    }
 
-    if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><RefreshCw className="animate-spin text-indigo-500 w-12 h-12" /></div>
-
-    console.log('DEBUG allUsers in Dashboard:', allUsers)
+    const current = ALL_TABS.find(t => t.id === activeTab) ?? ALL_TABS[0]
+    const searchable = ['users', 'tenants', 'errors', 'subscriptions'].includes(activeTab)
+    const goPeople = (filter: 'active' | 'admins' | 'deleted') => { setSpaceFilter(null); setPeopleFilter(filter); setActiveTab('users') }
+    const summary = [
+        { label: 'Escuelas', value: spaces.filter(s => s.type === 'SCHOOL').length, icon: Building2, onClick: () => setActiveTab('tenants') },
+        { label: 'Docentes independientes', value: spaces.filter(s => s.type === 'INDEPENDENT').length, icon: UserRound, onClick: () => setActiveTab('tenants') },
+        { label: 'Cuentas activas', value: people.filter(p => !p.deleted_at).length, icon: Users, onClick: () => goPeople('active') },
+        { label: 'Dadas de baja', value: people.filter(p => p.deleted_at).length, icon: UserMinus, onClick: () => goPeople('deleted') },
+    ]
 
     return (
-        <div className="min-h-screen bg-[#F0F2F5] text-slate-900 flex flex-col lg:flex-row font-sans selection:bg-indigo-100 selection:text-indigo-700">
-            <aside className="glass-panel m-3 lg:m-4 lg:w-80 lg:shrink-0 rounded-[1.75rem] lg:rounded-[2.5rem] flex flex-col lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)] z-20 shadow-2xl min-w-0">
-                <div className="p-4 lg:p-8 border-b border-indigo-50/50">
-                    <div className="flex items-center space-x-4 lg:mb-2">
-                        <div className="bg-indigo-600 p-3 rounded-2xl shadow-lg rotate-[-5deg]">
-                            <Shield className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
-                            <h1 className="text-2xl font-black tracking-tighter text-indigo-950 uppercase italic leading-none">God Mode</h1>
-                            <p className="text-[10px] text-indigo-400 font-black tracking-widest uppercase mt-1">Vunlek OS v2.5</p>
-                        </div>
+        <div className="min-h-screen bg-[#F0F2F5] text-slate-900 flex flex-col lg:flex-row font-sans">
+            <aside className="bg-white m-3 lg:m-4 lg:w-72 lg:shrink-0 rounded-3xl border border-slate-200 flex flex-col lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)] z-20 min-w-0">
+                <div className="p-4 lg:p-5 border-b border-slate-100 flex items-center gap-3">
+                    <div className="bg-indigo-600 p-2.5 rounded-2xl"><Shield className="w-5 h-5 text-white" /></div>
+                    <div>
+                        <h1 className="text-lg font-black tracking-tight text-slate-900 leading-none">Modo dios</h1>
+                        <p className="text-[11px] text-slate-500 font-bold mt-1">Administración de VUNLEK</p>
                     </div>
                 </div>
-                <nav className="flex-grow p-3 lg:p-4 flex lg:flex-col gap-2 lg:mt-2 overflow-x-auto lg:overflow-x-visible lg:overflow-y-auto custom-scrollbar">
-                    {['errors', 'tenants', 'admins', 'users', 'rescue', 'ai', 'backups', 'billing', 'subscriptions', 'licenses', 'sounds', 'settings', 'landing', 'textbooks', 'synthetic'].map((tab: any) => (
-                        <button key={tab} onClick={() => setActiveTab(tab)} className={`shrink-0 lg:w-full flex items-center space-x-3 px-4 py-3 lg:py-4 rounded-2xl font-bold capitalize whitespace-nowrap transition-all ${activeTab === tab ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-500 hover:bg-white'}`}>
-                            {tab === 'errors' && <Bug className="w-5 h-5" />}
-                            {tab === 'tenants' && <Building2 className="w-5 h-5" />}
-                            {tab === 'admins' && <Shield className="w-5 h-5" />}
-                            {tab === 'users' && <Users className="w-5 h-5" />}
-                            {tab === 'rescue' && <LifeBuoy className="w-5 h-5" />}
-                            {tab === 'ai' && <Brain className="w-5 h-5" />}
-                            {tab === 'backups' && <Database className="w-5 h-5" />}
-                            {tab === 'billing' && <CreditCard className="w-5 h-5" />}
-                            {tab === 'subscriptions' && <RefreshCw className="w-5 h-5" />}
-                            {tab === 'licenses' && <Key className="w-5 h-5" />}
-                            {tab === 'sounds' && <Volume2 className="w-5 h-5" />}
-                            {tab === 'settings' && <Settings className="w-5 h-5" />}
-                            {tab === 'landing' && <LayoutGrid className="w-5 h-5" />}
-                            {tab === 'textbooks' && <Book className="w-5 h-5" />}
-                            {tab === 'synthetic' && <BookOpen className="w-5 h-5" />}
-                            <span>{tab === 'synthetic' ? 'Prog. Sintéticos' : tab === 'errors' ? 'Errores' : tab === 'subscriptions' ? 'Suscripciones' : tab === 'licenses' ? 'Claves y códigos' : tab}</span>
-                        </button>
+                <nav aria-label="Secciones" className="flex-grow p-3 flex lg:flex-col gap-1 overflow-x-auto lg:overflow-x-visible lg:overflow-y-auto">
+                    {SECTIONS.map(group => (
+                        <div key={group.group} className="flex lg:flex-col gap-1 lg:mb-3 shrink-0">
+                            <p className="hidden lg:block px-3 pt-2 pb-1 text-[11px] font-black uppercase tracking-widest text-slate-400">{group.group}</p>
+                            {group.items.map(item => (
+                                <button key={item.id} onClick={() => setActiveTab(item.id)} aria-current={activeTab === item.id ? 'page' : undefined}
+                                    className={`shrink-0 lg:w-full flex items-center gap-3 min-h-11 px-3.5 py-2.5 rounded-2xl text-sm font-bold whitespace-nowrap text-left transition ${activeTab === item.id ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>
+                                    <item.icon className="w-5 h-5 shrink-0" /> {item.label}
+                                </button>
+                            ))}
+                        </div>
                     ))}
                 </nav>
-                <div className="p-3 lg:p-4 mt-auto border-t border-indigo-50/50 flex lg:flex-col gap-2">
-                    <button onClick={handleReturnToClassroom} className="flex-1 lg:w-full flex items-center space-x-3 px-4 py-3 lg:py-4 rounded-2xl font-black text-indigo-600 bg-white border-2 border-indigo-100 hover:border-indigo-600 transition-all shadow-md">
-                        <ArrowLeftCircle className="w-6 h-6" />
-                        <span className="uppercase text-xs italic tracking-tighter">Mi Aula Docente</span>
+                <div className="p-3 border-t border-slate-100 flex lg:flex-col gap-2">
+                    <button onClick={handleReturnToClassroom} className="flex-1 lg:w-full flex items-center gap-3 min-h-11 px-3.5 rounded-2xl text-sm font-black text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
+                        <ArrowLeftCircle className="w-5 h-5" /> Volver a mi aula
                     </button>
-                    <button onClick={handleSignOut} className="lg:w-full flex items-center space-x-3 px-4 py-3 lg:py-4 rounded-2xl font-black text-rose-600 hover:bg-rose-50 transition-all">
-                        <LogOut className="w-6 h-6" />
-                        <span className="uppercase text-xs italic tracking-tighter">Salir</span>
+                    <button onClick={handleSignOut} className="lg:w-full flex items-center gap-3 min-h-11 px-3.5 rounded-2xl text-sm font-black text-rose-600 hover:bg-rose-50">
+                        <LogOut className="w-5 h-5" /> Salir
                     </button>
                 </div>
             </aside>
 
-            <main className="flex-grow min-w-0 overflow-y-auto px-3 pb-6 lg:px-8 lg:py-8 relative z-10 transition-all">
-                <header className="glass-panel rounded-[1.75rem] lg:rounded-[2rem] p-5 lg:p-8 mb-6 lg:mb-8 flex flex-col sm:flex-row gap-4 justify-between sm:items-center shadow-xl border-white/80">
-                    <div>
-                        <h2 className="text-2xl lg:text-3xl font-black text-indigo-950 italic uppercase tracking-tighter flex items-center gap-4 break-words">
-                            {activeTab === 'errors' ? 'Errores y mejoras' : activeTab === 'subscriptions' ? 'Suscripciones' : activeTab === 'licenses' ? 'Claves y códigos promocionales' : activeTab}
-                        </h2>
-                        <p className="text-slate-500 font-bold mt-1 uppercase text-xs tracking-wider opacity-60">Control Maestro</p>
+            <main className="flex-grow min-w-0 px-3 pb-10 lg:px-6 lg:py-4">
+                <header className="mb-5 flex flex-col sm:flex-row gap-4 justify-between sm:items-end">
+                    <div className="min-w-0">
+                        <h2 className="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight">{current.label}</h2>
+                        <p className="text-sm text-slate-600 mt-1">{current.help}</p>
                     </div>
-                    <div className="flex items-center space-x-4 w-full sm:w-auto">
-                        <div className="relative w-full">
+                    {searchable && (
+                        <div className="relative w-full sm:w-80 shrink-0">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                            <input
-                                type="text"
-                                placeholder="Buscar..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-12 pr-4 py-3 rounded-2xl border-2 border-slate-100 focus:border-indigo-400 transition-all w-full sm:w-80 font-bold text-sm"
-                            />
+                            <input type="search" aria-label="Buscar en esta sección" placeholder={activeTab === 'users' ? 'Nombre, correo, puesto o escuela' : 'Buscar…'}
+                                value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                                className="pl-12 pr-4 min-h-12 rounded-2xl border-2 border-slate-200 focus:border-indigo-400 outline-none w-full font-bold text-sm bg-white" />
                         </div>
-                    </div>
+                    )}
                 </header>
 
-                <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4 mb-6 sm:mb-8 animate-in slide-in-from-bottom-4 duration-500 delay-150">
-                    <div className="squishy-card p-3 sm:p-4 bg-white border border-indigo-50 shadow-sm flex flex-col items-center justify-center text-center min-w-0">
-                        <Building2 className="w-6 h-6 text-indigo-500 mb-2" />
-                        <span className="text-lg sm:text-2xl font-black text-slate-800 leading-tight">{stats.totalTenants}</span>
-                        <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full text-slate-400 font-bold uppercase tracking-widest mt-1">Tenants</span>
+                {(activeTab === 'users' || activeTab === 'tenants') && (
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+                        {summary.map(c => (
+                            <button key={c.label} onClick={c.onClick} className="bg-white border border-slate-200 rounded-2xl p-4 text-left hover:border-indigo-300 transition min-w-0">
+                                <c.icon className="w-5 h-5 text-indigo-500" />
+                                <p className="text-2xl font-black text-slate-900 leading-tight mt-1">{c.value}</p>
+                                <p className="text-xs font-bold text-slate-500">{c.label}</p>
+                            </button>
+                        ))}
                     </div>
-                    <div className="squishy-card p-3 sm:p-4 bg-white border border-indigo-50 shadow-sm flex flex-col items-center justify-center text-center min-w-0">
-                        <Users className="w-6 h-6 text-indigo-500 mb-2" />
-                        <span className="text-lg sm:text-2xl font-black text-slate-800 leading-tight">{stats.totalUsers}</span>
-                        <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full text-slate-400 font-bold uppercase tracking-widest mt-1">Usuarios</span>
-                    </div>
-                    <div className="squishy-card p-3 sm:p-4 bg-white border border-indigo-50 shadow-sm flex flex-col items-center justify-center text-center min-w-0">
-                        <Shield className="w-6 h-6 text-indigo-500 mb-2" />
-                        <span className="text-lg sm:text-2xl font-black text-slate-800 leading-tight">{stats.schoolCount}</span>
-                        <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full text-slate-400 font-bold uppercase tracking-widest mt-1">Escuelas</span>
-                    </div>
-                    <div className="squishy-card p-3 sm:p-4 bg-white border border-indigo-50 shadow-sm flex flex-col items-center justify-center text-center min-w-0">
-                        <UserCheck className="w-6 h-6 text-indigo-500 mb-2" />
-                        <span className="text-lg sm:text-2xl font-black text-slate-800 leading-tight">{stats.independentCount}</span>
-                        <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full text-slate-400 font-bold uppercase tracking-widest mt-1">Indep.</span>
-                    </div>
-                    <div className="squishy-card p-3 sm:p-4 bg-white border border-indigo-50 shadow-sm flex flex-col items-center justify-center text-center min-w-0">
-                        <Activity className="w-6 h-6 text-emerald-500 mb-2" />
-                        <span className="text-lg sm:text-2xl font-black text-slate-800 leading-tight">{stats.serverHealth}</span>
-                        <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full text-slate-400 font-bold uppercase tracking-widest mt-1">Estado</span>
-                    </div>
-                    <div className="squishy-card p-3 sm:p-4 bg-white border border-indigo-50 shadow-sm flex flex-col items-center justify-center text-center min-w-0">
-                        <Database className="w-6 h-6 text-indigo-500 mb-2" />
-                        <span className="text-lg sm:text-2xl font-black text-slate-800 leading-tight">{stats.dbSize} MB</span>
-                        <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full text-slate-400 font-bold uppercase tracking-widest mt-1">Storage</span>
-                    </div>
-                </div>
+                )}
 
-                <div className="space-y-8 animate-in fade-in duration-500">
+                {notice && (
+                    <div role={notice.tone === 'error' ? 'alert' : 'status'}
+                        className={`fixed z-[130] left-3 right-3 sm:left-auto sm:right-6 bottom-4 sm:max-w-md flex items-start gap-3 p-4 rounded-2xl shadow-2xl border-2 text-sm font-bold ${notice.tone === 'error' ? 'bg-rose-50 border-rose-200 text-rose-900' : notice.tone === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-white border-slate-200 text-slate-800'}`}>
+                        {notice.tone === 'error' ? <AlertTriangle className="w-5 h-5 shrink-0" /> : <CheckCircle2 className="w-5 h-5 shrink-0" />}
+                        <span className="flex-1">{notice.text}</span>
+                        <button onClick={() => setNotice(null)} aria-label="Cerrar aviso" className="p-1 -m-1 rounded-lg hover:bg-black/5"><X className="w-4 h-4" /></button>
+                    </div>
+                )}
+
+                <div className="space-y-8">
                     {activeTab === 'errors' && <ClientIssuesPanel search={searchTerm} />}
 
                     {activeTab === 'tenants' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {tenants.map(t => (
-                                <div key={t.id} className="squishy-card p-6 bg-white rounded-3xl shadow-lg border border-indigo-50">
-                                    <h4 className="font-black text-indigo-950 uppercase mb-4">{t.name}</h4>
-                                    <div className="flex justify-between items-center text-xs font-bold text-slate-400">
-                                        <span>Status: {t.status}</span>
-                                        <button onClick={() => handleImpersonate(t.id)} className="text-indigo-600 hover:underline">Entrar</button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {activeTab === 'admins' && (
-                        <AdminUserTable
-                            users={allUsers}
-                            searchTerm={searchTerm}
-                            onResetPassword={handleResetPassword}
-                            onImpersonate={handleImpersonate}
-                            onVerifyEmail={handleVerifyEmail}
-                        />
+                        <SpacesPanel search={searchTerm} onSeeMembers={space => { setSpaceFilter(space); setPeopleFilter('active'); setActiveTab('users') }} />
                     )}
 
                     {activeTab === 'users' && (
-                        <RegularUserTable
-                            users={allUsers}
-                            searchTerm={searchTerm}
-                            onImpersonate={handleImpersonate}
-                            onDelete={handleDeleteUser}
-                            onToggleDemo={handleToggleDemo}
-                            onResetPassword={handleResetPassword}
-                            onSetProvisionalPassword={handleSetProvisionalPassword}
-                            onVerifyEmail={handleVerifyEmail}
-                        />
-                    )}
-
-                    {activeTab === 'rescue' && (
-                        <div className="space-y-6">
-                            <div className="squishy-card p-8 bg-white rounded-3xl shadow-lg border border-rose-100">
-                                <h4 className="font-black text-rose-950 uppercase mb-6 flex items-center gap-2">
-                                    <LifeBuoy className="w-5 h-5 text-rose-500" /> Cuentas Eliminadas
-                                </h4>
-                                <div className="space-y-4">
-                                    {deletedAccounts.map(acc => (
-                                        <div key={acc.id} className="flex flex-wrap items-center justify-between gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                            <div className="min-w-0">
-                                                <p className="font-black text-slate-950 uppercase text-sm break-all">{acc.email}</p>
-                                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                                                    Eliminado: {new Date(acc.deleted_at).toLocaleDateString()}
-                                                </p>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <button onClick={() => handleRestoreAccount(acc.id)} className="px-4 py-2 bg-emerald-500 text-white rounded-xl font-bold text-xs hover:bg-emerald-600">
-                                                    Restaurar
-                                                </button>
-                                                <button onClick={() => handlePermanentDelete(acc.id)} className="px-4 py-2 bg-rose-500 text-white rounded-xl font-bold text-xs hover:bg-rose-600">
-                                                    Eliminar
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {deletedAccounts.length === 0 && (
-                                        <p className="text-center text-slate-400 py-8">No hay cuentas eliminadas</p>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
+                        <PeoplePanel search={searchTerm} notify={notify} initialFilter={peopleFilter}
+                            spaceFilter={spaceFilter} onClearSpace={() => setSpaceFilter(null)} />
                     )}
 
                     {activeTab === 'ai' && (
@@ -514,25 +329,10 @@ export const SuperAdminDashboard = () => {
                     )}
 
                     {activeTab === 'backups' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="squishy-card p-8 bg-white rounded-3xl shadow-lg border border-indigo-50">
-                                <h4 className="font-black text-indigo-950 uppercase mb-6 flex items-center gap-2">
-                                    <Database className="w-5 h-5 text-indigo-500" /> Respaldo de Base de Datos
-                                </h4>
-                                <div className="space-y-4">
-                                    <button
-                                        onClick={handleRunBackup}
-                                        disabled={backupStatus === 'running'}
-                                        className="w-full py-4 bg-indigo-600 text-white rounded-xl font-black uppercase text-xs tracking-widest hover:bg-indigo-700 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
-                                    >
-                                        {backupStatus === 'running' && <RefreshCw className="w-5 h-5 animate-spin" />}
-                                        {backupStatus === 'success' && <CheckCircle2 className="w-5 h-5" />}
-                                        {backupStatus === 'idle' && <DownloadCloud className="w-5 h-5" />}
-                                        {backupStatus === 'running' ? 'Generando Backup...' : backupStatus === 'success' ? 'Backup Completado' : 'Generar Backup Ahora'}
-                                    </button>
-                                    <p className="text-xs text-slate-400 text-center">Último backup: Nunca</p>
-                                </div>
-                            </div>
+                        <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-2xl space-y-3">
+                            <h4 className="font-black text-slate-900 flex items-center gap-2"><Database className="w-5 h-5 text-indigo-500" /> Respaldos de la base de datos</h4>
+                            <p className="text-sm text-slate-600">VUNLEK no genera respaldos desde esta pantalla. Los respaldos los hace Supabase, según el plan del proyecto, y se consultan y restauran en su panel: <b>Database → Backups</b>.</p>
+                            <p className="text-sm text-slate-600">Antes de un cambio grande (por ejemplo, borrar cuentas en lote) conviene revisar ahí la fecha del último respaldo.</p>
                         </div>
                     )}
 
@@ -540,7 +340,7 @@ export const SuperAdminDashboard = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div className="squishy-card p-8 bg-white rounded-3xl shadow-lg border border-indigo-50">
                                 <h4 className="font-black text-indigo-950 uppercase mb-6 flex items-center gap-2">
-                                    <History className="w-5 h-5 text-indigo-500" /> Transacciones Recientes
+                                    <History className="w-5 h-5 text-indigo-500" /> Movimientos recientes
                                 </h4>
                                 <div className="space-y-3 max-h-96 overflow-y-auto">
                                     {transactions.map(tx => (
