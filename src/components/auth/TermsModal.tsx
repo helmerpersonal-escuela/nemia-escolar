@@ -47,7 +47,7 @@ export const TermsModal = ({ isOpen, onClose }: TermsModalProps) => {
 /** Texto completo de la Términos y Condiciones; se usa en el modal y en la página pública. */
 export const TermsContent = () => (
     <>
-        <p className="font-bold text-slate-800">Última actualización: 24 de septiembre de 2026</p>
+        <p className="font-bold text-slate-800">Última actualización: 6 de octubre de 2026</p>
 
         <p>
             Bienvenido a Vunlek, un sistema de gestión escolar proporcionado por Ko'on Soluciones (en adelante, "Ko'on" o "nosotros"), una empresa constituida y ubicada en México, con domicilio en Calle Distrito Federal No. 5-4, Colonia Josefa Garrido (Popular), Tuxtla Gutierrez; Chiapas. C.P. 29086. Al acceder, registrarse o utilizar Vunlek (en adelante, el "Servicio"), usted (en adelante, el "Usuario" o "usted") acepta cumplir con estos Términos y Condiciones de Uso (en adelante, los "Términos"). Si no está de acuerdo con estos Términos, no debe acceder ni utilizar el Servicio. Estos Términos constituyen un acuerdo legal vinculante entre usted y Ko'on. Ko'on se reserva el derecho de modificar estos Términos en cualquier momento, notificando los cambios a través del Servicio o por correo electrónico a la dirección proporcionada en su cuenta. Las modificaciones serán efectivas inmediatamente después de su publicación. Es su responsabilidad revisar periódicamente estos Términos. El uso continuado del Servicio después de cualquier modificación implica su aceptación de los Términos revisados. Si no acepta las modificaciones, debe cesar el uso del Servicio inmediatamente.
@@ -55,14 +55,15 @@ export const TermsContent = () => (
 
         <h4 className="font-bold text-slate-800 mt-4">1. Descripción del Servicio</h4>
         <p>
-            Vunlek es una plataforma web y móvil de pago diseñada específicamente para la gestión escolar en instituciones educativas mexicanas. El Servicio incluye, entre otras funciones:
+            Vunlek es una plataforma web y móvil (aplicaciones para Android y iOS) diseñada para la gestión escolar en instituciones educativas mexicanas y para el trabajo de docentes independientes. Actualmente el uso de Vunlek es gratuito; cuando se ofrezcan planes de pago se aplicará lo indicado en la sección 5. El Servicio incluye, entre otras funciones:
         </p>
         <ul className="list-disc pl-5 space-y-1">
             <li>Registro y seguimiento de alumnos, incluyendo datos personales, calificaciones, asistencias y progresos académicos.</li>
             <li>Gestión de horarios, planes de estudio y recursos educativos para docentes.</li>
             <li>Comunicación en tiempo real entre escuelas, docentes, padres de familia y alumnos, mediante notificaciones, mensajes y reportes.</li>
-            <li>Herramientas administrativas como generación de reportes financieros, control de inscripciones y manejo de pagos escolares.</li>
-            <li>Integraciones con sistemas de pago en línea y herramientas educativas externas (sujetas a disponibilidad).</li>
+            <li>Planeación didáctica, programa analítico e instrumentos de evaluación, con apoyo opcional de inteligencia artificial.</li>
+            <li>Herramientas administrativas como reportes, formatos oficiales, control de inscripciones y credenciales de alumnos (código QR o etiqueta NFC).</li>
+            <li>Acceso para madres, padres y tutores al seguimiento de sus hijos, mediante un código que entrega la escuela.</li>
         </ul>
         <p>
             El Servicio se proporciona "tal cual" y "según disponibilidad". Ko'on no garantiza que el Servicio sea ininterrumpido, libre de errores, virus o defectos, ni que cumpla con expectativas específicas del Usuario. Ko'on puede actualizar, modificar, suspender o discontinuar cualquier parte del Servicio en cualquier momento, sin previo aviso ni responsabilidad, incluyendo por razones técnicas, de mantenimiento o regulatorias. En caso de interrupciones prolongadas (más de 48 horas), Ko'on intentará notificar a los Usuarios afectados, pero no será responsable por pérdidas derivadas de dichas interrupciones, como pérdida de datos o impactos en operaciones escolares. Vunlek no es un sustituto de sistemas educativos certificados por la Secretaría de Educación Pública (SEP) de México, y su uso no implica cumplimiento automático con normativas educativas federales o estatales. Las instituciones educativas son responsables de asegurar que el uso de Vunlek cumpla con requisitos legales aplicables.
@@ -77,12 +78,16 @@ export const TermsContent = () => (
         </ul>
         <p>Cada Usuario es responsable de:</p>
         <ul className="list-disc pl-5 space-y-1">
-            <li>Mantener la confidencialidad de sus credenciales de acceso (nombre de usuario, contraseña y cualquier código de autenticación de dos factores).</li>
+            <li>Mantener la confidencialidad de sus credenciales de acceso (correo, contraseña y cualquier código de acceso que le entregue la escuela).</li>
             <li>Notificar inmediatamente a soporte@vunlek.com en caso de sospecha de acceso no autorizado, brecha de seguridad o pérdida de credenciales.</li>
             <li>Actualizar su información de cuenta ante cualquier cambio.</li>
         </ul>
         <p>
             Ko'on no será responsable por pérdidas, daños o accesos no autorizados derivados de la negligencia del Usuario en la protección de sus credenciales. En caso de múltiples accesos desde la misma cuenta, Ko'on puede suspenderla temporalmente para investigar posibles violaciones. Las cuentas son personales e intransferibles. No se permite compartir cuentas entre Usuarios, y cualquier intento de hacerlo puede resultar en la terminación inmediata de la cuenta sin reembolso.
+        </p>
+
+        <p>
+            <strong>Eliminación de la cuenta.</strong> Usted puede eliminar su cuenta en cualquier momento desde la aplicación o el sitio web, en <em>Ajustes → Seguridad → Eliminar mi cuenta</em>, o solicitándolo a soporte@vunlek.com. Los pasos y lo que ocurre con sus datos se describen en <a href="/eliminar-cuenta" className="underline font-bold">vunlek.com/eliminar-cuenta</a> y en la Política de Privacidad. Los expedientes de alumnos pertenecen a la institución educativa que los capturó; su eliminación se solicita a la escuela.
         </p>
 
         <h4 className="font-bold text-slate-800 mt-4">3. Responsabilidades del Usuario</h4>
@@ -101,6 +106,13 @@ export const TermsContent = () => (
             En caso de violación de estas responsabilidades, Ko'on se reserva el derecho de suspender o terminar la cuenta sin previo aviso, y reportar a autoridades competentes si se presume actividad ilegal. El Usuario será responsable por cualquier daño causado a Ko'on o terceros derivado de su negligencia o mal uso.
         </p>
 
+        <p>
+            <strong>Mensajes y contenido de los usuarios.</strong> El chat y los avisos de Vunlek son un medio de comunicación escolar entre el personal de la escuela, las familias y los alumnos autorizados por ella. No se permite contenido ofensivo, de acoso, sexual, violento, discriminatorio o ilegal. La dirección de cada escuela administra quién participa y puede retirar el acceso a quien incumpla. Cualquier usuario puede reportar un mensaje o a una persona a la dirección de su escuela o a soporte@vunlek.com; Ko'on revisa los reportes y puede eliminar el contenido y suspender la cuenta responsable.
+        </p>
+        <p>
+            <strong>Inteligencia artificial.</strong> Algunas funciones generan sugerencias con inteligencia artificial (por ejemplo, planeaciones o instrumentos de evaluación). Son propuestas que pueden contener errores: el docente debe revisarlas y es responsable de lo que decida usar.
+        </p>
+
         <h4 className="font-bold text-slate-800 mt-4">4. Propiedad Intelectual</h4>
         <p>
             Todo el software, código fuente, diseños gráficos, interfaces, marcas registradas (incluyendo "Vunlek" y "Ko'on"), contenido educativo predeterminado y materiales en el Servicio son propiedad exclusiva de Ko'on o sus licenciantes. Se otorga al Usuario una licencia limitada, no exclusiva, revocable y no transferible para usar el Servicio únicamente con fines educativos y administrativos durante la vigencia de la suscripción. El Usuario no puede:
@@ -114,18 +126,21 @@ export const TermsContent = () => (
             Cualquier contenido generado por el Usuario (e.g., datos de alumnos, reportes personalizados) permanece de su propiedad, pero al cargarlo en Vunlek, otorga a Ko'on una licencia mundial, perpetua, irrevocable, no exclusiva y libre de regalías para usar, almacenar, procesar, reproducir y respaldar dicho contenido con el propósito de proporcionar y mejorar el Servicio, así como para cumplir con obligaciones legales.
         </p>
 
-        <h4 className="font-bold text-slate-800 mt-4">5. Pagos, Suscripciones y Reembolsos</h4>
+        <h4 className="font-bold text-slate-800 mt-4">5. Precios, Periodo de Prueba, Suscripciones y Licencias</h4>
         <p>
-            Vunlek opera bajo un modelo de suscripción de pago (mensual, trimestral o anual), con planes adaptados a instituciones educativas (básico para escuelas pequeñas, premium para grandes instituciones). Los precios, características y opciones de pago se detallan en el sitio web de Vunlek o durante el registro.
+            <strong>Uso gratuito actual.</strong> Por ahora Vunlek puede usarse sin costo y la aplicación no realiza ningún cobro. Ko'on avisará con anticipación, dentro del Servicio y por correo, antes de que cualquier función de pago entre en vigor.
         </p>
         <ul className="list-disc pl-5 space-y-1">
-            <li><strong>Pagos:</strong> Se procesan a través de proveedores externos seguros (Stripe, PayPal o bancos mexicanos). Ko'on no almacena datos de tarjetas de crédito. El Usuario autoriza cargos recurrentes automáticos según el plan seleccionado. En caso de fracaso en el pago, Ko'on puede suspender el acceso hasta la regularización, cobrando intereses moratorios al 1.5% mensual o la tasa máxima permitida por la ley mexicana.</li>
-            <li><strong>Reembolsos:</strong> Todos los pagos son no reembolsables, salvo en casos de: (i) error técnico verificado por Ko'on que impida el uso del Servicio durante más de 72 horas consecutivas; (ii) cancelación dentro de los primeros 7 días de una nueva suscripción (prueba gratuita no aplica). Reembolsos se procesan en un plazo de 30 días hábiles.</li>
-            <li><strong>Cancelaciones:</strong> El Usuario puede cancelar la suscripción en cualquier momento notificando a soporte@vunlek.com con 30 días de antelación. No se reembolsan periodos parciales. Ko'on puede ajustar precios con notificación de 60 días.</li>
-            <li><strong>Impuestos:</strong> Los precios no incluyen IVA u otros impuestos aplicables en México, que serán agregados al cargo.</li>
+            <li><strong>Escuelas:</strong> El costo para una institución depende del número de docentes y de alumnos que usarán el Servicio, por lo que no existe un precio único. La escuela interesada solicita un presupuesto mediante el formulario de Vunlek y el equipo de ventas la contacta con una propuesta. La contratación se realiza directamente con Ko'on, fuera de las tiendas de aplicaciones, y se activa en el Servicio con una clave de licencia de un solo uso.</li>
+            <li><strong>Periodo de prueba:</strong> Cada escuela o docente puede usar todas las funciones del Servicio durante un mes sin costo y sin registrar una forma de pago. Al terminar la prueba, la información capturada se conserva; para seguir usándola puede requerirse una licencia o suscripción vigente.</li>
+            <li><strong>Docentes independientes (suscripciones en la aplicación):</strong> Cuando estén disponibles, las suscripciones mensual y anual se contratarán dentro de la aplicación y el cobro lo realizará la tienda correspondiente (App Store de Apple o Google Play) con la forma de pago de la cuenta del Usuario. El precio se muestra antes de confirmar la compra. La suscripción se renueva automáticamente por el mismo periodo y precio, salvo que se cancele al menos 24 horas antes de que termine el periodo vigente.</li>
+            <li><strong>Cancelación:</strong> Las suscripciones contratadas en una tienda se cancelan desde la cuenta del Usuario en esa tienda (Ajustes de App Store o Suscripciones de Google Play); eliminar la aplicación no cancela la suscripción. Al cancelar se conserva el acceso hasta el final del periodo pagado.</li>
+            <li><strong>Reembolsos:</strong> Los reembolsos de compras hechas en una tienda de aplicaciones se solicitan a esa tienda y se rigen por sus políticas. Para licencias contratadas directamente con Ko'on, escriba a soporte@vunlek.com; procede el reembolso cuando un error técnico verificado impida usar el Servicio por más de 72 horas consecutivas, sin perjuicio de los derechos que la Ley Federal de Protección al Consumidor reconoce al Usuario.</li>
+            <li><strong>Cambios de precio:</strong> Ko'on avisará cualquier cambio de precio con al menos 30 días de anticipación; el cambio aplica a partir de la siguiente renovación.</li>
+            <li><strong>Impuestos:</strong> Los precios que muestran las tiendas incluyen los impuestos aplicables. En las licencias para escuelas, el presupuesto indicará si los impuestos están incluidos.</li>
         </ul>
         <p>
-            Ko'on no será responsable por disputas con proveedores de pago, fraudes en tarjetas o fluctuaciones cambiarias en pagos internacionales.
+            Ko'on no recibe ni almacena datos de tarjetas bancarias: los cobros dentro de la aplicación los procesa la tienda correspondiente.
         </p>
 
         <h4 className="font-bold text-slate-800 mt-4">6. Privacidad y Protección de Datos</h4>
@@ -135,7 +150,7 @@ export const TermsContent = () => (
 
         <h4 className="font-bold text-slate-800 mt-4">7. Garantías y Descargos</h4>
         <p>
-            Ko'on descarta todas las garantías expresas o implícitas, incluyendo pero no limitado a: garantías de merchantabilidad, aptitud para un propósito particular, no infracción o precisión de la información. NEMIA no garantiza compatibilidad con hardware/software del Usuario, ni que resuelva necesidades específicas educativas. Ko'on no es responsable por:
+            Ko'on descarta todas las garantías expresas o implícitas, incluyendo pero no limitado a: garantías de merchantabilidad, aptitud para un propósito particular, no infracción o precisión de la información. Ko'on no garantiza compatibilidad con hardware/software del Usuario, ni que resuelva necesidades específicas educativas. Ko'on no es responsable por:
         </p>
         <ul className="list-disc pl-5 space-y-1">
             <li>Errores en datos cargados por el Usuario (e.g., calificaciones incorrectas que afecten decisiones académicas).</li>
@@ -177,7 +192,19 @@ export const TermsContent = () => (
             <li><strong>Idioma:</strong> La versión en español prevalece sobre traducciones.</li>
         </ul>
 
-        <h4 className="font-bold text-slate-800 mt-4">14. Contacto</h4>
+        <h4 className="font-bold text-slate-800 mt-4">14. Permisos del Dispositivo</h4>
+        <p>La aplicación solicita permisos solo cuando la función lo necesita, y pueden negarse o retirarse desde los ajustes del dispositivo:</p>
+        <ul className="list-disc pl-5 space-y-1">
+            <li><strong>Cámara:</strong> tomar la foto del alumno, evidencias o justificantes y leer códigos QR de credenciales.</li>
+            <li><strong>Micrófono:</strong> grabar notas de voz en el chat.</li>
+            <li><strong>Fotos y archivos:</strong> adjuntar o guardar documentos.</li>
+            <li><strong>Ubicación:</strong> únicamente para marcar en el mapa dónde está la escuela.</li>
+            <li><strong>Notificaciones:</strong> avisar de mensajes, incidencias y citatorios.</li>
+            <li><strong>NFC:</strong> leer o grabar la credencial del alumno, en los dispositivos que lo permiten.</li>
+        </ul>
+        <p>Vunlek no muestra publicidad de terceros ni rastrea al Usuario en otras aplicaciones o sitios web.</p>
+
+        <h4 className="font-bold text-slate-800 mt-4">15. Contacto</h4>
         <p>Para preguntas, soporte o notificaciones:</p>
         <ul className="list-disc pl-5 space-y-1">
             <li>Email: soporte@vunlek.com</li>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { LeadKeyBox } from './LeadKeyBox'
 import { Ban, Building2, Copy, Download, KeyRound, Loader2, Mail, Plus, Save, Tag, Timer } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { wizardInput } from '../../../components/wizard/Wizard'
@@ -317,12 +318,12 @@ export const PromoAndLicensesPanel = () => {
 const LEAD_STATUS: Record<string, string> = { NEW: 'Nueva', CONTACTED: 'Contactada', WON: 'Ganada', LOST: 'Perdida' }
 
 /** Solicitudes de cotización de escuelas (la anualidad depende del número de usuarios). */
-export const SalesLeadsCard = () => {
+export const SalesLeadsCard = ({ onOpenKeys }: { onOpenKeys?: () => void }) => {
     const qc = useQueryClient()
     const [salesEmail, setSalesEmail] = useState<string | null>(null)
     const { data: leads = [] } = useQuery({
         queryKey: ['god', 'leads'],
-        queryFn: async () => ((await db.from('sales_leads').select('*, tenant:tenants(name)').order('created_at', { ascending: false }).limit(200)).data ?? []) as any[],
+        queryFn: async () => ((await db.from('sales_leads').select('*, tenant:tenants(name), key:license_keys(key, months, status)').order('created_at', { ascending: false }).limit(200)).data ?? []) as any[],
     })
     const { data: currentEmail = '' } = useQuery({
         queryKey: ['god', 'sales-email'],
@@ -344,12 +345,15 @@ export const SalesLeadsCard = () => {
                 <input className={`${input} sm:flex-1`} type="email" placeholder="Correo de ventas que recibe los avisos" value={salesEmail ?? currentEmail} onChange={e => setSalesEmail(e.target.value)} />
                 <button onClick={saveEmail} disabled={salesEmail === null} className="px-4 py-2.5 rounded-2xl bg-indigo-600 text-white text-sm font-black disabled:opacity-40">Guardar correo</button>
             </div>
-            <p className="text-xs text-slate-500 mb-3">Para cerrar una venta: genera una clave de 12 meses en “Claves y códigos” y envíala a la escuela; la dirección la activa en Suscripción.</p>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <p className="text-xs text-slate-500">Al cerrar una venta, genera aquí la clave de esa escuela y envíala al correo que dejó. La dirección la activa en vunlek.com/presupuesto.</p>
+                {onOpenKeys && <button onClick={onOpenKeys} className="min-h-10 px-3 rounded-xl border border-slate-200 text-xs font-black text-slate-700">Generar claves sin solicitud</button>}
+            </div>
             {leads.length === 0 ? <p className="text-sm text-slate-500">Aún no hay solicitudes.</p> : (
                 <div className="overflow-x-auto"><table className="w-full text-sm min-w-[860px]">
                     <thead><tr className="text-left text-xs text-slate-500"><th className="py-2">Escuela</th><th>Contacto</th><th>Docentes</th><th>Alumnos</th><th>Fecha</th><th>Estado</th></tr></thead>
-                    <tbody className="divide-y divide-slate-100">
-                        {leads.map(l => (
+                    <tbody>
+                        {leads.flatMap(l => [
                             <tr key={l.id} className="align-top">
                                 <td className="py-2 font-bold text-slate-800">{l.school_name ?? l.tenant?.name ?? '—'}
                                     <div className="text-xs font-normal text-slate-500">{[l.cct, l.educational_level, l.locality].filter(Boolean).join(' · ')}</div>
@@ -366,8 +370,9 @@ export const SalesLeadsCard = () => {
                                         {Object.entries(LEAD_STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                                     </select>
                                 </td>
-                            </tr>
-                        ))}
+                            </tr>,
+                            <tr key={`${l.id}-key`}><td colSpan={6} className="pb-4"><LeadKeyBox lead={l} onChanged={() => qc.invalidateQueries({ queryKey: ['god', 'leads'] })} /></td></tr>,
+                        ])}
                     </tbody>
                 </table></div>
             )}

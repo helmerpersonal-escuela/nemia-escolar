@@ -357,7 +357,7 @@ export const SuperAdminDashboard = () => {
 
                     {activeTab === 'subscriptions' && <SpaceSubscriptionsPanel search={searchTerm} />}
 
-                    {activeTab === 'leads' && <SalesLeadsCard />}
+                    {activeTab === 'leads' && <SalesLeadsCard onOpenKeys={() => setActiveTab('licenses')} />}
 
                     {activeTab === 'licenses' && <PromoAndLicensesPanel />}
 

@@ -113,7 +113,7 @@ const StatusCard = ({ access, native }: { access: SpaceAccess; native: boolean }
     )
 }
 
-const LicenseKeyCard = ({ onRedeemed }: { onRedeemed: () => void }) => {
+export const LicenseKeyCard = ({ onRedeemed }: { onRedeemed: () => void }) => {
     const [key, setKey] = useState('')
     const [busy, setBusy] = useState(false)
     const [msg, setMsg] = useState<{ tone: 'success' | 'error'; text: string } | null>(null)

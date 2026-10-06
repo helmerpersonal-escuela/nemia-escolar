@@ -6,6 +6,9 @@ import { useProfile } from '../../hooks/useProfile'
 import { SchoolQuoteForm } from './SchoolQuoteForm'
 import { useSchoolTrial } from './useSchoolTrial'
 import { formatDateEs } from '../../components/ui/DateInput'
+import { useQueryClient } from '@tanstack/react-query'
+import { LicenseKeyCard } from '../subscription/pages/SubscriptionPage'
+import { SPACE_ACCESS_KEY } from '../../hooks/useSpaceAccess'
 
 /** Dentro de la app (dirección): solicitar presupuesto con los datos de la escuela ya propuestos. */
 export const SchoolQuoteAppPage = () => {
@@ -26,13 +29,14 @@ export const SchoolQuoteAppPage = () => {
         },
     })
 
+    const qc = useQueryClient()
     const p = profile as any
     return (
         <div className="max-w-3xl mx-auto px-3 sm:px-4 py-6 sm:py-10 space-y-5">
             <header className="flex items-start gap-3">
                 <div className="w-12 h-12 shrink-0 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center"><Building2 className="w-6 h-6" /></div>
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Presupuesto para tu escuela</h1>
+                    <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Presupuesto y licencia de tu escuela</h1>
                     <p className="text-slate-600 mt-1">El costo depende de cuántos docentes y alumnos usan el sistema. Confirma los datos y ventas te contactará con una propuesta.</p>
                 </div>
             </header>
@@ -52,6 +56,7 @@ export const SchoolQuoteAppPage = () => {
                     teachers: counts?.teachers, students: counts?.students,
                 }} />
             </section>
+            <LicenseKeyCard onRedeemed={() => { void qc.invalidateQueries({ queryKey: ['school-trial'] }); void qc.invalidateQueries({ queryKey: [SPACE_ACCESS_KEY] }) }} />
         </div>
     )
 }

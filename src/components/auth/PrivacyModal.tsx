@@ -47,10 +47,10 @@ export const PrivacyModal = ({ isOpen, onClose }: PrivacyModalProps) => {
 /** Texto completo de la Política de Privacidad; se usa en el modal y en la página pública. */
 export const PrivacyContent = () => (
     <>
-        <p className="font-bold text-slate-800">Última actualización: 24 de septiembre de 2026</p>
+        <p className="font-bold text-slate-800">Última actualización: 6 de octubre de 2026</p>
 
         <p>
-            Ko'on Soluciones (en adelante, "Ko'on", "nosotros" o "la Empresa"), con domicilio en Calle Distrito Federal No. 5-4, Colonia Josefa Garrido (Popular), Tuxtla Gutierrez; Chiapas. C.P. 29086, es el responsable del tratamiento de sus datos personales en el contexto del Servicio Vunlek, un sistema de gestión escolar proporcionado a través de una plataforma web y móvil. Esta Política de Privacidad (en adelante, la "Política") describe cómo recolectamos, usamos, compartimos y protegemos sus datos personales, de conformidad con la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP), su Reglamento y los Lineamientos del Aviso de Privacidad emitidos por el Instituto Nacional de Transparencia, Acceso a la Información y Protección de Datos Personales (INAI) en México.
+            Ko'on Soluciones (en adelante, "Ko'on", "nosotros" o "la Empresa"), con domicilio en Calle Distrito Federal No. 5-4, Colonia Josefa Garrido (Popular), Tuxtla Gutierrez; Chiapas. C.P. 29086, es el responsable del tratamiento de sus datos personales en el contexto del Servicio Vunlek, un sistema de gestión escolar proporcionado a través de una plataforma web y móvil. Esta Política de Privacidad (en adelante, la "Política") describe cómo recolectamos, usamos, compartimos y protegemos sus datos personales, de conformidad con la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP), su Reglamento y los Lineamientos del Aviso de Privacidad emitidos por la autoridad competente en materia de protección de datos personales en México.
         </p>
         <p>
             Al acceder, registrarse o utilizar Vunlek (en adelante, el "Servicio"), usted consiente el tratamiento de sus datos personales conforme a esta Política. Si no está de acuerdo, no debe utilizar el Servicio. Esta Política se aplica a todos los usuarios, incluyendo administradores escolares, docentes, padres de familia, alumnos y cualquier otro individuo que interactúe con Vunlek.
@@ -65,7 +65,9 @@ export const PrivacyContent = () => (
             <li><strong>Datos de Identificación:</strong> Nombre completo, fecha de nacimiento, género, CURP (Clave Única de Registro de Población), RFC (Registro Federal de Contribuyentes, si aplica), dirección, teléfono, correo electrónico y fotografía (para perfiles de usuarios como alumnos o docentes).</li>
             <li><strong>Datos Educativos y Académicos:</strong> Calificaciones, asistencias, progresos académicos, historial escolar, planes de estudio, evaluaciones y comentarios de docentes o padres.</li>
             <li><strong>Datos Sensibles:</strong> Información relacionada con la salud (e.g., alergias o condiciones médicas relevantes para la escuela), origen étnico o racial (si requerido por normativas educativas), y datos de menores de edad (e.g., información de alumnos menores de 18 años, que requieren consentimiento expreso de padres o tutores).</li>
-            <li><strong>Datos Financieros:</strong> Información de pagos, como números de tarjeta (procesados por terceros), historial de transacciones escolares (e.g., colegiaturas, inscripciones) y datos bancarios para reembolsos.</li>
+            <li><strong>Datos de Suscripción y Licencia:</strong> Estado y vigencia de la suscripción o licencia, y el comprobante de compra que entregan App Store o Google Play. No recibimos ni almacenamos números de tarjeta ni datos bancarios: los cobros dentro de la aplicación los procesa la tienda.</li>
+            <li><strong>Solicitudes de Presupuesto:</strong> Cuando una escuela solicita un presupuesto: nombre, cargo, correo y teléfono de quien lo solicita, y nombre, CCT, nivel, localidad y número de docentes y de alumnos de la escuela. Se usan únicamente para contactarle y preparar la propuesta.</li>
+            <li><strong>Datos Obtenidos con Permisos del Dispositivo:</strong> Fotografías, documentos y notas de voz que usted decide tomar o adjuntar (cámara, micrófono y fotos); la ubicación de la escuela que usted marca en el mapa; el identificador que permite enviarle notificaciones; y el código de la credencial del alumno (QR o NFC). No accedemos a su cámara, micrófono, fotos ni ubicación en segundo plano.</li>
             <li><strong>Datos de Uso y Técnicos:</strong> Dirección IP, tipo de dispositivo, navegador, sistema operativo, cookies, identificadores únicos de dispositivo, datos de geolocalización aproximada (solo si activada por el usuario), registros de acceso, interacciones con el Servicio (e.g., clics, tiempo de sesión) y preferencias de usuario.</li>
             <li><strong>Datos de Comunicación:</strong> Mensajes, notificaciones, encuestas o feedback enviados a través de Vunlek, incluyendo comunicaciones entre escuelas, docentes y padres.</li>
         </ul>
@@ -76,7 +78,7 @@ export const PrivacyContent = () => (
         <h4 className="font-bold text-slate-800 mt-4">2. Cómo Recolectamos los Datos</h4>
         <p>Recolectamos datos a través de:</p>
         <ul className="list-disc pl-5 space-y-1">
-            <li><strong>Registro y Uso Directo:</strong> Cuando crea una cuenta, carga información (e.g., datos de alumnos), realiza pagos o interactúa con funciones del Servicio.</li>
+            <li><strong>Registro y Uso Directo:</strong> Cuando crea una cuenta, carga información (e.g., datos de alumnos), solicita un presupuesto, contrata una suscripción o interactúa con funciones del Servicio.</li>
             <li><strong>Tecnologías Automáticas:</strong> Cookies, web beacons, píxeles y similares para rastrear uso y mejorar la experiencia (ver Sección 8 para detalles).</li>
             <li><strong>Terceros:</strong> Información proporcionada por instituciones educativas, proveedores de pago (e.g., App Store de Apple, Google Play) o integraciones con herramientas externas (e.g., sistemas de la SEP, si aplica).</li>
             <li><strong>Fuentes Públicas:</strong> Datos accesibles públicamente, como perfiles educativos verificados, solo si es necesario para el Servicio.</li>
@@ -88,7 +90,7 @@ export const PrivacyContent = () => (
         <h4 className="font-bold text-slate-800 mt-4">3. Finalidades del Tratamiento de Datos</h4>
         <p>Usamos sus datos para:</p>
         <ul className="list-disc pl-5 space-y-1">
-            <li><strong>Primarias (Esenciales para el Servicio):</strong> Proporcionar funciones de gestión escolar, como registro de alumnos, generación de reportes, comunicación en tiempo real y procesamiento de pagos. Sin estos datos, no podemos ofrecer el Servicio.</li>
+            <li><strong>Primarias (Esenciales para el Servicio):</strong> Proporcionar funciones de gestión escolar, como registro de alumnos, generación de reportes, comunicación en tiempo real, avisos al dispositivo y administración de la suscripción o licencia. Sin estos datos, no podemos ofrecer el Servicio.</li>
             <li><strong>Secundarias (Opcionales):</strong> Mejorar el Servicio (e.g., análisis de uso para optimizaciones), enviar notificaciones promocionales sobre actualizaciones de Vunlek, realizar encuestas de satisfacción, y cumplir con obligaciones legales (e.g., reportes a autoridades educativas).</li>
             <li><strong>Otras:</strong> Prevención de fraudes, resolución de disputas, respaldo de datos y desarrollo de nuevas características.</li>
         </ul>
@@ -99,8 +101,8 @@ export const PrivacyContent = () => (
         <h4 className="font-bold text-slate-800 mt-4">4. Compartición y Transferencia de Datos</h4>
         <p>Compartimos datos solo cuando sea necesario:</p>
         <ul className="list-disc pl-5 space-y-1">
-            <li><strong>Con Proveedores de Servicios:</strong> Terceros que nos asisten (e.g., hosting en la nube como AWS o Google Cloud, procesadores de pagos, auditores), bajo contratos que garantizan confidencialidad y cumplimiento con la LFPDPPP.</li>
-            <li><strong>Con Autoridades:</strong> Para cumplir con requerimientos legales, judiciales o regulatorios (e.g., INAI, SEP, PROFECO).</li>
+            <li><strong>Con Proveedores de Servicios:</strong> Terceros que nos asisten bajo contratos de confidencialidad y cumplimiento con la LFPDPPP: Supabase (base de datos, autenticación y almacenamiento), Vercel (alojamiento del sitio), Resend (envío de correos), Apple y Google (compras dentro de la aplicación, inicio de sesión con Google y envío de notificaciones) y los proveedores de inteligencia artificial indicados en la sección 12.</li>
+            <li><strong>Con Autoridades:</strong> Para cumplir con requerimientos legales, judiciales o regulatorios (e.g., la autoridad de protección de datos personales, SEP, PROFECO).</li>
             <li><strong>En Transacciones Corporativas:</strong> En caso de fusión, adquisición o venta de activos de Ko'on, sus datos podrían transferirse al nuevo propietario.</li>
             <li><strong>Con Usuarios Autorizados:</strong> Dentro del ecosistema escolar (e.g., compartir calificaciones con padres autorizados).</li>
         </ul>
@@ -114,12 +116,12 @@ export const PrivacyContent = () => (
         </p>
         <ul className="list-disc pl-5 space-y-1">
             <li>Encriptación de datos en tránsito (HTTPS) y en reposo.</li>
-            <li>Controles de acceso restringido (e.g., autenticación de dos factores).</li>
+            <li>Controles de acceso restringido por rol y por escuela: cada persona ve solo la información que le corresponde.</li>
             <li>Auditorías regulares y monitoreo de brechas.</li>
             <li>Respaldos seguros y planes de recuperación de desastres.</li>
         </ul>
         <p>
-            Sin embargo, ninguna medida es infalible. Ko'on no garantiza seguridad absoluta contra brechas cibernéticas, accesos no autorizados o eventos de fuerza mayor (e.g., hacks sofisticados). En caso de brecha, notificaremos a los afectados y al INAI dentro de los plazos legales (72 horas para notificación inicial), pero no seremos responsables por daños indirectos derivados de brechas causadas por terceros o negligencia del usuario (e.g., contraseñas débiles).
+            Sin embargo, ninguna medida es infalible. Ko'on no garantiza seguridad absoluta contra brechas cibernéticas, accesos no autorizados o eventos de fuerza mayor (e.g., hacks sofisticados). En caso de brecha, notificaremos a los afectados y a la autoridad competente en protección de datos personales dentro de los plazos legales (72 horas para notificación inicial), pero no seremos responsables por daños indirectos derivados de brechas causadas por terceros o negligencia del usuario (e.g., contraseñas débiles).
         </p>
 
         <h4 className="font-bold text-slate-800 mt-4">6. Derechos ARCO y Revocación de Consentimiento</h4>
@@ -133,14 +135,24 @@ export const PrivacyContent = () => (
             <li><strong>Oposición:</strong> Rechazar tratamiento para ciertas finalidades.</li>
         </ul>
         <p>
-            Para ejercer derechos, envíe una solicitud por escrito a soporte@vunlek.com, incluyendo: identificación, descripción clara del derecho, y evidencia. Responderemos en un plazo máximo de 20 días hábiles, conforme a la LFPDPPP. Si su solicitud es procedente, la implementaremos en 15 días adicionales. Puede apelar ante el INAI si no está satisfecho.
+            Para ejercer derechos, envíe una solicitud por escrito a soporte@vunlek.com, incluyendo: identificación, descripción clara del derecho, y evidencia. Responderemos en un plazo máximo de 20 días hábiles, conforme a la LFPDPPP. Si su solicitud es procedente, la implementaremos en 15 días adicionales. Puede apelar ante la autoridad competente en protección de datos personales si no está satisfecho.
             Para datos de menores, los derechos se ejercen a través de padres o tutores.
         </p>
 
-        <h4 className="font-bold text-slate-800 mt-4">7. Retención de Datos</h4>
+        <h4 className="font-bold text-slate-800 mt-4">7. Retención y Eliminación de la Cuenta y de los Datos</h4>
         <p>
-            Retenemos datos mientras sea necesario para las finalidades descritas, o por periodos legales (e.g., 5 años para datos fiscales conforme al Código Fiscal de la Federación). Al terminar su cuenta o revocar consentimiento, eliminaremos o anonimizaremos datos, salvo obligaciones legales. Puede solicitar eliminación anticipada, sujeto a revisión.
+            Retenemos datos mientras sea necesario para las finalidades descritas, o por los periodos que exija la ley.
         </p>
+        <p id="eliminar-cuenta">
+            <strong>Cómo eliminar su cuenta.</strong> Puede hacerlo usted mismo en la aplicación o el sitio web, en <em>Ajustes → Seguridad → Eliminar mi cuenta</em>, o solicitarlo a soporte@vunlek.com desde el correo de su cuenta. Las instrucciones también están en <a href="/eliminar-cuenta" className="underline font-bold">vunlek.com/eliminar-cuenta</a>.
+        </p>
+        <ul className="list-disc pl-5 space-y-1">
+            <li>Al eliminar la cuenta, el acceso se bloquea de inmediato.</li>
+            <li>Sus datos personales de la cuenta (nombre, correo, teléfono, foto e inicio de sesión) se eliminan de forma definitiva en un plazo máximo de 30 días.</li>
+            <li>Se conservan, sin su nombre como autor cuando es posible, los registros escolares que pertenecen a la institución (por ejemplo, calificaciones y asistencias que usted capturó como docente) y lo que deba conservarse por obligación legal.</li>
+            <li>Los expedientes de alumnos pertenecen a la escuela: su corrección o eliminación se solicita a la dirección de la escuela, que es quien los administra. También puede escribirnos y canalizamos la solicitud.</li>
+            <li>Si tiene una suscripción contratada en App Store o Google Play, cancélela desde su cuenta de la tienda; eliminar la cuenta de Vunlek no la cancela.</li>
+        </ul>
 
         <h4 className="font-bold text-slate-800 mt-4">8. Cookies y Tecnologías Similares</h4>
         <p>
@@ -179,6 +191,10 @@ export const PrivacyContent = () => (
         <h4 className="font-bold text-slate-800 mt-4">12. Uso de Inteligencia Artificial</h4>
         <p>
             Algunas funciones (planeaciones, propuestas para el Consejo Técnico Escolar, instrumentos de evaluación) envían el texto que usted captura o sube a proveedores de inteligencia artificial (Google Gemini, Groq u OpenAI) para generar sugerencias. Para las propuestas del CTE solo se envían indicadores agregados del plantel, <strong>sin nombres ni datos personales de alumnos</strong>. Los proveedores procesan la información para responder la solicitud; Vunlek no autoriza su uso para entrenar modelos. Las sugerencias de la IA deben ser revisadas por el docente antes de usarse.
+        </p>
+
+        <p>
+            <strong>Sin publicidad ni rastreo.</strong> Vunlek no muestra publicidad de terceros, no vende datos personales y no rastrea a los usuarios en otras aplicaciones o sitios web.
         </p>
 
         <h4 className="font-bold text-slate-800 mt-4">13. Contacto y Responsable de Datos</h4>
