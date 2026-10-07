@@ -518,6 +518,7 @@ export const DashboardLayout = () => {
             { icon: Users, label: 'Grupos', path: '/groups' },
             { icon: GraduationCap, label: 'Alumnos', path: '/students' },
             { icon: Search, label: 'Consulta de alumnos', path: '/alumnos/consulta' },
+            { icon: ClipboardList, label: 'Bitácora de la dirección', path: '/direccion/bitacora' },
             { icon: Mail, label: 'Comunicados', path: '/messages' },
             { icon: LifeBuoy, label: 'Solicitudes al técnico', path: '/solicitudes' },
             {
@@ -527,6 +528,8 @@ export const DashboardLayout = () => {
                 subItems: [
                     { label: 'Consejo Técnico (CTE)', path: '/cte' },
                     { label: 'Programa de Mejora (PEMC)', path: '/admin/pemc' },
+                    { label: 'Bitácora de incidencias', path: '/incidents' },
+                    { label: 'Diagnóstico y socioemocional', path: '/diagnostico' },
                     { label: 'Validar planeaciones', path: '/planning' },
                     { label: 'Estadísticas', path: '/stats' },
                     { label: 'Cuentas con acceso (familias)', path: '/familias/accesos' },
@@ -548,6 +551,9 @@ export const DashboardLayout = () => {
                 path: '#pedagogy',
                 subItems: [
                     { label: 'Consejo Técnico (CTE)', path: '/cte' },
+                    { label: 'Bitácora de la dirección', path: '/direccion/bitacora' },
+                    { label: 'Bitácora de incidencias', path: '/incidents' },
+                    { label: 'Diagnóstico y socioemocional', path: '/diagnostico' },
                     { label: 'Validar Planeaciones', path: '/planning' },
                     { label: 'Avance Programático', path: '/progress' },
                     { label: 'Libros de Texto', path: '/libros' },
@@ -566,6 +572,9 @@ export const DashboardLayout = () => {
                 path: '#tech',
                 subItems: [
                     { label: 'Consejo Técnico (CTE)', path: '/cte' },
+                    { label: 'Bitácora de la dirección', path: '/direccion/bitacora' },
+                    { label: 'Bitácora de incidencias', path: '/incidents' },
+                    { label: 'Diagnóstico y socioemocional', path: '/diagnostico' },
                     { label: 'Inventario de Insumos', path: '/inventory' },
                     { label: 'Planeaciones Técnicas', path: '/planning' },
                     { label: 'Supervisión de Prácticas', path: '/stats' }
@@ -623,6 +632,7 @@ export const DashboardLayout = () => {
                     { label: 'Conducta y reportes', path: '/gradebook?tab=REPORTS' },
                     { label: 'Portafolio de alumnos', path: '/evaluation/portfolio' },
                     { label: 'Herramientas formativas', path: '/evaluation/formative' },
+                    { label: 'Diagnóstico y encuesta socioemocional', path: '/diagnostico' },
                     { label: 'Grupo que asesoro', path: '/asesoria' },
                     { label: 'Credenciales de mis alumnos', path: '/credenciales' },
                     { label: 'Mi horario', path: '/schedule' },
@@ -641,6 +651,7 @@ export const DashboardLayout = () => {
                 subItems: [
                     { label: 'Cobertura de Suplencias', path: '/substitutions' },
                     { label: 'Bitácora de Incidencias', path: '/incidents' },
+                    { label: 'Diagnóstico y socioemocional', path: '/diagnostico' },
                     { label: 'Control de acceso (credencial)', path: '/acceso' },
                     { label: 'Control de Retardos', path: '/attendance' },
                 ]
@@ -682,7 +693,8 @@ export const DashboardLayout = () => {
                 subItems: [
                     { label: 'Casos BAP', path: '/bap' },
                     { label: 'Entrevistas Padres', path: '/interviews' },
-                    { label: 'Bitácora Socioemocional', path: '/incidents' }
+                    { label: 'Bitácora de incidencias', path: '/incidents' },
+                    { label: 'Diagnóstico y socioemocional', path: '/diagnostico' }
                 ]
             },
             { icon: Calendar, label: 'Agenda Escolar', path: '/agenda' }
@@ -757,6 +769,9 @@ export const DashboardLayout = () => {
                 path: '#institution',
                 subItems: [
                     { label: 'Consejo Técnico (CTE)', path: '/cte' },
+                    { label: 'Bitácora de la dirección', path: '/direccion/bitacora' },
+                    { label: 'Bitácora de incidencias', path: '/incidents' },
+                    { label: 'Diagnóstico y socioemocional', path: '/diagnostico' },
                     { label: 'Módulo PEMC', path: '/admin/pemc' },
                     { label: 'Ciclo escolar y periodos', path: '/settings?tab=cycle' },
                     { label: 'Inventarios', path: '/inventory' },
@@ -800,7 +815,7 @@ export const DashboardLayout = () => {
         '/settings': 'Configuración', '/gradebook': 'Libreta', '/planning/new': 'Nueva planeación', '/planning': 'Planeaciones',
         '/messages': 'Mensajes', '/agenda': 'Calendario', '/cte': 'Consejo Técnico', '/libros': 'Libros de texto',
         '/paywall': 'Planes y licencia', '/suscripcion': 'Suscripción', '/students': 'Alumnos', '/alumnos/consulta': 'Consulta de alumnos', '/groups': 'Grupos', '/nem-assistant': 'Asistente NEM', '/asesoria': 'Grupo que asesoro', '/formatos': 'Mis formatos', '/mis-pdas': 'PDAs, ejes y metodologías',
-        '/rubrics': 'Instrumentos', '/schedule': 'Horario', '/admin/pemc': 'PEMC', '/admin/staff': 'Personal',
+        '/rubrics': 'Instrumentos', '/schedule': 'Horario', '/admin/pemc': 'PEMC', '/admin/staff': 'Personal', '/incidents': 'Bitácora de incidencias', '/diagnostico': 'Diagnóstico y socioemocional', '/direccion/bitacora': 'Bitácora de la dirección',
         '/sumar-mi-espacio': 'Sumar mi espacio personal', '/familias/accesos': 'Cuentas con acceso', '/acceso': 'Control de acceso', '/credenciales': 'Credenciales', '/solicitudes': 'Solicitudes', '/bitacora': 'Bitácora de cambios', '/importar-datos': 'Importar datos', '/familias/codigos': 'Códigos para familias',
     }
     const path = location.pathname

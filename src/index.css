@@ -237,3 +237,13 @@ html[data-text-size='xl'] { font-size: 125%; }
 html[data-text-size] .bottom-nav .text-\[11px\] { font-size: 12.5px; }
 html[data-text-size] .bottom-nav > * { min-width: 0; flex: 1 1 0; padding-left: 0.125rem; padding-right: 0.125rem; }
 html[data-text-size] .bottom-nav span { white-space: nowrap; }
+
+/* Hojas para imprimir (usePrint): en pantalla no se ven; al imprimir es lo único que sale. */
+.print-sheet { display: none; }
+@media print {
+  body:has(.print-sheet) > *:not(.print-sheet) { display: none !important; }
+  .print-sheet { display: block; background: #fff; color: #000; font-family: Arial, Helvetica, sans-serif; }
+  .print-sheet .print-page { break-after: page; padding: 0; }
+  .print-sheet .print-page:last-child { break-after: auto; }
+  @page { size: letter; margin: 14mm; }
+}

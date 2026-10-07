@@ -55,6 +55,8 @@ const LandingPage = lazyNamed(() => import('./features/marketing/pages/LandingPa
 const SuperAdminDashboard = lazyNamed(() => import('./features/admin/pages/SuperAdminDashboard'), 'SuperAdminDashboard')
 const AdminDashboard = lazyNamed(() => import('./features/admin/pages/AdminDashboard'), 'AdminDashboard')
 const PEMCPage = lazyNamed(() => import('./features/admin/pages/PEMCPage'), 'PEMCPage')
+const InstrumentsPage = lazyNamed(() => import('./features/instruments/pages/InstrumentsPage'), 'InstrumentsPage')
+const DirectionLogPage = lazyNamed(() => import('./features/direction/pages/DirectionLogPage'), 'DirectionLogPage')
 const StudentLookupPage = lazyNamed(() => import('./features/students/pages/StudentLookupPage'), 'StudentLookupPage')
 const StaffControlCenter = lazyNamed(() => import('./features/admin/pages/StaffControlCenter'), 'StaffControlCenter')
 const SchoolStatsPage = lazyNamed(() => import('./features/dashboard/pages/SchoolStatsPage'), 'SchoolStatsPage')
@@ -377,6 +379,16 @@ function App() {
           <Route path="tracking" element={<StudentTrackingPage />} />
           <Route path="tracking/:studentId" element={<StudentTrackingPage />} />
           <Route path="incidents" element={<IncidentsRoute />} />
+          <Route path="diagnostico" element={
+            <ProtectedRoute allowedRoles={['DIRECTOR', 'ADMIN', 'ACADEMIC_COORD', 'TECH_COORD', 'TEACHER', 'PREFECT', 'SUPPORT', 'SOCIAL_WORKER']}>
+              <InstrumentsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="direccion/bitacora" element={
+            <ProtectedRoute allowedRoles={['DIRECTOR', 'ADMIN', 'ACADEMIC_COORD', 'TECH_COORD']}>
+              <DirectionLogPage />
+            </ProtectedRoute>
+          } />
           <Route path="bap" element={<StudentTrackingPage />} />
           <Route path="stats" element={<RequireSteps steps={['alumnos']} action="ver las estadísticas"><SchoolStatsPage /></RequireSteps>} />
           <Route path="reports/student/:studentId" element={<StudentReportPage />} />

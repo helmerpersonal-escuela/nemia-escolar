@@ -23,7 +23,7 @@ export const AttendanceRoute = () => {
     return <LatesPage />
 }
 
-import { IncidentsLogPage } from '../../features/dashboard/components/roles/IncidentsLogPage'
+import { IncidentLogPage } from '../../features/incidents/pages/IncidentLogPage'
 import { TutorIncidentsPage } from '../../features/reports/pages/TutorIncidentsPage'
 
 export const IncidentsRoute = () => {
@@ -32,6 +32,6 @@ export const IncidentsRoute = () => {
     if (profile?.role === 'TUTOR' || profile?.role === 'STUDENT') {
         return <TutorIncidentsPage />
     }
-    return <IncidentsLogPage />
+    return <IncidentLogPage />
 }
 
