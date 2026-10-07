@@ -61,6 +61,11 @@ if (eExtras) console.warn(`  Aviso: no se agregaron comisiones ni asistencia de 
 const { error: eHorario } = await db.rpc('demo_horario')
 if (eHorario) console.warn(`  Aviso: no se agregó el horario de ejemplo (${eHorario.message}).`)
 
+// 3d. Escenarios de prueba: credenciales, faltas, alumnos y docentes con dificultades, bitácoras, visitas, CTE
+const { data: escenarios, error: eEsc } = await db.rpc('demo_escenarios')
+if (eEsc) console.warn(`  Aviso: no se agregaron los escenarios de prueba (${eEsc.message}).`)
+else if (escenarios?.alumnos_con_dificultades) console.log(`  Alumnos con dificultades: ${escenarios.alumnos_con_dificultades.join(', ')}\n  Docentes con dificultades: ${escenarios.docentes_con_dificultades.join(', ')}`)
+
 // 4. Resultado y credenciales
 const correo = id => creadas.find(c => c.id === id)?.email
 const de = kind => res.people.filter(p => p.kind === kind).sort((a, b) => a.n - b.n)

@@ -44,3 +44,17 @@ npm run demo:borrar -- --confirmar
 - El borrado es una sola operación: si algo falla, no se borra nada.
 
 No hay contadores que reiniciar: los registros usan identificadores únicos (UUID), no números consecutivos.
+
+## Escenarios para probar
+
+`demo:crear` también deja casos listos para revisar (función `demo_escenarios`, fechas relativas al día en que se crea):
+
+- **Credenciales**: cada alumno tiene un código de lector `DEMO001`, `DEMO002`… en el orden de la lista (grado, grupo, apellido).
+  En «Entrega de tarea con credencial» se puede teclear el código y pulsar Enter para simular la credencial.
+- **Tarea abierta** en Matemáticas de cada grupo: «Tarea 5… (entrega con credencial)», la mitad del grupo ya la entregó y nadie está calificado.
+- **Asistencia** con faltas, retardos y justificadas.
+- **Seis alumnos con dificultades** (reprobación, conducta, falta grave, inasistencias, socioemocional, diagnóstico) y
+  **dos docentes** (uno con inasistencias y planeaciones en borrador; otro con retardos). Sus nombres se imprimen al crear la escuela.
+- Incidencias con acuerdos y avances, hojas prefoliadas sin capturar, encuesta socioemocional y diagnóstico de Matemáticas
+  de primer grado capturados, bitácora de la dirección, cuatro visitas al aula (una en cada estado), asistencia del personal,
+  ausencias y permisos, seguimiento y apoyo a alumnos, avisos, calendario, una sesión de CTE con acuerdos y solicitudes al técnico.
