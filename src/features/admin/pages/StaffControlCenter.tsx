@@ -5,6 +5,7 @@ import { supabase } from '../../../lib/supabase'
 import { roleLabel } from '../../../lib/roleLabels'
 import { useTenant } from '../../../hooks/useTenant'
 import { niceSubjectCase } from '../../../lib/subjectName'
+import { AccordionSection, AccordionToggleAll, useAccordion } from '../../../components/ui/Accordion'
 import { askConfirm } from '../../../components/ui/ConfirmDialog'
 import {
     CARGOS, SUGGESTED_COMMISSIONS, commissionsOf, removeMember, sortMembers, takenUniqueCargo, upsertMember,
@@ -337,10 +338,11 @@ const CommissionCard = ({ commission, data, onChanged }: { commission: Commissio
 
 // ---------------------------------------------------------------- Una persona
 
-const SECTIONS = [['schedule', 'Horario'], ['classes', 'Clases'], ['advisory', 'Asesoría'], ['commissions', 'Comisiones'], ['plans', 'Planeaciones']] as const
+const SECTIONS = ['schedule', 'classes', 'advisory', 'commissions', 'plans'] as const
 
 const PersonPanel = ({ person, data, onClose, onChanged }: { person: Person; data: Data; onClose: () => void; onChanged: () => void }) => {
-    const [show, setShow] = useState<Record<string, boolean>>({ schedule: true, classes: true, advisory: true, commissions: true, plans: true })
+    const acc = useAccordion(SECTIONS)
+    const fold = (id: typeof SECTIONS[number]) => ({ open: acc.isOpen(id), onToggle: () => acc.toggle(id) })
     const [groupId, setGroupId] = useState('')
     const [subjectId, setSubjectId] = useState('')
     const [commissionId, setCommissionId] = useState('')
@@ -429,21 +431,11 @@ const PersonPanel = ({ person, data, onClose, onChanged }: { person: Person; dat
                     <button onClick={onClose} aria-label="Cerrar" className="p-2 rounded-xl hover:bg-slate-100"><X className="w-5 h-5" /></button>
                 </div>
 
-                <div className="px-5 pt-4 flex flex-wrap gap-2" aria-label="Qué mostrar">
-                    <span className="text-xs font-bold text-slate-500 self-center">Mostrar:</span>
-                    {SECTIONS.map(([id, label]) => (
-                        <label key={id} className={`inline-flex items-center gap-2 min-h-10 px-3 rounded-xl border text-xs font-black cursor-pointer ${show[id] ? 'bg-indigo-50 border-indigo-200 text-indigo-800' : 'bg-white border-slate-200 text-slate-500'}`}>
-                            <input type="checkbox" className="accent-indigo-600" checked={show[id]} onChange={e => setShow({ ...show, [id]: e.target.checked })} /> {label}
-                        </label>
-                    ))}
-                </div>
-
-                <div className="p-5 space-y-6 overflow-y-auto">
+                <div className="p-5 space-y-3 overflow-y-auto">
+                    <div className="flex justify-end -mt-2 -mb-1"><AccordionToggleAll acc={acc} /></div>
                     {msg && <p role={msg.ok ? 'status' : 'alert'} className={`flex items-start gap-2 text-sm font-bold rounded-2xl px-4 py-3 ${msg.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'}`}>{msg.ok ? <CheckCircle2 className="w-4 h-4 mt-0.5" /> : <AlertTriangle className="w-4 h-4 mt-0.5" />}{msg.text}</p>}
 
-                    {show.schedule && (
-                        <section>
-                            <h3 className="font-black text-slate-900 mb-2">Horario ({mySlots.length} {mySlots.length === 1 ? 'clase' : 'clases'} a la semana)</h3>
+                    <AccordionSection title="Horario" {...fold('schedule')} summary={current ? `Ahora en ${groupLabel(current.assignment.groups)} · ${subjectLabel(current.assignment)}` : next ? `Sin clase ahora · sigue ${groupLabel(next.assignment.groups)} a las ${hhmm(next.slot.start_time)}` : mySlots.length ? `${mySlots.length} clases a la semana · sin clase ahora` : 'Sin horario'}>
                             {mySlots.length === 0 ? (
                                 <p className="text-sm text-slate-600 bg-slate-50 rounded-xl px-3 py-2">{data.schedule.length === 0 ? 'La escuela todavía no ha armado su horario de clases.' : classes.length === 0 ? 'No tiene clases asignadas, por eso no aparece en el horario.' : 'Sus clases todavía no están colocadas en el horario de la escuela.'}</p>
                             ) : (
@@ -473,12 +465,9 @@ const PersonPanel = ({ person, data, onClose, onChanged }: { person: Person; dat
                                     </div>
                                 </>
                             )}
-                        </section>
-                    )}
+                    </AccordionSection>
 
-                    {show.classes && (
-                        <section>
-                            <h3 className="font-black text-slate-900 mb-2">Clases que imparte ({classes.length})</h3>
+                    <AccordionSection title="Clases que imparte" {...fold('classes')} tone={classes.length ? 'normal' : 'warn'} summary={classes.length ? `${classes.length} en ${new Set(classes.map(c => c.group_id)).size} ${new Set(classes.map(c => c.group_id)).size === 1 ? 'grupo' : 'grupos'}` : 'Sin clases asignadas'}>
                             {classes.length === 0 ? <p className="text-sm text-slate-500 mb-3">No tiene clases asignadas.</p> : (
                                 <ul className="grid sm:grid-cols-2 gap-2 mb-3">
                                     {classes.map(c => (
@@ -501,22 +490,16 @@ const PersonPanel = ({ person, data, onClose, onChanged }: { person: Person; dat
                                 </select>
                                 <button onClick={assignClass} disabled={busy || !groupId || !subjectId} className={`${btn} bg-indigo-600 text-white`}><Plus className="w-4 h-4" /> Asignar clase</button>
                             </div>
-                        </section>
-                    )}
+                    </AccordionSection>
 
-                    {show.advisory && (
-                        <section>
-                            <h3 className="font-black text-slate-900 mb-2">Asesoría de grupo (tutoría)</h3>
+                    <AccordionSection title="Asesoría de grupo" {...fold('advisory')} summary={advisory ? groupLabel(data.groups.find(g => g.id === advisory)) : 'Sin grupo'}>
                             <select aria-label="Grupo que asesora" value={advisory} onChange={e => setAdvisory(e.target.value)} disabled={busy} className={input}>
                                 <option value="">Sin grupo de asesoría</option>
                                 {data.groups.map(g => <option key={g.id} value={g.id}>{groupLabel(g)}</option>)}
                             </select>
-                        </section>
-                    )}
+                    </AccordionSection>
 
-                    {show.commissions && (
-                        <section>
-                            <h3 className="font-black text-slate-900 mb-2">Comisiones ({comms.length})</h3>
+                    <AccordionSection title="Comisiones" {...fold('commissions')} tone={comms.length ? 'normal' : 'warn'} summary={comms.length ? comms.map(c => `${c.commission.name}: ${c.role}`).join(' · ') : 'Sin comisión'}>
                             {comms.length === 0 ? <p className="text-sm text-amber-800 bg-amber-50 rounded-xl px-3 py-2 mb-3">No está en ninguna comisión. Cada docente debe estar en al menos una.</p> : (
                                 <ul className="space-y-2 mb-3">
                                     {comms.map(({ commission, role }) => (
@@ -539,12 +522,9 @@ const PersonPanel = ({ person, data, onClose, onChanged }: { person: Person; dat
                                 <CargoSelect value={cargo} onChange={setCargo} />
                                 <button onClick={addCommission} disabled={busy || !commissionId || (commissionId === NEW && newCommission.trim().length < 3)} className={`${btn} bg-indigo-600 text-white`}><Plus className="w-4 h-4" /> Asignar</button>
                             </div>
-                        </section>
-                    )}
+                    </AccordionSection>
 
-                    {show.plans && (
-                        <section>
-                            <h3 className="font-black text-slate-900 mb-2">Planeaciones de sus clases ({plans.length})</h3>
+                    <AccordionSection title="Planeaciones" {...fold('plans')} summary={plans.length ? `${plans.length} ${plans.length === 1 ? 'registrada' : 'registradas'} · ${plans.filter(p => p.status === 'APPROVED').length} aprobadas` : 'Ninguna registrada'}>
                             {plans.length === 0 ? <p className="text-sm text-slate-500">Aún no hay planeaciones registradas para sus grupos y materias.</p> : (
                                 <dl className="grid grid-cols-3 gap-2 text-center">
                                     {([['APPROVED', 'Aprobadas'], ['SUBMITTED', 'Entregadas'], ['DRAFT', 'En borrador']] as const).map(([s, label]) => (
@@ -552,8 +532,7 @@ const PersonPanel = ({ person, data, onClose, onChanged }: { person: Person; dat
                                     ))}
                                 </dl>
                             )}
-                        </section>
-                    )}
+                    </AccordionSection>
                 </div>
             </div>
         </div>
