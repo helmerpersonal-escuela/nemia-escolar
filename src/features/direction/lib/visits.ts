@@ -2,6 +2,8 @@
  * Visita áulica de acompañamiento (Nueva Escuela Mexicana): indicadores de base, registro de hechos
  * y cálculo de alumnos en riesgo. En la visita se anota lo que se vio y se oyó, no opiniones.
  */
+import { DEFAULT_CRITERIA, type Criteria } from '../../../lib/criteria'
+
 export type Observed = 'OBSERVADO' | 'PARCIAL' | 'NO_OBSERVADO' | 'NO_APLICA'
 export interface Indicator { id: string; area: string; text: string; source: 'BASE' | 'ESCUELA' | 'AUTORIDAD' }
 export interface IndicatorRecord extends Indicator { observed: Observed | null; fact: string }
@@ -80,7 +82,7 @@ export interface RiskRow { student_id: string; failing: number; failing_subjects
 export interface RiskCase { studentId: string; reasons: { kind: 'ACADEMICO' | 'CONDUCTA' | 'ASISTENCIA' | 'SOCIOEMOCIONAL' | 'DIAGNOSTICO'; text: string }[]; score: number }
 
 /** Junta las señales de riesgo de un alumno y las ordena de mayor a menor urgencia. */
-export function buildRiskCases(rows: RiskRow[], socioSupport: Record<string, string[]>, diagSupport: Record<string, string[]>): RiskCase[] {
+export function buildRiskCases(rows: RiskRow[], socioSupport: Record<string, string[]>, diagSupport: Record<string, string[]>, c: Criteria = DEFAULT_CRITERIA): RiskCase[] {
     const ids = new Set([...rows.map(r => r.student_id), ...Object.keys(socioSupport), ...Object.keys(diagSupport)])
     const out: RiskCase[] = []
     for (const id of ids) {
@@ -88,8 +90,8 @@ export function buildRiskCases(rows: RiskRow[], socioSupport: Record<string, str
         const reasons: RiskCase['reasons'] = []
         let score = 0
         if (r?.failing) { reasons.push({ kind: 'ACADEMICO', text: `Promedio reprobatorio en ${r.failing} materia${r.failing === 1 ? '' : 's'}: ${r.failing_subjects.join(', ')}` }); score += 2 + r.failing }
-        if (r && (r.conduct >= 3 || r.severe > 0)) { reasons.push({ kind: 'CONDUCTA', text: [r.severe ? `${r.severe} incidencia${r.severe === 1 ? '' : 's'} grave${r.severe === 1 ? '' : 's'} en seguimiento` : '', r.conduct >= 3 ? `${r.conduct} incidencias de conducta en 60 días` : ''].filter(Boolean).join(' · ') }); score += 2 + r.severe * 2 }
-        if (r && r.absences >= 4) { reasons.push({ kind: 'ASISTENCIA', text: `${r.absences} faltas en los últimos 30 días` }); score += r.absences >= 8 ? 3 : 2 }
+        if (r && (r.conduct >= c.risk_conduct_count || r.severe > 0)) { reasons.push({ kind: 'CONDUCTA', text: [r.severe ? `${r.severe} incidencia${r.severe === 1 ? '' : 's'} grave${r.severe === 1 ? '' : 's'} en seguimiento` : '', r.conduct >= c.risk_conduct_count ? `${r.conduct} incidencia${r.conduct === 1 ? '' : 's'} de conducta en ${c.risk_conduct_days} días` : ''].filter(Boolean).join(' · ') }); score += 2 + r.severe * 2 }
+        if (r && r.absences >= c.risk_absences) { reasons.push({ kind: 'ASISTENCIA', text: `${r.absences} falta${r.absences === 1 ? '' : 's'} en los últimos ${c.risk_absence_days} días` }); score += r.absences >= c.risk_absences * 2 ? 3 : 2 }
         const socio = socioSupport[id]
         if (socio?.length) { reasons.push({ kind: 'SOCIOEMOCIONAL', text: `Encuesta socioemocional: requiere apoyo en ${socio.join(', ')}` }); score += 2 + (socio.length > 2 ? 1 : 0) }
         const diag = diagSupport[id]
@@ -97,4 +99,12 @@ export function buildRiskCases(rows: RiskRow[], socioSupport: Record<string, str
         if (reasons.length) out.push({ studentId: id, reasons, score: score + (reasons.length > 1 ? reasons.length : 0) })
     }
     return out.sort((a, b) => b.score - a.score)
+}
+
+/** Área que corresponde a quien registra, según su puesto y su cargo (la subdirección es un cargo de «Directivo»). */
+export function areaFor(role: string | null | undefined, jobTitle: string | null | undefined): 'DIRECCION' | 'SUBDIRECCION' | 'COORDINACION' {
+    const job = plain(jobTitle ?? '')
+    if (job.includes('subdirec')) return 'SUBDIRECCION'
+    if (job.includes('coordina') || String(role ?? '').toUpperCase().endsWith('_COORD')) return 'COORDINACION'
+    return 'DIRECCION'
 }

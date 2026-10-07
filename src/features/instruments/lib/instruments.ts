@@ -2,6 +2,8 @@
  * Examen diagnóstico y encuesta socioemocional de la escuela: reactivos, captura e interpretación.
  * La interpretación sigue reglas fijas y visibles (no usa inteligencia artificial).
  */
+import { DEFAULT_CRITERIA, type Criteria } from '../../../lib/criteria'
+
 export type InstrumentKind = 'DIAGNOSTICO' | 'SOCIOEMOCIONAL'
 export interface Item {
     id: string
@@ -54,9 +56,14 @@ const oriented = (item: Item, v: number) => item.reverse ? 5 - v : v
 
 export const answeredCount = (items: Item[], answers: Answers) => items.filter(i => typeof answers[i.id] === 'number').length
 
-export const diagnosticLevel = (pct: number): Level => pct >= 80 ? 'ESPERADO' : pct >= 60 ? 'DESARROLLO' : 'APOYO'
+export const diagnosticLevel = (pct: number, c: Criteria = DEFAULT_CRITERIA): Level => pct >= c.diag_expected ? 'ESPERADO' : pct >= c.diag_support ? 'DESARROLLO' : 'APOYO'
 /** Promedio de 1 a 4. */
-export const socioLevel = (avg: number): Level => avg >= 3 ? 'ESPERADO' : avg >= 2.2 ? 'DESARROLLO' : 'APOYO'
+export const socioLevel = (avg: number, c: Criteria = DEFAULT_CRITERIA): Level => avg >= c.socio_expected ? 'ESPERADO' : avg >= c.socio_support ? 'DESARROLLO' : 'APOYO'
+
+/** Explicación de los niveles con los criterios de la escuela, para mostrarla junto a los resultados. */
+export const levelRules = (kind: InstrumentKind, c: Criteria = DEFAULT_CRITERIA) => kind === 'DIAGNOSTICO'
+    ? `Niveles: esperado ${c.diag_expected}% o más de aciertos, en desarrollo de ${c.diag_support} a ${c.diag_expected - 1}%, requiere apoyo menos de ${c.diag_support}%.`
+    : `Niveles sobre el promedio de 1 a 4: esperado ${c.socio_expected.toFixed(1)} o más, en desarrollo desde ${c.socio_support.toFixed(1)}, requiere apoyo menos de ${c.socio_support.toFixed(1)}. Es una señal para acercarse al alumno, no un diagnóstico clínico.`
 
 export interface TopicScore { topic: string; value: number; level: Level; answered: number }
 export interface Score { value: number; level: Level; answered: number; total: number; byTopic: TopicScore[] }
@@ -65,13 +72,13 @@ export interface Score { value: number; level: Level; answered: number; total: n
  * Resultado de un alumno. Diagnóstico: porcentaje de aciertos sobre lo contestado.
  * Encuesta: promedio de 1 a 4. Devuelve null si no hay ningún reactivo capturado.
  */
-export function scoreStudent(kind: InstrumentKind, items: Item[], answers: Answers): Score | null {
+export function scoreStudent(kind: InstrumentKind, items: Item[], answers: Answers, c: Criteria = DEFAULT_CRITERIA): Score | null {
     const done = items.filter(i => typeof answers[i.id] === 'number')
     if (!done.length) return null
     const calc = (list: Item[]) => kind === 'DIAGNOSTICO'
         ? Math.round((list.reduce((a, i) => a + (answers[i.id] ? 1 : 0), 0) / list.length) * 100)
         : round1(list.reduce((a, i) => a + oriented(i, answers[i.id]), 0) / list.length)
-    const level = kind === 'DIAGNOSTICO' ? diagnosticLevel : socioLevel
+    const level = (v: number) => kind === 'DIAGNOSTICO' ? diagnosticLevel(v, c) : socioLevel(v, c)
     const topics = [...new Set(items.map(i => i.topic || 'General'))]
     const byTopic = topics.map(topic => {
         const list = done.filter(i => (i.topic || 'General') === topic)
@@ -93,11 +100,11 @@ export interface GroupSummary {
     hardest: { text: string; pct: number }[]
 }
 
-export function summarizeGroup(kind: InstrumentKind, items: Item[], results: Answers[]): GroupSummary {
-    const scores = results.map(a => scoreStudent(kind, items, a)).filter((s): s is Score => !!s)
+export function summarizeGroup(kind: InstrumentKind, items: Item[], results: Answers[], c: Criteria = DEFAULT_CRITERIA): GroupSummary {
+    const scores = results.map(a => scoreStudent(kind, items, a, c)).filter((s): s is Score => !!s)
     const levels: Record<Level, number> = { APOYO: 0, DESARROLLO: 0, ESPERADO: 0 }
     for (const s of scores) levels[s.level]++
-    const level = kind === 'DIAGNOSTICO' ? diagnosticLevel : socioLevel
+    const level = (v: number) => kind === 'DIAGNOSTICO' ? diagnosticLevel(v, c) : socioLevel(v, c)
     const topicNames = [...new Set(items.map(i => i.topic || 'General'))]
     const topics = topicNames.map(topic => {
         const vals = scores.map(s => s.byTopic.find(t => t.topic === topic)).filter((t): t is TopicScore => !!t)

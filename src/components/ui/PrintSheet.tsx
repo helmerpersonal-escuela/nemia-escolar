@@ -1,15 +1,27 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { Capacitor } from '@capacitor/core'
+import { saveFile } from '../../lib/download'
+import { buildSheetHtml, pageCss } from '../../lib/sheetHtml'
 
 /**
  * Impresión de una hoja: `print(<Contenido />)` la coloca fuera de la aplicación y abre el
  * diálogo de impresión. Al imprimir solo se ve esa hoja (regla `.print-sheet` de index.css).
+ * En la app de Android no existe ese diálogo: la hoja se entrega como archivo por el menú
+ * «Compartir», para abrirla en el navegador e imprimirla o guardarla como PDF desde ahí.
  */
 export function usePrint() {
     const [content, setContent] = useState<ReactNode>(null)
     useEffect(() => {
         if (!content) return
         const done = () => setContent(null)
+        if (Capacitor.getPlatform() === 'android') {
+            const t = setTimeout(async () => {
+                const el = document.querySelector('.print-sheet')
+                try { if (el) await saveFile(new Blob([buildSheetHtml(el.innerHTML, pageCss())], { type: 'text/html' }), `hoja-vunlek-${Date.now()}.html`) } finally { done() }
+            }, 200)
+            return () => clearTimeout(t)
+        }
         window.addEventListener('afterprint', done)
         const t = setTimeout(() => window.print(), 200)
         return () => { clearTimeout(t); window.removeEventListener('afterprint', done) }

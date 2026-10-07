@@ -1,8 +1,11 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, CalendarClock, CheckCircle2, ClipboardCheck, Eye, ListChecks, Loader2, Plus, Printer, ShieldAlert, Users, X } from 'lucide-react'
+import { AlertTriangle, CalendarClock, CheckCircle2, ClipboardCheck, Eye, ListChecks, Loader2, Plus, Printer, ShieldAlert, SlidersHorizontal, Users, X } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { groupName, studentName, useSchoolBasics, type BasicGroup, type BasicStaff, type BasicStudent } from '../../../hooks/useSchoolBasics'
+import { useMyAssignment } from '../../../hooks/useMyAssignment'
+import { useCriteria } from '../../../hooks/useCriteria'
+import { DEFAULT_CRITERIA, criteriaProblems, sameCriteria, type Criteria } from '../../../lib/criteria'
 import { AccordionSection, AccordionToggleAll, useAccordion } from '../../../components/ui/Accordion'
 import { AgreementsEditor } from '../../../components/ui/AgreementsEditor'
 import { EvidenceBox, asEvidence } from '../../../components/ui/EvidenceBox'
@@ -12,12 +15,12 @@ import { agreementStats, agreementSummary, asAgreements, cleanAgreements, folioL
 import { matchesName } from '../../students/lib/studentReport'
 import { scoreStudent, type Answers, type InstrumentKind, type Item } from '../../instruments/lib/instruments'
 import {
-    AREAS, BASE_INDICATORS, LOG_KIND, OBSERVED_LABEL, VISIT_STATUS, blankRecords, buildRiskCases, judgmentWords, visitSummary,
+    AREAS, BASE_INDICATORS, areaFor, LOG_KIND, OBSERVED_LABEL, VISIT_STATUS, blankRecords, buildRiskCases, judgmentWords, visitSummary,
     type Indicator, type IndicatorRecord, type Observed, type RiskRow,
 } from '../lib/visits'
 
 interface LogEntry { id: string; folio: number | null; kind: string; area: string; occurred_at: string; attendees: string | null; student_id: string | null; teacher_id: string | null; subject: string; facts: string | null; agreements: unknown; next_date: string | null; status: string; author_name: string | null }
-interface Visit { id: string; folio: number | null; teacher_id: string; group_id: string | null; subject: string | null; scheduled_date: string; scheduled_time: string | null; purpose: string | null; status: string; observer_name: string | null; indicators: unknown; facts: string | null; evidence: unknown; feedback_date: string | null; teacher_comment: string | null; agreements: unknown; next_review: string | null }
+interface Visit { id: string; folio: number | null; teacher_id: string; group_id: string | null; subject: string | null; scheduled_date: string; scheduled_time: string | null; purpose: string | null; status: string; observer_name: string | null; indicators: unknown; facts: string | null; evidence: unknown; feedback_date: string | null; teacher_comment: string | null; agreements: unknown; next_review: string | null; teacher_note: string | null; teacher_note_at: string | null }
 interface OwnIndicator { id: string; area: string; text: string; source: 'ESCUELA' | 'AUTORIDAD'; active: boolean }
 type PrintFn = (n: React.ReactNode) => void
 
@@ -59,7 +62,10 @@ export const DirectionLogPage = () => {
     const qc = useQueryClient()
     const refresh = () => qc.invalidateQueries({ queryKey: [KEY] })
     const { sheet, print } = usePrint()
-    const [tab, setTab] = useState<'log' | 'visits' | 'risk' | 'indicators'>('log')
+    const [tab, setTab] = useState<'log' | 'visits' | 'risk' | 'indicators' | 'criteria'>('log')
+    const { criteria } = useCriteria(tenantId)
+    const { data: mine } = useMyAssignment()
+    const myArea = areaFor(basics.role, mine?.job_title)
     const [entry, setEntry] = useState<Partial<LogEntry> | null>(null)
     const [visitId, setVisitId] = useState<string | null>(null)
     const [scheduling, setScheduling] = useState(false)
@@ -70,7 +76,7 @@ export const DirectionLogPage = () => {
         queryFn: async () => {
             const [log, visits, ind] = await Promise.all([
                 supabase.from('direction_log').select('id, folio, kind, area, occurred_at, attendees, student_id, teacher_id, subject, facts, agreements, next_date, status, author_name').eq('tenant_id', tenantId!).order('occurred_at', { ascending: false }).limit(1000),
-                supabase.from('classroom_visits').select('id, folio, teacher_id, group_id, subject, scheduled_date, scheduled_time, purpose, status, observer_name, indicators, facts, evidence, feedback_date, teacher_comment, agreements, next_review').eq('tenant_id', tenantId!).order('scheduled_date', { ascending: false }).limit(1000),
+                supabase.from('classroom_visits').select('id, folio, teacher_id, group_id, subject, scheduled_date, scheduled_time, purpose, status, observer_name, indicators, facts, evidence, feedback_date, teacher_comment, agreements, next_review, teacher_note, teacher_note_at').eq('tenant_id', tenantId!).order('scheduled_date', { ascending: false }).limit(1000),
                 supabase.from('visit_indicators').select('id, area, text, source, active').eq('tenant_id', tenantId!).order('created_at'),
             ])
             if (log.error) throw log.error
@@ -97,17 +103,18 @@ export const DirectionLogPage = () => {
                 <p className="text-slate-600">Atención a familias, visitas de acompañamiento al aula y seguimiento. Solo la ven la dirección y las coordinaciones.</p>
             </div>
             <div role="tablist" className="flex flex-wrap gap-2">
-                {([['log', `Atención y reuniones (${data.log.length})`, Users], ['visits', `Visitas al aula (${data.visits.length})${pendingFeedback ? ` · ${pendingFeedback} por retroalimentar` : ''}`, Eye], ['risk', 'Alumnos en riesgo', ShieldAlert], ['indicators', 'Indicadores de visita', ListChecks]] as const).map(([id, label, Icon]) => (
+                {([['log', `Atención y reuniones (${data.log.length})`, Users], ['visits', `Visitas al aula (${data.visits.length})${pendingFeedback ? ` · ${pendingFeedback} por retroalimentar` : ''}`, Eye], ['risk', 'Alumnos en riesgo', ShieldAlert], ['indicators', 'Indicadores de visita', ListChecks], ['criteria', 'Criterios', SlidersHorizontal]] as const).map(([id, label, Icon]) => (
                     <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)} className={`${btn} ${tab === id ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'}`}><Icon className="w-4 h-4" /> {label}</button>
                 ))}
             </div>
 
             {tab === 'log' && <LogTab log={data.log} students={students} groups={groups} staff={staff} onOpen={setEntry} />}
             {tab === 'visits' && <VisitsTab visits={data.visits} groups={groups} staff={staff} onOpen={setVisitId} onSchedule={() => setScheduling(true)} />}
-            {tab === 'risk' && <RiskTab tenantId={tenantId} schoolYear={basics.data.schoolYear} students={students} groups={groups} log={data.log} onFollow={(s, reasons) => setEntry({ kind: 'SEGUIMIENTO_ALUMNO', student_id: s.id, subject: `Seguimiento a ${studentName(s)}`, facts: reasons })} />}
+            {tab === 'criteria' && <CriteriaTab tenantId={tenantId} criteria={criteria} onSaved={() => { qc.invalidateQueries({ queryKey: ['school-criteria'] }); qc.invalidateQueries({ queryKey: ['students-at-risk'] }) }} />}
+            {tab === 'risk' && <RiskTab criteria={criteria} tenantId={tenantId} schoolYear={basics.data.schoolYear} students={students} groups={groups} log={data.log} onFollow={(s, reasons) => setEntry({ kind: 'SEGUIMIENTO_ALUMNO', student_id: s.id, subject: `Seguimiento a ${studentName(s)}`, facts: reasons })} />}
             {tab === 'indicators' && <IndicatorsTab tenantId={tenantId} own={data.own} onChanged={refresh} />}
 
-            {entry && <EntryModal key={entry.id ?? 'new'} entry={entry} {...ctx} onClose={() => setEntry(null)} onSaved={() => { setEntry(null); refresh() }} />}
+            {entry && <EntryModal key={entry.id ?? 'new'} defaultArea={myArea} entry={entry} {...ctx} onClose={() => setEntry(null)} onSaved={() => { setEntry(null); refresh() }} />}
             {scheduling && <ScheduleModal tenantId={tenantId} groups={groups} staff={staff} own={ownIndicators} myName={basics.myName} onClose={() => setScheduling(false)} onSaved={id => { setScheduling(false); refresh(); setVisitId(id) }} />}
             {visit && <VisitModal key={visit.id} visit={visit} own={ownIndicators} {...ctx} onClose={() => setVisitId(null)} onChanged={refresh} />}
         </div>
@@ -153,10 +160,10 @@ const LogTab = ({ log, students, groups, staff, onOpen }: { log: LogEntry[]; stu
 
 interface Ctx { tenantId: string; school: string; students: BasicStudent[]; groups: BasicGroup[]; staff: BasicStaff[]; myName: string; print: PrintFn }
 
-const EntryModal = ({ entry, tenantId, school, students, groups, staff, myName, print, onClose, onSaved }: Ctx & { entry: Partial<LogEntry>; onClose: () => void; onSaved: () => void }) => {
+const EntryModal = ({ entry, defaultArea, tenantId, school, students, groups, staff, myName, print, onClose, onSaved }: Ctx & { defaultArea: string; entry: Partial<LogEntry>; onClose: () => void; onSaved: () => void }) => {
     const d = entry.occurred_at ? new Date(entry.occurred_at) : new Date()
     const [kind, setKind] = useState(entry.kind ?? 'REUNION_FAMILIA')
-    const [area, setArea] = useState(entry.area ?? 'DIRECCION')
+    const [area, setArea] = useState(entry.area ?? defaultArea)
     const [date, setDate] = useState(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)
     const [time, setTime] = useState(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`)
     const [attendees, setAttendees] = useState(entry.attendees ?? '')
@@ -449,7 +456,8 @@ const VisitModal = ({ visit, own, tenantId, school, groups, staff, print, onClos
                     <div><span className="block text-xs font-black text-slate-600 mb-1">Fecha de la reunión</span><DateInput aria-label="Fecha de la reunión" value={feedbackDate} onChange={e => setFeedbackDate(e.target.value)} className="w-48" /></div>
                     <div><span className="block text-xs font-black text-slate-600 mb-1">Siguiente revisión</span><DateInput aria-label="Siguiente revisión" value={nextReview} onChange={e => setNextReview(e.target.value)} className="w-48" /></div>
                 </div>
-                <Label text="Lo que comenta el docente" className="mt-2"><textarea rows={3} value={comment} onChange={e => setComment(e.target.value)} placeholder="Su lectura de la sesión, lo que necesita, lo que propone" className={`${input} w-full py-2 resize-y`} /></Label>
+                {visit.teacher_note && <div className="bg-indigo-50 rounded-2xl p-3 mt-2"><p className="text-xs font-black text-indigo-800 mb-1">Comentario que escribió el docente desde su cuenta{visit.teacher_note_at ? ` · ${new Date(visit.teacher_note_at).toLocaleDateString('es-MX')}` : ''}</p><p className="text-sm text-slate-800 whitespace-pre-wrap">{visit.teacher_note}</p></div>}
+                <Label text="Lo que comenta el docente (en la reunión)" className="mt-2"><textarea rows={3} value={comment} onChange={e => setComment(e.target.value)} placeholder="Su lectura de la sesión, lo que necesita, lo que propone" className={`${input} w-full py-2 resize-y`} /></Label>
                 <div className="mt-2"><span className="block text-xs font-black text-slate-600 mb-1">Acuerdos y fechas de revisión</span><AgreementsEditor value={agreements} onChange={setAgreements} responsibleHint="Responsable (docente, dirección, coordinación…)" /></div>
                 <div className="flex flex-wrap gap-2 mt-3">
                     <button onClick={() => saveFeedback()} disabled={busy} className={primary}>Guardar retroalimentación</button>
@@ -520,11 +528,11 @@ const IndicatorsTab = ({ tenantId, own, onChanged }: { tenantId: string; own: Ow
 const RISK_LABEL: Record<string, string> = { ACADEMICO: 'Reprobación', CONDUCTA: 'Conducta', ASISTENCIA: 'Inasistencias', SOCIOEMOCIONAL: 'Socioemocional', DIAGNOSTICO: 'Diagnóstico' }
 const riskTone: Record<string, string> = { ACADEMICO: 'bg-rose-100 text-rose-800', CONDUCTA: 'bg-amber-100 text-amber-800', ASISTENCIA: 'bg-slate-200 text-slate-800', SOCIOEMOCIONAL: 'bg-indigo-100 text-indigo-800', DIAGNOSTICO: 'bg-sky-100 text-sky-800' }
 
-const RiskTab = ({ tenantId, schoolYear, students, groups, log, onFollow }: { tenantId: string; schoolYear: string; students: BasicStudent[]; groups: BasicGroup[]; log: LogEntry[]; onFollow: (s: BasicStudent, reasons: string) => void }) => {
+const RiskTab = ({ criteria, tenantId, schoolYear, students, groups, log, onFollow }: { criteria: Criteria; tenantId: string; schoolYear: string; students: BasicStudent[]; groups: BasicGroup[]; log: LogEntry[]; onFollow: (s: BasicStudent, reasons: string) => void }) => {
     const [groupId, setGroupId] = useState('')
     const [kind, setKind] = useState('ALL')
     const { data, isLoading, error } = useQuery({
-        queryKey: ['students-at-risk', tenantId, schoolYear],
+        queryKey: ['students-at-risk', tenantId, schoolYear, criteria],
         queryFn: async () => {
             const [risk, inst] = await Promise.all([
                 supabase.rpc('students_at_risk'),
@@ -540,7 +548,7 @@ const RiskTab = ({ tenantId, schoolYear, students, groups, log, onFollow }: { te
                     for (const r of (page ?? []) as { instrument_id: string; student_id: string; answers: Answers; absent: boolean }[]) {
                         const i = instruments.find(x => x.id === r.instrument_id)
                         if (!i || r.absent) continue
-                        const low = scoreStudent(i.kind, Array.isArray(i.items) ? i.items : [], r.answers)?.byTopic.filter(t => t.level === 'APOYO').map(t => t.topic) ?? []
+                        const low = scoreStudent(i.kind, Array.isArray(i.items) ? i.items : [], r.answers, criteria)?.byTopic.filter(t => t.level === 'APOYO').map(t => t.topic) ?? []
                         if (!low.length) continue
                         const target = i.kind === 'SOCIOEMOCIONAL' ? socio : diag
                         target[r.student_id] = [...new Set([...(target[r.student_id] ?? []), ...low])]
@@ -548,7 +556,7 @@ const RiskTab = ({ tenantId, schoolYear, students, groups, log, onFollow }: { te
                     if (!page || page.length < 1000) break
                 }
             }
-            return buildRiskCases((risk.data ?? []) as RiskRow[], socio, diag)
+            return buildRiskCases((risk.data ?? []) as RiskRow[], socio, diag, criteria)
         },
     })
     const cases = useMemo(() => (data ?? []).map(c => ({ ...c, student: students.find(s => s.id === c.studentId) }))
@@ -559,7 +567,7 @@ const RiskTab = ({ tenantId, schoolYear, students, groups, log, onFollow }: { te
     if (error) return <p role="alert" className="bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl p-4 text-sm font-bold">No se pudo calcular: {(error as Error).message}</p>
     return (
         <>
-            <p className="text-sm text-slate-600">Se detecta con lo que ya está en el sistema: promedio reprobatorio por materia, tres o más incidencias de conducta en 60 días o una grave en seguimiento, cuatro o más faltas en 30 días, y «requiere apoyo» en la encuesta socioemocional o en el diagnóstico. Es una señal para acercarse, no una etiqueta.</p>
+            <p className="text-sm text-slate-600">Se detecta con lo que ya está en el sistema: promedio por materia menor a {criteria.risk_min_average}; {criteria.risk_conduct_count} o más incidencias de conducta en {criteria.risk_conduct_days} días, o una grave en seguimiento; {criteria.risk_absences} o más faltas en {criteria.risk_absence_days} días; y «requiere apoyo» en la encuesta socioemocional o en el diagnóstico. Es una señal para acercarse, no una etiqueta. Estos números se cambian en la pestaña «Criterios».</p>
             <div className="flex flex-wrap gap-2">
                 <select aria-label="Grupo" value={groupId} onChange={e => setGroupId(e.target.value)} className={input}><option value="">Toda la escuela</option>{groups.map(g => <option key={g.id} value={g.id}>{groupName(g)}</option>)}</select>
                 <select aria-label="Señal" value={kind} onChange={e => setKind(e.target.value)} className={input}><option value="ALL">Todas las señales</option>{Object.entries(RISK_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
@@ -584,5 +592,60 @@ const RiskTab = ({ tenantId, schoolYear, students, groups, log, onFollow }: { te
                 </ul>
             )}
         </>
+    )
+}
+
+// ---------------------------------------------------------------- Criterios de la escuela
+
+const NumberField = ({ label, value, onChange, step = 1, suffix }: { label: string; value: number; onChange: (v: number) => void; step?: number; suffix?: string }) => (
+    <label className="flex flex-wrap items-center gap-2 text-sm font-bold text-slate-800">
+        <span className="flex-1 min-w-56">{label}</span>
+        <input type="number" inputMode="decimal" step={step} value={Number.isFinite(value) ? value : ''} onChange={e => onChange(e.target.value === '' ? NaN : Number(e.target.value))} className={`${input} w-24 text-right`} />
+        {suffix && <span className="w-16 text-slate-500">{suffix}</span>}
+    </label>
+)
+
+const CriteriaTab = ({ tenantId, criteria, onSaved }: { tenantId: string; criteria: Criteria; onSaved: () => void }) => {
+    const [c, setC] = useState<Criteria>(criteria)
+    const [busy, setBusy] = useState(false)
+    const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+    const set = (k: keyof Criteria) => (v: number) => { setC({ ...c, [k]: v }); setMsg(null) }
+    const problems = criteriaProblems(c)
+    const save = async (next: Criteria) => {
+        setBusy(true); setMsg(null)
+        const { error } = await supabase.from('school_criteria').upsert({ tenant_id: tenantId, ...next, updated_at: new Date().toISOString() }, { onConflict: 'tenant_id' })
+        setBusy(false)
+        if (error) return setMsg({ ok: false, text: error.message })
+        setC(next); setMsg({ ok: true, text: 'Criterios guardados. Ya se aplican en «Alumnos en riesgo» y en la interpretación del diagnóstico y la encuesta.' }); onSaved()
+    }
+    return (
+        <div className="space-y-4">
+            <p className="text-sm text-slate-600">Con estos números la escuela decide cuándo un alumno aparece en riesgo y cómo se leen el diagnóstico y la encuesta. Aplican a toda la escuela y a lo ya capturado.</p>
+            <section className="bg-white border border-slate-200 rounded-3xl p-4 space-y-3">
+                <h2 className="font-black text-slate-900">Alumnos en riesgo</h2>
+                <NumberField label="Promedio por materia menor a" value={c.risk_min_average} step={0.1} onChange={set('risk_min_average')} />
+                <NumberField label="Incidencias de conducta a partir de" value={c.risk_conduct_count} onChange={set('risk_conduct_count')} suffix="o más" />
+                <NumberField label="…contadas en los últimos" value={c.risk_conduct_days} onChange={set('risk_conduct_days')} suffix="días" />
+                <NumberField label="Faltas a partir de" value={c.risk_absences} onChange={set('risk_absences')} suffix="o más" />
+                <NumberField label="…contadas en los últimos" value={c.risk_absence_days} onChange={set('risk_absence_days')} suffix="días" />
+                <p className="text-xs text-slate-500">Una incidencia grave en seguimiento siempre enciende la señal.</p>
+            </section>
+            <section className="bg-white border border-slate-200 rounded-3xl p-4 space-y-3">
+                <h2 className="font-black text-slate-900">Examen diagnóstico (porcentaje de aciertos)</h2>
+                <NumberField label="«Esperado» desde" value={c.diag_expected} onChange={set('diag_expected')} suffix="%" />
+                <NumberField label="«Requiere apoyo» con menos de" value={c.diag_support} onChange={set('diag_support')} suffix="%" />
+            </section>
+            <section className="bg-white border border-slate-200 rounded-3xl p-4 space-y-3">
+                <h2 className="font-black text-slate-900">Encuesta socioemocional (promedio de 1 a 4)</h2>
+                <NumberField label="«Esperado» desde" value={c.socio_expected} step={0.1} onChange={set('socio_expected')} />
+                <NumberField label="«Requiere apoyo» con menos de" value={c.socio_support} step={0.1} onChange={set('socio_support')} />
+            </section>
+            {problems.length > 0 && <ul role="alert" className="text-sm font-bold text-rose-800 bg-rose-50 rounded-2xl px-4 py-3 list-disc pl-8">{problems.map(p => <li key={p}>{p}</li>)}</ul>}
+            <Notice msg={msg} />
+            <div className="flex flex-wrap justify-end gap-2">
+                <button onClick={() => save(DEFAULT_CRITERIA)} disabled={busy || sameCriteria(criteria, DEFAULT_CRITERIA)} className={ghost}>Volver a los valores iniciales</button>
+                <button onClick={() => save(c)} disabled={busy || problems.length > 0 || sameCriteria(c, criteria)} className={primary}>{busy && <Loader2 className="w-4 h-4 animate-spin" />} Guardar criterios</button>
+            </div>
+        </div>
     )
 }

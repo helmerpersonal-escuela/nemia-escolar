@@ -4,9 +4,11 @@ import { AlertTriangle, ArrowLeft, CheckCircle2, ClipboardList, HeartHandshake, 
 import { supabase } from '../../../lib/supabase'
 import { groupName, studentName, useSchoolBasics, type BasicGroup, type BasicStudent } from '../../../hooks/useSchoolBasics'
 import { SheetHeader, usePrint } from '../../../components/ui/PrintSheet'
+import { useCriteria } from '../../../hooks/useCriteria'
+import type { Criteria } from '../../../lib/criteria'
 import { askConfirm } from '../../../components/ui/ConfirmDialog'
 import {
-    LEVEL_LABEL, SCALE, SOCIO_DIMENSIONS, SOCIO_TEMPLATE, answeredCount, formatScore, newItemId, scoreStudent, summarizeGroup,
+    LEVEL_LABEL, SCALE, levelRules, SOCIO_DIMENSIONS, SOCIO_TEMPLATE, answeredCount, formatScore, newItemId, scoreStudent, summarizeGroup,
     type Answers, type InstrumentKind, type Item, type Level,
 } from '../lib/instruments'
 
@@ -30,6 +32,7 @@ export const InstrumentsPage = () => {
     const qc = useQueryClient()
     const { sheet, print } = usePrint()
     const [view, setView] = useState<View>({ mode: 'list' })
+    const { criteria } = useCriteria(tenantId)
 
     const { data, isLoading, error } = useQuery({
         queryKey: [KEY, tenantId],
@@ -93,8 +96,8 @@ export const InstrumentsPage = () => {
                 </>
             )}
             {view.mode === 'edit' && <Editor tenantId={tenantId} schoolYear={schoolYear} grades={[...new Set(groups.map(g => g.grade))]} instrument={view.instrument} kind={view.kind} onDone={back} />}
-            {view.mode === 'capture' && <Capture tenantId={tenantId} instrument={view.instrument} groups={groups} students={students} onBack={back} />}
-            {view.mode === 'results' && <Results school={basics.schoolName} instrument={view.instrument} groups={groups} students={students} onBack={back} print={print} />}
+            {view.mode === 'capture' && <Capture criteria={criteria} tenantId={tenantId} instrument={view.instrument} groups={groups} students={students} onBack={back} />}
+            {view.mode === 'results' && <Results criteria={criteria} school={basics.schoolName} instrument={view.instrument} groups={groups} students={students} onBack={back} print={print} />}
         </div>
     )
 }
@@ -232,7 +235,7 @@ function useResults(instrumentId: string) {
     })
 }
 
-const Capture = ({ tenantId, instrument, groups, students, onBack }: { tenantId: string; instrument: Instrument; groups: BasicGroup[]; students: BasicStudent[]; onBack: () => void }) => {
+const Capture = ({ criteria, tenantId, instrument, groups, students, onBack }: { criteria: Criteria; tenantId: string; instrument: Instrument; groups: BasicGroup[]; students: BasicStudent[]; onBack: () => void }) => {
     const qc = useQueryClient()
     const saved = useResults(instrument.id)
     const myGroups = groups.filter(g => !instrument.grade || g.grade === instrument.grade)
@@ -285,7 +288,7 @@ const Capture = ({ tenantId, instrument, groups, students, onBack }: { tenantId:
                             <tbody>
                                 {roster.map(s => {
                                     const r = rowOf(s.id)
-                                    const score = r.absent ? null : scoreStudent(instrument.kind, instrument.items, r.answers)
+                                    const score = r.absent ? null : scoreStudent(instrument.kind, instrument.items, r.answers, criteria)
                                     return (
                                         <tr key={s.id} className="border-t border-slate-100">
                                             <th scope="row" className="sticky left-0 bg-white text-left px-3 py-1.5 font-bold text-slate-800 whitespace-nowrap">{studentName(s)}</th>
@@ -324,17 +327,17 @@ const Capture = ({ tenantId, instrument, groups, students, onBack }: { tenantId:
 
 // ---------------------------------------------------------------- Interpretación
 
-const Results = ({ school, instrument, groups, students, onBack, print }: { school: string; instrument: Instrument; groups: BasicGroup[]; students: BasicStudent[]; onBack: () => void; print: (n: React.ReactNode) => void }) => {
+const Results = ({ criteria, school, instrument, groups, students, onBack, print }: { criteria: Criteria; school: string; instrument: Instrument; groups: BasicGroup[]; students: BasicStudent[]; onBack: () => void; print: (n: React.ReactNode) => void }) => {
     const saved = useResults(instrument.id)
     const [groupId, setGroupId] = useState('')
     const [only, setOnly] = useState<'ALL' | Level>('ALL')
     const scope = groups.filter(g => !instrument.grade || g.grade === instrument.grade)
     const rows = useMemo(() => (saved.data ?? []).filter(r => !r.absent && (!groupId || r.group_id === groupId)), [saved.data, groupId])
-    const summary = useMemo(() => summarizeGroup(instrument.kind, instrument.items, rows.map(r => r.answers)), [instrument, rows])
+    const summary = useMemo(() => summarizeGroup(instrument.kind, instrument.items, rows.map(r => r.answers), criteria), [instrument, rows, criteria])
     const expected = students.filter(s => s.status !== 'INACTIVE' && (groupId ? s.group_id === groupId : scope.some(g => g.id === s.group_id))).length
-    const table = useMemo(() => rows.map(r => ({ r, student: students.find(s => s.id === r.student_id), score: scoreStudent(instrument.kind, instrument.items, r.answers) }))
+    const table = useMemo(() => rows.map(r => ({ r, student: students.find(s => s.id === r.student_id), score: scoreStudent(instrument.kind, instrument.items, r.answers, criteria) }))
         .filter((x): x is typeof x & { score: NonNullable<typeof x.score> } => !!x.score && !!x.student)
-        .sort((a, b) => a.score.value - b.score.value), [rows, students, instrument])
+        .sort((a, b) => a.score.value - b.score.value), [rows, students, instrument, criteria])
     const shown = table.filter(x => only === 'ALL' || x.score.level === only)
     const diag = instrument.kind === 'DIAGNOSTICO'
     const lowest = summary.topics[0]
@@ -381,7 +384,7 @@ const Results = ({ school, instrument, groups, students, onBack, print }: { scho
                     <section className="bg-white border border-slate-200 rounded-3xl p-4 space-y-2">
                         <h2 className="font-black text-slate-900">Qué dicen los resultados</h2>
                         {body}
-                        <p className="text-xs text-slate-500">{diag ? 'Niveles: esperado 80% o más de aciertos, en desarrollo de 60 a 79%, requiere apoyo menos de 60%.' : 'Niveles sobre el promedio de 1 a 4: esperado 3.0 o más, en desarrollo de 2.2 a 2.9, requiere apoyo menos de 2.2. Es una señal para acercarse al alumno, no un diagnóstico clínico.'}</p>
+                        <p className="text-xs text-slate-500">{levelRules(instrument.kind, criteria)} La dirección puede cambiar estos criterios en su bitácora.</p>
                     </section>
 
                     <section className="bg-white border border-slate-200 rounded-3xl p-4">

@@ -56,6 +56,7 @@ const SuperAdminDashboard = lazyNamed(() => import('./features/admin/pages/Super
 const AdminDashboard = lazyNamed(() => import('./features/admin/pages/AdminDashboard'), 'AdminDashboard')
 const PEMCPage = lazyNamed(() => import('./features/admin/pages/PEMCPage'), 'PEMCPage')
 const InstrumentsPage = lazyNamed(() => import('./features/instruments/pages/InstrumentsPage'), 'InstrumentsPage')
+const MyVisitsPage = lazyNamed(() => import('./features/direction/pages/MyVisitsPage'), 'MyVisitsPage')
 const DirectionLogPage = lazyNamed(() => import('./features/direction/pages/DirectionLogPage'), 'DirectionLogPage')
 const StudentLookupPage = lazyNamed(() => import('./features/students/pages/StudentLookupPage'), 'StudentLookupPage')
 const StaffControlCenter = lazyNamed(() => import('./features/admin/pages/StaffControlCenter'), 'StaffControlCenter')
@@ -382,6 +383,11 @@ function App() {
           <Route path="diagnostico" element={
             <ProtectedRoute allowedRoles={['DIRECTOR', 'ADMIN', 'ACADEMIC_COORD', 'TECH_COORD', 'TEACHER', 'PREFECT', 'SUPPORT', 'SOCIAL_WORKER']}>
               <InstrumentsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="mis-visitas" element={
+            <ProtectedRoute allowedRoles={['TEACHER', 'DIRECTOR', 'ADMIN', 'ACADEMIC_COORD', 'TECH_COORD']}>
+              <MyVisitsPage />
             </ProtectedRoute>
           } />
           <Route path="direccion/bitacora" element={

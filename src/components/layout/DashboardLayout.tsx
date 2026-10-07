@@ -633,6 +633,7 @@ export const DashboardLayout = () => {
                     { label: 'Portafolio de alumnos', path: '/evaluation/portfolio' },
                     { label: 'Herramientas formativas', path: '/evaluation/formative' },
                     { label: 'Diagnóstico y encuesta socioemocional', path: '/diagnostico' },
+                    { label: 'Mis visitas de acompañamiento', path: '/mis-visitas' },
                     { label: 'Grupo que asesoro', path: '/asesoria' },
                     { label: 'Credenciales de mis alumnos', path: '/credenciales' },
                     { label: 'Mi horario', path: '/schedule' },
@@ -815,7 +816,7 @@ export const DashboardLayout = () => {
         '/settings': 'Configuración', '/gradebook': 'Libreta', '/planning/new': 'Nueva planeación', '/planning': 'Planeaciones',
         '/messages': 'Mensajes', '/agenda': 'Calendario', '/cte': 'Consejo Técnico', '/libros': 'Libros de texto',
         '/paywall': 'Planes y licencia', '/suscripcion': 'Suscripción', '/students': 'Alumnos', '/alumnos/consulta': 'Consulta de alumnos', '/groups': 'Grupos', '/nem-assistant': 'Asistente NEM', '/asesoria': 'Grupo que asesoro', '/formatos': 'Mis formatos', '/mis-pdas': 'PDAs, ejes y metodologías',
-        '/rubrics': 'Instrumentos', '/schedule': 'Horario', '/admin/pemc': 'PEMC', '/admin/staff': 'Personal', '/incidents': 'Bitácora de incidencias', '/diagnostico': 'Diagnóstico y socioemocional', '/direccion/bitacora': 'Bitácora de la dirección',
+        '/rubrics': 'Instrumentos', '/schedule': 'Horario', '/admin/pemc': 'PEMC', '/admin/staff': 'Personal', '/incidents': 'Bitácora de incidencias', '/diagnostico': 'Diagnóstico y socioemocional', '/direccion/bitacora': 'Bitácora de la dirección', '/mis-visitas': 'Mis visitas de acompañamiento',
         '/sumar-mi-espacio': 'Sumar mi espacio personal', '/familias/accesos': 'Cuentas con acceso', '/acceso': 'Control de acceso', '/credenciales': 'Credenciales', '/solicitudes': 'Solicitudes', '/bitacora': 'Bitácora de cambios', '/importar-datos': 'Importar datos', '/familias/codigos': 'Códigos para familias',
     }
     const path = location.pathname
