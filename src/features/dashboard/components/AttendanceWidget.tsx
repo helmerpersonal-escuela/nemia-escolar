@@ -229,7 +229,7 @@ export const AttendanceWidget = () => {
                 </div>
                 <div className="text-right">
                     <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest leading-none">Hoy</p>
-                    <p className="text-xs font-bold text-slate-600">{currentDate.toLocaleDateString()}</p>
+                    <p className="text-xs font-bold text-slate-600">{currentDate.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}</p>
                 </div>
             </div>
 
@@ -283,7 +283,7 @@ export const AttendanceWidget = () => {
             {/* Module Attendance for Teachers */}
             {isTeacher && (
                 <div className="flex-1 overflow-y-auto space-y-3 pr-1 -mr-1">
-                    <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">Clases de Hoy (Módulos)</h4>
+                    <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">Clases de hoy</h4>
                     {teacherModules.length > 0 ? (
                         teacherModules.map(module => {
                             const active = isCurrentModule(module.start_time, module.end_time)

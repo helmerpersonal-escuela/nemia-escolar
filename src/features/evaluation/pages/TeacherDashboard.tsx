@@ -208,59 +208,47 @@ export const TeacherDashboard = () => {
             <SpecialDayBanner special={specialDay} suspended={suspendedCount}
                 label={isoDate(selectedDate) === isoDate(new Date()) ? 'Hoy' : 'Ese día'} />
 
-            {/* 1. Header & Quick Actions */}
-            <header className="relative overflow-hidden bg-slate-900 rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-12 text-white shadow-2xl">
-                {/* Background Pattern */}
-                <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-blue-500/20 to-transparent skew-x-12 translate-x-1/4 pointer-events-none" />
-
-                <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
-                    <div>
-                        <div className="flex items-center gap-3 mb-4">
-                            <span className="px-3 py-1 bg-blue-500/20 border border-blue-400/30 rounded-full text-[11px] font-black uppercase tracking-widest text-blue-300 backdrop-blur-md">
-                                {tenant?.name || 'Escuela'}
-                            </span>
-                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
-                                {currentTime.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}
-                            </span>
-                        </div>
-                        <h1 className="text-2xl sm:text-5xl font-black tracking-tight leading-tight">
-                            {currentTime.getHours() < 12 ? 'Buenos días' : currentTime.getHours() < 19 ? 'Buenas tardes' : 'Buenas noches'},<br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-indigo-300">
-                                {profile?.first_name || 'Profesor'}
-                            </span>
+            {/* 1. Saludo compacto y accesos rápidos (las clases quedan a la vista) */}
+            <header className="bg-white rounded-3xl border border-slate-100 shadow-sm p-4 sm:p-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="min-w-0">
+                        <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-tight">
+                            {currentTime.getHours() < 12 ? 'Buenos días' : currentTime.getHours() < 19 ? 'Buenas tardes' : 'Buenas noches'},{' '}
+                            <span className="text-indigo-600">{profile?.first_name || 'Profesor'}</span>
                         </h1>
+                        <p className="mt-0.5 text-xs sm:text-sm text-slate-500 font-medium truncate">
+                            <span className="capitalize">{currentTime.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' })}</span>
+                            {tenant?.name && <> · {tenant.name}</>}
+                        </p>
                     </div>
 
-                    <div className="flex flex-wrap gap-3">
-                        <button
-                            onClick={() => navigate('/gradebook?tab=EVALUATION')}
-                            className="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-3 shadow-xl group btn-tactile"
-                        >
-                            <BookOpen className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                            Libreta
-                        </button>
-                        <button
-                            onClick={() => setIsReportModalOpen(true)}
-                            className="bg-white text-slate-900 px-4 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-3 shadow-xl group border border-slate-100 btn-tactile"
-                        >
-                            <Printer className="w-4 h-4 text-blue-600 group-hover:rotate-12 transition-transform" />
-                            Informe Alumno
-                        </button>
-                        {tenant?.type !== 'INDEPENDENT' && tenant?.role !== 'INDEPENDENT_TEACHER' && profile?.role !== 'INDEPENDENT_TEACHER' && (
-                            <button
-                                onClick={() => navigate('/cte')}
-                                className="bg-indigo-600 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center gap-3 shadow-xl group btn-tactile"
-                            >
-                                <ClipboardList className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                                Consejo Técnico
-                            </button>
-                        )}
-                    </div>
+                    {(() => {
+                        const showCte = tenant?.type !== 'INDEPENDENT' && tenant?.role !== 'INDEPENDENT_TEACHER' && profile?.role !== 'INDEPENDENT_TEACHER'
+                        const btn = 'flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 min-h-[56px] md:min-h-[44px] px-2 md:px-4 rounded-2xl text-[11px] sm:text-xs font-bold leading-tight text-center transition-colors btn-tactile'
+                        return (
+                            <div className={`grid ${showCte ? 'grid-cols-3' : 'grid-cols-2'} gap-2 md:flex md:gap-3 shrink-0`}>
+                                <button onClick={() => navigate('/gradebook?tab=EVALUATION')} className={`${btn} bg-indigo-600 text-white hover:bg-indigo-700`}>
+                                    <BookOpen className="w-5 h-5 md:w-4 md:h-4" />
+                                    Libreta
+                                </button>
+                                <button onClick={() => setIsReportModalOpen(true)} className={`${btn} bg-slate-50 text-slate-800 border border-slate-100 hover:bg-indigo-50`}>
+                                    <Printer className="w-5 h-5 md:w-4 md:h-4 text-indigo-600" />
+                                    Informe alumno
+                                </button>
+                                {showCte && (
+                                    <button onClick={() => navigate('/cte')} className={`${btn} bg-slate-50 text-slate-800 border border-slate-100 hover:bg-indigo-50`}>
+                                        <ClipboardList className="w-5 h-5 md:w-4 md:h-4 text-indigo-600" />
+                                        Consejo Técnico
+                                    </button>
+                                )}
+                            </div>
+                        )
+                    })()}
                 </div>
             </header>
 
             {/* 2. Top Tier Widgets */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
                 {/* Attendance Widget (Large) */}
                 {tenant?.type !== 'INDEPENDENT' && (
                     <div className="lg:col-span-1">
@@ -269,7 +257,7 @@ export const TeacherDashboard = () => {
                 )}
 
                 {/* Main Action Card (Contextual) */}
-                <div className={`lg:col-span-${tenant?.type === 'INDEPENDENT' ? '2' : '2'} space-y-6`}>
+                <div className={`lg:col-span-2 space-y-6 ${currentClass ? 'order-first lg:order-none' : ''}`}>
                     {currentClass ? (
                         <div className="bg-blue-600 rounded-[2.5rem] p-6 sm:p-8 text-white shadow-2xl shadow-blue-200 relative overflow-hidden h-full flex flex-col justify-between squishy-card border-none">
                             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none" />
