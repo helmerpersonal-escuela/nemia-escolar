@@ -533,6 +533,7 @@ export const DashboardLayout = () => {
                     { label: 'Validar planeaciones', path: '/planning' },
                     { label: 'Estadísticas', path: '/stats' },
                     { label: 'Cuentas con acceso (familias)', path: '/familias/accesos' },
+                    { label: 'Credenciales (NFC / QR)', path: '/credenciales' },
                     { label: 'Control de acceso (credencial)', path: '/acceso' },
                     { label: 'Programa analítico', path: '/analytical-program' },
                     { label: 'PDAs, ejes y metodologías', path: '/mis-pdas' },
