@@ -208,16 +208,13 @@ export const TutorDashboard = () => {
     }
 
     return (
-        <div className="space-y-6 md:space-y-12 animate-in fade-in duration-1000 pb-20 px-4 md:px-4">
-            {/* Header section */}
-            <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-                <div className="text-center md:text-left">
-                    <h1 className="text-2xl md:text-4xl font-black text-gray-900 tracking-tight leading-none mb-2">Panel del Tutor</h1>
-                    <p className="text-gray-500 font-bold uppercase tracking-widest text-[11px] md:text-xs">Acompañamiento Académico</p>
-                </div>
-                <div className="flex flex-col items-center md:items-end gap-1">
-                    <Link to="/familia" className="text-sm font-bold text-rose-600 hover:underline">+ Agregar a otro hijo(a) o tutorado</Link>
-                    <button type="button" onClick={() => setShowPhones(v => !v)} className="text-sm font-bold text-slate-600 hover:underline">
+        <div className="space-y-4 md:space-y-8 animate-in fade-in duration-1000 pb-20 px-3 md:px-4">
+            {/* Encabezado compacto */}
+            <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
+                <h1 className="text-xl md:text-3xl font-black text-gray-900 tracking-tight leading-tight">Panel del tutor</h1>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs md:text-sm font-bold">
+                    <Link to="/familia" className="text-rose-600 hover:underline">+ Agregar hijo(a)</Link>
+                    <button type="button" onClick={() => setShowPhones(v => !v)} className="text-slate-600 hover:underline">
                         {showPhones ? 'Ocultar mis teléfonos' : 'Mis teléfonos de emergencia'}
                     </button>
                 </div>
@@ -232,81 +229,55 @@ export const TutorDashboard = () => {
             <div className="hidden">
             </div>
 
-            {/* Children Cards Grid (The "Mis Hijos" Selector) */}
+            {/* Selector de hijos: fila compacta */}
             {children.length > 1 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-in slide-in-from-top duration-700">
-                    <div className="col-span-full">
-                        <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-4 px-2 flex items-center gap-2">
-                            <Users className="w-4 h-4" /> Mis Hijos Linkeados
-                        </h3>
-                    </div>
-                    {children.map(child => (
-                        <button
-                            key={child.id}
-                            onClick={() => setSelectedChild(child)}
-                            className={`
-                                p-6 rounded-[2.5rem] border-4 transition-all text-left relative overflow-hidden active:scale-95 group
-                                ${selectedChild?.id === child.id
-                                    ? 'bg-white border-blue-600 shadow-2xl shadow-blue-500/10'
-                                    : 'bg-slate-50 border-transparent hover:bg-white hover:border-slate-100 hover:shadow-xl'}
-                            `}
-                        >
-                            <div className="flex items-center gap-4 relative z-10">
-                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner ${selectedChild?.id === child.id ? 'bg-blue-100 text-blue-600' : 'bg-slate-200 text-slate-500'}`}>
-                                    <GraduationCap className="w-8 h-8 stroke-[2.5]" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-[11px] font-black uppercase text-blue-500 mb-1 tracking-widest">
-                                        {child.group?.grade}° {child.group?.section}
-                                    </p>
-                                    <h4 className="text-lg font-black text-slate-900 truncate tracking-tight">
-                                        {child.first_name} {child.last_name_paternal}
-                                    </h4>
-                                </div>
-                                {selectedChild?.id === child.id && (
-                                    <div className="bg-blue-600 text-white p-2 rounded-full shadow-lg shadow-blue-500/40">
-                                        <CheckCircle2 className="w-5 h-5 stroke-[3]" />
-                                    </div>
-                                )}
-                            </div>
-                            {selectedChild?.id === child.id && (
-                                <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/5 rounded-full -mr-10 -mt-10 blur-2xl" />
-                            )}
-                        </button>
-                    ))}
+                <div role="tablist" aria-label="Mis hijos" className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+                    {children.map(child => {
+                        const active = selectedChild?.id === child.id
+                        return (
+                            <button
+                                key={child.id}
+                                type="button"
+                                role="tab"
+                                aria-selected={active}
+                                onClick={() => setSelectedChild(child)}
+                                className={`shrink-0 flex items-center gap-2 pl-2 pr-4 py-2 rounded-2xl border-2 text-left transition-colors ${active ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-200 text-slate-800 hover:border-blue-300'}`}
+                            >
+                                <span className={`w-8 h-8 rounded-xl flex items-center justify-center ${active ? 'bg-white/20' : 'bg-slate-100 text-slate-500'}`}>
+                                    <GraduationCap className="w-5 h-5" />
+                                </span>
+                                <span className="leading-tight">
+                                    <span className="block text-sm font-black">{child.first_name}</span>
+                                    <span className={`block text-[11px] font-bold ${active ? 'text-blue-100' : 'text-slate-500'}`}>
+                                        {child.group ? `${child.group.grade}° ${child.group.section}` : 'Sin grupo'}
+                                    </span>
+                                </span>
+                            </button>
+                        )
+                    })}
                 </div>
             )}
 
-            {/* Squishy Hero Block (Highlights Selected Child) */}
+            {/* Hijo seleccionado: nombre, grupo, promedio y asistencia en una franja */}
             {selectedChild && (
-                <div className="bg-gradient-to-br from-blue-600 to-indigo-800 rounded-[2rem] md:rounded-[3.5rem] p-6 md:p-10 text-white shadow-[0_30px_60px_-15px_rgba(37,99,235,0.4)] relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl animate-pulse" />
-                    <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-6 md:gap-8">
-                        <div className="text-center lg:text-left">
-                            <div className="flex items-center justify-center lg:justify-start gap-4 mb-4">
-                                <div className="bg-white/20 p-3 md:p-4 rounded-[1.5rem] backdrop-blur-md shadow-inner">
-                                    <GraduationCap className="h-6 w-6 md:h-8 md:w-8 text-white stroke-[2.5]" />
-                                </div>
-                                <span className="font-black bg-white/20 px-4 py-1.5 md:px-6 md:py-2 rounded-full text-xs md:text-sm backdrop-blur-md border border-white/20">
-                                    {selectedChild.group
-                                        ? `${selectedChild.group.grade}° ${selectedChild.group.section}`
-                                        : 'Sin Grupo'
-                                    }
-                                </span>
-                            </div>
-                            <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-2 drop-shadow-md">
-                                {selectedChild.first_name} <br className="md:hidden" /> {selectedChild.last_name_paternal}
+                <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl p-4 md:p-6 text-white shadow-lg shadow-blue-500/20">
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                            <p className="text-[11px] md:text-xs font-bold text-blue-100 uppercase tracking-widest">
+                                {selectedChild.group ? `${selectedChild.group.grade}° ${selectedChild.group.section}` : 'Sin grupo'}
+                            </p>
+                            <h2 className="text-xl md:text-3xl font-black tracking-tight leading-tight truncate">
+                                {selectedChild.first_name} {selectedChild.last_name_paternal}
                             </h2>
-                            <p className="text-blue-100 text-sm md:text-lg font-bold opacity-80 uppercase tracking-wide">Reporte en tiempo real</p>
                         </div>
-                        <div className="flex gap-4 md:gap-6 w-full md:w-auto justify-center">
-                            <div className="bg-white/10 backdrop-blur-xl p-4 md:p-8 rounded-[2rem] md:rounded-[3rem] text-center flex-1 md:min-w-[140px] border border-white/10 shadow-xl active:scale-95 transition-transform">
-                                <p className="text-[11px] md:text-[11px] font-black uppercase tracking-[0.2em] text-blue-200 mb-1">Promedio</p>
-                                <p className="text-2xl md:text-4xl font-black leading-none">{stats.average.toFixed(1)}</p>
+                        <div className="flex gap-2 shrink-0">
+                            <div className="bg-white/15 rounded-2xl px-3 py-2 md:px-5 md:py-3 text-center min-w-[72px]">
+                                <p className="text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-blue-100">Promedio</p>
+                                <p className="text-xl md:text-2xl font-black leading-none mt-0.5">{stats.average.toFixed(1)}</p>
                             </div>
-                            <div className="bg-white/10 backdrop-blur-xl p-4 md:p-8 rounded-[2rem] md:rounded-[3rem] text-center flex-1 md:min-w-[140px] border border-white/10 shadow-xl active:scale-95 transition-transform">
-                                <p className="text-[11px] md:text-[11px] font-black uppercase tracking-[0.2em] text-blue-200 mb-1">Asistencia</p>
-                                <p className="text-2xl md:text-4xl font-black leading-none">{stats.attendance}%</p>
+                            <div className="bg-white/15 rounded-2xl px-3 py-2 md:px-5 md:py-3 text-center min-w-[72px]">
+                                <p className="text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-blue-100">Asistencia</p>
+                                <p className="text-xl md:text-2xl font-black leading-none mt-0.5">{stats.attendance}%</p>
                             </div>
                         </div>
                     </div>
@@ -314,30 +285,30 @@ export const TutorDashboard = () => {
             )}
 
             {/* SECTION 1: ACTVIDADES PENDIENTES (The #1 Priority) */}
-            <div className="space-y-6">
-                <div className="flex items-center gap-4 px-2 md:px-4">
-                    <div className="p-2 md:p-3 bg-amber-100 text-amber-700 rounded-xl md:rounded-2xl">
-                        <AlertCircle className="w-6 h-6 md:w-8 md:h-8 stroke-[3]" />
+            <div className="space-y-3 md:space-y-6">
+                <div className="flex items-center gap-3 px-1 md:px-2">
+                    <div className="p-2 bg-amber-100 text-amber-700 rounded-xl">
+                        <AlertCircle className="w-5 h-5 md:w-6 md:h-6 stroke-[3]" />
                     </div>
                     <div>
-                        <h3 className="text-xl md:text-3xl font-black text-slate-900 tracking-tight">Actividades Pendientes</h3>
-                        <p className="text-slate-500 font-bold text-[11px] md:text-sm uppercase tracking-widest">Lo que requiere atención inmediata</p>
+                        <h3 className="text-lg md:text-2xl font-black text-slate-900 tracking-tight leading-tight">Actividades pendientes</h3>
+                        <p className="text-slate-500 font-bold text-[11px] md:text-xs uppercase tracking-widest">Sin entregar ni calificar</p>
                     </div>
                     {pendingActivities.length > 0 && (
-                        <span className="ml-auto bg-amber-500 text-white px-6 py-2 rounded-full font-black text-xl shadow-lg shadow-amber-500/30">
+                        <span className="ml-auto bg-amber-500 text-white px-4 py-1 rounded-full font-black text-base md:text-lg">
                             {pendingActivities.length}
                         </span>
                     )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                     {pendingActivities.length === 0 ? (
-                        <div className="col-span-full bg-emerald-50 rounded-[3rem] p-16 text-center border-4 border-dashed border-emerald-100 outline-none">
-                            <div className="bg-white w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-emerald-500/10 active:scale-95 transition-transform cursor-pointer">
-                                <CheckCircle2 className="w-12 h-12 text-emerald-700 stroke-[3]" />
+                        <div className="col-span-full bg-emerald-50 rounded-3xl p-6 md:p-8 text-center border-2 border-dashed border-emerald-200">
+                            <div className="bg-white w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <CheckCircle2 className="w-8 h-8 text-emerald-700 stroke-[2.5]" />
                             </div>
-                            <h4 className="text-2xl font-black text-emerald-900 mb-2">¡Todo al día!</h4>
-                            <p className="text-emerald-700 font-bold text-lg">No hay actividades atrasadas ni pendientes.</p>
+                            <h4 className="text-lg font-black text-emerald-900 mb-1">¡Todo al día!</h4>
+                            <p className="text-emerald-700 font-bold text-sm">No hay actividades atrasadas ni pendientes.</p>
                         </div>
                     ) : (
                         pendingActivities.map((item) => {
@@ -345,19 +316,19 @@ export const TutorDashboard = () => {
                             return (
                                 <div
                                     key={item.id}
-                                    className={`p-5 md:p-8 rounded-[2rem] md:rounded-[3rem] border-4 flex flex-col md:flex-row items-center gap-4 md:gap-6 transition-all active:scale-95 cursor-pointer shadow-[0_20px_50px_rgba(0,0,0,0.08)] ${isOverdue ? 'bg-rose-50 border-rose-100 text-rose-900' : 'bg-amber-50 border-amber-100 text-amber-900'
+                                    className={`p-4 rounded-2xl border-2 flex items-center gap-3 ${isOverdue ? 'bg-rose-50 border-rose-100 text-rose-900' : 'bg-amber-50 border-amber-100 text-amber-900'
                                         }`}
                                 >
-                                    <div className={`p-4 md:p-6 rounded-[1.5rem] md:rounded-[2rem] shadow-inner ${isOverdue ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-700'}`}>
-                                        <Clock className="w-6 h-6 md:w-10 md:h-10 stroke-[3]" />
+                                    <div className={`p-2.5 rounded-xl shrink-0 ${isOverdue ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-700'}`}>
+                                        <Clock className="w-5 h-5 stroke-[2.5]" />
                                     </div>
-                                    <div className="flex-1 text-center md:text-left">
-                                        <h4 className="text-2xl font-black leading-tight mb-2 tracking-tight">{item.title}</h4>
-                                        <p className="text-sm font-black uppercase tracking-widest opacity-60 mb-3">
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="text-base font-black leading-tight tracking-tight">{item.title}</h4>
+                                        <p className="text-xs font-bold opacity-70 mt-0.5">
                                             {item.subject?.name} • Límite: {new Date(item.due_date).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}
                                         </p>
                                         {isOverdue && (
-                                            <span className="inline-block px-4 py-1.5 bg-rose-600 text-white text-[11px] font-black rounded-full uppercase tracking-[0.2em] shadow-lg shadow-rose-600/30 animate-pulse">
+                                            <span className="inline-block mt-1.5 px-2.5 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded-full uppercase tracking-wider">
                                                 Atrasado
                                             </span>
                                         )}

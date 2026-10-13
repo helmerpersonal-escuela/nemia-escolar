@@ -107,12 +107,12 @@ export const AdminDashboard = () => {
     }
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
+        <div className="space-y-4 sm:space-y-8 animate-in fade-in duration-500">
             {/* Header / Search Area */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 sm:gap-6">
                 <div>
-                    <h1 className="text-4xl font-black text-gray-900 tracking-tight">Consola de Dirección</h1>
-                    <p className="text-gray-500 font-medium">Gestión integral bajo los principios de la Nueva Escuela Mexicana.</p>
+                    <h1 className="text-2xl sm:text-4xl font-black text-gray-900 tracking-tight">Consola de Dirección</h1>
+                    <p className="text-gray-500 font-medium text-sm sm:text-base">Gestión integral bajo los principios de la Nueva Escuela Mexicana.</p>
                 </div>
 
                 <div className="relative w-full md:w-96 group">
@@ -122,7 +122,7 @@ export const AdminDashboard = () => {
                     <input
                         type="text"
                         placeholder="Buscar alumno por nombre..."
-                        className="block w-full pl-12 pr-4 py-4 bg-white border border-gray-100 rounded-2xl text-sm font-bold shadow-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none"
+                        className="block w-full pl-12 pr-4 py-3 sm:py-4 bg-white border border-gray-100 rounded-2xl text-sm font-bold shadow-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none"
                         value={searchQuery}
                         onChange={(e) => handleSearch(e.target.value)}
                     />

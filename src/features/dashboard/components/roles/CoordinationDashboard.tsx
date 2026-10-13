@@ -167,25 +167,25 @@ export const CoordinationDashboard = () => {
     return (
         <div className="space-y-6 animate-in fade-in duration-700 pb-12">
             {/* Welcome Section */}
-            <div className="bg-white rounded-3xl p-8 shadow-xl border border-gray-100 flex flex-col md:flex-row items-center justify-between relative overflow-hidden mb-8">
+            <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-sm border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-3 relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-emerald-50 opacity-50" />
-                <div className="relative z-10 mb-6 md:mb-0">
-                    <div className="flex items-center gap-3 mb-2">
+                <div className="relative z-10">
+                    <div className="flex items-center gap-3 mb-1">
                         <div className="bg-blue-100 p-2 rounded-xl">
                             <ClipboardCheck className="w-6 h-6 text-blue-700" />
                         </div>
-                        <h1 className="text-4xl font-black text-gray-900 tracking-tight">
+                        <h1 className="text-xl sm:text-3xl font-black text-gray-900 tracking-tight leading-tight">
                             Coordinación Académica
                         </h1>
                     </div>
-                    <p className="text-gray-600 text-lg">
+                    <p className="text-gray-600 text-sm sm:text-base">
                         Seguimiento pedagógico y validación de planeaciones.
                     </p>
                 </div>
-                <div className="relative z-10">
+                <div className="relative z-10 hidden md:block">
                     <div className="text-right">
                         <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Hora Actual</p>
-                        <p className="text-3xl font-black text-gray-900">{currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p className="text-2xl font-black text-gray-900">{currentTime.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</p>
                     </div>
                 </div>
             </div>

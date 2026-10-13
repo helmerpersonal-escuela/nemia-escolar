@@ -122,35 +122,24 @@ export const IndependentDashboard = () => {
             <FirstSteps />
             <SpecialDayBanner special={specialDay} suspended={suspendedCount} />
 
-            {/* 1. Header & Quick Actions */}
-            <header className="relative overflow-hidden bg-slate-900 rounded-[3rem] p-8 sm:p-12 text-white shadow-2xl shadow-indigo-900/20">
-                {/* Visual Accent */}
-                <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-indigo-500/20 to-transparent skew-x-12 translate-x-1/4 pointer-events-none" />
-
-                <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
-                    <div>
-                        <div className="flex items-center gap-3 mb-4">
-                            <span className="px-3 py-1 bg-indigo-500/20 border border-indigo-400/30 rounded-full text-[11px] font-black uppercase tracking-widest text-indigo-300 backdrop-blur-md">
-                                Aula Privada Activa
-                            </span>
-                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
-                                {currentTime.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}
-                            </span>
-                        </div>
-                        <h1 className="text-4xl sm:text-5xl font-black tracking-tight leading-tight">
-                            {currentTime.getHours() < 12 ? 'Buenos días' : currentTime.getHours() < 19 ? 'Buenas tardes' : 'Buenas noches'},<br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-purple-300">
-                                {profile?.first_name || 'Profesor'}
-                            </span>
+            {/* 1. Saludo compacto y accesos rápidos */}
+            <header className="bg-white rounded-3xl border border-slate-100 shadow-sm p-4 sm:p-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="min-w-0">
+                        <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-tight">
+                            {currentTime.getHours() < 12 ? 'Buenos días' : currentTime.getHours() < 19 ? 'Buenas tardes' : 'Buenas noches'},{' '}
+                            <span className="text-indigo-600">{profile?.first_name || 'Profesor'}</span>
                         </h1>
+                        <p className="mt-0.5 text-xs sm:text-sm text-slate-500 font-medium truncate">
+                            <span className="capitalize">{currentTime.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' })}</span> · Aula privada
+                        </p>
                     </div>
-
-                    <div className="flex flex-wrap gap-4">
+                    <div className="grid grid-cols-2 gap-2 md:flex md:gap-3 shrink-0">
                         <button
                             onClick={() => navigate('/gradebook?tab=EVALUATION')}
-                            className="bg-indigo-600 text-white px-12 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center gap-3 shadow-xl shadow-indigo-500/20 group transform hover:scale-105"
+                            className="flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 min-h-[56px] md:min-h-[44px] px-2 md:px-4 rounded-2xl text-[11px] sm:text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
                         >
-                            <CheckSquare className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                            <CheckSquare className="w-5 h-5 md:w-4 md:h-4" />
                             Libreta
                         </button>
                         <button
@@ -161,18 +150,18 @@ export const IndependentDashboard = () => {
                                 }
                                 setIsReportModalOpen(true)
                             }}
-                            className="bg-white text-slate-900 px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-3 shadow-xl group border border-slate-100"
+                            className="flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 min-h-[56px] md:min-h-[44px] px-2 md:px-4 rounded-2xl text-[11px] sm:text-xs font-bold bg-slate-50 text-slate-800 border border-slate-100 hover:bg-indigo-50 transition-colors"
                         >
-                            <Printer className="w-4 h-4 text-indigo-600 group-hover:rotate-12 transition-transform" />
-                            Informe Alumno
+                            <Printer className="w-5 h-5 md:w-4 md:h-4 text-indigo-600" />
+                            Informe alumno
                         </button>
                     </div>
                 </div>
-            </header >
+            </header>
 
 
             {/* 2. Lo del día: agenda y clases */}
-            < div className="grid grid-cols-1 lg:grid-cols-3 gap-8" >
+            < div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8" >
 
                 {/* A. Main Module: Agenda (2/3 width) */}
                 < div className="lg:col-span-2 space-y-8" >
