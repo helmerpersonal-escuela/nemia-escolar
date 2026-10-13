@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "postinstall": "node scripts/patch-phonegap-nfc.cjs",
     "marca": "node scripts/branding/generar-marca.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build",
