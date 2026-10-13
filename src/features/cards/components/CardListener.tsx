@@ -8,7 +8,7 @@ type Mode = 'QR' | 'NFC' | 'LECTOR'
 
 const MODES: { id: Mode; label: string; icon: any; hint: string }[] = [
     { id: 'QR', label: 'Código QR', icon: QrCode, hint: 'Con la cámara de este dispositivo. Funciona en cualquier celular o computadora con cámara.' },
-    { id: 'NFC', label: 'NFC (acercar)', icon: Nfc, hint: 'El alumno acerca su credencial a la parte de atrás del celular. Requiere Chrome en Android con NFC.' },
+    { id: 'NFC', label: 'NFC (acercar)', icon: Nfc, hint: 'El alumno acerca su credencial a la parte de atrás del celular. Funciona en la app de VUNLEK o en Chrome en Android, con el NFC encendido.' },
     { id: 'LECTOR', label: 'Lector USB', icon: Keyboard, hint: 'Lector NFC o de códigos conectado a la computadora (los que "escriben" el código como un teclado).' },
 ]
 const REPEAT_MS = 3500
@@ -18,7 +18,7 @@ const REPEAT_MS = 3500
  * Quien lo usa decide qué hacer con cada código en `onCode` (pasar lista, registrar una tarea, control de acceso).
  */
 export function CardListener({ onCode, title = 'Modo escucha' }: { onCode: (code: string) => Promise<ScanResult>; title?: string }) {
-    const [mode, setMode] = useState<Mode>(() => (nfcSupport() === 'web' ? 'NFC' : 'QR'))
+    const [mode, setMode] = useState<Mode>(() => (nfcSupport() !== 'none' ? 'NFC' : 'QR'))
     const [on, setOn] = useState(false)
     const [last, setLast] = useState<ScanResult | null>(null)
     const [log, setLog] = useState<(ScanResult & { at: string })[]>([])

@@ -25,7 +25,6 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@noble/ed25519": "^3.2.0",
     "@capacitor/android": "^8.1.0",
     "@capacitor/app": "^8.0.1",
     "@capacitor/browser": "^8.0.1",
@@ -37,6 +36,7 @@
     "@capacitor/share": "^8.0.2",
     "@capacitor/splash-screen": "^8.0.1",
     "@google/generative-ai": "^0.24.1",
+    "@noble/ed25519": "^3.2.0",
     "@react-pdf/renderer": "^4.3.2",
     "@supabase/supabase-js": "^2.95.3",
     "@tanstack/query-async-storage-persister": "^5.103.2",
@@ -53,6 +53,7 @@
     "leaflet": "^1.9.4",
     "lucide-react": "^0.563.0",
     "pdfjs-dist": "~5.4.624",
+    "phonegap-nfc": "^1.2.0",
     "qrcode.react": "^4.2.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

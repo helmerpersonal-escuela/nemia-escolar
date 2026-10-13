@@ -69,5 +69,7 @@
     <string>VUNLEK guarda en tus fotos los documentos que descargas.</string>
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>VUNLEK usa tu ubicación solo para marcar dónde está la escuela en el mapa.</string>
+	<key>NFCReaderUsageDescription</key>
+	<string>VUNLEK usa NFC para leer y grabar las credenciales de los alumnos.</string>
 </dict>
 </plist>
