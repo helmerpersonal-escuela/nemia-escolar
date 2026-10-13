@@ -86,10 +86,17 @@ export const CardsPage = () => {
             if (!s) { setStatus('Elige primero a un alumno.'); return }
             const token = tokenRef.current(s.id)
             if (!token) { setStatus('Ese alumno aún no tiene código; recarga la página.'); return }
-            if (r.serial) { if (!(await link(s.id, r.serial, 'NFC_UID'))) return }
-            setStatus(`Credencial de ${s.first_name} ${s.last_name_paternal} grabada.`)
-            setTimeout(() => advRef.current(s.id), 0)
-            return cardUrl(token)
+            setStatus(`Grabando la credencial de ${s.first_name}… no retires la etiqueta.`)
+            return {
+                url: cardUrl(token),
+                onWritten: async () => {
+                    // Solo después de grabar: se liga también su número de serie (si el celular lo da)
+                    if (r.serial && !(await link(s.id, r.serial, 'NFC_UID'))) return
+                    if (!r.serial) beep(true)
+                    setStatus(`Credencial de ${s.first_name} ${s.last_name_paternal} grabada.`)
+                    setTimeout(() => advRef.current(s.id), 0)
+                },
+            }
         }, msg => { beep(false); setStatus(msg) })
             .then(s => { if (cancelled) s(); else stop = s })
             .catch(e => { setMode(null); setStatus(e?.message || 'No se pudo usar NFC.') })

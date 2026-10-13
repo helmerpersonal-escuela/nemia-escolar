@@ -34,7 +34,10 @@ function readUrl(message: any): string | null {
  * Escucha etiquetas NFC hasta que se llame a la función que regresa.
  * `onRead` puede regresar una dirección para grabarla en esa misma etiqueta (programación).
  */
-export async function listenNfc(onRead: (r: NfcRead) => void | string | Promise<void | string>, onError?: (msg: string) => void): Promise<() => void> {
+/** Grabar `url` en la etiqueta y, solo si se grabó, llamar a `onWritten`. */
+export type NfcWrite = { url: string; onWritten?: () => void | Promise<void> }
+
+export async function listenNfc(onRead: (r: NfcRead) => void | string | NfcWrite | Promise<void | string | NfcWrite>, onError?: (msg: string) => void): Promise<() => void> {
     const Reader = (window as any).NDEFReader
     if (!Reader) throw new Error('Este dispositivo o navegador no lee NFC. Usa Chrome en un celular Android con NFC.')
     const ctrl = new AbortController()
@@ -45,8 +48,19 @@ export async function listenNfc(onRead: (r: NfcRead) => void | string | Promise<
         if (busy) return
         busy = true
         try {
-            const write = await onRead({ url: readUrl(e.message), serial: e.serialNumber || null })
-            if (typeof write === 'string') await reader.write({ records: [{ recordType: 'url', data: write }] }, { signal: ctrl.signal, overwrite: true })
+            const res = await onRead({ url: readUrl(e.message), serial: e.serialNumber || null })
+            const w: NfcWrite | null = typeof res === 'string' ? { url: res } : (res && typeof res === 'object' ? res : null)
+            if (w) {
+                try {
+                    await reader.write({ records: [{ recordType: 'url', data: w.url }] }, { signal: ctrl.signal, overwrite: true })
+                } catch (err: any) {
+                    const m = String(err?.name || err?.message || '')
+                    throw new Error(/NotAllowed|ReadOnly|locked/i.test(m)
+                        ? 'La etiqueta está bloqueada o es de solo lectura; usa otra.'
+                        : 'No se pudo grabar. Deja la etiqueta pegada al celular hasta que suene y vuelve a intentar.')
+                }
+                await w.onWritten?.()
+            }
         } catch (err: any) {
             onError?.(err?.message || 'No se pudo leer o grabar la etiqueta')
         } finally { busy = false }

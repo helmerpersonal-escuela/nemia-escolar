@@ -31,7 +31,14 @@ export function CardListener({ onCode, title = 'Modo escucha' }: { onCode: (code
 
     const handle = useCallback(async (raw: string, alt?: string | null) => {
         const code = normalizeCode(raw)
-        if (code.length < 4) return
+        if (code.length < 4) {
+            // Etiqueta en blanco o ilegible: avisar en lugar de quedarse callado
+            const res: ScanResult = { tone: 'bad', title: 'Credencial sin código', detail: 'Está vacía o no se pudo leer. Grábala en Credenciales (NFC / QR).' }
+            beep(false)
+            setLast(res)
+            setLog(l => [{ ...res, at: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }, ...l].slice(0, 40))
+            return
+        }
         const now = Date.now()
         if (seen.current[code] && now - seen.current[code] < REPEAT_MS) return // la misma credencial sigue frente al lector
         seen.current[code] = now
