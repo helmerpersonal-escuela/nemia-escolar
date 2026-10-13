@@ -1,0 +1,21 @@
+LECTOR VUNLEK PARA ACR122U
+==========================
+
+Que hace: convierte el lector ACR122U en un lector "tipo teclado". Al acercar
+una credencial, escribe su numero de serie y Enter en la pantalla de VUNLEK.
+
+Uso:
+1. Conecta el ACR122U por USB.
+2. Doble clic en "Iniciar lector VUNLEK.bat". Debe decir "Lector listo".
+3. En VUNLEK abre:
+   - Credenciales (NFC / QR) -> elige grupo -> "Lector USB" para ligar
+     cada credencial con su alumno (una por una, en el orden de la lista).
+   - Control de acceso -> "Lector USB" -> "Empezar a escuchar" para
+     registrar entradas.
+4. Da clic en la ventana de VUNLEK para que tenga el foco y acerca la credencial.
+
+Notas:
+- Se usa el numero de serie de la etiqueta; no hace falta grabarle nada.
+  Ese mismo numero lo reconoce un celular Android en el modo NFC.
+- Si dice que no encuentra el servicio: Windows + R, escribe services.msc,
+  busca "Tarjeta inteligente" y ponlo en Automatico / Iniciar.
