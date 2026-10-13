@@ -37,7 +37,7 @@ export const TutorDashboard = () => {
                 // 1. Get Children via Guardians table
                 const { data: guardianship, error: guardError } = await supabase
                     .from('guardians')
-                    .select('student_id, student:students(id, first_name, last_name_paternal, group:groups(grade, section))')
+                    .select('student_id, student:students(id, first_name, last_name_paternal, group_id, group:groups(grade, section))')
                     .eq('user_id', user.id)
 
                 if (guardError) {
@@ -46,7 +46,7 @@ export const TutorDashboard = () => {
                     return
                 }
 
-                const students = guardianship?.map((g: any) => g.student) || []
+                const students = (guardianship?.map((g: any) => g.student) || []).filter(Boolean)
                 setChildren(students)
 
                 // Persistence for DashboardLayout
@@ -75,14 +75,25 @@ export const TutorDashboard = () => {
     }, [children.length, userId, tenant?.id])
 
     useEffect(() => {
+        // Evita que la respuesta de un hijo anterior pise la del hijo recién elegido
+        let cancelled = false
+
         const loadChildData = async () => {
             if (!selectedChild || !tenant) return
+            const groupId: string | null = selectedChild.group_id ?? null
+
+            // Limpiar lo del hijo anterior mientras carga el nuevo
+            setStats({ average: 0, attendance: 100 })
+            setAgenda([])
+            setPendingActivities([])
 
             // 2. Get Average Grade
             const { data: grades } = await supabase
                 .from('grades')
                 .select('score')
                 .eq('student_id', selectedChild.id)
+                .eq('is_graded', true)
+                .not('score', 'is', null)
 
             let avg = 0
             if (grades && grades.length > 0) {
@@ -102,7 +113,14 @@ export const TutorDashboard = () => {
                 attPercentage = Math.round((present / attendance.length) * 100)
             }
 
+            if (cancelled) return
             setStats({ average: avg, attendance: attPercentage })
+
+            // Sin grupo asignado no hay tareas que mostrar
+            if (!groupId) {
+                setAgenda([])
+                setPendingActivities([])
+            }
 
             // 4. Get Agenda
             const today = new Date().toISOString()
@@ -110,10 +128,12 @@ export const TutorDashboard = () => {
                 .from('assignments')
                 .select('title, due_date, type')
                 .eq('tenant_id', tenant.id)
+                .eq('group_id', groupId ?? '00000000-0000-0000-0000-000000000000')
                 .gte('due_date', today)
                 .order('due_date', { ascending: true })
                 .limit(5)
 
+            if (cancelled) return
             setAgenda(assignments || [])
 
             // 5. Get Announcements
@@ -125,6 +145,7 @@ export const TutorDashboard = () => {
                 .limit(3)
 
 
+            if (cancelled) return
             setAnnouncements(messages || [])
 
             // 6. Get Pending/Missing Activities
@@ -137,27 +158,32 @@ export const TutorDashboard = () => {
                 .from('assignments')
                 .select('id, title, due_date, type, subject:subject_catalog(name)')
                 .eq('tenant_id', tenant.id)
+                .eq('group_id', groupId ?? '00000000-0000-0000-0000-000000000000')
                 .gte('due_date', thirtyDaysAgo.toISOString())
                 .lte('due_date', nextWeek.toISOString())
                 .order('due_date', { ascending: true })
 
             const { data: studentGrades } = await supabase
                 .from('grades')
-                .select('assignment_id, is_graded')
+                .select('assignment_id, is_graded, delivered_at')
                 .eq('student_id', selectedChild.id)
 
-            const pending = (allAssignments || []).filter(asm => {
-                const grade = studentGrades?.find(g => g.assignment_id === asm.id)
-                return !grade || !grade.is_graded
+            // Pendiente = ni calificada ni entregada
+            const byAssignment = new Map((studentGrades || []).map((g: any) => [g.assignment_id, g]))
+            const pending = (allAssignments || []).filter((asm: any) => {
+                const grade: any = byAssignment.get(asm.id)
+                return !grade || (!grade.is_graded && !grade.delivered_at)
             })
 
+            if (cancelled) return
             setPendingActivities(pending)
         }
 
         if (selectedChild) {
             loadChildData()
         }
-    }, [selectedChild, tenant])
+        return () => { cancelled = true }
+    }, [selectedChild?.id, tenant?.id])
 
     if (loading) {
         return (

@@ -3,8 +3,9 @@ import { formatSubjectName } from '../../../lib/subjectName'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { useEffect, useState } from 'react'
 import { buildSubjectOptions, type CatalogSubject } from '../../../lib/subjectCatalog'
-import { useNavigate } from 'react-router-dom'
-import { Plus, Users, School, Trash2, Edit, ArrowRight, BookOpen, GraduationCap, ClipboardList } from 'lucide-react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { DirectorGroupsSummary } from '../components/DirectorGroupsSummary'
+import { Plus, Users, School, Trash2, Edit, ArrowRight, BookOpen, GraduationCap, ClipboardList, ChevronLeft } from 'lucide-react'
 import { EditGroupModal } from '../components/EditGroupModal'
 import { ErrorModal } from '../../planning/components/editor/modals/ErrorModal'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -33,6 +34,14 @@ type Group = {
 
 export const GroupsPage = () => {
     const navigate = useNavigate()
+    const [searchParams, setSearchParams] = useSearchParams()
+    // Grupo abierto desde el resumen de dirección (?g=<id>), así "Atrás" regresa al resumen
+    const selectedGroupId = searchParams.get('g')
+    const selectGroup = (id: string | null) => {
+        const next = new URLSearchParams(searchParams)
+        if (id) next.set('g', id); else next.delete('g')
+        setSearchParams(next, { replace: false })
+    }
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isModifyingGroup, setIsModifyingGroup] = useState<Group | null>(null)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -276,6 +285,13 @@ export const GroupsPage = () => {
         }))
     }) || []
 
+    // Dirección / personal: primero un resumen; las tarjetas por materia solo del grupo elegido
+    const scopedGroups = groups?.filter(inScope) || []
+    const selectedGroup = isStaff && selectedGroupId ? scopedGroups.find(g => g.id === selectedGroupId) : undefined
+    const visibleCards = isStaff
+        ? (selectedGroup ? subjectCards.filter(c => c.id === selectedGroup.id) : [])
+        : subjectCards
+
     return (
         <div className="space-y-4 sm:space-y-8 pb-20 animate-in fade-in duration-500 px-3 sm:px-0">
             {prereqDialog}
@@ -287,10 +303,12 @@ export const GroupsPage = () => {
                             <span className="p-2 bg-blue-600 rounded-xl mr-3 shadow-lg shadow-blue-200">
                                 <Users className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                             </span>
-                            Mis Grupos
+                            {isStaff ? 'Grupos de la escuela' : 'Mis Grupos'}
                         </h1>
                         <p className="mt-2 text-gray-600 font-medium ml-1">
-                            Selecciona un grupo para gestionar tu libreta de calificaciones.
+                            {isStaff
+                                ? 'Resumen por grado. Toca un grupo o escribe grado y letra para abrirlo.'
+                                : 'Selecciona un grupo para gestionar tu libreta de calificaciones.'}
                         </p>
                         {!limits.isLoading && (
                             <div className="mt-3 flex items-center gap-2">
@@ -342,9 +360,28 @@ export const GroupsPage = () => {
                         },
                     } : undefined}
                 />
+            ) : isStaff && !selectedGroup ? (
+                <DirectorGroupsSummary groups={scopedGroups} onSelect={id => selectGroup(id)} />
             ) : (
+                <div className="space-y-6">
+                {selectedGroup && (
+                    <div className="squishy-card bg-white p-4 sm:p-5 flex flex-wrap items-center gap-3">
+                        <button type="button" onClick={() => selectGroup(null)} className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-bold text-gray-700">
+                            <ChevronLeft className="w-4 h-4" /> Resumen
+                        </button>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-2xl font-black text-gray-900 leading-none">{selectedGroup.grade}° "{selectedGroup.section}"</p>
+                            <p className="text-xs font-bold text-gray-500 mt-1">
+                                {selectedGroup.students?.[0]?.count || 0} alumnos · {selectedGroup.subjects?.length || 0} materias
+                            </p>
+                        </div>
+                        <button type="button" onClick={() => navigate(`/groups/${selectedGroup.id}`)} className="inline-flex items-center gap-1 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold">
+                            Ver grupo y alumnos <ArrowRight className="w-4 h-4" />
+                        </button>
+                    </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-                    {subjectCards.map((item, idx) => (
+                    {visibleCards.map((item, idx) => (
                         <div
                             key={`${item.id}-${idx}`}
                             onClick={() => navigate(`/gradebook?groupId=${item.id}${item.currentSubject ? `&subjectId=${item.currentSubject.subject_catalog_id || item.currentSubject.id}` : ''}`)}
@@ -431,6 +468,7 @@ export const GroupsPage = () => {
                             </div>
                         </div>
                     ))}
+                </div>
                 </div>
             )}
 
