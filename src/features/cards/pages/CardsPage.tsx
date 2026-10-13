@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
-import { IdCard, Loader2, Nfc, Keyboard, CheckCircle2, Printer, Radio, Square } from 'lucide-react'
+import { IdCard, Loader2, Nfc, Keyboard, CheckCircle2, Printer, Radio, Square, Usb } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
 import { useToast } from '../../../components/ui/Toast'
-import { beep, cardQr, cardUrl, listenNfc, nfcSupport, normalizeCode } from '../../../lib/cards'
+import { beep, cardQr, cardUrl, listenNfc, nfcSupport, normalizeCode, pcReaderStatus, pcReaderWrite } from '../../../lib/cards'
 
 type Group = { id: string; grade: string; section: string }
 type Student = { id: string; first_name: string; last_name_paternal: string; last_name_maternal: string | null }
@@ -26,7 +26,16 @@ export const CardsPage = () => {
     const [cards, setCards] = useState<Card[]>([])
     const [loading, setLoading] = useState(false)
     const [current, setCurrent] = useState<string | null>(null)
-    const [mode, setMode] = useState<'NFC' | 'LECTOR' | null>(null)
+    const [mode, setMode] = useState<'NFC' | 'LECTOR' | 'PC' | null>(null)
+    // Lector de PC (ACR122U) con el programa "Lector VUNLEK" abierto
+    const [pcReader, setPcReader] = useState<string | null>(null)
+    useEffect(() => {
+        let alive = true
+        const check = () => pcReaderStatus().then(r => { if (alive) setPcReader(r) })
+        check()
+        const t = setInterval(check, 5000)
+        return () => { alive = false; clearInterval(t) }
+    }, [])
     const [status, setStatus] = useState<string | null>(null)
     const inputRef = useRef<HTMLInputElement>(null)
 
@@ -103,13 +112,45 @@ export const CardsPage = () => {
         return () => { cancelled = true; stop?.() }
     }, [mode, link])
 
+    // Grabación con el lector de PC: graba la dirección (la lee también un iPhone) y liga el número de serie
+    useEffect(() => {
+        if (mode !== 'PC') return
+        const ctrl = new AbortController()
+        const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+        ;(async () => {
+            while (!ctrl.signal.aborted) {
+                const s = curRef.current
+                if (!s) { setStatus('Elige un alumno de la lista.'); await sleep(800); continue }
+                const token = tokenRef.current(s.id)
+                if (!token) { setStatus('Ese alumno aún no tiene código; recarga la página.'); setMode(null); return }
+                setStatus(null)
+                let r
+                try { r = await pcReaderWrite(cardUrl(token), ctrl.signal) } catch {
+                    if (ctrl.signal.aborted) return
+                    setStatus('No responde el programa "Lector VUNLEK". Revisa que siga abierto.'); setMode(null); return
+                }
+                if (ctrl.signal.aborted) return
+                if (!r.ok) {
+                    if (r.timeout) continue // nadie acercó credencial: seguir esperando
+                    beep(false); setStatus(r.error || 'No se pudo grabar.'); await sleep(1500); continue
+                }
+                if (await link(s.id, r.uid, 'NFC_UID')) {
+                    setStatus(`Credencial de ${s.first_name} ${s.last_name_paternal} grabada. Retírala y acerca la siguiente.`)
+                    advRef.current(s.id)
+                    await sleep(600)
+                }
+            }
+        })()
+        return () => ctrl.abort()
+    }, [mode, link])
+
     useEffect(() => {
         if (mode !== 'LECTOR') return
         const t = setInterval(() => inputRef.current?.focus(), 700)
         return () => clearInterval(t)
     }, [mode])
 
-    const start = (m: 'NFC' | 'LECTOR') => { setStatus(null); setCurrent(c => c ?? pendingList[0]?.id ?? students[0]?.id ?? null); setMode(m) }
+    const start = (m: 'NFC' | 'LECTOR' | 'PC') => { setStatus(null); setCurrent(c => c ?? pendingList[0]?.id ?? students[0]?.id ?? null); setMode(m) }
 
     return (
         <div className="max-w-5xl mx-auto space-y-4 animate-in fade-in duration-500">
@@ -135,6 +176,12 @@ export const CardsPage = () => {
                                 className={`inline-flex items-center gap-2 min-h-[44px] px-4 rounded-2xl text-sm font-black disabled:opacity-40 ${mode === 'NFC' ? 'bg-rose-600 text-white' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>
                                 {mode === 'NFC' ? <Square className="w-4 h-4" /> : <Nfc className="w-4 h-4" />} {mode === 'NFC' ? 'Detener' : 'Grabar etiquetas NFC'}
                             </button>
+                            {pcReader && (
+                                <button type="button" onClick={() => (mode === 'PC' ? setMode(null) : start('PC'))} disabled={!students.length} title={pcReader}
+                                    className={`inline-flex items-center gap-2 min-h-[44px] px-4 rounded-2xl text-sm font-black disabled:opacity-40 ${mode === 'PC' ? 'bg-rose-600 text-white' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>
+                                    {mode === 'PC' ? <Square className="w-4 h-4" /> : <Usb className="w-4 h-4" />} {mode === 'PC' ? 'Detener' : 'Grabar con lector de PC'}
+                                </button>
+                            )}
                             <button type="button" onClick={() => (mode === 'LECTOR' ? setMode(null) : start('LECTOR'))} disabled={!students.length}
                                 className={`inline-flex items-center gap-2 min-h-[44px] px-4 rounded-2xl text-sm font-black disabled:opacity-40 ${mode === 'LECTOR' ? 'bg-rose-600 text-white' : 'border border-slate-200 text-slate-800 hover:bg-slate-50'}`}>
                                 {mode === 'LECTOR' ? <Square className="w-4 h-4" /> : <Keyboard className="w-4 h-4" />} {mode === 'LECTOR' ? 'Detener' : 'Enrolar con lector USB'}
@@ -147,16 +194,16 @@ export const CardsPage = () => {
                 )}
             </div>
 
-            {groupId && nfcSupport() === 'none' && (
+            {groupId && nfcSupport() === 'none' && !pcReader && (
                 <p className="text-sm text-amber-900 bg-amber-50 border border-amber-100 rounded-2xl p-3 print:hidden">
-                    Para <b>grabar</b> etiquetas NFC abre esta pantalla en Chrome desde un celular Android con NFC. Desde computadora puedes enrolar un lector USB o imprimir los QR.
+                    Para <b>grabar</b> etiquetas NFC abre esta pantalla en Chrome desde un celular Android con NFC, o en esta computadora abre el programa <b>Lector VUNLEK</b> con tu lector ACR122U conectado. También puedes imprimir los QR.
                 </p>
             )}
 
             {mode && (
                 <div className="rounded-3xl bg-slate-900 text-white p-5 text-center space-y-2 print:hidden" aria-live="assertive">
                     <Radio className="w-8 h-8 mx-auto text-emerald-400 animate-pulse" />
-                    <p className="text-sm font-bold opacity-80">{mode === 'NFC' ? 'Acerca la etiqueta o credencial en blanco de' : 'Pasa por el lector la credencial de'}</p>
+                    <p className="text-sm font-bold opacity-80">{mode === 'NFC' ? 'Acerca la etiqueta o credencial en blanco de' : mode === 'PC' ? 'Pon sobre el lector de PC la credencial de' : 'Pasa por el lector la credencial de'}</p>
                     <p className="text-2xl font-black">{cur ? name(cur) : 'Elige un alumno de la lista'}</p>
                     {mode === 'LECTOR' && (
                         <form onSubmit={async e => {

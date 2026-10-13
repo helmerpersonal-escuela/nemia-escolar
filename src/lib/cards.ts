@@ -69,6 +69,41 @@ export async function listenNfc(onRead: (r: NfcRead) => void | string | NfcWrite
     return () => ctrl.abort()
 }
 
+/**
+ * Lector de PC (ACR122U) con el programa "Lector VUNLEK" abierto en la computadora
+ * (tools/lector-nfc). Escucha solo en esta misma computadora.
+ */
+const PC_READER = 'http://127.0.0.1:47123'
+
+async function pcFetch(path: string, init: RequestInit = {}, ms = 1500, outer?: AbortSignal) {
+    const ctrl = new AbortController()
+    const t = setTimeout(() => ctrl.abort(), ms)
+    const onAbort = () => ctrl.abort()
+    outer?.addEventListener('abort', onAbort)
+    try {
+        const r = await fetch(PC_READER + path, { ...init, signal: ctrl.signal })
+        return await r.json()
+    } finally {
+        clearTimeout(t)
+        outer?.removeEventListener('abort', onAbort)
+    }
+}
+
+/** Nombre del lector si el programa está abierto; null si no. */
+export async function pcReaderStatus(): Promise<string | null> {
+    try {
+        const r = await pcFetch('/status', {}, 1200)
+        return r?.ok ? (r.reader || 'Lector de PC') : null
+    } catch { return null }
+}
+
+export type PcWrite = { ok: true; uid: string } | { ok: false; timeout?: boolean; error?: string }
+
+/** Pide al lector de PC grabar la dirección en la siguiente credencial que se acerque (espera hasta ~25 s). */
+export async function pcReaderWrite(url: string, signal?: AbortSignal): Promise<PcWrite> {
+    return pcFetch('/write', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ url }) }, 30000, signal)
+}
+
 // Sonidos cortos de confirmación (sin archivos)
 let ctx: AudioContext | null = null
 export function beep(ok: boolean) {
