@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom'
 import { useTenant } from '../../../hooks/useTenant'
 import { useProfile } from '../../../hooks/useProfile'
 import { supabase } from '../../../lib/supabase'
+import { attachPlanSubjects } from '../../../lib/planSubjects'
 import { parseIcsContent } from '../../../utils/icsParser'
 import { useRef } from 'react'
 import { EventModal } from '../components/EventModal'
@@ -158,14 +159,15 @@ export const AgendaPage = () => {
                 }
 
                 // 5. Fetch Lesson Plans (Planning)
-                const { data: plans, error: plansError } = await supabase
+                const { data: rawPlans, error: plansError } = await supabase
                     .from('lesson_plans')
-                    .select('id, title, activities_sequence, groups(grade, section), subject_catalog(name), temporality')
+                    .select('id, title, activities_sequence, groups(grade, section), subject_id, temporality')
                     .eq('tenant_id', tenant.id)
                     .lte('start_date', endOfMonth.toISOString())
                     .gte('end_date', startOfMonth.toISOString())
 
                 if (plansError) console.error('[Agenda] Error fetching lesson plans:', plansError)
+                const plans = rawPlans ? await attachPlanSubjects(rawPlans as any[]) : null
 
                 const planningEvents: any[] = []
                 if (plans) {

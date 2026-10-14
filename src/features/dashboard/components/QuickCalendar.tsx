@@ -2,6 +2,7 @@ import { loadDayContext, adjustClasses, isoDate } from '../../../lib/specialDays
 import { useState, useEffect } from 'react'
 import { Calendar as CalendarIcon, Plus, Clock, Trash2, ChevronLeft, ChevronRight, BookOpen, FileText, GraduationCap } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
+import { attachPlanSubjects } from '../../../lib/planSubjects'
 import { useTenant } from '../../../hooks/useTenant'
 import { useNavigate } from 'react-router-dom'
 
@@ -58,12 +59,13 @@ export const QuickCalendar = () => {
             .lte('due_date', `${dateStr}T23:59:59`)
 
         // 3. Lesson Plans (Check sequence)
-        const { data: plans } = await supabase
+        const { data: rawPlans } = await supabase
             .from('lesson_plans')
-            .select('id, title, activities_sequence, groups(grade, section), subject_catalog(name)')
+            .select('id, title, activities_sequence, groups(grade, section), subject_id')
             .eq('tenant_id', tenant.id)
             .lte('start_date', dateStr)
             .gte('end_date', dateStr)
+        const plans = rawPlans ? await attachPlanSubjects(rawPlans as any[]) : null
 
         const planningEvents: any[] = []
         if (plans) {

@@ -70,10 +70,14 @@ export function CardListener({ onCode, title = 'Modo escucha' }: { onCode: (code
         let cancelled = false
         if (mode === 'QR') {
             const qr = new Html5Qrcode(qrId.current)
-            qr.start({ facingMode: 'environment' }, { fps: 12, qrbox: (w: number, h: number) => { const s = Math.floor(Math.min(w, h) * 0.75); return { width: s, height: s } } },
+            // stop() lanza el error de forma síncrona si la cámara aún no termina de encender;
+            // en ese caso se espera a que arranque y luego se detiene.
+            const halt = () => { try { qr.stop().then(() => qr.clear()).catch(() => {}) } catch { /* no estaba corriendo */ } }
+            const started = qr.start({ facingMode: 'environment' }, { fps: 12, qrbox: (w: number, h: number) => { const s = Math.max(50, Math.floor(Math.min(w, h) * 0.75)); return { width: s, height: s } } },
                 text => { handle(text) }, () => {})
-                .catch(e => setError(/Permission|NotAllowed/i.test(String(e)) ? 'Permite el uso de la cámara para leer los códigos.' : 'No se pudo encender la cámara.'))
-            stop = () => { qr.stop().then(() => qr.clear()).catch(() => {}) }
+            started
+                .catch(e => { if (!cancelled) setError(/Permission|NotAllowed/i.test(String(e)) ? 'Permite el uso de la cámara para leer los códigos.' : 'No se pudo encender la cámara.') })
+            stop = () => { if (qr.isScanning) halt(); else started.then(halt, () => {}) }
         } else if (mode === 'NFC') {
             listenNfc(r => { handle(r.url ?? r.serial ?? '', r.url ? r.serial : null) }, setError)
                 .then(s => { if (cancelled) s(); else stop = s })
