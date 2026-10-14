@@ -674,21 +674,38 @@ export class GeminiService {
     }
     async generateDailyClassPlan(context: {
         lessonPlan: any,
+        subjectName?: string,
         classDate: string,
         duration: string,
         isSecondary: boolean
     }) {
         const lp = context.lessonPlan
+        const list = (v: any) => Array.isArray(v) ? v.filter(Boolean).join('; ') : (v || '')
+        // La sesión de la planeación que corresponde a ese día, si existe
+        const session = Array.isArray(lp?.activities_sequence) ? lp.activities_sequence.find((s: any) => s?.date === context.classDate) : null
+        const sessionText = session?.phases
+            ? session.phases.map((ph: any) => `${ph.name}: ${list(ph.activities)}`).join(' | ')
+            : ''
+        const contexto = lp
+            ? `
+            CONTEXTO (${lp.source === 'analytical_program' ? 'PROGRAMA ANALÍTICO DE LA ESCUELA; aún no hay planeación' : 'PLANEACIÓN DIDÁCTICA DEL DOCENTE'}):
+            - Título: ${lp.title || ''}
+            - Materia: ${context.subjectName || ''}
+            - Campo Formativo: ${lp.campo_formativo || ''}
+            - Metodología: ${lp.metodologia || ''}
+            - Problemática de la comunidad: ${lp.problem_context || ''}
+            - Propósito: ${lp.purpose || ''}
+            - Contenidos: ${list(lp.contents)}
+            - PDA: ${list(lp.pda)}
+            - Ejes Articuladores: ${list(lp.ejes_articuladores)}
+            ${sessionText ? `- Sesión planeada para este día: ${sessionText}` : ''}`
+            : `
+            CONTEXTO: no hay planeación ni programa analítico. Materia: ${context.subjectName || 'no indicada'}.
+            Propón una sesión estándar de la Nueva Escuela Mexicana para esa materia y deja claro qué debe ajustar el docente.`
         const prompt = `
             Actúa como un experto pedagogo de la Nueva Escuela Mexicana (NEM). 
             Tu objetivo es generar un "Plan de Clase Diario" detallado para la sesión del día ${context.classDate}.
-            
-            CONTEXTO DE LA PLANEACIÓN GENERAL:
-            - Título: ${lp.title}
-            - Campo Formativo: ${lp.field}
-            - Metodología: ${lp.methodology}
-            - Contenido/PDA: ${lp.pda_detail || lp.contents?.join(', ')}
-            - Ejes Articuladores: ${lp.ejes_articuladores?.join(', ')}
+            ${contexto}
             
             PARÁMETROS DE LA SESIÓN:
             - Fecha: ${context.classDate}

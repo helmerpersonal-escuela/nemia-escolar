@@ -1,384 +1,295 @@
+import { useEffect, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Rocket, Shield, Zap, Users, BookOpen, ChevronRight, Play, Star, Sparkles, Globe, Cpu, MousePointer2, Mail, MessageSquarePlus, X } from 'lucide-react'
-import { useState, useEffect } from 'react'
-import { supabase } from '../../../lib/supabase'
+import {
+    ArrowRight, BookOpenCheck, CalendarCheck, CheckCircle2, ChartColumn, ClipboardList, GraduationCap,
+    HeartHandshake, Mail, MessageCircle, NotebookPen, QrCode, School, ShieldCheck, Sparkles, Users, WifiOff,
+} from 'lucide-react'
 import { BrandLogo } from '../../../components/brand/BrandLogo'
+
+/* Capturas reales de la escuela de demostración (datos ficticios), en /public/landing. */
+const SHOTS = {
+    inicio: '/landing/inicio-docente.webp',
+    programa: '/landing/programa-analitico.webp',
+    planeacion: '/landing/planeacion.webp',
+    clase: '/landing/clase.webp',
+    evaluacion: '/landing/evaluacion.webp',
+    alumnos: '/landing/alumnos.webp',
+    familia: '/landing/familia.webp',
+    familiaAcceso: '/landing/familia-acceso.webp',
+}
+
+/* Marco de tableta para las capturas de 780 px de ancho */
+const TabletFrame = ({ src, alt, h = 854, eager = false, className = '' }: { src: string; alt: string; h?: number; eager?: boolean; className?: string }) => (
+    <figure className={`rounded-[1.6rem] sm:rounded-[2.2rem] bg-slate-900 p-2 sm:p-3 shadow-[0_35px_70px_-30px_rgba(66,66,143,0.55)] ring-1 ring-slate-800 ${className}`}>
+        <img src={src} alt={alt} width={780} height={h} loading={eager ? 'eager' : 'lazy'} decoding="async" className="block w-full h-auto rounded-[1.1rem] sm:rounded-[1.5rem] bg-slate-100" />
+    </figure>
+)
+
+/* Marco de celular para las capturas de 591 px de ancho */
+const PhoneFrame = ({ src, alt, h = 1210, className = '' }: { src: string; alt: string; h?: number; className?: string }) => (
+    <figure className={`rounded-[2.2rem] bg-slate-900 p-2 shadow-[0_30px_60px_-20px_rgba(15,23,42,0.5)] ring-1 ring-slate-800 ${className}`}>
+        <img src={src} alt={alt} width={591} height={h} loading="lazy" decoding="async" className="block w-full h-auto rounded-[1.7rem] bg-slate-100" />
+    </figure>
+)
+
+type Step = { n: number; icon: ReactNode; tag: string; title: string; text: string; points: string[]; shot: string; alt: string }
+
+const STEPS: Step[] = [
+    {
+        n: 1, icon: <BookOpenCheck className="w-5 h-5" />, tag: 'Programa analítico',
+        title: 'Parte del programa analítico de tu escuela',
+        text: 'Contextualiza los contenidos y los Procesos de Desarrollo de Aprendizaje (PDA) de cada campo formativo con la problemática de tu comunidad. La IA te propone la redacción y tú decides.',
+        points: ['Contenidos y PDA por fase y grado', 'Problemáticas del diagnóstico de la escuela', 'Se comparte con todo el colectivo docente'],
+        shot: SHOTS.programa, alt: 'Programa analítico: la IA contextualiza los contenidos con la problemática de la escuela',
+    },
+    {
+        n: 2, icon: <NotebookPen className="w-5 h-5" />, tag: 'Planeación didáctica',
+        title: 'Planea a partir de lo que ya definiste',
+        text: 'La planeación toma los contenidos y PDA de tu programa analítico. Eliges la metodología sociocrítica y el libro de texto, y la IA arma la secuencia de sesiones para que la ajustes.',
+        points: ['Metodologías de la NEM (proyectos, ABP, STEAM, aprendizaje servicio)', 'Sesiones con fechas según tu horario', 'Instrumentos de evaluación sugeridos'],
+        shot: SHOTS.planeacion, alt: 'Planeación didáctica: secuencia de actividades desde el horario o con el asistente de IA',
+    },
+    {
+        n: 3, icon: <CalendarCheck className="w-5 h-5" />, tag: 'En clase',
+        title: 'En el aula, todo a un toque',
+        text: 'Desde tu libreta pasas lista, registras actividades e incidencias y ves cuál clase te toca. Funciona también sin internet y se sincroniza al volver la señal.',
+        points: ['Asistencia con QR, NFC o con un toque', 'Actividades ligadas a la planeación', 'Captura sin conexión'],
+        shot: SHOTS.clase, alt: 'Pase de lista del grupo con el acumulado de asistencias, retardos y faltas',
+    },
+    {
+        n: 4, icon: <ChartColumn className="w-5 h-5" />, tag: 'Evaluación',
+        title: 'La evaluación se arma sola',
+        text: 'Cada actividad calificada alimenta la evaluación formativa del periodo. Los promedios, el portafolio de evidencias y los reportes se calculan automáticamente, listos para el consejo y la boleta.',
+        points: ['Criterios con su porcentaje (tareas, proyectos, examen)', 'Promedios por periodo sin hojas de cálculo', 'Rúbricas, listas de cotejo y portafolio'],
+        shot: SHOTS.evaluacion, alt: 'Calificaciones del grupo con ponderación por criterio y promedio final',
+    },
+]
+
+const FlowChain = () => (
+    <ol className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-sm font-bold" aria-label="Recorrido del trabajo docente">
+        {STEPS.map((s, i) => (
+            <li key={s.n} className="flex items-center gap-2 sm:gap-3">
+                <a href={`#paso-${s.n}`} className="flex items-center gap-2 rounded-full bg-white border border-indigo-100 px-3.5 py-2 text-indigo-900 shadow-sm hover:border-indigo-300 transition-colors">
+                    <span className="grid place-items-center w-6 h-6 rounded-full bg-indigo-600 text-white text-xs">{s.n}</span>
+                    {s.tag}
+                </a>
+                {i < STEPS.length - 1 && <ArrowRight className="hidden sm:block w-4 h-4 text-indigo-300" aria-hidden="true" />}
+            </li>
+        ))}
+    </ol>
+)
 
 export const LandingPage = () => {
     const navigate = useNavigate()
     const [scrolled, setScrolled] = useState(false)
-    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false)
-    const [landingConfig, setLandingConfig] = useState<any>({
-        heroTitle: 'VUNLEK OS',
-        heroSubtitle: 'El Sistema Operativo para la Educación del Futuro.',
-        heroDescription: 'Transforma tu aula con tecnología inmersiva, inteligencia artificial y gestión táctil de última generación.',
-        ctaText: 'Comenzar Ahora',
-        features: [
-            { icon: 'Zap', title: 'Automatización Neural', description: 'Elimina el 85% de la carga administrativa. Calificaciones, promedios y reportes generados en milisegundos, liberando a tus docentes para lo que realmente importa.' },
-            { icon: 'Shield', title: 'Ciberseguridad Militar', description: 'Tus datos viven en una fortaleza digital. Encriptación AES-256 de punta a punta y respaldos automáticos cada hora garantizan la integridad de tu institución.' },
-            { icon: 'Brain', title: 'Copiloto Pedagógico AI', description: 'El núcleo de Vunlek. Genera planeaciones didácticas completas, rúbricas detalladas y material de apoyo adaptado a la SEP en segundos.' },
-            { icon: 'Users', title: 'Ecosistema Unificado', description: 'Padres, alumnos y docentes en perfecta sintonía. Notificaciones en tiempo real y chat integrado eliminan los malentendidos para siempre.' },
-            { icon: 'Star', title: 'Analytics Predictivo', description: 'Convierte datos en superpoderes. Tableros visuales que detectan tendencias de rendimiento y ausentismo antes de que se conviertan en problemas reales.' },
-            { icon: 'MousePointer2', title: 'Experiencia Táctil', description: 'Diseñado para ser tocado. Una interfaz fluida, intuitiva y increíblemente hermosa que funciona como magia en iPads y tabletas.' }
-        ]
-    })
 
     useEffect(() => {
-        const handleScroll = () => setScrolled(window.scrollY > 50)
-        window.addEventListener('scroll', handleScroll)
-
-        // Fetch dynamic config from system_settings if available
-        const fetchConfig = async () => {
-            const { data } = await supabase.from('system_settings').select('key, value')
-            if (data) {
-                const config: any = {}
-                data.forEach(item => {
-                    if (item.key.startsWith('landing_')) {
-                        config[item.key.replace('landing_', '')] = item.value
-                    }
-                })
-                if (Object.keys(config).length > 0) {
-                    // If features is stored as JSON string, parse it
-                    if (config.features) {
-                        try { config.features = JSON.parse(config.features) } catch (e) { /* fallback */ }
-                    }
-                    setLandingConfig((prev: any) => ({ ...prev, ...config }))
-                }
-            }
-        }
-        fetchConfig()
-
-        return () => window.removeEventListener('scroll', handleScroll)
+        const onScroll = () => setScrolled(window.scrollY > 24)
+        onScroll()
+        window.addEventListener('scroll', onScroll, { passive: true })
+        return () => window.removeEventListener('scroll', onScroll)
     }, [])
 
-    const getIcon = (name: string) => {
-        switch (name) {
-            case 'Zap': return <Zap className="w-6 h-6" />
-            case 'Shield': return <Shield className="w-6 h-6" />
-            case 'Brain': return <Cpu className="w-6 h-6" />
-            case 'Rocket': return <Rocket className="w-6 h-6" />
-            case 'Users': return <Users className="w-6 h-6" />
-            case 'BookOpen': return <BookOpen className="w-6 h-6" />
-            default: return <Sparkles className="w-6 h-6" />
-        }
-    }
+    const primaryBtn = 'btn-tactile inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50'
+    const secondaryBtn = 'inline-flex items-center justify-center gap-2 rounded-2xl bg-white border border-slate-200 px-6 py-3.5 text-sm font-bold text-slate-700 hover:border-indigo-300 hover:text-indigo-700 transition-colors'
 
     return (
-        <div className="min-h-screen bg-[#050510] text-white font-sans selection:bg-indigo-500 selection:text-white overflow-x-hidden">
-            {/* Ambient Background Elements */}
-            <div className="fixed inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-600/20 blur-[150px] rounded-full animate-pulse"></div>
-                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-600/10 blur-[150px] rounded-full"></div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.03]"></div>
+        <div className="min-h-screen overflow-x-hidden bg-[hsl(220_30%_96%)] text-slate-900 selection:bg-indigo-200">
+            {/* Manchas suaves, igual que el fondo de la app */}
+            <div className="pointer-events-none fixed inset-0 -z-0" aria-hidden="true">
+                <div className="absolute -top-40 -left-32 w-[36rem] h-[36rem] rounded-full bg-indigo-200/50 blur-3xl" />
+                <div className="absolute top-1/3 -right-40 w-[34rem] h-[34rem] rounded-full bg-fuchsia-200/40 blur-3xl" />
             </div>
 
-            {/* Floating Contact Widget */}
-            <div className="hidden md:block fixed bottom-8 right-8 z-50 animate-in slide-in-from-bottom-10 fade-in duration-1000">
-                <div className="flex items-center gap-4 bg-white/5 backdrop-blur-xl border border-white/10 p-4 rounded-2xl shadow-2xl hover:bg-white/10 transition-colors group cursor-default">
-                    <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Mail className="w-5 h-5 text-indigo-400" />
-                    </div>
-                    <div>
-                        <p className="text-[11px] font-black uppercase tracking-widest text-indigo-400">Contacto</p>
-                        <p className="text-sm font-bold text-white tracking-wide">ventas@vunlek.com</p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Navbar */}
-            <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'py-3 sm:py-4 bg-[#050510]/80 backdrop-blur-xl border-b border-white/5' : 'py-4 sm:py-8 bg-transparent'}`}>
-                <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
-                    <div
-                        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                        className="flex items-center gap-3 group cursor-pointer"
-                    >
-                        <BrandLogo tone="blanco" className="h-10 w-auto group-hover:scale-110 transition-transform" alt="" />
-                        <span className="text-2xl font-black tracking-tighter italic uppercase group-hover:tracking-normal transition-all duration-500">VUNLEK</span>
-                    </div>
-
-                    <div className="hidden md:flex items-center gap-10">
-                        <a href="#features" className="text-xs font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Funciones</a>
-                        <a href="#stats" className="text-xs font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Impacto</a>
-                        <button
-                            onClick={() => navigate('/register')}
-                            className="text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors"
-                        >
-                            Registrarse
-                        </button>
-                        <button
-                            onClick={() => navigate('/login')}
-                            className="px-8 py-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-[11px] font-black uppercase tracking-widest"
-                        >
-                            Iniciar Sesión
-                        </button>
-                    </div>
-
-                    {/* Mobile Menu Button - Visible on small screens */}
-                    <div className="md:hidden">
-                        <button
-                            onClick={() => navigate('/login')}
-                            className="px-6 py-2 rounded-xl bg-white/10 border border-white/10 text-[11px] font-black uppercase tracking-widest text-white"
-                        >
-                            Ingresar
-                        </button>
+            {/* Barra superior */}
+            <header className={`fixed inset-x-0 top-0 z-50 transition-all ${scrolled ? 'bg-white/85 backdrop-blur-xl border-b border-slate-200/70 shadow-sm' : 'bg-transparent'}`}>
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-4">
+                    <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex items-center gap-2.5" aria-label="VUNLEK, ir al inicio">
+                        <BrandLogo className="h-9 w-auto" alt="" />
+                        <span className="text-xl font-black tracking-tight text-[#42428F]">VUNLEK</span>
+                    </button>
+                    <nav className="hidden lg:flex items-center gap-8 text-sm font-bold text-slate-600" aria-label="Secciones">
+                        <a href="#recorrido" className="hover:text-indigo-700">Cómo funciona</a>
+                        <a href="#alumnos" className="hover:text-indigo-700">Control escolar</a>
+                        <a href="#familias" className="hover:text-indigo-700">Familias</a>
+                        <a href="#para-quien" className="hover:text-indigo-700">Para quién</a>
+                    </nav>
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => navigate('/login')} className="rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-white/70">Iniciar sesión</button>
+                        <button onClick={() => navigate('/register')} className="hidden sm:inline-flex rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-indigo-700">Crear cuenta</button>
                     </div>
                 </div>
-            </nav>
+            </header>
 
-            {/* Hero Section */}
-            <section className="relative pt-28 sm:pt-40 pb-20 sm:pb-32 px-5 sm:px-6 overflow-hidden">
-                <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-                    <div className="relative z-10 space-y-8">
-                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-full animate-in slide-in-from-left duration-700">
-                            <Sparkles className="w-4 h-4 text-indigo-400" />
-                            <span className="text-[11px] font-black uppercase tracking-widest text-indigo-300">Inteligencia Artificial Educativa</span>
-                        </div>
-
-                        <h1 className="text-[2.6rem] leading-[0.95] sm:text-6xl md:text-7xl xl:text-8xl font-black tracking-tighter sm:leading-[0.9] animate-in slide-in-from-bottom-8 duration-700 delay-100">
-                            {landingConfig.heroTitle} <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-rose-400">
-                                {landingConfig.heroSubtitle}
+            <main className="relative">
+                {/* Portada */}
+                <section className="pt-28 sm:pt-36 pb-16 sm:pb-24 px-4 sm:px-6">
+                    <div className="max-w-7xl mx-auto grid lg:grid-cols-[1fr_1.15fr] gap-12 lg:gap-16 items-center">
+                        <div>
+                            <span className="inline-flex items-center gap-2 rounded-full bg-white border border-indigo-100 px-3.5 py-1.5 text-xs font-bold text-indigo-700 shadow-sm">
+                                <Sparkles className="w-4 h-4" /> Hecho para la Nueva Escuela Mexicana
                             </span>
-                        </h1>
-
-                        <p className="text-lg sm:text-xl text-slate-300 max-w-lg leading-relaxed font-bold animate-in fade-in duration-1000 delay-300">
-                            {landingConfig.heroDescription}
-                        </p>
-
-                        <div className="flex flex-wrap items-center gap-6 pt-4 animate-in zoom-in-95 duration-700 delay-500">
-                            <button
-                                onClick={() => navigate('/register')}
-                                className="btn-tactile px-10 py-5 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[2rem] text-xs font-black uppercase tracking-[0.2em] shadow-2xl shadow-indigo-500/40 flex items-center gap-3 active:scale-95 group"
-                            >
-                                {landingConfig.ctaText}
-                                <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                            </button>
-                            <button className="flex items-center gap-4 group p-2">
-                                <div className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-all group-hover:scale-110 active:scale-90">
-                                    <Play className="w-5 h-5 text-white fill-white" />
-                                </div>
-                                <span className="text-[11px] font-black uppercase tracking-widest text-slate-400 group-hover:text-white transition-colors">Ver Video</span>
+                            <h1 className="mt-6 text-[2.5rem] sm:text-6xl xl:text-[4.2rem] font-black leading-[1.02] tracking-tight text-slate-900">
+                                Menos papeleo.<br />
+                                <span className="bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-500 bg-clip-text text-transparent">Más tiempo para enseñar.</span>
+                            </h1>
+                            <p className="mt-6 max-w-xl text-lg text-slate-600 leading-relaxed">
+                                VUNLEK conecta tu <strong className="text-slate-800">programa analítico</strong>, tus <strong className="text-slate-800">planeaciones</strong>, el <strong className="text-slate-800">trabajo en clase</strong> y la <strong className="text-slate-800">evaluación</strong> en un solo lugar, con ayuda de la inteligencia artificial. Lo que capturas una vez se aprovecha en todo lo demás.
+                            </p>
+                            <div className="mt-8 flex flex-col sm:flex-row gap-3">
+                                <button onClick={() => navigate('/register')} className={primaryBtn}>Crear mi cuenta docente <ArrowRight className="w-4 h-4" /></button>
+                                <button onClick={() => navigate('/escuelas')} className={secondaryBtn}><School className="w-4 h-4" /> Soy escuela: pedir presupuesto</button>
+                            </div>
+                            <button onClick={() => navigate('/familia')} className="mt-5 text-sm font-bold text-indigo-700 underline underline-offset-4 hover:text-indigo-900">
+                                ¿Eres madre, padre o tutor? Entra con el código de tu hijo(a)
                             </button>
                         </div>
-                        <button
-                            onClick={() => navigate('/familia')}
-                            className="text-sm font-bold text-rose-300 hover:text-white underline underline-offset-4"
-                        >
-                            ¿Eres madre, padre o tutor? Entra con el código de tu hijo(a)
-                        </button>
-                        <button
-                            onClick={() => navigate('/escuelas')}
-                            className="block text-sm font-bold text-indigo-300 hover:text-white underline underline-offset-4"
-                        >
-                            ¿Diriges una escuela? Solicita un presupuesto y pruébalo un mes
-                        </button>
-                    </div>
-
-                    <div className="relative animate-in zoom-in-95 duration-1000">
-                        {/* Futuristic Dashboard Preview Mockup */}
-                        <div className="relative z-10 w-full aspect-square md:aspect-video rounded-[3rem] bg-gradient-to-br from-slate-800 to-slate-900 border-4 border-white/10 shadow-[0_0_100px_-20px_rgba(79,70,229,0.3)] overflow-hidden group">
-                            <div className="absolute inset-0 bg-blue-600/10 blur-[100px]"></div>
-                            <div className="absolute top-0 left-0 right-0 h-10 bg-white/5 backdrop-blur-md flex items-center px-6 gap-2">
-                                <div className="w-2 h-2 rounded-full bg-rose-500/50"></div>
-                                <div className="w-2 h-2 rounded-full bg-amber-500/50"></div>
-                                <div className="w-2 h-2 rounded-full bg-emerald-500/50"></div>
-                            </div>
-                            {/* Inner Preview Styling */}
-                            <div className="p-12 pt-16 grid grid-cols-2 gap-6 h-full opacity-60 group-hover:opacity-100 transition-opacity duration-700">
-                                <div className="space-y-6">
-                                    <div className="h-32 bg-white/5 rounded-3xl border border-white/10 animate-pulse"></div>
-                                    <div className="h-20 bg-indigo-500/10 rounded-3xl border border-indigo-500/20"></div>
-                                    <div className="h-40 bg-white/5 rounded-3xl border border-white/10"></div>
-                                </div>
-                                <div className="space-y-6 pt-12">
-                                    <div className="h-40 bg-purple-500/10 rounded-3xl border border-purple-500/20"></div>
-                                    <div className="h-32 bg-white/5 rounded-3xl border border-white/10 animate-pulse delay-75"></div>
-                                </div>
-                            </div>
-                            {/* Floating Tactile Elements */}
-                            <div className="absolute top-20 right-[-20px] w-40 p-4 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl rotate-12 group-hover:rotate-0 transition-transform duration-700">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="w-3 h-3 bg-emerald-400 rounded-full animate-ping"></div>
-                                    <span className="text-[11px] font-black uppercase tracking-widest">En Vivo</span>
-                                </div>
-                                <div className="h-2 bg-white/20 rounded-full overflow-hidden">
-                                    <div className="w-2/3 h-full bg-gradient-to-r from-emerald-400 to-cyan-400"></div>
-                                </div>
-                            </div>
+                        <div className="relative">
+                            <TabletFrame eager src={SHOTS.inicio} alt="Inicio del docente en VUNLEK con la clase en curso" className="ml-auto w-[88%] sm:w-[78%] lg:w-[86%] xl:w-[78%] -rotate-1" />
+                            <PhoneFrame src={SHOTS.familia} alt="Seguimiento de la familia en el celular: promedio, asistencia y actividades pendientes" className="absolute -bottom-8 left-0 w-[34%] sm:w-[190px] rotate-3" />
                         </div>
-                        {/* Decorative background shapes */}
-                        <div className="absolute -top-10 -right-10 w-40 h-40 bg-indigo-600/20 blur-3xl rounded-full"></div>
-                        <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-purple-600/20 blur-3xl rounded-full"></div>
                     </div>
-                </div>
-            </section>
+                </section>
 
-            {/* Features Section */}
-            <section id="features" className="py-32 px-6 relative">
-                <div className="max-w-7xl mx-auto">
-                    <div className="text-center mb-20 space-y-4">
-                        <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter italic">Infraestructura de Grado Superior</h2>
-                        <p className="text-slate-400 font-bold max-w-2xl mx-auto uppercase text-xs tracking-[0.3em]">Redescubre lo que es posible en la gestión educativa</p>
-                    </div>
+                {/* Recorrido conectado */}
+                <section id="recorrido" className="scroll-mt-24 px-4 sm:px-6 py-16 sm:py-24">
+                    <div className="max-w-7xl mx-auto">
+                        <div className="text-center max-w-3xl mx-auto">
+                            <p className="text-sm font-bold text-indigo-600">Todo está conectado</p>
+                            <h2 className="mt-2 text-3xl sm:text-5xl font-black tracking-tight">Del programa analítico a la boleta, sin volver a capturar</h2>
+                            <p className="mt-4 text-lg text-slate-600">Cada paso toma lo que hiciste en el anterior. Así dejas de copiar lo mismo en formatos distintos.</p>
+                        </div>
+                        <div className="mt-8"><FlowChain /></div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        {landingConfig.features.map((feature: any, idx: number) => (
-                            <div key={idx} className="squishy-card p-10 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-indigo-500/50 transition-all group h-full">
-                                <div className="w-16 h-16 bg-gradient-to-br from-indigo-500/20 to-purple-600/20 rounded-[1.5rem] flex items-center justify-center mb-10 group-hover:scale-110 transition-transform">
-                                    <div className="text-indigo-400 group-hover:text-indigo-300 transition-colors">
-                                        {getIcon(feature.icon)}
+                        <div className="mt-16 sm:mt-24 space-y-20 sm:space-y-32">
+                            {STEPS.map((s, i) => (
+                                <article key={s.n} id={`paso-${s.n}`} className="scroll-mt-28 grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+                                    <div className={i % 2 ? 'lg:order-2' : ''}>
+                                        <div className="flex items-center gap-3">
+                                            <span className="grid place-items-center w-11 h-11 rounded-2xl bg-indigo-600 text-white shadow-md shadow-indigo-500/30">{s.icon}</span>
+                                            <span className="text-sm font-bold text-indigo-700">Paso {s.n} · {s.tag}</span>
+                                        </div>
+                                        <h3 className="mt-5 text-2xl sm:text-4xl font-black tracking-tight">{s.title}</h3>
+                                        <p className="mt-4 text-slate-600 text-lg leading-relaxed">{s.text}</p>
+                                        <ul className="mt-6 space-y-2.5">
+                                            {s.points.map(p => (
+                                                <li key={p} className="flex items-start gap-2.5 text-slate-700 font-medium">
+                                                    <CheckCircle2 className="w-5 h-5 mt-0.5 shrink-0 text-emerald-500" /> {p}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                        {i < STEPS.length - 1 && (
+                                            <p className="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-50 px-3 py-2 text-sm font-bold text-indigo-700">
+                                                <ArrowRight className="w-4 h-4" /> Esto alimenta: {STEPS[i + 1].tag.toLowerCase()}
+                                            </p>
+                                        )}
                                     </div>
-                                </div>
-                                <h3 className="text-xl font-black uppercase italic mb-4 tracking-tight">{feature.title}</h3>
-                                <p className="text-slate-400 font-bold leading-relaxed">{feature.description}</p>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            {/* Impressive Stats Section */}
-            <section id="stats" className="py-32 px-6 relative bg-gradient-to-b from-[#050510] to-[#0A0A1F]">
-                <div className="max-w-7xl mx-auto">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
-                        <div className="space-y-2">
-                            <h3 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-br from-indigo-400 to-white italic">+200</h3>
-                            <p className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Escuelas</p>
-                        </div>
-                        <div className="space-y-2">
-                            <h3 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-br from-purple-400 to-white italic">15K</h3>
-                            <p className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Docentes</p>
-                        </div>
-                        <div className="space-y-2">
-                            <h3 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-br from-rose-400 to-white italic">98%</h3>
-                            <p className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Eficiencia</p>
-                        </div>
-                        <div className="space-y-2">
-                            <h3 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-br from-indigo-400 to-white italic">AI-X</h3>
-                            <p className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Integración</p>
+                                    <TabletFrame src={s.shot} alt={s.alt} className={`w-full max-w-[460px] mx-auto ${i % 2 ? 'lg:order-1 lg:-rotate-1' : 'lg:rotate-1'}`} />
+                                </article>
+                            ))}
                         </div>
                     </div>
-                </div>
-            </section>
+                </section>
 
-            {/* Testimonials Section */}
-            <section className="py-20 px-6 relative overflow-hidden">
-                <div className="max-w-7xl mx-auto">
-                    <div className="text-center mb-16 space-y-4">
-                        <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter italic">Lo que dicen los educadores</h2>
-                        <p className="text-slate-400 font-bold max-w-2xl mx-auto uppercase text-xs tracking-[0.3em]">Únete a la revolución educativa</p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-                        {[
-                            { name: "Carlos Méndez", role: "Director Secundaria", text: "Gestionar mi escuela nunca había sido tan rápido. Vunlek es el futuro.", stars: 5, img: "https://randomuser.me/api/portraits/men/32.jpg" },
-                            { name: "Ana Torres", role: "Docente de Español", text: "La IA me ahorra horas cada semana en planeaciones. ¡Increíble!", stars: 5, img: "https://randomuser.me/api/portraits/women/44.jpg" },
-                            { name: "Luis Fernandez", role: "Coordinador Académico", text: "La interfaz es hermosa y muy intuitiva. A mis maestros les encanta.", stars: 5, img: "https://randomuser.me/api/portraits/men/11.jpg" },
-                            { name: "María González", role: "Maestra de Primaria", text: "Por fin un sistema que no se cae y es fácil de usar. 100% recomendado.", stars: 5, img: "https://randomuser.me/api/portraits/women/65.jpg" },
-                            { name: "Jorge Ruiz", role: "Profesor de Matemáticas", text: "Vunlek tiene todo lo que necesito en un solo lugar. La asistencia es facilísima.", stars: 4, img: "https://randomuser.me/api/portraits/men/85.jpg" },
-                            { name: "Sofia Ramirez", role: "Directora General", text: "La seguridad de los datos me da mucha tranquilidad. Excelente plataforma.", stars: 5, img: "https://randomuser.me/api/portraits/women/22.jpg" },
-                            { name: "Pedro Sanchez", role: "Docente de Historia", text: "Las rúbricas generadas por IA son muy precisas. Me ayudan muchísimo.", stars: 5, img: "https://randomuser.me/api/portraits/men/67.jpg" },
-                            { name: "Laura Diaz", role: "Coordinadora de Nivel", text: "El soporte técnico es rápido y siempre resuelven mis dudas.", stars: 4, img: "https://randomuser.me/api/portraits/women/12.jpg" },
-                            { name: "Ricardo Gomez", role: "Profesor de Química", text: "Mis alumnos están fascinados viendo sus calificaciones al instante.", stars: 5, img: "https://randomuser.me/api/portraits/men/33.jpg" },
-                            { name: "Elena Castro", role: "Maestra de Preescolar", text: "Muy visual y fácil de entender. Hasta los padres lo agradecen.", stars: 5, img: "https://randomuser.me/api/portraits/women/55.jpg" },
-                            { name: "Javier Lopez", role: "Director Preparatoria", text: "La mejor inversión que hemos hecho en tecnología educativa.", stars: 5, img: "https://randomuser.me/api/portraits/men/66.jpg" },
-                            { name: "Carmen Ortiz", role: "Docente de Inglés", text: "Me encanta poder llevar todo el control desde mi celular o tablet.", stars: 4, img: "https://randomuser.me/api/portraits/women/15.jpg" },
-                            { name: "Roberto Silva", role: "Profesor de Educación Física", text: "Simple, rápido y eficiente. Justo lo que buscaba para mis clases.", stars: 5, img: "https://randomuser.me/api/portraits/men/1.jpg" },
-                            { name: "Patricia Vega", role: "Administrativa", text: "Los reportes se generan solos. Adiós a las horas extras de fin de mes.", stars: 5, img: "https://randomuser.me/api/portraits/women/5.jpg" },
-                            { name: "Miguel Angel", role: "Docente Universitario", text: "Una herramienta potente y moderna. Vunlek está a otro nivel.", stars: 5, img: "https://randomuser.me/api/portraits/men/10.jpg" },
-                        ].map((review, idx) => (
-                            <div key={idx} className="p-6 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all hover:-translate-y-1">
-                                <div className="flex gap-1 mb-3 text-amber-400">
-                                    {[...Array(review.stars)].map((_, i) => (
-                                        <Star key={i} className="w-4 h-4 fill-current" />
-                                    ))}
-                                </div>
-                                <p className="text-slate-300 text-sm mb-4 leading-relaxed font-medium">"{review.text}"</p>
-                                <div className="flex items-center gap-3">
-                                    <img
-                                        src={review.img}
-                                        alt={review.name}
-                                        className="w-10 h-10 rounded-full border-2 border-indigo-500/30 object-cover"
-                                    />
-                                    <div>
-                                        <p className="text-sm font-bold text-white">{review.name}</p>
-                                        <p className="text-[11px] text-slate-400 uppercase tracking-wider">{review.role}</p>
+                {/* Control de alumnos */}
+                <section id="alumnos" className="scroll-mt-24 px-4 sm:px-6 py-16 sm:py-24 bg-white/60 border-y border-slate-200/70">
+                    <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+                        <TabletFrame src={SHOTS.alumnos} h={792} alt="Reporte de desempeño del alumno con promedio, tareas y asistencia" className="w-full max-w-[460px] mx-auto -rotate-1" />
+                        <div>
+                            <p className="text-sm font-bold text-indigo-600">Control escolar</p>
+                            <h2 className="mt-2 text-3xl sm:text-4xl font-black tracking-tight">Cada alumno, con su historia completa</h2>
+                            <p className="mt-4 text-lg text-slate-600">Dirección, coordinación, prefectura y docentes trabajan sobre la misma información, cada quien con los permisos de su función.</p>
+                            <div className="mt-8 grid sm:grid-cols-2 gap-4">
+                                {[
+                                    { icon: <ClipboardList className="w-5 h-5" />, t: 'Expediente único', d: 'Asistencia, calificaciones, incidencias y entrevistas.' },
+                                    { icon: <QrCode className="w-5 h-5" />, t: 'Credenciales', d: 'Entrada y pase de lista con QR o NFC.' },
+                                    { icon: <GraduationCap className="w-5 h-5" />, t: 'Seguimiento', d: 'Alertas de inasistencia y bajo rendimiento.' },
+                                    { icon: <WifiOff className="w-5 h-5" />, t: 'Sin conexión', d: 'Captura en el aula aunque falle el internet.' },
+                                ].map(c => (
+                                    <div key={c.t} className="rounded-2xl bg-white border border-slate-200/80 p-5 shadow-sm">
+                                        <span className="grid place-items-center w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600">{c.icon}</span>
+                                        <h3 className="mt-3 font-black">{c.t}</h3>
+                                        <p className="mt-1 text-sm text-slate-600">{c.d}</p>
                                     </div>
-                                </div>
+                                ))}
                             </div>
-                        ))}
-                    </div>
-
-                    <div className="flex justify-center">
-                        <button
-                            onClick={() => setIsReviewModalOpen(true)}
-                            className="group flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all text-sm font-bold uppercase tracking-widest text-slate-300 hover:text-white"
-                        >
-                            <MessageSquarePlus className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                            Publicar Comentario
-                        </button>
-                    </div>
-                </div>
-            </section>
-
-            {/* Review Modal */}
-            {isReviewModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-[#0A0A1F] border border-white/10 rounded-2xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-bold text-white">Tu opinión cuenta</h3>
-                            <button aria-label="Cerrar" onClick={() => setIsReviewModalOpen(false)} className="text-slate-400 hover:text-white">
-                                <X className="w-5 h-5" />
-                            </button>
                         </div>
-                        <form onSubmit={(e) => {
-                            e.preventDefault()
-                            // Simulate submission
-                            setIsReviewModalOpen(false)
-                            // You could verify with a toast here if integrated
-                            alert("¡Gracias! Tu comentario ha sido enviado a moderación.")
-                        }} className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Nombre Completo</label>
-                                <input aria-label="Nombre Completo" required type="text" className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-indigo-500 transition-colors" placeholder="Ej. Juan Pérez" />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Cargo / Rol</label>
-                                <input aria-label="Cargo / Rol" required type="text" className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-indigo-500 transition-colors" placeholder="Ej. Docente de Matemáticas" />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Comentario</label>
-                                <textarea aria-label="Comentario" required rows={4} className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-indigo-500 transition-colors" placeholder="¿Qué te parece Vunlek?"></textarea>
-                            </div>
-                            <div className="pt-2">
-                                <button type="submit" className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl font-bold uppercase tracking-widest text-xs hover:shadow-lg hover:shadow-indigo-500/20 transition-all">
-                                    Enviar Reseña
-                                </button>
-                            </div>
-                        </form>
                     </div>
-                </div>
-            )}
+                </section>
 
-            {/* Footer */}
-            <footer className="py-20 px-6 border-t border-white/5">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-10">
-                    <div className="flex items-center gap-4">
-                        <BrandLogo tone="blanco" className="h-8 w-auto" alt="" />
-                        <span className="text-xl font-black uppercase italic tracking-tighter">VUNLEK</span>
+                {/* Familias */}
+                <section id="familias" className="scroll-mt-24 px-4 sm:px-6 py-16 sm:py-24">
+                    <div className="max-w-6xl mx-auto grid md:grid-cols-[1fr_auto] gap-10 lg:gap-20 items-center">
+                        <div>
+                            <p className="text-sm font-bold text-indigo-600">Comunicación con familias</p>
+                            <h2 className="mt-2 text-3xl sm:text-4xl font-black tracking-tight">Las familias saben cómo van sus hijos, sin esperar a la boleta</h2>
+                            <p className="mt-4 text-lg text-slate-600">Madres, padres y tutores siguen el avance desde su celular y hablan con la escuela por un canal oficial, sin compartir números personales.</p>
+                            <ul className="mt-6 space-y-3">
+                                {[
+                                    { icon: <ChartColumn className="w-5 h-5" />, t: 'Calificaciones, tareas y asistencia al día' },
+                                    { icon: <MessageCircle className="w-5 h-5" />, t: 'Mensajes con docentes y dirección' },
+                                    { icon: <HeartHandshake className="w-5 h-5" />, t: 'Avisos, citatorios y justificantes' },
+                                    { icon: <ShieldCheck className="w-5 h-5" />, t: 'Un tutor titular y hasta dos accesos extra, todos identificados' },
+                                ].map(x => (
+                                    <li key={x.t} className="flex items-center gap-3 font-medium text-slate-700">
+                                        <span className="grid place-items-center w-9 h-9 shrink-0 rounded-xl bg-fuchsia-50 text-fuchsia-600">{x.icon}</span> {x.t}
+                                    </li>
+                                ))}
+                            </ul>
+                            <button onClick={() => navigate('/familia')} className={`${secondaryBtn} mt-8`}>Entrar como familia <ArrowRight className="w-4 h-4" /></button>
+                        </div>
+                        <PhoneFrame src={SHOTS.familiaAcceso} h={1280} alt="Panel del tutor: acceso como tutor titular y solicitud de cuentas adicionales" className="mx-auto md:mx-0 w-[230px] sm:w-[260px]" />
                     </div>
-                    <div className="flex flex-col items-center gap-3">
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">© 2026 Vunlek · Ko'on Soluciones. Educación Inmersiva.</p>
-                        <nav aria-label="Legal" className="flex gap-6 text-sm font-bold">
-                            <a href="/privacidad" className="text-slate-300 hover:text-white underline-offset-4 hover:underline">Política de Privacidad</a>
-                            <a href="/terminos" className="text-slate-300 hover:text-white underline-offset-4 hover:underline">Términos y Condiciones</a>
-                        </nav>
+                </section>
+
+                {/* Para quién */}
+                <section id="para-quien" className="scroll-mt-24 px-4 sm:px-6 py-16 sm:py-24">
+                    <div className="max-w-7xl mx-auto">
+                        <h2 className="text-center text-3xl sm:text-4xl font-black tracking-tight">Para toda la comunidad escolar</h2>
+                        <div className="mt-10 grid md:grid-cols-3 gap-6">
+                            {[
+                                { icon: <NotebookPen className="w-6 h-6" />, t: 'Docentes', d: 'Crea tu cuenta y lleva tus grupos, planeaciones y evaluación aunque tu escuela todavía no use VUNLEK.', cta: 'Crear cuenta docente', to: '/register' },
+                                { icon: <School className="w-6 h-6" />, t: 'Escuelas', d: 'Toda la plantilla en un mismo espacio. El costo se calcula según el número de docentes y alumnos, y puedes probarlo completo durante un mes.', cta: 'Solicitar presupuesto', to: '/escuelas' },
+                                { icon: <Users className="w-6 h-6" />, t: 'Familias', d: 'Entra con el código que te entrega la escuela y sigue el avance de tus hijos desde el celular.', cta: 'Entrar como familia', to: '/familia' },
+                            ].map(c => (
+                                <div key={c.t} className="squishy-card bg-white border border-slate-200/80 p-8 flex flex-col">
+                                    <span className="grid place-items-center w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white">{c.icon}</span>
+                                    <h3 className="mt-5 text-xl font-black">{c.t}</h3>
+                                    <p className="mt-2 text-slate-600 flex-1">{c.d}</p>
+                                    <button onClick={() => navigate(c.to)} className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-indigo-700 hover:text-indigo-900">{c.cta} <ArrowRight className="w-4 h-4" /></button>
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                    <div className="flex items-center gap-8">
-                        <Globe className="w-5 h-5 text-slate-400 hover:text-white transition-colors cursor-pointer" />
-                        <Shield className="w-5 h-5 text-slate-400 hover:text-white transition-colors cursor-pointer" />
-                        <MousePointer2 className="w-5 h-5 text-slate-400 hover:text-white transition-colors cursor-pointer" />
+                </section>
+
+                {/* Llamado final */}
+                <section className="px-4 sm:px-6 pb-20 sm:pb-28">
+                    <div className="max-w-5xl mx-auto rounded-[2rem] sm:rounded-[2.5rem] bg-gradient-to-br from-[#42428F] via-indigo-700 to-violet-700 px-6 py-12 sm:p-16 text-center text-white shadow-2xl shadow-indigo-900/30">
+                        <BrandLogo tone="blanco" className="h-14 w-auto mx-auto" alt="" />
+                        <h2 className="mt-6 text-3xl sm:text-4xl font-black tracking-tight">Recupera las horas que hoy se van en formatos</h2>
+                        <p className="mt-4 text-indigo-100 text-lg max-w-2xl mx-auto">Empieza con tu grupo hoy mismo o escríbenos para llevar VUNLEK a toda tu escuela.</p>
+                        <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+                            <button onClick={() => navigate('/register')} className="btn-tactile inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3.5 text-sm font-bold text-indigo-800">Crear mi cuenta <ArrowRight className="w-4 h-4" /></button>
+                            <a href="mailto:ventas@vunlek.com" className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/30 px-6 py-3.5 text-sm font-bold hover:bg-white/10"><Mail className="w-4 h-4" /> ventas@vunlek.com</a>
+                        </div>
                     </div>
+                </section>
+            </main>
+
+            <footer className="relative border-t border-slate-200/80 bg-white/70 px-4 sm:px-6 py-10">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-sm">
+                    <div className="flex items-center gap-2.5">
+                        <BrandLogo className="h-8 w-auto" alt="" />
+                        <span className="font-black text-[#42428F]">VUNLEK</span>
+                        <span className="text-slate-400">· © 2026 Ko'on Soluciones</span>
+                    </div>
+                    <nav aria-label="Legal" className="flex flex-wrap justify-center gap-x-6 gap-y-2 font-bold text-slate-600">
+                        <a href="/privacidad" className="hover:text-indigo-700">Privacidad</a>
+                        <a href="/terminos" className="hover:text-indigo-700">Términos</a>
+                        <a href="/eliminar-cuenta" className="hover:text-indigo-700">Eliminar cuenta</a>
+                        <a href="mailto:ventas@vunlek.com" className="hover:text-indigo-700">ventas@vunlek.com</a>
+                    </nav>
                 </div>
             </footer>
         </div>

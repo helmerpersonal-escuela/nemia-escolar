@@ -39,7 +39,7 @@ export const useSubscriptionLimits = () => {
                     .from('subscriptions')
                     .select('plan_type, status')
                     .eq('user_id', user.id)
-                    .single()
+                    .maybeSingle()
 
                 const planType = subscription?.plan_type || 'basic'
 

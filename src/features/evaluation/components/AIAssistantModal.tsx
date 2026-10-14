@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { X, Zap, Sparkles, ArrowRight, Loader2, BookOpen } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
+import { findLessonPlanFor } from '../../../lib/planSubjects'
 import { todayISO, toLocalISODate } from '../../../lib/dates'
 
 type AIAssistantModalProps = {
@@ -34,21 +35,7 @@ export const AIAssistantModal = ({
         setLoading(true)
         try {
             // Buscamos el plan de clase más reciente para este grupo y materia
-            const query = supabase
-                .from('lesson_plans')
-                .select('*')
-                .eq('group_id', groupId)
-
-            if (subjectId) {
-                query.eq('subject_id', subjectId)
-            }
-
-            const { data, error } = await query
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .single()
-
-            if (error) throw error
+            const data = await findLessonPlanFor({ groupId, subjectId: subjectId || undefined })
 
             setLessonPlan(data)
             if (data) {

@@ -18,6 +18,7 @@ import { geminiService } from '../../../lib/gemini'
 import { supabase } from '../../../lib/supabase'
 import { todayISO } from '../../../lib/dates'
 import { DateInput } from '../../../components/ui/DateInput'
+import { analyticalContextFor, findLessonPlanFor } from '../../../lib/planSubjects'
 
 interface ClassPlanGeneratorModalProps {
     isOpen: boolean
@@ -44,6 +45,7 @@ export const ClassPlanGeneratorModal: React.FC<ClassPlanGeneratorModalProps> = (
     const [loading, setLoading] = useState(false)
     const [saving, setSaving] = useState(false)
     const [lessonPlan, setLessonPlan] = useState<any>(null)
+    const [loadingContext, setLoadingContext] = useState(false)
 
     // Form State
     const [classDate, setClassDate] = useState(todayISO())
@@ -63,6 +65,7 @@ export const ClassPlanGeneratorModal: React.FC<ClassPlanGeneratorModalProps> = (
     const [groupSubjects, setGroupSubjects] = useState<any[]>([])
     const [selectedSubjId, setSelectedSubjId] = useState(subjectId || '')
     const [isMultiSubject, setIsMultiSubject] = useState(false)
+    const selectedSubjectName = (groupSubjects.find((s: any) => s.id === selectedSubjId)?.name as string | undefined) || ''
 
     useEffect(() => {
         if (isOpen) {
@@ -143,7 +146,7 @@ export const ClassPlanGeneratorModal: React.FC<ClassPlanGeneratorModalProps> = (
             const finalSubjects = Array.from(subjectsMap.values())
             setGroupSubjects(finalSubjects)
 
-            if (!selectedSubjId && finalSubjects.length > 0 && multi) {
+            if (!selectedSubjId && finalSubjects.length > 0) {
                 setSelectedSubjId(finalSubjects[0].id)
             }
         }
@@ -153,36 +156,31 @@ export const ClassPlanGeneratorModal: React.FC<ClassPlanGeneratorModalProps> = (
         if (isOpen && !editingPlan && selectedSubjId) {
             fetchLatestLessonPlan()
         }
-    }, [isOpen, editingPlan, selectedSubjId])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen, editingPlan, selectedSubjId, classDate])
 
     const fetchLatestLessonPlan = async () => {
+        setLoadingContext(true)
         try {
-            const { data, error } = await supabase
-                .from('lesson_plans')
-                .select('*')
-                .eq('group_id', groupId)
-                .eq('subject_id', selectedSubjId)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .single()
-
-            if (error) throw error
-            setLessonPlan(data)
+            // 1. La planeación de esta materia y grupo (la que abarca la fecha, o la más reciente)
+            const plan = await findLessonPlanFor({ groupId, subjectId: selectedSubjId, date: classDate })
+            if (plan) { setLessonPlan(plan); return }
+            // 2. Sin planeación: los contenidos y PDA del programa analítico de la materia
+            setLessonPlan(await analyticalContextFor({ tenantId, subjectId: selectedSubjId, groupId }))
         } catch (err) {
             console.error('Error fetching lesson plan:', err)
+            setLessonPlan(null)
+        } finally {
+            setLoadingContext(false)
         }
     }
 
     const handleGenerate = async () => {
-        if (!lessonPlan) {
-            alert('No se encontró una planeación previa para basar este plan de clase.')
-            return
-        }
-
         setLoading(true)
         try {
             const result = await geminiService.generateDailyClassPlan({
                 lessonPlan,
+                subjectName: selectedSubjectName,
                 classDate,
                 duration,
                 isSecondary
@@ -203,7 +201,7 @@ export const ClassPlanGeneratorModal: React.FC<ClassPlanGeneratorModalProps> = (
                 tenant_id: tenantId,
                 group_id: groupId,
                 subject_id: selectedSubjId,
-                lesson_plan_id: lessonPlan?.id || editingPlan?.lesson_plan_id,
+                lesson_plan_id: lessonPlan?.id || editingPlan?.lesson_plan_id || null,
                 class_date: classDate,
                 duration_or_module: duration,
                 ai_generated_content: planData,
@@ -259,8 +257,8 @@ export const ClassPlanGeneratorModal: React.FC<ClassPlanGeneratorModalProps> = (
                 <div class="meta">
                     <div><strong>Fecha:</strong> ${classDate}</div>
                     <div><strong>Duración/Módulo:</strong> ${duration} ${isSecondary ? 'Modulo(s)' : 'Minutos'}</div>
-                    <div><strong>Materia:</strong> ${lessonPlan?.subject || 'N/A'}</div>
-                    <div><strong>Campo Formativo:</strong> ${lessonPlan?.field || 'N/A'}</div>
+                    <div><strong>Materia:</strong> ${selectedSubjectName || 'N/A'}</div>
+                    <div><strong>Campo Formativo:</strong> ${lessonPlan?.campo_formativo || 'N/A'}</div>
                 </div>
 
                 <h2>Guion Minuto a Minuto</h2>
@@ -361,16 +359,28 @@ export const ClassPlanGeneratorModal: React.FC<ClassPlanGeneratorModalProps> = (
                                 </div>
                             </div>
 
-                            {!lessonPlan && !loading && (
+                            {!loading && !loadingContext && lessonPlan?.id && (
+                                <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center gap-3">
+                                    <CheckCircle2 className="w-5 h-5 text-emerald-700 shrink-0" />
+                                    <p className="text-xs text-emerald-800 font-medium">Se basará en tu planeación «{lessonPlan.title}».</p>
+                                </div>
+                            )}
+                            {!loading && !loadingContext && lessonPlan && !lessonPlan.id && (
+                                <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl flex items-center gap-3">
+                                    <FileText className="w-5 h-5 text-indigo-700 shrink-0" />
+                                    <p className="text-xs text-indigo-800 font-medium">Aún no tienes planeación de esta materia: se usarán los contenidos y PDA de tu programa analítico.</p>
+                                </div>
+                            )}
+                            {!loading && !loadingContext && !lessonPlan && (
                                 <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl flex items-center gap-3">
                                     <AlertCircle className="w-5 h-5 text-amber-700 shrink-0" />
-                                    <p className="text-xs text-amber-700 font-medium">Si no tienes una planeación general creada, la IA generará una estructura estándar.</p>
+                                    <p className="text-xs text-amber-700 font-medium">No hay planeación ni programa analítico de esta materia: la IA generará una estructura estándar.</p>
                                 </div>
                             )}
 
                             <button
                                 onClick={handleGenerate}
-                                disabled={loading}
+                                disabled={loading || loadingContext}
                                 className="w-full py-4 bg-indigo-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all btn-tactile disabled:opacity-50 flex items-center justify-center gap-3"
                             >
                                 {loading ? (

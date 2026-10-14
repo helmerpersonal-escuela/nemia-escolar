@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { X, Calendar, Sparkles, AlertCircle, CheckCircle2, FileText, Printer, User, BookOpen } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
+import { findLessonPlanFor } from '../../../lib/planSubjects'
 import { useTenant } from '../../../hooks/useTenant'
 import { useProfile } from '../../../hooks/useProfile'
 import { GeminiService } from '../../../lib/gemini'
@@ -93,14 +94,10 @@ export const AbsenceRequestModal = ({ isOpen, onClose }: AbsenceRequestModalProp
                     let textbookTitle = null
 
                     if (cls.group_id && cls.subject_id) {
-                        const { data } = await supabase
-                            .from('lesson_plans')
-                            .select('title, contents, pda, activities_sequence, textbook_id, textbook_pages_from, textbook_pages_to')
-                            .eq('group_id', cls.group_id)
-                            .eq('subject_id', cls.subject_id)
-                            .order('created_at', { ascending: false })
-                            .limit(1)
-                            .maybeSingle()
+                        const data = await findLessonPlanFor<any>({
+                            groupId: cls.group_id, subjectId: cls.subject_id, date: format(day, 'yyyy-MM-dd'),
+                            select: 'title, contents, pda, activities_sequence, textbook_id, textbook_pages_from, textbook_pages_to, start_date, end_date',
+                        })
 
                         latestPlan = data
 

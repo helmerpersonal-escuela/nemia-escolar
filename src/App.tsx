@@ -280,7 +280,7 @@ function App() {
             </ProtectedRoute>
           } />
           <Route path="familias/codigos" element={
-            <ProtectedRoute allowedRoles={['SYSTEM_ADMIN', 'DIRECTOR', 'ADMIN', 'SCHOOL_CONTROL', 'ACADEMIC_COORD', 'TECH_COORD']}>
+            <ProtectedRoute allowedRoles={['SYSTEM_ADMIN', 'DIRECTOR', 'ADMIN', 'SCHOOL_CONTROL', 'ACADEMIC_COORD', 'TECH_COORD', 'INDEPENDENT_TEACHER']}>
               <RequireSteps steps={['tutores']} action="generar los códigos para familias"><FamilyCodesPage /></RequireSteps>
             </ProtectedRoute>
           } />
@@ -310,7 +310,7 @@ function App() {
             </ProtectedRoute>
           } />
           <Route path="familias/accesos" element={
-            <ProtectedRoute allowedRoles={['SYSTEM_ADMIN', 'DIRECTOR', 'ADMIN', 'SCHOOL_CONTROL', 'ACADEMIC_COORD']}>
+            <ProtectedRoute allowedRoles={['SYSTEM_ADMIN', 'DIRECTOR', 'ADMIN', 'SCHOOL_CONTROL', 'ACADEMIC_COORD', 'INDEPENDENT_TEACHER']}>
               <FamilyAccessAdminPage />
             </ProtectedRoute>
           } />

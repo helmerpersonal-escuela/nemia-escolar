@@ -756,6 +756,8 @@ export const DashboardLayout = () => {
                     { label: 'Conducta y reportes', path: '/gradebook?tab=REPORTS' },
                     { label: 'Portafolio de alumnos', path: '/evaluation/portfolio' },
                     { label: 'Expedientes de alumnos', path: '/students' },
+                    { label: 'Códigos para familias', path: '/familias/codigos' },
+                    { label: 'Cuentas con acceso (familias)', path: '/familias/accesos' },
                     { label: 'Mi horario', path: '/schedule' },
                     { label: 'Consejo Técnico (CTE)', path: '/cte' }
                 ]

@@ -5,7 +5,7 @@
 //
 // Crea: 1 escuela · 3 ciclos · 6 grupos · 1 directora · 10 docentes · 50 alumnos con calificaciones ·
 // 25 madres/padres con cuenta (5 de ellos con 2 o 3 hijos en grados distintos) · 18 planeaciones ·
-// 4 programas analíticos (uno por campo formativo). Al final imprime las cuentas para entrar.
+// programas analíticos (uno por docente y campo formativo). Al final imprime las cuentas para entrar.
 import { randomBytes } from 'node:crypto'
 import { writeFileSync } from 'node:fs'
 import { ARCHIVO_CREDENCIALES, DOMINIO_DEMO, conectar, cuentasDemo, exigirDesarrollo, fallar, faltaMigracion } from './comun.mjs'
@@ -60,6 +60,10 @@ if (eExtras) console.warn(`  Aviso: no se agregaron comisiones ni asistencia de 
 // 3c. Horario de clases de ejemplo
 const { error: eHorario } = await db.rpc('demo_horario')
 if (eHorario) console.warn(`  Aviso: no se agregó el horario de ejemplo (${eHorario.message}).`)
+
+// 3c2. Un programa analítico por docente, solo con sus materias
+const { error: eProg } = await db.rpc('demo_programas_por_docente')
+if (eProg) console.warn(`  Aviso: no se separaron los programas analíticos por docente (${eProg.message}).`)
 
 // 3d. Escenarios de prueba: credenciales, faltas, alumnos y docentes con dificultades, bitácoras, visitas, CTE
 const { data: escenarios, error: eEsc } = await db.rpc('demo_escenarios')
