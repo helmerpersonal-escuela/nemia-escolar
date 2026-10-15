@@ -403,7 +403,7 @@ export const CreateAssignmentModal = ({
                 <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-400/20 blur-[100px] animate-blob transition-delay-2000" />
             </div>
 
-            <div className="bg-[#F8FAFC] rounded-[3rem] shadow-2xl max-w-2xl w-full flex flex-col relative overflow-hidden border-8 border-white animate-in zoom-in-95 duration-300">
+            <div className="bg-[#F8FAFC] rounded-[2rem] sm:rounded-[3rem] shadow-2xl max-w-2xl w-full flex flex-col relative overflow-hidden border-8 border-white animate-in zoom-in-95 duration-300">
                 {/* Header Gradient Stripe */}
                 <div className="h-2 w-full animated-gradient" />
 
@@ -762,7 +762,7 @@ export const CreateAssignmentModal = ({
                                         !formData.criterion_id ||
                                         !formData.due_date
                                     }
-                                    className="flex-1 md:flex-none px-12 py-4 bg-indigo-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] shadow-2xl shadow-indigo-200 btn-tactile hover:bg-indigo-700 disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-3"
+                                    className="flex-1 md:flex-none px-6 sm:px-12 py-4 bg-indigo-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] shadow-2xl shadow-indigo-200 btn-tactile hover:bg-indigo-700 disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-3"
                                 >
                                     {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="h-4 w-4" />}
                                     <span>{isLoading ? 'Guardando...' : 'Fijar Misión'}</span>

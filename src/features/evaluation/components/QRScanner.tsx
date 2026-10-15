@@ -49,7 +49,7 @@ export const QRScanner = ({ onScanSuccess, onScanError, onClose }: QRScannerProp
                 >
                     <XCircle className="w-6 h-6" />
                 </button>
-                <div id="reader" className="w-full bg-slate-900 min-h-[300px]" style={{ border: 'none' }}></div>
+                <div id="reader" className="w-full bg-slate-900 min-h-[220px] sm:min-h-[300px]" style={{ border: 'none' }}></div>
             </div>
             <div className="flex items-center text-sm font-bold text-slate-500 bg-slate-100 px-4 py-2 rounded-full">
                 <Camera className="w-4 h-4 mr-2" />

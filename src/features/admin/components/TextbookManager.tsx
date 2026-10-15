@@ -137,7 +137,7 @@ export const TextbookManager = () => {
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
             {/* Upload Section */}
-            <div className="glass-panel p-8 rounded-[2rem] border-2 border-indigo-50 shadow-xl shadow-indigo-100/20">
+            <div className="glass-panel p-5 sm:p-8 rounded-[2rem] border-2 border-indigo-50 shadow-xl shadow-indigo-100/20">
                 <div className="flex items-center space-x-4 mb-8">
                     <div className="p-3 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-200">
                         <Upload className="w-6 h-6 text-white" />

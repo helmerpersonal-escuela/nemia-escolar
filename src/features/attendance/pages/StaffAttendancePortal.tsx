@@ -216,8 +216,8 @@ export const StaffAttendancePortal = () => {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 h-[500px]">
-                    <div className="bg-slate-900 rounded-[2rem] p-12 text-white flex flex-col items-center justify-center text-center shadow-2xl shadow-slate-200">
-                        <div className="w-64 h-64 bg-white rounded-3xl p-8 mb-8 relative overflow-hidden group">
+                    <div className="bg-slate-900 rounded-[2rem] p-6 sm:p-12 text-white flex flex-col items-center justify-center text-center shadow-2xl shadow-slate-200">
+                        <div className="w-64 h-64 bg-white rounded-3xl p-5 sm:p-8 mb-8 relative overflow-hidden group">
                             <div className="absolute inset-0 bg-slate-50 flex items-center justify-center">
                                 <QrCode className="w-48 h-48 text-slate-900 animate-pulse" />
                             </div>
@@ -232,7 +232,7 @@ export const StaffAttendancePortal = () => {
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-[2rem] p-12 border border-slate-100 flex flex-col items-center justify-center text-center">
+                    <div className="bg-white rounded-[2rem] p-6 sm:p-12 border border-slate-100 flex flex-col items-center justify-center text-center">
                         <div className="w-24 h-24 bg-blue-50 text-blue-600 rounded-[2rem] flex items-center justify-center mb-8">
                             <UserCheck className="w-12 h-12" />
                         </div>

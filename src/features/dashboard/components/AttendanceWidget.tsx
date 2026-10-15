@@ -2,6 +2,7 @@ import { loadDayContext, adjustClasses } from '../../../lib/specialDays'
 import { useState, useEffect } from 'react'
 import { Clock, CheckCircle2, QrCode, LogIn, LogOut, Loader2, AlertCircle } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
+import { onlyMyClasses } from '../../../lib/mySchedule'
 import { useTenant } from '../../../hooks/useTenant'
 import { useToast } from '../../../components/ui/Toast'
 import { todayISO } from '../../../lib/dates'
@@ -69,7 +70,9 @@ export const AttendanceWidget = () => {
             if (schedule) {
                 // Día con horario especial: no se registran módulos suspendidos y se muestran con su nueva hora
                 const { special, standard } = await loadDayContext(tenant.id, today)
-                const adjusted = adjustClasses(schedule as any[], special, standard).filter(c => c.status !== 'cancelled')
+                // Solo las clases de este docente (la tabla trae el horario de toda la escuela)
+                const mine = await onlyMyClasses(schedule as any[], tenant as any)
+                const adjusted = adjustClasses(mine, special, standard).filter(c => c.status !== 'cancelled')
                 const modulesWithStatus = adjusted.map((entry: any) => {
                     const att = moduleAtt?.find(a => a.schedule_id === entry.id)
                     return { ...entry, attenuation: att }
@@ -219,7 +222,7 @@ export const AttendanceWidget = () => {
     )
 
     return (
-        <div className="bg-white rounded-3xl p-6 shadow-xl border border-slate-50 h-full flex flex-col">
+        <div className="bg-white rounded-3xl p-6 shadow-xl border border-slate-50 h-full lg:max-h-[560px] flex flex-col">
             <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">

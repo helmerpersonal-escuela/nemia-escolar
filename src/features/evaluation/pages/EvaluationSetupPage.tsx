@@ -57,7 +57,7 @@ export const EvaluationSetupPage = () => {
                 <div className="inline-flex p-3 bg-indigo-100 rounded-2xl mb-4 shadow-sm shadow-indigo-50">
                     <Settings className="h-10 w-10 text-indigo-600" />
                 </div>
-                <h1 className="text-4xl font-black text-gray-900 tracking-tight">
+                <h1 className="text-2xl sm:text-4xl font-black text-gray-900 tracking-tight">
                     Arquitectura de Evaluación <span className="text-indigo-600">Vunlek</span>
                 </h1>
                 <p className="mt-3 text-gray-500 text-lg max-w-2xl mx-auto font-medium">
@@ -65,7 +65,7 @@ export const EvaluationSetupPage = () => {
                 </p>
             </header>
 
-            <div className="bg-gradient-to-r from-slate-900 to-indigo-900 rounded-[2rem] p-8 mb-8 text-white shadow-2xl shadow-indigo-100 flex items-center justify-between overflow-hidden relative">
+            <div className="bg-gradient-to-r from-slate-900 to-indigo-900 rounded-[2rem] p-5 sm:p-8 mb-8 text-white shadow-2xl shadow-indigo-100 flex items-center justify-between overflow-hidden relative">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
                 <div className="flex items-start gap-6 relative z-10">
                     <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-xl border border-white/20">
@@ -116,7 +116,7 @@ export const EvaluationSetupPage = () => {
                             <CriteriaManager periodId={selectedPeriod.id} groupId={urlGroupId || undefined} />
                         </div>
                     ) : (
-                        <div className="h-full min-h-[400px] bg-gray-50 rounded-[2.5rem] border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-500 p-8 text-center">
+                        <div className="h-full min-h-[260px] sm:min-h-[400px] bg-gray-50 rounded-[1.75rem] sm:rounded-[2.5rem] border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-500 p-5 sm:p-8 text-center">
                             <div className="bg-white p-6 rounded-full shadow-lg shadow-gray-200/50 mb-6 group-hover:scale-110 transition-transform duration-500">
                                 <Calendar className="w-12 h-12 text-amber-700" />
                             </div>

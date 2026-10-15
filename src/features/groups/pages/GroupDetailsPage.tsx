@@ -149,7 +149,7 @@ Esta acción NO se puede deshacer.`
 
                     <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
                         <div>
-                            <h1 className="text-4xl font-black text-gray-900 tracking-tight mb-2">
+                            <h1 className="text-2xl sm:text-4xl font-black text-gray-900 tracking-tight mb-2">
                                 Grupo {group.grade}° "{group.section}"
                             </h1>
                             <p className="text-lg text-gray-600 font-medium">

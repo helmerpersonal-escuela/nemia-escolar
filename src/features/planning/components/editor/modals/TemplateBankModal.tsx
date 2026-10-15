@@ -29,7 +29,7 @@ export const TemplateBankModal: React.FC<TemplateBankModalProps> = ({
 
     return (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[300] flex items-center justify-center p-4">
-            <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
+            <div className="bg-white w-full max-w-2xl rounded-[1.75rem] sm:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
                 <div className="p-8 border-b border-slate-100 flex justify-between items-center">
                     <div className="flex items-center space-x-4">
                         <div className="p-3 bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-100">

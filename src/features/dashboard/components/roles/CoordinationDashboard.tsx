@@ -191,7 +191,7 @@ export const CoordinationDashboard = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="bg-white p-8 rounded-3xl shadow-xl shadow-slate-100 border border-slate-50 md:col-span-2">
+                <div className="bg-white p-5 sm:p-8 rounded-3xl shadow-xl shadow-slate-100 border border-slate-50 md:col-span-2">
                     <div className="flex items-center justify-between mb-6">
                         <h3 className="text-xl font-bold flex items-center">
                             <ClipboardCheck className="w-5 h-5 mr-3 text-blue-600" />
@@ -265,7 +265,7 @@ export const CoordinationDashboard = () => {
                         </div>
                     </div>
 
-                    <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-8 rounded-3xl text-white shadow-xl shadow-blue-200 relative overflow-hidden group">
+                    <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-5 sm:p-8 rounded-3xl text-white shadow-xl shadow-blue-200 relative overflow-hidden group">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl transform translate-x-10 -translate-y-10 group-hover:bg-white/20 transition-all duration-700" />
 
                         <div className="relative z-10">

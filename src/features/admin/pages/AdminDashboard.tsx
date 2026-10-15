@@ -201,7 +201,7 @@ export const AdminDashboard = () => {
                 {/* Academic Status & NEM Widgets */}
                 <div className="lg:col-span-2 space-y-8">
                     {/* NEM Implementation Status */}
-                    <div className="bg-gradient-to-br from-indigo-900 via-blue-900 to-indigo-950 rounded-[3rem] p-10 text-white relative overflow-hidden shadow-2xl">
+                    <div className="bg-gradient-to-br from-indigo-900 via-blue-900 to-indigo-950 rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-10 text-white relative overflow-hidden shadow-2xl">
                         <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/20 rounded-full blur-[100px] -mr-40 -mt-40" />
                         <div className="absolute bottom-0 left-0 w-40 h-40 bg-purple-500/20 rounded-full blur-[80px] -ml-20 -mb-20" />
 
@@ -252,13 +252,13 @@ export const AdminDashboard = () => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all group overflow-hidden relative">
+                        <div className="bg-white p-6 sm:p-10 rounded-[1.75rem] sm:rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all group overflow-hidden relative">
                             <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform">
                                 <PieChart className="w-24 h-24 text-blue-600" />
                             </div>
                             <h4 className="text-sm font-black text-gray-500 uppercase tracking-[0.2em] mb-8">Rezago Educativo</h4>
                             <div className="flex items-end gap-4 mb-4">
-                                <h3 className="text-4xl font-black text-gray-900">{overview ? (pct(overview.bapStudents, overview.students) ?? 0) : '…'}%</h3>
+                                <h3 className="text-2xl sm:text-4xl font-black text-gray-900">{overview ? (pct(overview.bapStudents, overview.students) ?? 0) : '…'}%</h3>
                                 <span className="text-slate-500 text-xs font-bold mb-2">{overview ? `${overview.bapStudents} alumno(s)` : ''}</span>
                             </div>
                             <p className="text-xs text-gray-500 font-medium leading-relaxed mb-8">
@@ -269,13 +269,13 @@ export const AdminDashboard = () => {
                             </Link>
                         </div>
 
-                        <div className="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all group overflow-hidden relative">
+                        <div className="bg-white p-6 sm:p-10 rounded-[1.75rem] sm:rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all group overflow-hidden relative">
                             <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform">
                                 <ClipboardCheck className="w-24 h-24 text-emerald-700" />
                             </div>
                             <h4 className="text-sm font-black text-gray-500 uppercase tracking-[0.2em] mb-8">Asistencia Personal</h4>
                             <div className="flex items-end gap-4 mb-4">
-                                <h3 className="text-4xl font-black text-gray-900">{overview ? (overview.staff ? `${pct(overview.staffCheckedInToday, overview.staff)}%` : '—') : '…'}</h3>
+                                <h3 className="text-2xl sm:text-4xl font-black text-gray-900">{overview ? (overview.staff ? `${pct(overview.staffCheckedInToday, overview.staff)}%` : '—') : '…'}</h3>
                                 <div className="flex gap-1 mb-2">
                                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -292,7 +292,7 @@ export const AdminDashboard = () => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
+                        <div className="bg-white p-5 sm:p-8 rounded-[2rem] border border-gray-100 shadow-sm">
                             <h4 className="text-lg font-bold text-gray-900 mb-2 flex items-center">
                                 <Building2 className="w-5 h-5 mr-3 text-blue-500" />
                                 Configuración Escolar
@@ -304,7 +304,7 @@ export const AdminDashboard = () => {
                                 Ir a Configuración de Escuela <ArrowRight className="w-4 h-4 ml-2" />
                             </Link>
                         </div>
-                        <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
+                        <div className="bg-white p-5 sm:p-8 rounded-[2rem] border border-gray-100 shadow-sm">
                             <h4 className="text-lg font-bold text-gray-900 mb-2 flex items-center">
                                 <ShieldCheck className="w-5 h-5 mr-3 text-purple-500" />
                                 Gestión de Personal
@@ -338,7 +338,7 @@ export const AdminDashboard = () => {
                         </div>
                     </div>
 
-                    <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
+                    <div className="bg-white p-5 sm:p-8 rounded-[2rem] border border-gray-100 shadow-sm">
                         <h4 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-6">Acceso Rápido Directivo</h4>
                         <div className="grid grid-cols-2 gap-3">
                             {[

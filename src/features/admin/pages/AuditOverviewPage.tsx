@@ -44,7 +44,7 @@ export const AuditOverviewPage = () => {
                         <span className="text-[11px] font-black uppercase tracking-widest">SISTEMA INTEGRAL DE AUDITORÍA</span>
                     </div>
                 </div>
-                <h1 className="text-4xl font-black text-slate-900 mb-2 tracking-tighter">Estado de Resiliencia Vunlek</h1>
+                <h1 className="text-2xl sm:text-4xl font-black text-slate-900 mb-2 tracking-tighter">Estado de Resiliencia Vunlek</h1>
                 <p className="text-slate-500 font-medium max-w-2xl">
                     Reporte técnico consolidado sobre la integridad del frontend, backend y arquitectura de datos.
                 </p>

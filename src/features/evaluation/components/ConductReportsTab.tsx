@@ -327,7 +327,7 @@ export const ConductReportsTab = ({
                         )
                     })
                 ) : (
-                    <div className="col-span-full py-20 text-center bg-slate-50/50 rounded-[3rem] border-4 border-dashed border-slate-100 flex flex-col items-center justify-center">
+                    <div className="col-span-full py-20 text-center bg-slate-50/50 rounded-[2rem] sm:rounded-[3rem] border-4 border-dashed border-slate-100 flex flex-col items-center justify-center">
                         <div className="w-20 h-20 bg-white rounded-[2rem] shadow-xl flex items-center justify-center mb-6 scale-110">
                             <ShieldCheck className="w-10 h-10 text-emerald-700" />
                         </div>

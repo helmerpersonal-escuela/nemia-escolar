@@ -108,7 +108,7 @@ export const PlanningListPage = () => {
                         <span className="text-xs font-black text-indigo-400 uppercase tracking-widest tracking-[0.3em]">Actualizando tus planeaciones…</span>
                     </div>
                 ) : error ? (
-                    <div className="bg-red-50 rounded-[2rem] p-12 text-center max-w-2xl mx-auto">
+                    <div className="bg-red-50 rounded-[2rem] p-6 sm:p-12 text-center max-w-2xl mx-auto">
                         <h3 className="text-xl font-black text-red-900 mb-2">No se pudieron cargar tus planeaciones</h3>
                         <p className="text-red-600 mb-6">{error}</p>
                         <button onClick={() => window.location.reload()} className="px-6 py-2 bg-red-100 text-red-700 rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-red-200 btn-tactile">

@@ -111,7 +111,7 @@ export const StudentDashboard = () => {
 
     if (!studentId) {
         return (
-            <div className="flex flex-col items-center justify-center p-12 bg-white rounded-[3rem] shadow-xl border border-slate-100 text-center animate-in fade-in zoom-in duration-500">
+            <div className="flex flex-col items-center justify-center p-6 sm:p-12 bg-white rounded-[2rem] sm:rounded-[3rem] shadow-xl border border-slate-100 text-center animate-in fade-in zoom-in duration-500">
                 <div className="w-24 h-24 bg-amber-50 rounded-full flex items-center justify-center mb-8 border border-amber-100">
                     <AlertTriangle className="w-12 h-12 text-amber-700" />
                 </div>

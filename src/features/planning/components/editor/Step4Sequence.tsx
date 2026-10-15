@@ -40,7 +40,7 @@ export const Step4Sequence: React.FC<Step4SequenceProps> = ({
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Left: Schedule & IA */}
                 <div className="space-y-8">
-                    <div className="bg-gradient-to-br from-indigo-600 to-violet-700 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden group">
+                    <div className="bg-gradient-to-br from-indigo-600 to-violet-700 p-5 sm:p-8 rounded-[1.75rem] sm:rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden group">
                         <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform">
                             <Sparkles className="w-32 h-32" />
                         </div>
@@ -77,7 +77,7 @@ export const Step4Sequence: React.FC<Step4SequenceProps> = ({
                         </div>
                     </div>
 
-                    <div className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-50 shadow-sm">
+                    <div className="bg-white p-5 sm:p-8 rounded-[1.75rem] sm:rounded-[2.5rem] border-2 border-slate-50 shadow-sm">
                         <div className="flex items-center space-x-3 mb-6">
                             <div className="w-8 h-8 bg-emerald-50 text-emerald-700 rounded-xl flex items-center justify-center">
                                 <Target className="w-4 h-4" />
@@ -123,7 +123,7 @@ export const Step4Sequence: React.FC<Step4SequenceProps> = ({
                 {/* Right: Sequence View */}
                 <div className="h-full">
                     {!hasDecidedStrategy && formData.activities_sequence.length > 0 ? (
-                        <div className="h-full bg-slate-900 rounded-[2.5rem] p-10 flex flex-col items-center justify-center text-center relative overflow-hidden group">
+                        <div className="h-full bg-slate-900 rounded-[1.75rem] sm:rounded-[2.5rem] p-6 sm:p-10 flex flex-col items-center justify-center text-center relative overflow-hidden group">
                             <div className="absolute inset-0 bg-indigo-600/20 group-hover:bg-indigo-600/30 transition-colors"></div>
                             <div className="relative z-10">
                                 <div className="w-20 h-20 bg-indigo-600 rounded-[2rem] flex items-center justify-center mb-6 shadow-2xl mx-auto border-4 border-slate-800 animate-bounce">
@@ -140,7 +140,7 @@ export const Step4Sequence: React.FC<Step4SequenceProps> = ({
                             </div>
                         </div>
                     ) : (
-                        <div className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-50 shadow-sm relative h-full flex flex-col">
+                        <div className="bg-white p-5 sm:p-8 rounded-[1.75rem] sm:rounded-[2.5rem] border-2 border-slate-50 shadow-sm relative h-full flex flex-col">
                             <div className="flex items-center justify-between mb-8">
                                 <h3 className="text-sm font-black text-gray-900 uppercase tracking-tight">Secuencia de Actividades</h3>
                                 {formData.activities_sequence.length > 0 && !isPreviewMode && (

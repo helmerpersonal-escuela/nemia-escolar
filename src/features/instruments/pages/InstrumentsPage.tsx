@@ -70,7 +70,7 @@ export const InstrumentsPage = () => {
                         )}
                     </div>
                     {visible.length === 0 ? (
-                        <p className="bg-white border border-slate-200 rounded-3xl py-12 px-6 text-center text-slate-600 font-bold">{isLead ? 'Aún no hay instrumentos. Crea el examen diagnóstico o la encuesta socioemocional de la escuela.' : 'La dirección todavía no publica el diagnóstico ni la encuesta de este ciclo.'}</p>
+                        <p className="bg-white border border-slate-200 rounded-3xl py-8 sm:py-12 px-6 text-center text-slate-600 font-bold">{isLead ? 'Aún no hay instrumentos. Crea el examen diagnóstico o la encuesta socioemocional de la escuela.' : 'La dirección todavía no publica el diagnóstico ni la encuesta de este ciclo.'}</p>
                     ) : (
                         <ul className="grid md:grid-cols-2 gap-3">
                             {visible.map(i => (
@@ -273,7 +273,7 @@ const Capture = ({ criteria, tenantId, instrument, groups, students, onBack }: {
                 <select aria-label="Grupo" value={groupId} onChange={e => changeGroup(e.target.value)} className={input}>{myGroups.map(g => <option key={g.id} value={g.id}>{groupName(g)}</option>)}</select>
             </BackBar>
             {msg && <p role={msg.ok ? 'status' : 'alert'} className={`flex items-start gap-2 text-sm font-bold rounded-2xl px-4 py-3 ${msg.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'}`}>{msg.ok ? <CheckCircle2 className="w-4 h-4 mt-0.5" /> : <AlertTriangle className="w-4 h-4 mt-0.5" />}{msg.text}</p>}
-            {saved.isLoading ? <div className="py-16 flex justify-center"><Loader2 className="w-8 h-8 text-indigo-500 animate-spin" /></div> : roster.length === 0 ? <p className="bg-white border border-slate-200 rounded-3xl py-12 text-center text-slate-600 font-bold">Este grupo no tiene alumnos.</p> : (
+            {saved.isLoading ? <div className="py-16 flex justify-center"><Loader2 className="w-8 h-8 text-indigo-500 animate-spin" /></div> : roster.length === 0 ? <p className="bg-white border border-slate-200 rounded-3xl py-8 sm:py-12 text-center text-slate-600 font-bold">Este grupo no tiene alumnos.</p> : (
                 <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden">
                     <div className="table-scroll">
                         <table className="text-sm border-collapse">
@@ -370,7 +370,7 @@ const Results = ({ criteria, school, instrument, groups, students, onBack, print
                     </div>)} disabled={!summary.captured} className={ghost}><Printer className="w-4 h-4" /> Imprimir</button>
             </BackBar>
 
-            {summary.captured === 0 ? <p className="bg-white border border-slate-200 rounded-3xl py-12 text-center text-slate-600 font-bold">Todavía no hay resultados capturados{groupId ? ' en este grupo' : ''}.</p> : (
+            {summary.captured === 0 ? <p className="bg-white border border-slate-200 rounded-3xl py-8 sm:py-12 text-center text-slate-600 font-bold">Todavía no hay resultados capturados{groupId ? ' en este grupo' : ''}.</p> : (
                 <>
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                         <div className="bg-white border border-slate-200 rounded-3xl p-4"><p className="text-2xl font-black text-slate-900">{summary.captured}<span className="text-base text-slate-500"> de {expected}</span></p><p className="text-sm font-bold text-slate-600">Alumnos capturados</p></div>

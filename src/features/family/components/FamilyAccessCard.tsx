@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ShieldCheck, UserPlus, Loader2, Copy, Clock, XCircle, UserMinus, KeyRound } from 'lucide-react'
+import { ShieldCheck, UserPlus, Loader2, Copy, Clock, XCircle, UserMinus, KeyRound, ChevronRight } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useToast } from '../../../components/ui/Toast'
 import { askConfirm } from '../../../components/ui/ConfirmDialog'
@@ -12,8 +12,11 @@ const input = 'w-full min-h-[44px] rounded-2xl border border-slate-200 px-3 text
 /**
  * "Mi acceso": dice con qué tipo de cuenta entró la persona (tutor titular o cuenta adicional).
  * El titular ve quién más puede ver a su hijo(a), pide a la escuela hasta 2 cuentas adicionales y puede retirarlas.
+ *
+ * variant="notice": una sola línea que solo aparece cuando hay algo que atender (un código autorizado
+ * para entregar, una solicitud en espera o una rechazada). Al tocarla se abre la tarjeta completa.
  */
-export function FamilyAccessCard() {
+export function FamilyAccessCard({ variant = 'full', onOpen }: { variant?: 'full' | 'notice'; onOpen?: () => void } = {}) {
     const { showToast } = useToast()
     const [rows, setRows] = useState<StudentAccess[] | null>(null)
     const [openFor, setOpenFor] = useState<string | null>(null)
@@ -22,6 +25,28 @@ export function FamilyAccessCard() {
 
     const load = useCallback(() => { accessOverview().then(setRows).catch(() => setRows([])) }, [])
     useEffect(() => { load() }, [load])
+
+    if (variant === 'notice') {
+        if (!rows?.length) return null
+        const reqs = rows.filter(s => s.my_role === 'TITULAR').flatMap(s => s.requests)
+        const ready = reqs.filter(r => r.status === 'APPROVED' && r.code).length
+        const waiting = reqs.filter(r => r.status === 'PENDING').length
+        const rejected = reqs.filter(r => r.status === 'REJECTED').length
+        if (!ready && !waiting && !rejected) return null
+        const text = ready
+            ? `La escuela autorizó ${ready === 1 ? 'una cuenta adicional' : `${ready} cuentas adicionales`}: entrega el código.`
+            : waiting
+                ? `${waiting === 1 ? 'Una solicitud' : `${waiting} solicitudes`} de cuenta adicional en espera de la escuela.`
+                : 'La escuela no autorizó una solicitud de cuenta adicional.'
+        const tone = ready ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : waiting ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-rose-50 border-rose-200 text-rose-900'
+        return (
+            <button type="button" onClick={onOpen} className={`w-full flex items-center gap-2 rounded-2xl border px-3 py-2.5 text-left text-sm font-bold ${tone}`}>
+                {ready ? <KeyRound className="w-4 h-4 shrink-0" /> : waiting ? <Clock className="w-4 h-4 shrink-0" /> : <XCircle className="w-4 h-4 shrink-0" />}
+                <span className="flex-1">{text}</span>
+                <ChevronRight className="w-4 h-4 shrink-0" />
+            </button>
+        )
+    }
 
     if (!rows) return <p className="text-sm text-slate-500 flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Revisando tu acceso…</p>
     if (!rows.length) return null
@@ -50,7 +75,7 @@ export function FamilyAccessCard() {
 
     return (
         <section className="bg-white rounded-3xl border border-slate-100 p-4 sm:p-6 space-y-4" aria-label="Mi acceso">
-            <h2 className="font-black text-slate-900 flex items-center gap-2"><ShieldCheck className="w-5 h-5 text-emerald-600" /> Mi acceso</h2>
+            <h2 className="font-black text-slate-900 flex items-center gap-2"><ShieldCheck className="w-5 h-5 text-emerald-600" /> Cuentas de mi familia</h2>
             {rows.map(s => {
                 const titular = s.my_role === 'TITULAR'
                 const extras = s.accounts.filter(a => a.role === 'EXTRA')
@@ -67,7 +92,7 @@ export function FamilyAccessCard() {
                             <p className="text-sm text-slate-600">El tutor titular pidió a la escuela esta cuenta para ti. Puedes ver la información del alumno; solo el titular administra quién más tiene acceso.</p>
                         ) : (
                             <>
-                                <p className="text-sm text-slate-600">Eres responsable de esta cuenta: no compartas tu contraseña. Si alguien más debe ver a tu hijo(a), pide una <b>cuenta adicional</b> (máximo {MAX_EXTRA}); la escuela la autoriza y esa persona entra con sus propios datos.</p>
+                                <p className="text-sm text-slate-600">No compartas tu contraseña. Si alguien más debe ver a tu hijo(a), pide una <b>cuenta adicional</b> (máximo {MAX_EXTRA}): la escuela la autoriza y esa persona entra con sus propios datos.</p>
                                 {extras.length > 0 && (
                                     <ul className="space-y-2">
                                         {extras.map(a => (

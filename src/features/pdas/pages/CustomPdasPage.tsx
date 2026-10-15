@@ -126,7 +126,7 @@ export const CustomPdasPage = () => {
             {isLoading ? (
                 <div className="py-16 flex justify-center"><Loader2 className="w-8 h-8 text-indigo-400 animate-spin" /></div>
             ) : visible.length === 0 ? (
-                <div className="bg-white rounded-3xl border border-dashed border-slate-200 p-10 text-center">
+                <div className="bg-white rounded-3xl border border-dashed border-slate-200 p-6 sm:p-10 text-center">
                     <Lightbulb className="w-10 h-10 text-amber-500 mx-auto mb-3" />
                     <p className="font-black text-slate-800">{pdas.length ? 'Sin resultados' : 'Aún no tienes PDAs propios'}</p>
                     <p className="text-sm text-slate-500 mt-1">Puedes crearlos en cualquier momento del ciclo o durante tus sesiones de CTE.</p>

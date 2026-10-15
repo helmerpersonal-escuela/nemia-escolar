@@ -136,7 +136,7 @@ const LogTab = ({ log, students, groups, staff, onOpen }: { log: LogEntry[]; stu
                 <button onClick={() => onOpen({ kind: 'REUNION_FAMILIA' })} className={primary}><Plus className="w-4 h-4" /> Nuevo registro</button>
             </div>
             {overdue > 0 && <p className="text-sm font-bold text-amber-900 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">Hay {overdue} acuerdo{overdue === 1 ? '' : 's'} con la fecha vencida y sin cumplir.</p>}
-            {shown.length === 0 ? <p className="bg-white border border-slate-200 rounded-3xl py-12 text-center text-slate-600 font-bold">{log.length ? 'Ningún registro coincide.' : 'Aún no hay registros. Anota aquí a quién se atendió y qué se acordó.'}</p> : (
+            {shown.length === 0 ? <p className="bg-white border border-slate-200 rounded-3xl py-8 sm:py-12 text-center text-slate-600 font-bold">{log.length ? 'Ningún registro coincide.' : 'Aún no hay registros. Anota aquí a quién se atendió y qué se acordó.'}</p> : (
                 <ul className="space-y-2">
                     {shown.map(e => {
                         const st = students.find(s => s.id === e.student_id)
@@ -252,7 +252,7 @@ const VisitsTab = ({ visits, groups, staff, onOpen, onSchedule }: { visits: Visi
                 <button onClick={onSchedule} className={primary}><CalendarClock className="w-4 h-4" /> Programar visita</button>
             </div>
             {without.length > 0 && visits.length > 0 && <p className="text-sm font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3">Docentes sin visita registrada ({without.length}): {without.map(t => t.name).join(', ')}.</p>}
-            {visits.length === 0 ? <p className="bg-white border border-slate-200 rounded-3xl py-12 text-center text-slate-600 font-bold">Aún no hay visitas. Programa la primera.</p> : (
+            {visits.length === 0 ? <p className="bg-white border border-slate-200 rounded-3xl py-8 sm:py-12 text-center text-slate-600 font-bold">Aún no hay visitas. Programa la primera.</p> : (
                 <ul className="space-y-2">
                     {visits.map(v => {
                         const s = visitSummary(asRecords(v.indicators))
@@ -573,7 +573,7 @@ const RiskTab = ({ criteria, tenantId, schoolYear, students, groups, log, onFoll
                 <select aria-label="Señal" value={kind} onChange={e => setKind(e.target.value)} className={input}><option value="ALL">Todas las señales</option>{Object.entries(RISK_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
                 <span className="self-center text-sm font-black text-slate-700">{cases.length} alumno{cases.length === 1 ? '' : 's'}</span>
             </div>
-            {cases.length === 0 ? <p className="bg-white border border-slate-200 rounded-3xl py-12 text-center text-slate-600 font-bold">No hay alumnos con señales de riesgo con estos filtros.</p> : (
+            {cases.length === 0 ? <p className="bg-white border border-slate-200 rounded-3xl py-8 sm:py-12 text-center text-slate-600 font-bold">No hay alumnos con señales de riesgo con estos filtros.</p> : (
                 <ul className="space-y-2">
                     {cases.map(c => {
                         const follow = log.find(e => e.student_id === c.studentId && e.kind === 'SEGUIMIENTO_ALUMNO')

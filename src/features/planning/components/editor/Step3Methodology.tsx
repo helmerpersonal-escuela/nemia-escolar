@@ -51,7 +51,7 @@ export const Step3Methodology: React.FC<Step3MethodologyProps> = ({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-50 shadow-sm space-y-6">
+                <div className="bg-white p-5 sm:p-8 rounded-[1.75rem] sm:rounded-[2.5rem] border-2 border-slate-50 shadow-sm space-y-6">
                     <div>
                         <label className="block text-[11px] font-black text-gray-500 uppercase mb-3 ml-1 tracking-widest">Metodología NEM Sugerida</label>
                         <div className="grid grid-cols-1 gap-3">
@@ -93,7 +93,7 @@ export const Step3Methodology: React.FC<Step3MethodologyProps> = ({
                     </div>
                 </div>
 
-                <div className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-50 shadow-sm space-y-6">
+                <div className="bg-white p-5 sm:p-8 rounded-[1.75rem] sm:rounded-[2.5rem] border-2 border-slate-50 shadow-sm space-y-6">
                     <div>
                         <label className="block text-[11px] font-black text-gray-500 uppercase mb-3 ml-1 tracking-widest">Propósito del Proyecto / Justificación</label>
                         <textarea aria-label="Propósito del Proyecto / Justificación"

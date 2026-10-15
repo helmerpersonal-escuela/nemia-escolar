@@ -190,7 +190,7 @@ export const TrackingPage = () => {
                     ))}
                 </div>
             ) : (
-                <div className="text-center py-12 px-4 bg-white rounded-3xl border border-dashed border-slate-200">
+                <div className="text-center py-8 sm:py-12 px-4 bg-white rounded-3xl border border-dashed border-slate-200">
                     <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Search className="w-8 h-8 text-slate-300" />
                     </div>

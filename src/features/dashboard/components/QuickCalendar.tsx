@@ -2,6 +2,7 @@ import { loadDayContext, adjustClasses, isoDate } from '../../../lib/specialDays
 import { useState, useEffect } from 'react'
 import { Calendar as CalendarIcon, Plus, Clock, Trash2, ChevronLeft, ChevronRight, BookOpen, FileText, GraduationCap } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
+import { onlyMyClasses } from '../../../lib/mySchedule'
 import { attachPlanSubjects } from '../../../lib/planSubjects'
 import { useTenant } from '../../../hooks/useTenant'
 import { useNavigate } from 'react-router-dom'
@@ -93,30 +94,17 @@ export const QuickCalendar = () => {
         const daysMap = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY']
         const currentDayKey = daysMap[date.getDay()]
 
-        // 4a. Get Teacher Subjects to filter schedule
-        const { data: teacherSubjects } = await supabase
-            .from('profile_subjects')
-            .select('subject_catalog_id, custom_detail')
-            .eq('profile_id', user.id)
-
-        const teacherSubjectIds = teacherSubjects?.map((s: any) => s.subject_catalog_id).filter(Boolean) || []
-        const teacherCustomSubjects = teacherSubjects?.map((s: any) => s.custom_detail).filter(Boolean) || []
-
         // 4b. Get Schedule for today
         const { data: scheduleClasses } = await supabase
             .from('schedules')
-            .select('id, start_time, end_time, subject_id, custom_subject, subject:subject_catalog(id, name), group:groups(grade, section)')
+            .select('id, group_id, start_time, end_time, subject_id, custom_subject, subject:subject_catalog(id, name), group:groups(grade, section)')
             .eq('tenant_id', tenant.id)
             .eq('day_of_week', currentDayKey)
 
         // 4c. Filter & Map (con el ajuste de un posible día con horario especial)
         const { special, standard } = await loadDayContext(tenant.id, isoDate(date))
-        const myClasses = adjustClasses((scheduleClasses || [])
-            .filter((cls: any) => {
-                if (cls.subject_id) return teacherSubjectIds.includes(cls.subject_id)
-                if (cls.custom_subject) return teacherCustomSubjects.includes(cls.custom_subject)
-                return false
-            }) as any[], special, standard)
+        // Solo las clases de este docente: mismo grupo y misma materia que tiene asignados
+        const myClasses = adjustClasses(await onlyMyClasses((scheduleClasses || []) as any[], tenant as any), special, standard)
             .filter(c => c.status !== 'cancelled')
             .map((c: any) => ({
                 id: `class-${c.id}-${dateStr}`,

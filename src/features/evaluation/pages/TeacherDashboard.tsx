@@ -4,6 +4,7 @@ import { SpecialDayBanner } from '../../../components/schedule/SpecialDayBanner'
 import { useState, useEffect } from 'react'
 import { useTenant } from '../../../hooks/useTenant'
 import { supabase } from '../../../lib/supabase'
+import { onlyMyClasses } from '../../../lib/mySchedule'
 import { useNavigate, Link } from 'react-router-dom'
 import { useChat } from '../../../hooks/useChat'
 import {
@@ -119,7 +120,9 @@ export const TeacherDashboard = () => {
                 let combinedTimeline: any[] = []
 
                 if (fullSchedule) {
-                    const scheduleWithDetails = fullSchedule.map((item: any) => ({
+                    // Solo las clases de este docente (la tabla trae el horario de toda la escuela)
+                    const mySchedule = await onlyMyClasses(fullSchedule as any[], tenant as any)
+                    const scheduleWithDetails = mySchedule.map((item: any) => ({
                         ...item,
                         start_time: item.start_time.slice(0, 5),
                         end_time: item.end_time.slice(0, 5),
@@ -248,7 +251,7 @@ export const TeacherDashboard = () => {
             </header>
 
             {/* 2. Top Tier Widgets */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8 lg:items-start">
                 {/* Attendance Widget (Large) */}
                 {tenant?.type !== 'INDEPENDENT' && (
                     <div className="lg:col-span-1">
@@ -259,7 +262,7 @@ export const TeacherDashboard = () => {
                 {/* Main Action Card (Contextual) */}
                 <div className={`lg:col-span-2 space-y-6 ${currentClass ? 'order-first lg:order-none' : ''}`}>
                     {currentClass ? (
-                        <div className="bg-blue-600 rounded-[2.5rem] p-6 sm:p-8 text-white shadow-2xl shadow-blue-200 relative overflow-hidden h-full flex flex-col justify-between squishy-card border-none">
+                        <div className="bg-blue-600 rounded-[2.5rem] p-6 sm:p-8 text-white shadow-2xl shadow-blue-200 relative overflow-hidden lg:min-h-[300px] flex flex-col justify-between squishy-card border-none">
                             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none" />
 
                             <div>
@@ -302,17 +305,17 @@ export const TeacherDashboard = () => {
                             </div>
                         </div>
                     ) : currentBreak ? (
-                        <div className="bg-emerald-500 rounded-[2.5rem] p-6 sm:p-12 text-white shadow-2xl shadow-emerald-200 flex flex-col items-center justify-center text-center h-full squishy-card border-none">
+                        <div className="bg-emerald-500 rounded-[2.5rem] p-6 sm:p-12 text-white shadow-2xl shadow-emerald-200 flex flex-col items-center justify-center text-center lg:min-h-[300px] squishy-card border-none">
                             <div className="p-6 bg-white/20 rounded-full mb-6">
                                 <Coffee className="w-12 h-12" />
                             </div>
-                            <h2 className="text-4xl font-black mb-4 uppercase tracking-tight">Tiempo de Receso</h2>
+                            <h2 className="text-2xl sm:text-4xl font-black mb-4 uppercase tracking-tight">Tiempo de Receso</h2>
                             <p className="text-emerald-100 font-bold">
                                 Tu siguiente clase comienza a las <span className="bg-white/20 px-3 py-1 rounded-lg ml-2">{currentBreak.end_time}</span>
                             </p>
                         </div>
                     ) : (
-                        <div className="squishy-card bg-white p-6 sm:p-12 text-center border-2 border-dashed border-slate-200 h-full flex flex-col items-center justify-center">
+                        <div className="squishy-card bg-white p-6 sm:p-12 text-center border-2 border-dashed border-slate-200 lg:min-h-[300px] flex flex-col items-center justify-center">
                             <div className="p-6 bg-slate-50 rounded-full mb-6">
                                 <Clock className="w-12 h-12 text-slate-300" />
                             </div>
@@ -355,7 +358,7 @@ export const TeacherDashboard = () => {
             {/* 3. Bottom Bento Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Recent Chats */}
-                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+                <div className="bg-white rounded-[1.75rem] sm:rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
                     <div className="p-6 sm:p-8 border-b border-slate-50 flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-purple-600 rounded-2xl text-white shadow-lg shadow-purple-100">
@@ -395,7 +398,7 @@ export const TeacherDashboard = () => {
                 </div>
 
                 {/* Announcements */}
-                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+                <div className="bg-white rounded-[1.75rem] sm:rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
                     <div className="p-6 sm:p-8 border-b border-slate-50 flex items-center gap-4">
                         <div className="p-3 bg-amber-500 rounded-2xl text-white shadow-lg shadow-amber-100">
                             <Bell className="w-5 h-5" />

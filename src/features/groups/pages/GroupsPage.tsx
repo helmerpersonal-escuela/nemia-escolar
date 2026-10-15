@@ -474,7 +474,7 @@ export const GroupsPage = () => {
 
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border border-gray-100 animate-in zoom-in-95 duration-200">
+                    <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-5 sm:p-8 border border-gray-100 animate-in zoom-in-95 duration-200">
                         <h2 className="text-2xl font-black text-gray-900 mb-6 flex items-center">
                             <Plus className="w-6 h-6 mr-3 text-blue-600" />
                             Nuevo Grupo

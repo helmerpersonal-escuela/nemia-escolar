@@ -237,7 +237,7 @@ export const PrefecturaDashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="md:col-span-2 space-y-8">
                     {/* MONITOREO EN TIEMPO REAL */}
-                    <div className="bg-white p-8 rounded-3xl shadow-xl shadow-slate-100 border border-slate-50">
+                    <div className="bg-white p-5 sm:p-8 rounded-3xl shadow-xl shadow-slate-100 border border-slate-50">
                         <div className="flex justify-between items-center mb-6">
                             <div>
                                 <h3 className="text-xl font-black text-slate-900">Módulos en Curso</h3>
@@ -321,7 +321,7 @@ export const PrefecturaDashboard = () => {
                     <AttendanceWidget />
 
                     {/* COBERTURA DE SUPLENCIAS */}
-                    <div className="bg-indigo-600 p-8 rounded-[2rem] text-white shadow-xl shadow-indigo-200">
+                    <div className="bg-indigo-600 p-5 sm:p-8 rounded-[2rem] text-white shadow-xl shadow-indigo-200">
                         <div className="flex items-center gap-3 mb-4">
                             <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center">
                                 <ScrollText className="w-6 h-6" />

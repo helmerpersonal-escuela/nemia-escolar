@@ -136,7 +136,7 @@ export const CompleteSignupPage = () => {
 
     return (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-            <form onSubmit={submit} className="bg-white w-full max-w-xl rounded-[2rem] shadow-xl border border-slate-100 p-8 space-y-6">
+            <form onSubmit={submit} className="bg-white w-full max-w-xl rounded-[2rem] shadow-xl border border-slate-100 p-5 sm:p-8 space-y-6">
                 <div className="text-center">
                     <BrandLogo className="h-14 w-auto mx-auto mb-4" />
                     <h1 className="text-2xl font-black text-slate-900">Completa tu registro</h1>

@@ -182,7 +182,7 @@ export const AbsenceDetailView = ({ isOpen, absence, onClose, onUpdate }: Absenc
     return createPortal(
         <div id="absence-print-root" className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300 print:bg-white print:p-0 print:static print:block print:inset-auto">
             <style>{printStyles}</style>
-            <div className="bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] print:shadow-none print:max-h-none print:w-full print:rounded-none print-scroll-none">
+            <div className="bg-white w-full max-w-4xl rounded-[1.75rem] sm:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] print:shadow-none print:max-h-none print:w-full print:rounded-none print-scroll-none">
 
                 {/* Modal Header */}
                 <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 no-print">

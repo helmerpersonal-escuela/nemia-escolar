@@ -224,7 +224,7 @@ export const RegisterPage = () => {
     if (isNativeApp) {
         return (
             <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
-                <div className="bg-white rounded-[2.5rem] p-8 max-w-md w-full text-center shadow-2xl">
+                <div className="bg-white rounded-[1.75rem] sm:rounded-[2.5rem] p-5 sm:p-8 max-w-md w-full text-center shadow-2xl">
                     <div className="w-24 h-24 bg-indigo-50 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner">
                         <School className="w-12 h-12 text-indigo-600 inflatable-icon" />
                     </div>
@@ -264,7 +264,7 @@ export const RegisterPage = () => {
                     <div className="w-24 h-24 bg-white/10 backdrop-blur-md rounded-[2rem] flex items-center justify-center mx-auto mb-8 border-2 border-white/20 shadow-2xl">
                         <BrandLogo tone="blanco" className="w-16 h-auto" alt="VUNLEK" />
                     </div>
-                    <h1 className="text-4xl font-black mb-6 tracking-tight leading-tight">
+                    <h1 className="text-2xl sm:text-4xl font-black mb-6 tracking-tight leading-tight">
                         Únete a la Revolución <br />
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-300">Educativa</span>
                     </h1>
@@ -283,7 +283,7 @@ export const RegisterPage = () => {
                 <div className="squishy-card bg-white max-w-xl w-full animate-in fade-in slide-in-from-right-8 duration-500 p-5 sm:p-8 md:p-10 relative z-10">
                     {registrationSuccess ? (
                         <div className="text-center space-y-8 py-10">
-                            <div className="w-24 h-24 bg-emerald-50 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-inner">
+                            <div className="w-24 h-24 bg-emerald-50 rounded-[1.75rem] sm:rounded-[2.5rem] flex items-center justify-center mx-auto shadow-inner">
                                 <Mail className="w-12 h-12 text-emerald-700 animate-bounce" />
                             </div>
                             <div>

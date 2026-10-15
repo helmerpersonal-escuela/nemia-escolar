@@ -291,7 +291,7 @@ export const CreateIncidentModal = ({
                         <button
                             type="submit"
                             disabled={loading}
-                            className="btn-tactile px-10 py-3 rounded-2xl bg-slate-900 text-white font-black uppercase tracking-widest text-[11px] flex items-center gap-3 disabled:opacity-50"
+                            className="btn-tactile px-5 sm:px-10 py-3 rounded-2xl bg-slate-900 text-white font-black uppercase tracking-widest text-[11px] flex items-center gap-3 disabled:opacity-50"
                         >
                             {loading ? (
                                 <>

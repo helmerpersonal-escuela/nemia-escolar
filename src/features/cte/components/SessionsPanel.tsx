@@ -215,7 +215,7 @@ export const SessionsPanel = ({ sessions, loading, selectedId, onSelect, onChang
                     </div>
                 </div>
             ) : (
-                <div className="lg:col-span-2 p-10 text-center text-slate-500 text-sm bg-white rounded-3xl border border-slate-100">Selecciona una sesión.</div>
+                <div className="lg:col-span-2 p-6 sm:p-10 text-center text-slate-500 text-sm bg-white rounded-3xl border border-slate-100">Selecciona una sesión.</div>
             )}
         </div>
     )

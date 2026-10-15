@@ -335,7 +335,7 @@ export const CriteriaManager = ({ periodId, groupId }: CriteriaManagerProps) => 
             {/* Criteria List */}
             <div className="p-4 flex-1 overflow-y-auto space-y-4">
                 {criteriaList.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center py-12 px-4 text-center bg-gray-50/50 rounded-3xl border-2 border-dashed border-gray-100">
+                    <div className="h-full flex flex-col items-center justify-center py-8 sm:py-12 px-4 text-center bg-gray-50/50 rounded-3xl border-2 border-dashed border-gray-100">
                         <div className="bg-white p-4 rounded-2xl shadow-sm mb-4">
                             <PieChart className="w-10 h-10 text-gray-300" />
                         </div>

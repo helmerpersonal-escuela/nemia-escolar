@@ -50,7 +50,7 @@ export const AbsenceManagerPage = () => {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
                 <div>
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2">
+                    <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight mb-2">
                         Gestión de <span className="text-indigo-600">Ausencias</span>
                     </h1>
                     <p className="text-slate-500 font-medium">
@@ -108,7 +108,7 @@ export const AbsenceManagerPage = () => {
                     <p className="text-slate-500 font-bold animate-pulse">Cargando ausencias...</p>
                 </div>
             ) : absences?.length === 0 ? (
-                <div className="bg-white rounded-[2.5rem] p-12 text-center border-2 border-dashed border-slate-200">
+                <div className="bg-white rounded-[1.75rem] sm:rounded-[2.5rem] p-6 sm:p-12 text-center border-2 border-dashed border-slate-200">
                     <div className="w-20 h-20 bg-slate-50 text-slate-300 rounded-3xl flex items-center justify-center mx-auto mb-6">
                         <AlertCircle className="w-10 h-10" />
                     </div>
@@ -128,7 +128,7 @@ export const AbsenceManagerPage = () => {
                     {absences?.map((absence: any) => (
                         <div
                             key={absence.id}
-                            className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-indigo-50/50 transition-all group overflow-hidden"
+                            className="bg-white rounded-[1.75rem] sm:rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-indigo-50/50 transition-all group overflow-hidden"
                         >
                             <div className="flex flex-col md:flex-row items-stretch">
                                 {/* Date Side */}

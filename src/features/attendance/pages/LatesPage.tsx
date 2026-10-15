@@ -99,7 +99,7 @@ export const LatesPage = () => {
             </div>
 
             {/* Main Content */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl shadow-slate-200/50 overflow-hidden">
+            <div className="bg-white rounded-[1.75rem] sm:rounded-[2.5rem] border border-slate-100 shadow-2xl shadow-slate-200/50 overflow-hidden">
                 <div className="p-6 border-b border-slate-50 flex flex-col sm:flex-row gap-4 justify-between items-center">
                     <div className="relative w-full sm:w-96">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
@@ -183,7 +183,7 @@ export const LatesPage = () => {
                 </div>
             </div>
 
-            <div className="bg-amber-50 border border-amber-100 rounded-[2rem] p-8 flex items-start gap-4">
+            <div className="bg-amber-50 border border-amber-100 rounded-[2rem] p-5 sm:p-8 flex items-start gap-4">
                 <AlertCircle className="w-6 h-6 text-amber-700 shrink-0 mt-1" />
                 <div>
                     <h4 className="text-amber-900 font-black uppercase text-sm tracking-tight">Política de Puntualidad</h4>

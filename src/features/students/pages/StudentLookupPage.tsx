@@ -89,7 +89,7 @@ export const StudentLookupPage = () => {
 
                     {error && <p role="alert" className="bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl p-4 text-sm font-bold">No se pudo cargar la lista: {(error as any).message}</p>}
                     {isLoading && <div className="py-10 flex justify-center"><Loader2 className="w-7 h-7 text-indigo-500 animate-spin" /></div>}
-                    {!isLoading && !error && shown.length === 0 && <p className="bg-white border border-slate-200 rounded-3xl py-10 text-center text-slate-600 font-bold px-4">{data?.students.length ? 'Ningún alumno coincide.' : 'Todavía no hay alumnos registrados.'}</p>}
+                    {!isLoading && !error && shown.length === 0 && <p className="bg-white border border-slate-200 rounded-3xl py-7 sm:py-10 text-center text-slate-600 font-bold px-4">{data?.students.length ? 'Ningún alumno coincide.' : 'Todavía no hay alumnos registrados.'}</p>}
 
                     <ul className="bg-white border border-slate-200 rounded-3xl divide-y divide-slate-100 max-h-[70vh] overflow-y-auto">
                         {shown.slice(0, 300).map(s => {

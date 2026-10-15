@@ -295,7 +295,7 @@ export const SuperAdminDashboard = () => {
 
                     {activeTab === 'ai' && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="squishy-card p-8 bg-white rounded-3xl shadow-lg border border-indigo-50">
+                            <div className="squishy-card p-5 sm:p-8 bg-white rounded-3xl shadow-lg border border-indigo-50">
                                 <h4 className="font-black text-indigo-950 uppercase mb-6 flex items-center gap-2"><Brain className="w-5 h-5 text-indigo-500" /> Configuración de IA</h4>
                                 <div className="space-y-4">
                                     <div className="group/field">
@@ -339,7 +339,7 @@ export const SuperAdminDashboard = () => {
 
                     {activeTab === 'billing' && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="squishy-card p-8 bg-white rounded-3xl shadow-lg border border-indigo-50">
+                            <div className="squishy-card p-5 sm:p-8 bg-white rounded-3xl shadow-lg border border-indigo-50">
                                 <h4 className="font-black text-indigo-950 uppercase mb-6 flex items-center gap-2">
                                     <History className="w-5 h-5 text-indigo-500" /> Movimientos recientes
                                 </h4>
@@ -363,7 +363,7 @@ export const SuperAdminDashboard = () => {
 
                     {activeTab === 'sounds' && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="squishy-card p-8 bg-white rounded-3xl shadow-lg border border-indigo-50">
+                            <div className="squishy-card p-5 sm:p-8 bg-white rounded-3xl shadow-lg border border-indigo-50">
                                 <h4 className="font-black text-indigo-950 uppercase mb-6 flex items-center gap-2">
                                     <Volume2 className="w-5 h-5 text-indigo-500" /> Configuración de Sonidos
                                 </h4>
@@ -384,7 +384,7 @@ export const SuperAdminDashboard = () => {
 
                     {activeTab === 'settings' && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="squishy-card p-8 bg-white rounded-3xl shadow-lg border border-indigo-50">
+                            <div className="squishy-card p-5 sm:p-8 bg-white rounded-3xl shadow-lg border border-indigo-50">
                                 <h4 className="font-black text-indigo-950 uppercase mb-6 flex items-center gap-2"><Mail className="w-5 h-5 text-indigo-500" /> SMTP Config</h4>
                                 <div className="space-y-4">
                                     <input type="text" placeholder="Host" value={smtpSettings.smtp_host} onChange={e => setSmtpSettings({ ...smtpSettings, smtp_host: e.target.value })} className="input-squishy w-full px-4 py-3 text-sm border-2 border-slate-50" />
@@ -400,7 +400,7 @@ export const SuperAdminDashboard = () => {
                     {activeTab === 'landing' && (
                         <div className="space-y-8">
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                <div className="squishy-card p-8 bg-white rounded-[2.5rem] shadow-xl border border-indigo-50">
+                                <div className="squishy-card p-5 sm:p-8 bg-white rounded-[1.75rem] sm:rounded-[2.5rem] shadow-xl border border-indigo-50">
                                     <h4 className="font-black text-indigo-950 uppercase italic mb-6 flex items-center gap-3">
                                         <LayoutGrid className="w-6 h-6 text-indigo-500" />
                                         Hero Editor
@@ -429,7 +429,7 @@ export const SuperAdminDashboard = () => {
                                     </div>
                                 </div>
 
-                                <div className="squishy-card p-8 bg-white rounded-[2.5rem] shadow-xl border border-indigo-50">
+                                <div className="squishy-card p-5 sm:p-8 bg-white rounded-[1.75rem] sm:rounded-[2.5rem] shadow-xl border border-indigo-50">
                                     <div className="flex justify-between items-center mb-6">
                                         <h4 className="font-black text-indigo-950 uppercase italic flex items-center gap-3">
                                             <Zap className="w-6 h-6 text-amber-500" />

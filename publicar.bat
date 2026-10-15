@@ -14,7 +14,10 @@ if "%N%"=="0" (
 )
 set "MSG="
 set /p MSG=Describe el cambio (Enter = "Actualizacion %date%"): 
-if "%MSG%"=="" set "MSG=Actualizacion %date%"
+if not defined MSG set "MSG=Actualizacion %date%"
+rem Quitar comillas: si se pegan, el mensaje del commit queda vacio
+set "MSG=%MSG:"=%"
+if not defined MSG set "MSG=Actualizacion %date%"
 echo.
 git add -A
 git commit -m "%MSG%"

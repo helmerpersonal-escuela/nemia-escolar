@@ -39,7 +39,7 @@ export const BiometricScannerMock = ({ onScanSuccess, students = [], onClose }: 
     }
 
     return (
-        <div className="flex flex-col items-center justify-center w-full max-w-sm mx-auto p-8 bg-white rounded-3xl shadow-xl border border-slate-100 animate-in fade-in zoom-in duration-300 relative">
+        <div className="flex flex-col items-center justify-center w-full max-w-sm mx-auto p-5 sm:p-8 bg-white rounded-3xl shadow-xl border border-slate-100 animate-in fade-in zoom-in duration-300 relative">
             <button
                 onClick={onClose}
                 className="absolute top-4 right-4 text-slate-500 hover:text-slate-600 p-2 rounded-full transition-colors"

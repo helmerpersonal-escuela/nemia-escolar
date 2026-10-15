@@ -144,7 +144,7 @@ export const PEMCPage = () => {
 
     if (loading) return <div className="p-8 animate-pulse space-y-4">
         <div className="h-20 bg-gray-100 rounded-3xl w-1/3" />
-        <div className="h-64 bg-gray-100 rounded-[2.5rem]" />
+        <div className="h-64 bg-gray-100 rounded-[1.75rem] sm:rounded-[2.5rem]" />
     </div>
 
     return (
@@ -152,7 +152,7 @@ export const PEMCPage = () => {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-4xl font-black text-gray-900 tracking-tight">Programa de Mejora Continua</h1>
+                    <h1 className="text-2xl sm:text-4xl font-black text-gray-900 tracking-tight">Programa de Mejora Continua</h1>
                     <p className="text-gray-500 font-medium">Instrumento de planeación estratégica y participativa (PEMC).</p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -198,7 +198,7 @@ export const PEMCPage = () => {
                             {NEM_FIELDS.map(field => {
                                 const data = diagnosis.find(d => d.field_name === field)
                                 return (
-                                    <div key={field} className="group bg-gray-50 rounded-[2rem] p-8 hover:bg-white hover:shadow-xl hover:shadow-gray-100 border border-transparent hover:border-gray-100 transition-all">
+                                    <div key={field} className="group bg-gray-50 rounded-[2rem] p-5 sm:p-8 hover:bg-white hover:shadow-xl hover:shadow-gray-100 border border-transparent hover:border-gray-100 transition-all">
                                         <div className="flex items-start justify-between mb-6">
                                             <div className="flex items-center gap-4">
                                                 <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all">
@@ -266,7 +266,7 @@ export const PEMCPage = () => {
                         </div>
 
                         {objectives.length === 0 ? (
-                            <div className="p-20 border-4 border-dashed border-gray-50 rounded-[3rem] flex flex-col items-center text-center">
+                            <div className="p-20 border-4 border-dashed border-gray-50 rounded-[2rem] sm:rounded-[3rem] flex flex-col items-center text-center">
                                 <Target className="w-16 h-16 text-gray-200 mb-6" />
                                 <h3 className="text-xl font-bold text-gray-500 uppercase tracking-widest">No hay objetivos definidos</h3>
                                 <p className="text-sm text-gray-300 mt-2 max-w-xs font-medium">Comienza por definir los desafíos principales de la lectura de la realidad.</p>
@@ -274,7 +274,7 @@ export const PEMCPage = () => {
                         ) : (
                             <div className="space-y-6">
                                 {objectives.map(obj => (
-                                    <div key={obj.id} className="bg-white border-2 border-gray-50 rounded-[2.5rem] overflow-hidden group hover:border-blue-100 hover:shadow-2xl hover:shadow-gray-100 transition-all">
+                                    <div key={obj.id} className="bg-white border-2 border-gray-50 rounded-[1.75rem] sm:rounded-[2.5rem] overflow-hidden group hover:border-blue-100 hover:shadow-2xl hover:shadow-gray-100 transition-all">
                                         <div className="p-8 border-b border-gray-50 flex items-start gap-6">
                                             <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-[1.25rem] flex items-center justify-center flex-shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-all">
                                                 <Target className="w-6 h-6" />

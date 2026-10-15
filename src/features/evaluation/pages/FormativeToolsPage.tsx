@@ -12,7 +12,7 @@ export const FormativeToolsPage = () => {
                             <Sparkles className="w-4 h-4" />
                             <span>Herramientas Pedagógicas</span>
                         </div>
-                        <h1 className="text-4xl sm:text-5xl font-black text-gray-900 tracking-tight leading-none">
+                        <h1 className="text-3xl sm:text-5xl font-black text-gray-900 tracking-tight leading-none">
                             Evaluación <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">Formativa</span>
                         </h1>
                     </div>
@@ -28,7 +28,7 @@ export const FormativeToolsPage = () => {
 
                     {/* Future placeholders */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <section className="bg-white/50 backdrop-blur-sm rounded-[2rem] p-10 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-center group hover:border-indigo-300 transition-all">
+                        <section className="bg-white/50 backdrop-blur-sm rounded-[2rem] p-6 sm:p-10 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-center group hover:border-indigo-300 transition-all">
                             <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-indigo-50 transition-colors">
                                 <Layout className="w-6 h-6 text-gray-500 group-hover:text-indigo-500" />
                             </div>
@@ -36,7 +36,7 @@ export const FormativeToolsPage = () => {
                             <p className="text-gray-500 text-[11px] mt-1 font-bold">PRÓXIMAMENTE</p>
                         </section>
 
-                        <section className="bg-white/50 backdrop-blur-sm rounded-[2rem] p-10 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-center group hover:border-rose-300 transition-all">
+                        <section className="bg-white/50 backdrop-blur-sm rounded-[2rem] p-6 sm:p-10 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-center group hover:border-rose-300 transition-all">
                             <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-rose-50 transition-colors">
                                 <Layout className="w-6 h-6 text-gray-500 group-hover:text-rose-500" />
                             </div>

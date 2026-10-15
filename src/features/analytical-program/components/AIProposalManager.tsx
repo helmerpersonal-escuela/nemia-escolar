@@ -125,9 +125,9 @@ export const AIProposalManager = ({ isOpen, onClose, formData, setFormData, aiSe
 
     return (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[150] flex items-center justify-center p-4">
-            <div className="bg-white rounded-[3rem] w-full max-w-6xl h-[90vh] shadow-2xl border border-white/20 overflow-hidden flex flex-col anime-in fade-in zoom-in duration-300">
+            <div className="bg-white rounded-[2rem] sm:rounded-[3rem] w-full max-w-6xl h-[90vh] shadow-2xl border border-white/20 overflow-hidden flex flex-col anime-in fade-in zoom-in duration-300">
                 {/* Header */}
-                <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-indigo-50/50 to-white">
+                <div className="p-5 sm:p-8 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-indigo-50/50 to-white">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-200">
                             <Sparkles className="w-6 h-6 text-white" />
@@ -312,7 +312,7 @@ export const AIProposalManager = ({ isOpen, onClose, formData, setFormData, aiSe
                     </button>
                     <button
                         onClick={handleSaveAndClose}
-                        className="flex items-center gap-3 bg-slate-900 hover:bg-black text-white px-10 py-4 rounded-2xl font-black text-sm transition-all shadow-2xl shadow-slate-200"
+                        className="flex items-center gap-3 bg-slate-900 hover:bg-black text-white px-5 sm:px-10 py-4 rounded-2xl font-black text-sm transition-all shadow-2xl shadow-slate-200"
                     >
                         <Save className="w-5 h-5" />
                         Guardar Propuesta y Finalizar

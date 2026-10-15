@@ -220,7 +220,7 @@ export const AcademicYearManager = ({ readOnly = false }: { readOnly?: boolean }
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {years.length === 0 && !isCreating ? (
-                    <div className="col-span-full py-12 text-center bg-gray-50 border-2 border-dashed border-gray-100 rounded-[2rem]">
+                    <div className="col-span-full py-8 sm:py-12 text-center bg-gray-50 border-2 border-dashed border-gray-100 rounded-[2rem]">
                         <p className="text-gray-500 font-bold text-sm">No has registrado ningún ciclo escolar.</p>
                     </div>
                 ) : (

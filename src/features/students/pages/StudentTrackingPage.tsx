@@ -359,7 +359,7 @@ export const StudentTrackingPage = () => {
                             </div>
                         </>
                     ) : (
-                        <div className="h-full flex items-center justify-center bg-gray-50/50 border-4 border-dashed border-gray-100 rounded-[3rem] min-h-[600px]">
+                        <div className="h-full flex items-center justify-center bg-gray-50/50 border-4 border-dashed border-gray-100 rounded-[2rem] sm:rounded-[3rem] min-h-[600px]">
                             <div className="text-center">
                                 <div className="relative inline-block mb-8">
                                     <div className="absolute inset-0 bg-indigo-500/20 blur-3xl rounded-full" />
@@ -378,7 +378,7 @@ export const StudentTrackingPage = () => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/80 backdrop-blur-md">
                     <div className="squishy-card bg-white w-full max-w-2xl border-white/20 animate-in fade-in slide-in-from-bottom-8 duration-500 max-h-[90vh] flex flex-col p-0 overflow-hidden">
                         {/* Modal Header */}
-                        <div className="p-8 bg-indigo-600 text-white flex justify-between items-center shrink-0">
+                        <div className="p-5 sm:p-8 bg-indigo-600 text-white flex justify-between items-center shrink-0">
                             <div>
                                 <h3 className="text-2xl font-black tracking-tighter uppercase leading-none">Nueva Nota</h3>
                                 <p className="text-indigo-200 font-bold text-[11px] uppercase tracking-widest mt-1">Alumno: {selectedStudent?.first_name} {selectedStudent?.last_name_paternal}</p>

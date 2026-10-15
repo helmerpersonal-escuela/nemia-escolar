@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
+import { onlyMyClasses } from '../../../lib/mySchedule'
 import {
     Save,
     ClipboardList,
@@ -91,12 +92,14 @@ export const AnecdotalRecordForm = () => {
 
         const { data: schedule } = await supabase
             .from('schedules')
-            .select('group_id, start_time, end_time, custom_subject, subject:subject_catalog(name)')
+            .select('group_id, subject_id, start_time, end_time, custom_subject, subject:subject_catalog(name)')
             .eq('tenant_id', tenant.id)
             .eq('day_of_week', currentDay)
 
         if (schedule) {
-            const active = schedule.find(s => now >= s.start_time && now <= s.end_time)
+            // Solo las clases de este docente (la tabla trae el horario de toda la escuela)
+            const mine = await onlyMyClasses(schedule as any[], tenant as any)
+            const active = mine.find((s: any) => now >= s.start_time && now <= s.end_time)
             if (active) {
                 const subjectData = Array.isArray(active.subject) ? active.subject[0] : active.subject
                 const subjectName = subjectData?.name || active.custom_subject || ''
@@ -162,7 +165,7 @@ export const AnecdotalRecordForm = () => {
     )
 
     return (
-        <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-indigo-100/50 border border-gray-100 overflow-hidden transition-all duration-500 hover:shadow-indigo-200/50">
+        <div className="bg-white rounded-[1.75rem] sm:rounded-[2.5rem] shadow-2xl shadow-indigo-100/50 border border-gray-100 overflow-hidden transition-all duration-500 hover:shadow-indigo-200/50">
             {/* Custom Header */}
             <div className="p-5 sm:p-10 bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 text-white relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32 animate-pulse" />
@@ -327,7 +330,7 @@ export const AnecdotalRecordForm = () => {
                         </div>
                     </div>
 
-                    <div className="space-y-8 p-8 bg-indigo-50/30 rounded-[2rem] border border-indigo-100/50">
+                    <div className="space-y-8 p-5 sm:p-8 bg-indigo-50/30 rounded-[2rem] border border-indigo-100/50">
                         <div>
                             <label className="block text-[11px] font-black text-indigo-400 uppercase mb-3 ml-1 tracking-widest">Interpretación / Análisis</label>
                             <textarea aria-label="Interpretación / Análisis"

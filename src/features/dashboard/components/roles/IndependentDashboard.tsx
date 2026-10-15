@@ -165,7 +165,7 @@ export const IndependentDashboard = () => {
 
                 {/* A. Main Module: Agenda (2/3 width) */}
                 < div className="lg:col-span-2 space-y-8" >
-                    <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+                    <div className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
                         <div className="p-8 pb-4 flex items-center justify-between">
                             <div className="flex items-center gap-4">
                                 <div className="p-3 bg-slate-100 rounded-2xl text-slate-900">
@@ -231,7 +231,7 @@ export const IndependentDashboard = () => {
                 {/* B. Side Bento: Chat & Community (1/3 width) */}
                 < div className="space-y-8" >
                     {/* Compact Chat */}
-                    < div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col" >
+                    < div className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col" >
                         <div className="p-6 border-b border-slate-50 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="p-2.5 bg-purple-600 rounded-xl text-white">
@@ -260,7 +260,7 @@ export const IndependentDashboard = () => {
                     </div >
 
                     {/* Compact Announcements */}
-                    < div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col" >
+                    < div className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col" >
                         <div className="p-6 border-b border-slate-50 flex items-center gap-3">
                             <div className="p-2.5 bg-amber-500 rounded-xl text-white">
                                 <Bell className="w-5 h-5" />

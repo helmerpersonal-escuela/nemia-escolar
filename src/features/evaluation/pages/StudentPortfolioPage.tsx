@@ -110,7 +110,7 @@ export const StudentPortfolioPage = () => {
                                 <User className="w-10 h-10" />
                             </div>
                             <div>
-                                <h1 className="text-4xl font-black text-gray-900 tracking-tight leading-none mb-2">{selectedStudent.full_name}</h1>
+                                <h1 className="text-2xl sm:text-4xl font-black text-gray-900 tracking-tight leading-none mb-2">{selectedStudent.full_name}</h1>
                                 <div className="flex items-center space-x-4">
                                     <span className="text-[11px] font-black bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full uppercase tracking-widest">{selectedStudent.group_name}</span>
                                     <span className="text-[11px] font-black bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full uppercase tracking-widest flex items-center">
@@ -132,7 +132,7 @@ export const StudentPortfolioPage = () => {
 
                     {/* Evidence Grid */}
                     {evidence.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[3rem] border-2 border-dashed border-gray-100 shadow-sm animate-in fade-in duration-700">
+                        <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[2rem] sm:rounded-[3rem] border-2 border-dashed border-gray-100 shadow-sm animate-in fade-in duration-700">
                             <div className="w-20 h-20 bg-gray-50 rounded-3xl flex items-center justify-center mb-6">
                                 <ImageIcon className="w-10 h-10 text-gray-200" />
                             </div>
@@ -210,7 +210,7 @@ export const StudentPortfolioPage = () => {
                             <LayoutGrid className="w-4 h-4" />
                             <span>Galería de Avances</span>
                         </div>
-                        <h1 className="text-4xl sm:text-6xl font-black text-gray-900 tracking-tight leading-none">
+                        <h1 className="text-3xl sm:text-6xl font-black text-gray-900 tracking-tight leading-none">
                             Portafolios <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">Digitales</span>
                         </h1>
                     </div>
@@ -237,7 +237,7 @@ export const StudentPortfolioPage = () => {
                             <div
                                 key={student.id}
                                 onClick={() => setSelectedStudent(student)}
-                                className="group bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-xl shadow-indigo-50/40 hover:shadow-2xl hover:shadow-indigo-100 transition-all cursor-pointer flex flex-col items-center text-center animate-in zoom-in-95 duration-500"
+                                className="group bg-white p-5 sm:p-8 rounded-[1.75rem] sm:rounded-[2.5rem] border border-gray-100 shadow-xl shadow-indigo-50/40 hover:shadow-2xl hover:shadow-indigo-100 transition-all cursor-pointer flex flex-col items-center text-center animate-in zoom-in-95 duration-500"
                             >
                                 <div className="w-20 h-20 rounded-[1.5rem] bg-indigo-50 flex items-center justify-center text-indigo-600 mb-6 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-500 group-hover:rotate-6 group-hover:scale-110">
                                     <User className="w-10 h-10" />

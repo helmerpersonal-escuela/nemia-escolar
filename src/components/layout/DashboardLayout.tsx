@@ -718,6 +718,7 @@ export const DashboardLayout = () => {
         TUTOR: [
             { icon: LayoutDashboard, label: 'Inicio', path: '/' },
             { icon: MessageSquare, label: 'Mensajes con Docentes', path: '/messages' },
+            { icon: Calendar, label: 'Horario y avisos', path: '/agenda' },
             {
                 icon: GraduationCap,
                 label: (sessionStorage.getItem('vunlek_tutor_children_count') || '0') === '1' ? 'Mi Hijo(a)' : 'Mis Hijos',
@@ -893,7 +894,7 @@ export const DashboardLayout = () => {
                     className={`flex flex-col items-center justify-center min-w-16 min-h-12 px-3 py-1.5 rounded-xl transition-all ${location.pathname === '/agenda' ? 'text-indigo-700 bg-indigo-50' : 'text-slate-500'}`}
                 >
                     <Calendar className="w-6 h-6 mb-1" />
-                    <span className="text-[11px] font-bold">Agenda</span>
+                    <span className="text-[11px] font-bold">{currentRole === 'TUTOR' ? 'Horario' : 'Agenda'}</span>
                 </Link>
                 <button
                     onClick={() => setIsSidebarOpen(true)}

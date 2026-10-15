@@ -424,7 +424,7 @@ export const GradebookPage = () => {
                     <span className="p-3 bg-blue-100 rounded-full inline-block mb-4 shadow-sm">
                         <BookOpen className="w-8 h-8 text-blue-600" />
                     </span>
-                    <h1 className="text-4xl font-black text-gray-900 mb-3 tracking-tight">{pickerTab === 'REPORTS' ? 'Conducta y reportes' : pickerTab === 'ATTENDANCE' ? 'Pasar lista' : 'Calificaciones'}</h1>
+                    <h1 className="text-2xl sm:text-4xl font-black text-gray-900 mb-3 tracking-tight">{pickerTab === 'REPORTS' ? 'Conducta y reportes' : pickerTab === 'ATTENDANCE' ? 'Pasar lista' : 'Calificaciones'}</h1>
                     <p className="text-lg text-gray-500 max-w-2xl mx-auto">
                         {pickerTab === 'REPORTS'
                             ? 'Elige el grupo para registrar incidencias, compromisos y reportes de conducta.'

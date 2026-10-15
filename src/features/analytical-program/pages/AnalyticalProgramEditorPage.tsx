@@ -524,7 +524,7 @@ export const AnalyticalProgramEditorPage = () => {
             <p className="text-sm text-slate-600 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3">
                 Estos datos se llenan con lo que registraste en <button type="button" onClick={() => navigate('/settings?tab=school')} className="font-black text-indigo-700 underline">Configuración → Datos de la escuela</button>. Si algo está mal, corrígelo allá para que se actualice en todo el sistema.
             </p>
-            <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+            <div className="bg-white p-5 sm:p-8 rounded-3xl border border-gray-100 shadow-sm">
                 <h3 className="text-lg font-black text-gray-800 mb-6 uppercase tracking-wide">Datos de Identificación</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div>
@@ -732,7 +732,7 @@ export const AnalyticalProgramEditorPage = () => {
             </div>
 
             {/* Contexto Externo */}
-            <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+            <div className="bg-white p-5 sm:p-8 rounded-3xl border border-gray-100 shadow-sm">
                 <h3 className="text-lg font-black text-gray-800 mb-6 uppercase tracking-wide flex items-center">
                     <BookOpen className="w-5 h-5 mr-2" /> 1. Contexto Externo
                 </h3>
@@ -744,7 +744,7 @@ export const AnalyticalProgramEditorPage = () => {
             </div>
 
             {/* Contexto Interno */}
-            <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+            <div className="bg-white p-5 sm:p-8 rounded-3xl border border-gray-100 shadow-sm">
                 <h3 className="text-lg font-black text-gray-800 mb-6 uppercase tracking-wide flex items-center">
                     <School className="w-5 h-5 mr-2" /> 2. Contexto Interno
                 </h3>
@@ -759,7 +759,7 @@ export const AnalyticalProgramEditorPage = () => {
                 <button
                     onClick={generateDiagnosisNarrative}
                     disabled={isGenerating}
-                    className="bg-gray-900 text-white px-10 py-5 rounded-3xl font-black uppercase tracking-widest shadow-2xl hover:scale-105 transition-all flex items-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed group"
+                    className="bg-gray-900 text-white px-5 sm:px-10 py-5 rounded-3xl font-black uppercase tracking-widest shadow-2xl hover:scale-105 transition-all flex items-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed group"
                 >
                     {isGenerating ? <Loader2 className="w-6 h-6 animate-spin" /> : <Sparkles className="w-6 h-6 text-yellow-400 group-hover:rotate-12 transition-transform" />}
                     <span className="text-lg">Generar Diagnóstico IA</span>
@@ -881,7 +881,7 @@ export const AnalyticalProgramEditorPage = () => {
 
     const renderStep3 = () => (
         <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
-            <div className="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-lg text-center">
+            <div className="bg-white p-6 sm:p-10 rounded-[1.75rem] sm:rounded-[2.5rem] border border-gray-100 shadow-lg text-center">
                 <div className="w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
                     <Target className="w-8 h-8 text-rose-500" />
                 </div>
@@ -972,7 +972,7 @@ export const AnalyticalProgramEditorPage = () => {
             {/* Linkage Result */}
             {formData.problems.length > 0 && formData.problems.every(p => p.trait_id) && (
                 <div className="space-y-6">
-                    <div className="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-[2.5rem] p-10 text-white shadow-2xl animate-in fade-in slide-in-from-bottom-8">
+                    <div className="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-[1.75rem] sm:rounded-[2.5rem] p-6 sm:p-10 text-white shadow-2xl animate-in fade-in slide-in-from-bottom-8">
                         <div className="flex items-center gap-4 mb-8 border-b border-white/10 pb-6">
                             <Sparkles className="w-8 h-8 text-yellow-400" />
                             <div>
@@ -983,7 +983,7 @@ export const AnalyticalProgramEditorPage = () => {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             {formData.problems.map((prob, idx) => (
-                                <div key={idx} className="bg-white/10 p-8 rounded-3xl backdrop-blur-sm border border-white/5">
+                                <div key={idx} className="bg-white/10 p-5 sm:p-8 rounded-3xl backdrop-blur-sm border border-white/5">
                                     <span className="text-indigo-300 text-[11px] font-black uppercase tracking-widest block mb-3">Problemática {idx + 1}</span>
                                     <p className="font-bold text-lg leading-tight mb-6">{prob.description}</p>
 
@@ -1195,7 +1195,7 @@ Responde ÚNICAMENTE JSON:
                         <button
                             onClick={handleSuggestContents}
                             disabled={isGenerating || !scope || scope.missingSubjects}
-                            className="bg-gray-900 text-white px-10 py-5 rounded-3xl font-black uppercase tracking-widest shadow-2xl hover:scale-105 transition-all flex items-center gap-4 group"
+                            className="bg-gray-900 text-white px-5 sm:px-10 py-5 rounded-3xl font-black uppercase tracking-widest shadow-2xl hover:scale-105 transition-all flex items-center gap-4 group"
                         >
                             {isGenerating ? <Loader2 className="w-6 h-6 animate-spin" /> : <Sparkles className="w-6 h-6 text-yellow-400 group-hover:rotate-12 transition-transform" />}
                             <span className="text-lg">Sugerir Contenidos (IA)</span>
@@ -1471,7 +1471,7 @@ Responde ÚNICAMENTE JSON:
 
                 {!hasProcess ? (
                     <div className="space-y-6 max-w-2xl mx-auto">
-                        <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                        <div className="bg-white p-5 sm:p-8 rounded-3xl border border-gray-100 shadow-sm">
                             <label className="block text-sm font-black text-gray-500 uppercase tracking-widest mb-4">Notas previas del colectivo (Opcional)</label>
                             <textarea aria-label="Notas previas del colectivo (Opcional)"
                                 placeholder="Describe brevemente con tus palabras qué se discutió, qué dudas surgieron o qué acuerdos preliminares tomaron..."
@@ -1490,7 +1490,7 @@ Responde ÚNICAMENTE JSON:
                             <button
                                 onClick={handleGenerateCodesign}
                                 disabled={isGenerating}
-                                className="bg-gray-900 text-white px-10 py-5 rounded-3xl font-black uppercase tracking-widest shadow-2xl hover:scale-105 transition-all flex items-center gap-4 group"
+                                className="bg-gray-900 text-white px-5 sm:px-10 py-5 rounded-3xl font-black uppercase tracking-widest shadow-2xl hover:scale-105 transition-all flex items-center gap-4 group"
                             >
                                 {isGenerating ? <Loader2 className="w-6 h-6 animate-spin" /> : <Sparkles className="w-6 h-6 text-yellow-400" />}
                                 <span className="text-lg">Mejorar Redacción y Generar Diálogo (IA)</span>
@@ -1500,7 +1500,7 @@ Responde ÚNICAMENTE JSON:
                 ) : (
                     <div ref={resultRef} tabIndex={-1} className="space-y-10 scroll-mt-24 outline-none">
                         {/* Diálogo Colectivo */}
-                        <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm relative group">
+                        <div className="bg-white p-5 sm:p-8 rounded-[1.75rem] sm:rounded-[2.5rem] border border-gray-100 shadow-sm relative group">
                             <button
                                 onClick={() => setFormData({ ...formData, codesign_process: { ...formData.codesign_process, dialogue: [] } })}
                                 className="absolute top-6 right-8 text-[11px] font-bold text-gray-500 uppercase hover:text-rose-500 transition-colors flex items-center gap-1 opacity-0 group-hover:opacity-100"
@@ -1524,7 +1524,7 @@ Responde ÚNICAMENTE JSON:
                         </div>
 
                         {/* Tabla de Problematización */}
-                        <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-lg overflow-hidden">
+                        <div className="bg-white rounded-[1.75rem] sm:rounded-[2.5rem] border border-gray-100 shadow-lg overflow-hidden">
                             <div className="bg-gray-900 px-8 py-5">
                                 <h4 className="font-black text-white uppercase tracking-widest text-sm">Tabla de Problematización</h4>
                             </div>
@@ -1556,7 +1556,7 @@ Responde ÚNICAMENTE JSON:
 
                         {/* Reflexión e Interiorización */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="bg-green-50/50 p-8 rounded-[2rem] border border-green-100">
+                            <div className="bg-green-50/50 p-5 sm:p-8 rounded-[2rem] border border-green-100">
                                 <h4 className="font-black text-green-700 uppercase tracking-widest text-xs mb-6 flex items-center">
                                     <div className="w-3 h-3 bg-green-500 rounded-full mr-2" /> Para Interiorizar
                                 </h4>
@@ -1569,7 +1569,7 @@ Responde ÚNICAMENTE JSON:
                                     ))}
                                 </ul>
                             </div>
-                            <div className="bg-rose-50/50 p-8 rounded-[2rem] border border-rose-100">
+                            <div className="bg-rose-50/50 p-5 sm:p-8 rounded-[2rem] border border-rose-100">
                                 <h4 className="font-black text-rose-700 uppercase tracking-widest text-xs mb-6 px-4 py-1 bg-rose-100 rounded-full inline-block">
                                     Notas para el colectivo
                                 </h4>

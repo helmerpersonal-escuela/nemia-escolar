@@ -191,7 +191,7 @@ export const SyntheticProgramsManager = () => {
             </div>
 
             {/* Upload Section */}
-            <div className="glass-panel p-8 rounded-[2rem] border-2 border-indigo-50 shadow-xl shadow-indigo-100/20 bg-gradient-to-br from-white to-indigo-50/30">
+            <div className="glass-panel p-5 sm:p-8 rounded-[2rem] border-2 border-indigo-50 shadow-xl shadow-indigo-100/20 bg-gradient-to-br from-white to-indigo-50/30">
                 <div className="flex items-center space-x-4 mb-8">
                     <div className="p-3 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-200">
                         <Upload className="w-6 h-6 text-white" />

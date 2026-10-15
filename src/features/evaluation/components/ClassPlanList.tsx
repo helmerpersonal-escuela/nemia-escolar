@@ -158,7 +158,7 @@ export const ClassPlanList: React.FC<ClassPlanListProps> = ({
             </div>
 
             {plans.length === 0 ? (
-                <div className="p-12 bg-white rounded-[2rem] border-2 border-dashed border-slate-100 flex flex-col items-center justify-center text-center space-y-4">
+                <div className="p-6 sm:p-12 bg-white rounded-[2rem] border-2 border-dashed border-slate-100 flex flex-col items-center justify-center text-center space-y-4">
                     <div className="p-4 bg-slate-50 rounded-2xl text-slate-300">
                         <FileText className="w-10 h-10" />
                     </div>

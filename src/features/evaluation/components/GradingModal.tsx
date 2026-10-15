@@ -578,7 +578,7 @@ export const GradingModal = ({
                     <button
                         onClick={handleSave}
                         disabled={isLoading || Object.keys(changed).length === 0}
-                        className="px-10 py-4 bg-slate-900 text-white rounded-2xl text-sm font-black hover:bg-black shadow-2xl shadow-slate-200 disabled:opacity-50 disabled:shadow-none transition-all flex items-center group"
+                        className="px-5 sm:px-10 py-4 bg-slate-900 text-white rounded-2xl text-sm font-black hover:bg-black shadow-2xl shadow-slate-200 disabled:opacity-50 disabled:shadow-none transition-all flex items-center group"
                     >
                         {isLoading ? (
                             <>

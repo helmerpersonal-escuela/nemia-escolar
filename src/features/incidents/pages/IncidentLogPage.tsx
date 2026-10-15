@@ -134,7 +134,7 @@ export const IncidentLogPage = () => {
                             <option value="RESOLVED">Atendidas ({data.incidents.length - open})</option>
                         </select>
                     </div>
-                    {shown.length === 0 ? <p className="bg-white border border-slate-200 rounded-3xl py-12 text-center text-slate-600 font-bold">{data.incidents.length ? 'Ningún registro coincide con la búsqueda.' : 'Todavía no hay incidencias registradas.'}</p> : (
+                    {shown.length === 0 ? <p className="bg-white border border-slate-200 rounded-3xl py-8 sm:py-12 text-center text-slate-600 font-bold">{data.incidents.length ? 'Ningún registro coincide con la búsqueda.' : 'Todavía no hay incidencias registradas.'}</p> : (
                         <ul className="space-y-2">
                             {shown.map(i => {
                                 const s = studentOf(i.student_id)

@@ -194,7 +194,7 @@ export const SchedulePage = () => {
 
     return (
         <div className="space-y-6 pb-12 animate-in fade-in duration-500">
-            <div className="bg-white rounded-3xl p-8 shadow-xl border border-gray-100 relative overflow-hidden">
+            <div className="bg-white rounded-3xl p-5 sm:p-8 shadow-xl border border-gray-100 relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-indigo-50 opacity-50" />
                 <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div>

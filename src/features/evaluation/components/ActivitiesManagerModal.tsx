@@ -34,7 +34,7 @@ export const ActivitiesManagerModal = ({
 
     return (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md overflow-hidden animate-in fade-in duration-300">
-            <div className="bg-white rounded-[3rem] shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col relative overflow-hidden border-8 border-white animate-in zoom-in-95 duration-300">
+            <div className="bg-white rounded-[2rem] sm:rounded-[3rem] shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col relative overflow-hidden border-8 border-white animate-in zoom-in-95 duration-300">
                 {/* Header */}
                 <div className="p-8 pb-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <div className="flex items-center gap-4">

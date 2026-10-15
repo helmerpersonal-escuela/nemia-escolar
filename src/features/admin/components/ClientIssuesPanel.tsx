@@ -148,7 +148,7 @@ export const ClientIssuesPanel = ({ search = '' }: { search?: string }) => {
             {isLoading ? (
                 <div className="py-16 flex justify-center"><RefreshCw className="w-8 h-8 text-indigo-400 animate-spin" /></div>
             ) : visible.length === 0 ? (
-                <div className="bg-white rounded-3xl border border-dashed border-slate-200 p-10 text-center">
+                <div className="bg-white rounded-3xl border border-dashed border-slate-200 p-6 sm:p-10 text-center">
                     <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-3" />
                     <p className="font-black text-slate-800">Sin problemas en este filtro</p>
                     <p className="text-sm text-slate-500 mt-1">Los errores y fricciones se registran solos mientras la escuela usa la app.</p>

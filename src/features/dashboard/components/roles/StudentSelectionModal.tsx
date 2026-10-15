@@ -60,7 +60,7 @@ export const StudentSelectionModal = ({ isOpen, onClose }: StudentSelectionModal
             />
 
             {/* Modal Content */}
-            <div className="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[80vh]">
+            <div className="relative bg-white w-full max-w-lg rounded-[1.75rem] sm:rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[80vh]">
                 {/* Header */}
                 <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-indigo-50/50">
                     <div>

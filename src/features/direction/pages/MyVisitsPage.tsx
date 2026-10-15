@@ -38,7 +38,7 @@ export const MyVisitsPage = () => {
                 <h1 className="text-3xl font-black text-slate-900">Mis visitas de acompañamiento</h1>
                 <p className="text-slate-600">Aquí ves cuándo te visitan, qué se registró de tu clase y los acuerdos de la retroalimentación. Se anotan hechos observados, no calificaciones.</p>
             </div>
-            {visits.length === 0 ? <p className="bg-white border border-slate-200 rounded-3xl py-12 text-center text-slate-600 font-bold">Todavía no tienes visitas programadas.</p>
+            {visits.length === 0 ? <p className="bg-white border border-slate-200 rounded-3xl py-8 sm:py-12 text-center text-slate-600 font-bold">Todavía no tienes visitas programadas.</p>
                 : <ul className="space-y-3">{visits.map(v => <li key={v.id}><VisitCard visit={v} group={groupName(basics.data?.groups.find(g => g.id === v.group_id))} /></li>)}</ul>}
         </div>
     )

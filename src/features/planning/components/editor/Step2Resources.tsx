@@ -64,7 +64,7 @@ export const Step2Resources: React.FC<Step2ResourcesProps> = ({
     if (isPreviewMode) {
         return (
             <section className="animate-in fade-in slide-in-from-bottom-8 duration-700">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 bg-gray-50 p-8 rounded-[2rem] border border-gray-100">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 bg-gray-50 p-5 sm:p-8 rounded-[2rem] border border-gray-100">
                     <div className="col-span-full mb-4">
                         <h3 className="text-sm font-black text-indigo-900 uppercase tracking-widest flex items-center">
                             <BookOpen className="w-4 h-4 mr-2" />
@@ -114,7 +114,7 @@ export const Step2Resources: React.FC<Step2ResourcesProps> = ({
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="space-y-6">
-                    <div className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-50 shadow-sm">
+                    <div className="bg-white p-5 sm:p-8 rounded-[1.75rem] sm:rounded-[2.5rem] border-2 border-slate-50 shadow-sm">
                         <h3 className="text-xs font-black text-indigo-950 uppercase tracking-widest mb-6 flex items-center">
                             <Search className="w-4 h-4 mr-2 text-indigo-400" />
                             Seleccionar Libro Oficial
@@ -353,7 +353,7 @@ export const Step2Resources: React.FC<Step2ResourcesProps> = ({
                 </div>
 
                 <div className="space-y-6">
-                    <div className="bg-slate-900 p-8 rounded-[2.5rem] shadow-xl relative overflow-hidden group min-h-[300px]">
+                    <div className="bg-slate-900 p-5 sm:p-8 rounded-[1.75rem] sm:rounded-[2.5rem] shadow-xl relative overflow-hidden group min-h-[220px] sm:min-h-[300px]">
                         <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
                             <Sparkles className="w-32 h-32 text-indigo-400" />
                         </div>
@@ -389,7 +389,7 @@ export const Step2Resources: React.FC<Step2ResourcesProps> = ({
                                     ))}
                                 </div>
                             ) : (
-                                <div className="bg-white/5 border-2 border-dashed border-white/10 rounded-[2rem] p-12 text-center">
+                                <div className="bg-white/5 border-2 border-dashed border-white/10 rounded-[2rem] p-6 sm:p-12 text-center">
                                     <p className="text-indigo-300/40 font-bold italic text-sm">Selecciona o sube un libro para que la IA proponga los temas clave aquí.</p>
                                 </div>
                             )}

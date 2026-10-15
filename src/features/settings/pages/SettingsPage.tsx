@@ -656,7 +656,7 @@ export const SettingsPage = () => {
                 {/* Content Area */}
                 <main className="flex-1 min-w-0">
                     {/* overflow-clip (no hidden): así las barras "Guardar" fijas (sticky) siguen visibles al desplazarse */}
-                    <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-clip min-h-[600px]">
+                    <div className="bg-white rounded-[1.75rem] sm:rounded-[2.5rem] border border-gray-100 shadow-sm overflow-clip min-h-[600px]">
 
                         <div className="p-5 sm:p-8 lg:p-10 animate-in fade-in duration-300">
                             {(() => {

@@ -727,7 +727,7 @@ export const ChatModule = () => {
                     </>
                 ) : (
                     <div className="text-center p-12">
-                        <div className="w-24 h-24 bg-blue-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-6 text-blue-600">
+                        <div className="w-24 h-24 bg-blue-50 rounded-[1.75rem] sm:rounded-[2.5rem] flex items-center justify-center mx-auto mb-6 text-blue-600">
                             <Send className="w-12 h-12 rotate-[-15deg]" />
                         </div>
                         <h3 className="text-2xl font-black text-slate-800">Tus Conversaciones</h3>
@@ -740,7 +740,7 @@ export const ChatModule = () => {
             {/* New Chat Modal */}
             {showNewChatModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-[2.5rem] w-full max-w-lg max-h-[90vh] shadow-2xl overflow-hidden animate-in zoom-in duration-200 flex flex-col">
+                    <div className="bg-white rounded-[1.75rem] sm:rounded-[2.5rem] w-full max-w-lg max-h-[90vh] shadow-2xl overflow-hidden animate-in zoom-in duration-200 flex flex-col">
                         <div className="p-6 sm:p-8 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
                             <div>
                                 <h3 className="text-xl sm:text-2xl font-black text-slate-800">Nueva Conversación</h3>
@@ -889,7 +889,7 @@ export const ChatModule = () => {
             {/* New Announcement Modal */}
             {showNewAnnouncementModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+                    <div className="bg-white rounded-[1.75rem] sm:rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
                         <div className="p-8 bg-amber-50 border-b border-amber-100 flex items-center justify-between">
                             <div className="flex items-center gap-4">
                                 <div className="p-3 bg-amber-100 text-amber-700 rounded-2xl">

@@ -22,6 +22,7 @@ export const TutorDashboard = () => {
     const [pendingActivities, setPendingActivities] = useState<any[]>([])
     const [userId, setUserId] = useState<string | undefined>()
     const [showPhones, setShowPhones] = useState(false)
+    const [showAccess, setShowAccess] = useState(false)
 
     // Notification System
     const { alerts, markAsRead, runComplianceChecks, unreadCount } = useAlerts(userId, children)
@@ -217,10 +218,14 @@ export const TutorDashboard = () => {
                     <button type="button" onClick={() => setShowPhones(v => !v)} className="text-slate-600 hover:underline">
                         {showPhones ? 'Ocultar mis teléfonos' : 'Mis teléfonos de emergencia'}
                     </button>
+                    <button type="button" onClick={() => setShowAccess(v => !v)} className="text-slate-600 hover:underline">
+                        {showAccess ? 'Ocultar cuentas de mi familia' : 'Cuentas de mi familia'}
+                    </button>
                 </div>
             </div>
 
-            <FamilyAccessCard />
+            {/* El acceso de la familia no es lo prioritario: solo un aviso de una línea si hay algo que atender */}
+            {showAccess ? <FamilyAccessCard /> : <FamilyAccessCard variant="notice" onOpen={() => setShowAccess(true)} />}
             {showPhones && (
                 <div className="max-w-md">
                     <EmergencyPhonesForm onSaved={() => setShowPhones(false)} />
@@ -357,7 +362,7 @@ export const TutorDashboard = () => {
                                 <Bell className="w-8 h-8 stroke-[3]" />
                             </div>
                             <div>
-                                <h3 className="text-4xl font-black text-gray-900 tracking-tight">Bitácora de Alertas</h3>
+                                <h3 className="text-2xl sm:text-4xl font-black text-gray-900 tracking-tight">Bitácora de Alertas</h3>
                                 <p className="text-slate-500 font-bold text-xs uppercase tracking-widest">Seguimiento de comportamiento y logros</p>
                             </div>
                         </div>
@@ -392,7 +397,7 @@ export const TutorDashboard = () => {
 
                     <div className="space-y-6">
                         {agenda.length === 0 ? (
-                            <div className="bg-white/50 p-12 rounded-[2.5rem] text-center border-2 border-dashed border-slate-200">
+                            <div className="bg-white/50 p-6 sm:p-12 rounded-[1.75rem] sm:rounded-[2.5rem] text-center border-2 border-dashed border-slate-200">
                                 <p className="text-gray-500 font-black italic">Sin tareas próximas en agenda.</p>
                             </div>
                         ) : (
@@ -475,7 +480,7 @@ const AlertItem = ({ alert, onRead }: { alert: any, onRead: () => void }) => {
 }
 
 const EventItem = ({ title, type, date }: any) => (
-    <div className="flex flex-col md:flex-row items-center justify-between p-6 bg-white rounded-[2.5rem] border-4 border-slate-100 hover:border-blue-200 transition-all active:scale-95 shadow-md shadow-slate-200/50 group cursor-pointer gap-4">
+    <div className="flex flex-col md:flex-row items-center justify-between p-6 bg-white rounded-[1.75rem] sm:rounded-[2.5rem] border-4 border-slate-100 hover:border-blue-200 transition-all active:scale-95 shadow-md shadow-slate-200/50 group cursor-pointer gap-4">
         <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
             <div className={`p-4 rounded-3xl shadow-inner ${type === 'EXAMEN' ? 'bg-rose-100 text-rose-600 border border-rose-200' : 'bg-blue-100 text-blue-600 border border-blue-200'}`}>
                 <Star className="w-8 h-8 stroke-[2.5]" />
@@ -492,7 +497,7 @@ const EventItem = ({ title, type, date }: any) => (
 )
 
 const AnnouncementItem = ({ title, date }: any) => (
-    <div className="p-8 bg-white hover:bg-cyan-600 rounded-[2.5rem] transition-all cursor-pointer group border-4 border-transparent hover:border-cyan-400 active:scale-95 shadow-lg shadow-cyan-900/5">
+    <div className="p-5 sm:p-8 bg-white hover:bg-cyan-600 rounded-[1.75rem] sm:rounded-[2.5rem] transition-all cursor-pointer group border-4 border-transparent hover:border-cyan-400 active:scale-95 shadow-lg shadow-cyan-900/5">
         <p className="text-xs font-black text-cyan-400 group-hover:text-white/80 uppercase tracking-widest mb-3 leading-none">{date}</p>
         <h5 className="text-xl font-black text-slate-900 group-hover:text-white leading-tight tracking-tight">{title}</h5>
     </div>

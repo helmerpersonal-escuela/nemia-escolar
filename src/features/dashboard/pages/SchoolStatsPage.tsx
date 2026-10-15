@@ -24,7 +24,7 @@ export const SchoolStatsPage = () => {
                 <MetricCard title="Incidencias (30 días)" value={o ? o.incidents30 : '…'} trend="" icon={BarChart3} color="orange" />
             </div>
 
-            <div className="bg-white p-10 rounded-[3rem] shadow-2xl shadow-slate-100 border border-slate-100 flex flex-col items-center justify-center min-h-[400px]">
+            <div className="bg-white p-6 sm:p-10 rounded-[2rem] sm:rounded-[3rem] shadow-2xl shadow-slate-100 border border-slate-100 flex flex-col items-center justify-center min-h-[260px] sm:min-h-[400px]">
                 <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6">
                     <BarChart3 className="w-10 h-10 text-slate-200" />
                 </div>
@@ -43,7 +43,7 @@ const MetricCard = ({ title, value, trend, icon: Icon, color }: any) => {
         orange: 'text-orange-600 bg-orange-50'
     }
     return (
-        <div className="bg-white p-8 rounded-[2rem] shadow-xl shadow-slate-100 border border-slate-50">
+        <div className="bg-white p-5 sm:p-8 rounded-[2rem] shadow-xl shadow-slate-100 border border-slate-50">
             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 ${colors[color]}`}>
                 <Icon className="w-7 h-7" />
             </div>

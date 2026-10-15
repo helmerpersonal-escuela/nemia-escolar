@@ -136,9 +136,9 @@ export const UploadEvidenceModal = ({ isOpen, onClose, studentId, onSuccess }: U
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
-            <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="bg-white w-full max-w-2xl rounded-[1.75rem] sm:rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
                 {/* Header */}
-                <div className="p-8 bg-gradient-to-r from-indigo-600 to-violet-700 text-white flex justify-between items-center">
+                <div className="p-5 sm:p-8 bg-gradient-to-r from-indigo-600 to-violet-700 text-white flex justify-between items-center">
                     <div>
                         <h2 className="text-2xl font-black uppercase tracking-tight">Subir Evidencia</h2>
                         <p className="text-indigo-100 text-xs font-bold uppercase tracking-widest mt-1">Nuevo Trabajo del Alumno</p>

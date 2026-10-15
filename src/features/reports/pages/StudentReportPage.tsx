@@ -4,6 +4,11 @@ import { supabase } from '../../../lib/supabase'
 import { useTenant } from '../../../hooks/useTenant'
 import { Printer, ArrowLeft, School, AlertTriangle, CheckCircle } from 'lucide-react'
 
+/** Las fechas "AAAA-MM-DD" se leen como hora local: con new Date() a secas salían un día antes en México. */
+const toLocalDate = (d: string) => new Date(/^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d}T12:00:00` : d)
+const fmtDay = (d: string, withYear = true) =>
+    toLocalDate(d).toLocaleDateString('es-MX', withYear ? { day: 'numeric', month: 'short', year: 'numeric' } : { day: 'numeric', month: 'short' })
+
 export const StudentReportPage = () => {
     const { studentId } = useParams()
     const navigate = useNavigate()
@@ -57,7 +62,7 @@ export const StudentReportPage = () => {
 
             const processedAssignments = groupAssignments.map(assignment => {
                 const grade = studentGrades?.find(g => g.assignment_id === assignment.id)
-                const isPastDue = new Date(assignment.due_date) < new Date()
+                const isPastDue = toLocalDate(assignment.due_date) < new Date()
 
                 let status = 'PENDING'
                 if (grade?.score !== null && grade?.score !== undefined) status = 'GRADED'
@@ -119,80 +124,101 @@ export const StudentReportPage = () => {
     return (
         <div className="bg-gray-100 min-h-screen p-0 sm:p-8 print:bg-white print:p-0">
             {/* Action Bar (Hidden in Print) */}
-            <div className="max-w-4xl mx-auto mb-6 sm:mb-8 flex flex-wrap gap-3 justify-between items-center print:hidden">
+            <div className="max-w-4xl mx-auto mb-3 sm:mb-8 flex flex-wrap gap-3 justify-between items-center print:hidden">
                 <button onClick={() => navigate(-1)} className="flex items-center text-gray-600 font-bold hover:text-gray-900">
                     <ArrowLeft className="w-5 h-5 mr-2" />
                     Volver
                 </button>
                 <button
                     onClick={() => window.print()}
-                    className="bg-blue-600 text-white px-4 sm:px-6 py-3 rounded-xl font-bold flex items-center shadow-lg hover:bg-blue-700 transition-all whitespace-nowrap"
+                    className="bg-blue-600 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl text-sm sm:text-base font-bold flex items-center shadow-lg hover:bg-blue-700 transition-all whitespace-nowrap"
                 >
-                    <Printer className="w-5 h-5 mr-3" />
+                    <Printer className="w-5 h-5 mr-2 sm:mr-3" />
                     Imprimir Reporte
                 </button>
             </div>
 
             {/* Report Paper */}
-            <div className="max-w-4xl mx-auto bg-white shadow-2xl rounded-[2rem] overflow-hidden print:shadow-none print:rounded-none">
-                {/* Header */}
-                <div className="bg-blue-900 text-white p-6 sm:p-12 print:bg-white print:text-black print:p-0 print:border-b-2 print:border-black print:mb-8 text-center sm:text-left print:break-inside-avoid">
-                    <div className="flex flex-col sm:flex-row justify-between items-start">
-                        <div className="mb-6 sm:mb-0">
-                            <div className="flex items-center justify-center sm:justify-start space-x-3 mb-2">
-                                <School className="w-8 h-8 text-blue-300 print:text-black" />
-                                <h1 className="text-xl sm:text-3xl font-black uppercase tracking-wider sm:tracking-widest break-words min-w-0">{tenant?.name || 'Escuela'}</h1>
+            <div className="max-w-4xl mx-auto bg-white shadow-xl sm:shadow-2xl rounded-2xl sm:rounded-[2rem] overflow-hidden print:shadow-none print:rounded-none">
+                {/* Header: compacto en el celular, completo en pantalla grande y al imprimir */}
+                <div className="bg-blue-900 text-white px-4 py-4 sm:p-12 print:bg-white print:text-black print:p-0 print:border-b-2 print:border-black print:mb-8 print:break-inside-avoid">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-6">
+                        <div className="min-w-0">
+                            <div className="flex items-start gap-2 sm:gap-3 sm:mb-2">
+                                <School className="w-4 h-4 sm:w-8 sm:h-8 shrink-0 mt-0.5 sm:mt-0 text-blue-300 print:text-black" />
+                                <h1 className="text-xs sm:text-3xl font-bold sm:font-black uppercase tracking-wide sm:tracking-widest leading-snug break-words min-w-0 text-blue-100 sm:text-white print:text-black">{tenant?.name || 'Escuela'}</h1>
                             </div>
-                            <p className="text-blue-200 print:text-black font-medium text-sm">Reporte de Desempeño Escolar</p>
-                            <p className="text-blue-200 print:text-black font-medium text-xs opacity-70 mt-1">
+                            <p className="hidden sm:block print:block text-blue-200 print:text-black font-medium text-sm">Reporte de Desempeño Escolar</p>
+                            <p className="hidden sm:block print:block text-blue-200 print:text-black font-medium text-xs opacity-70 mt-1">
                                 Generado el: {new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                             </p>
                         </div>
-                        <div className="text-center sm:text-right w-full sm:w-auto">
-                            <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-1 break-words">
-                                {student?.first_name} {student?.last_name_paternal}
-                            </h2>
-                            <p className="text-xl font-bold text-blue-200 print:text-black">
-                                {student?.group?.grade}° "{student?.group?.section}"
-                            </p>
-                            <div className="mt-4 inline-flex items-center bg-blue-800/50 px-4 py-2 rounded-lg print:hidden">
-                                <span className="text-xs font-bold uppercase tracking-widest text-blue-200 mr-2">Promedio General</span>
-                                <span className="text-2xl font-black text-white">{stats.average.toFixed(1)}</span>
+                        <div className="flex items-center justify-between gap-3 sm:block sm:text-right sm:shrink-0">
+                            <div className="min-w-0">
+                                <h2 className="text-2xl sm:text-4xl font-black tracking-tight leading-tight sm:mb-1 break-words">
+                                    {student?.first_name} {student?.last_name_paternal}
+                                </h2>
+                                <p className="text-sm sm:text-xl font-bold text-blue-200 print:text-black">
+                                    {student?.group?.grade}° "{student?.group?.section}"<span className="sm:hidden font-medium"> · Reporte de desempeño</span>
+                                </p>
+                            </div>
+                            <div className="shrink-0 sm:mt-4 inline-flex flex-col sm:flex-row items-center bg-blue-800/60 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-lg print:hidden">
+                                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wide sm:tracking-widest text-blue-200 sm:mr-2">Promedio</span>
+                                <span className="text-xl sm:text-2xl font-black text-white leading-none sm:leading-normal">{stats.average.toFixed(1)}</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="p-5 sm:p-12 space-y-8 sm:space-y-12 print:p-0">
+                <div className="p-4 sm:p-12 space-y-6 sm:space-y-12 print:p-0">
 
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 print:grid-cols-4 print:gap-4 print:break-inside-avoid">
-                        <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 print:border-black text-center">
-                            <span className="block text-3xl font-black text-gray-900">{stats.submitted}</span>
-                            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Tareas Entregadas</span>
+                    <div className="grid grid-cols-4 gap-2 sm:gap-6 print:gap-4 print:break-inside-avoid">
+                        <div className="px-1 py-2.5 sm:p-4 bg-gray-50 rounded-xl sm:rounded-2xl border border-gray-100 print:border-black text-center">
+                            <span className="block text-xl sm:text-3xl font-black text-gray-900">{stats.submitted}</span>
+                            <span className="text-[10px] sm:text-[11px] font-bold text-gray-500 uppercase tracking-normal sm:tracking-widest leading-tight block">Tareas Entregadas</span>
                         </div>
-                        <div className="p-4 bg-red-50 rounded-2xl border border-red-100 print:border-black text-center">
-                            <span className="block text-3xl font-black text-red-600 print:text-black">{stats.missing}</span>
-                            <span className="text-[11px] font-bold text-red-400 print:text-black uppercase tracking-widest">Tareas Faltantes</span>
+                        <div className="px-1 py-2.5 sm:p-4 bg-red-50 rounded-xl sm:rounded-2xl border border-red-100 print:border-black text-center">
+                            <span className="block text-xl sm:text-3xl font-black text-red-600 print:text-black">{stats.missing}</span>
+                            <span className="text-[10px] sm:text-[11px] font-bold text-red-400 print:text-black uppercase tracking-normal sm:tracking-widest leading-tight block">Tareas Faltantes</span>
                         </div>
-                        <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 print:border-black text-center">
-                            <span className="block text-3xl font-black text-blue-600 print:text-black">{stats.attendance.present}</span>
-                            <span className="text-[11px] font-bold text-blue-400 print:text-black uppercase tracking-widest">Asistencias</span>
+                        <div className="px-1 py-2.5 sm:p-4 bg-blue-50 rounded-xl sm:rounded-2xl border border-blue-100 print:border-black text-center">
+                            <span className="block text-xl sm:text-3xl font-black text-blue-600 print:text-black">{stats.attendance.present}</span>
+                            <span className="text-[10px] sm:text-[11px] font-bold text-blue-400 print:text-black uppercase tracking-normal sm:tracking-widest leading-tight block">Asistencias</span>
                         </div>
-                        <div className="p-4 bg-orange-50 rounded-2xl border border-orange-100 print:border-black text-center">
-                            <span className="block text-3xl font-black text-orange-600 print:text-black">{stats.attendance.absent}</span>
-                            <span className="text-[11px] font-bold text-orange-400 print:text-black uppercase tracking-widest">Faltas</span>
+                        <div className="px-1 py-2.5 sm:p-4 bg-orange-50 rounded-xl sm:rounded-2xl border border-orange-100 print:border-black text-center">
+                            <span className="block text-xl sm:text-3xl font-black text-orange-600 print:text-black">{stats.attendance.absent}</span>
+                            <span className="text-[10px] sm:text-[11px] font-bold text-orange-400 print:text-black uppercase tracking-normal sm:tracking-widest leading-tight block">Faltas</span>
                         </div>
                     </div>
 
                     {/* Assignments List */}
                     <div>
-                        <h3 className="text-xl font-black text-gray-900 border-b-2 border-gray-100 pb-2 mb-6 uppercase tracking-tight flex items-center">
+                        <h3 className="text-base sm:text-xl font-black text-gray-900 border-b-2 border-gray-100 pb-2 mb-3 sm:mb-6 uppercase tracking-tight flex items-center">
                             <CheckCircle className="w-5 h-5 mr-2 text-blue-600 print:hidden" />
                             Desempeño Académico
                         </h3>
                         {assignments.length > 0 ? (
-                            <div className="overflow-hidden rounded-xl border border-gray-100 print:border-black print:break-inside-avoid">
+                            <>
+                            {/* Celular: lista compacta (la tabla de 5 columnas no cabe) */}
+                            <ul className="sm:hidden print:hidden divide-y divide-gray-100 rounded-xl border border-gray-100">
+                                {assignments.map((assignment) => (
+                                    <li key={assignment.id} className="flex items-center gap-3 px-3 py-2.5">
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-sm font-bold text-gray-800 leading-snug">{assignment.title}</p>
+                                            <p className="text-xs text-gray-500">
+                                                {assignment.subject?.name || 'General'} · {fmtDay(assignment.due_date, false)}
+                                                {' · '}
+                                                <span className={assignment.status === 'GRADED' ? 'text-green-700 font-bold' : assignment.status === 'MISSING' ? 'text-red-600 font-bold' : 'font-bold'}>
+                                                    {assignment.status === 'GRADED' ? 'Entregada' : assignment.status === 'MISSING' ? 'Faltante' : 'Pendiente'}
+                                                </span>
+                                            </p>
+                                        </div>
+                                        <span className="shrink-0 w-10 text-right text-base font-black text-gray-900">{assignment.score !== null ? assignment.score : '-'}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                            <div className="hidden sm:block print:block overflow-hidden rounded-xl border border-gray-100 print:border-black print:break-inside-avoid">
                                 <table className="w-full text-sm text-left">
                                     <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[11px] tracking-wider border-b print:bg-white print:text-black">
                                         <tr>
@@ -213,7 +239,7 @@ export const StudentReportPage = () => {
                                                     {assignment.subject?.name || 'General'}
                                                 </td>
                                                 <td className="px-6 py-4 text-gray-500 font-medium text-xs">
-                                                    {new Date(assignment.due_date).toLocaleDateString()}
+                                                    {fmtDay(assignment.due_date)}
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
                                                     <span className={`px-2 py-1 rounded text-[11px] font-black uppercase tracking-wide border
@@ -232,6 +258,7 @@ export const StudentReportPage = () => {
                                     </tbody>
                                 </table>
                             </div>
+                            </>
                         ) : (
                             <p className="text-gray-500 italic text-center py-6">No hay actividades registradas.</p>
                         )}
@@ -239,7 +266,7 @@ export const StudentReportPage = () => {
 
                     {/* Incidents / Conduct */}
                     <div>
-                        <h3 className="text-xl font-black text-gray-900 border-b-2 border-gray-100 pb-2 mb-6 uppercase tracking-tight flex items-center">
+                        <h3 className="text-base sm:text-xl font-black text-gray-900 border-b-2 border-gray-100 pb-2 mb-3 sm:mb-6 uppercase tracking-tight flex items-center">
                             <AlertTriangle className="w-5 h-5 mr-2 text-orange-600 print:hidden" />
                             Reporte de Conducta e Incidencias
                         </h3>
@@ -256,7 +283,7 @@ export const StudentReportPage = () => {
                                                     {incident.type}
                                                 </span>
                                                 <span className="text-xs font-bold text-gray-500">
-                                                    {new Date(incident.created_at).toLocaleDateString()}
+                                                    {new Date(incident.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}
                                                 </span>
                                             </div>
                                             <span className="text-[11px] font-black uppercase text-gray-500">
@@ -291,7 +318,7 @@ export const StudentReportPage = () => {
                     </div>
 
                     {/* Footer for Signature */}
-                    <div className="pt-16 sm:pt-24 print:pt-32 flex flex-col sm:flex-row items-center gap-12 sm:gap-4 justify-between px-0 sm:px-12 print:flex-row print:px-12 print:break-inside-avoid">
+                    <div className="hidden sm:flex print:flex pt-16 sm:pt-24 print:pt-32 flex-col sm:flex-row items-center gap-12 sm:gap-4 justify-between px-0 sm:px-12 print:flex-row print:px-12 print:break-inside-avoid">
                         <div className="text-center">
                             <div className="w-56 sm:w-64 border-t-2 border-black mb-2"></div>
                             <p className="text-sm font-bold uppercase">Firma del Maestro(a)</p>

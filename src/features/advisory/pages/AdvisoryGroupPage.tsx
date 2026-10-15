@@ -37,7 +37,7 @@ export const AdvisoryGroupPage = () => {
     if (!data?.group) {
         return (
             <div className="max-w-2xl mx-auto p-6 sm:p-10">
-                <div className="bg-white rounded-[2rem] border border-slate-100 p-8 text-center">
+                <div className="bg-white rounded-[2rem] border border-slate-100 p-5 sm:p-8 text-center">
                     <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-4"><ShieldCheck className="w-7 h-7" /></div>
                     <h1 className="text-2xl font-black text-slate-900">Aún no tienes grupo de asesoría</h1>
                     <p className="text-slate-500 mt-2">La dirección asigna el grupo asesorado en <b>Personal y accesos</b>. Cuando te lo asignen, aquí verás la conducta, asistencia y compromisos de tus alumnos, aunque no les des clase.</p>

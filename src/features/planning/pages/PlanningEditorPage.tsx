@@ -1788,7 +1788,7 @@ export const PlanningEditorPage = () => {
                                     <button
                                         onClick={generateAiSuggestions}
                                         disabled={generating}
-                                        className="bg-indigo-600 text-white px-10 py-5 rounded-[2rem] text-sm font-black shadow-[0_8px_0_0_#4338ca] border-4 border-white flex items-center hover:shadow-none hover:translate-y-2 active:scale-95 transition-all uppercase tracking-widest group"
+                                        className="bg-indigo-600 text-white px-5 sm:px-10 py-5 rounded-[2rem] text-sm font-black shadow-[0_8px_0_0_#4338ca] border-4 border-white flex items-center hover:shadow-none hover:translate-y-2 active:scale-95 transition-all uppercase tracking-widest group"
                                     >
                                         <div className="w-10 h-10 bg-white/20 rounded-2xl flex items-center justify-center mr-4 group-hover:rotate-12 transition-transform shadow-inner">
                                             <Sparkles className="w-5 h-5 text-white" />

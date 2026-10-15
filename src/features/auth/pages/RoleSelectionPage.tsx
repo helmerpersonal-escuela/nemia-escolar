@@ -170,7 +170,7 @@ export const RoleSelectionPage = () => {
                     <div className="inline-flex p-5 bg-white rounded-[2rem] shadow-lg shadow-indigo-100 mb-8 border border-white/50">
                         <Settings className="w-12 h-12 text-indigo-400 inflatable-icon" />
                     </div>
-                    <h1 className="text-4xl font-black text-slate-800 tracking-tight leading-tight">
+                    <h1 className="text-2xl sm:text-4xl font-black text-slate-800 tracking-tight leading-tight">
                         ¿Cómo ingresarás <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-500">hoy?</span>
                     </h1>
                     <p className="text-slate-500 font-bold mt-4 text-lg">Selecciona tu perfil para continuar.</p>

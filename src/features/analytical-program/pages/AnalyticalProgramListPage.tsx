@@ -155,7 +155,7 @@ export const AnalyticalProgramListPage = () => {
                         <div
                             key={prog.id}
                             onClick={() => navigate(`/analytical-program/${prog.id}`)}
-                            className="bg-white rounded-[2.5rem] p-8 border border-gray-50 shadow-sm hover:shadow-2xl hover:scale-[1.02] transition-all cursor-pointer group flex flex-col"
+                            className="bg-white rounded-[1.75rem] sm:rounded-[2.5rem] p-5 sm:p-8 border border-gray-50 shadow-sm hover:shadow-2xl hover:scale-[1.02] transition-all cursor-pointer group flex flex-col"
                         >
                             <div className="flex items-center justify-between mb-8">
                                 <div className="p-4 bg-indigo-50 rounded-2xl text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all">
@@ -223,7 +223,7 @@ export const AnalyticalProgramListPage = () => {
                     ))}
                 </div>
             ) : (
-                <div className="bg-white p-20 rounded-[3rem] border-2 border-dashed border-gray-100 text-center max-w-2xl mx-auto">
+                <div className="bg-white p-20 rounded-[2rem] sm:rounded-[3rem] border-2 border-dashed border-gray-100 text-center max-w-2xl mx-auto">
                     <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 mx-auto mb-8">
                         <Plus className="w-10 h-10" />
                     </div>
@@ -234,7 +234,7 @@ export const AnalyticalProgramListPage = () => {
                     {isDirectorOrAdmin ? (
                         <button
                             onClick={() => navigate('/analytical-program/new')}
-                            className="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all font-sans"
+                            className="bg-indigo-600 text-white px-5 sm:px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all font-sans"
                         >
                             Empezar mi programa
                         </button>
@@ -246,7 +246,7 @@ export const AnalyticalProgramListPage = () => {
                 </div>
             )}
 
-            <div className="mt-20 bg-amber-50 rounded-[2.5rem] p-10 border border-amber-100 flex items-start max-w-4xl mx-auto">
+            <div className="mt-20 bg-amber-50 rounded-[1.75rem] sm:rounded-[2.5rem] p-6 sm:p-10 border border-amber-100 flex items-start max-w-4xl mx-auto">
                 <div className="p-3 bg-amber-100 rounded-2xl text-amber-700 mr-6">
                     <Info className="w-6 h-6" />
                 </div>

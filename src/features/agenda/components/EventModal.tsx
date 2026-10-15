@@ -155,8 +155,8 @@ export const EventModal = ({
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden border border-gray-100 animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
-                <div className="p-8 bg-gradient-to-r from-indigo-600 to-blue-600 flex justify-between items-center text-white shrink-0">
+            <div className="bg-white rounded-[1.75rem] sm:rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden border border-gray-100 animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
+                <div className="p-5 sm:p-8 bg-gradient-to-r from-indigo-600 to-blue-600 flex justify-between items-center text-white shrink-0">
                     <div>
                         <h2 className="text-2xl font-black tracking-tight">Nuevo Evento</h2>
                         <p className="text-indigo-100 text-xs font-bold uppercase tracking-widest mt-1">Agenda Escolar</p>

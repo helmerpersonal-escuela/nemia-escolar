@@ -126,7 +126,7 @@ export const EvaluationReportPage = () => {
                         <div className="inline-flex items-center gap-2 mb-4 bg-slate-900 text-white px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-[0.2em]">
                             Reporte Oficial Vunlek
                         </div>
-                        <h1 className="text-4xl font-black uppercase tracking-tighter text-slate-900 leading-none mb-2">
+                        <h1 className="text-2xl sm:text-4xl font-black uppercase tracking-tighter text-slate-900 leading-none mb-2">
                             {type === 'ACADEMIC_YEAR' ? 'Boleta de Evaluación Anual' :
                                 type === 'BIMESTER' ? 'Reporte de Evaluación Bimestral' :
                                     type === 'SEMESTER' ? 'Reporte de Evaluación Semestral' :
@@ -146,7 +146,7 @@ export const EvaluationReportPage = () => {
                 </div>
 
                 {/* Group Details */}
-                <div className="grid grid-cols-2 gap-8 mb-10 bg-slate-50 p-8 rounded-3xl border border-slate-100 print:bg-transparent print:p-4 print:border-slate-200">
+                <div className="grid grid-cols-2 gap-8 mb-10 bg-slate-50 p-5 sm:p-8 rounded-3xl border border-slate-100 print:bg-transparent print:p-4 print:border-slate-200">
                     <div>
                         <div className="text-sm text-slate-500 font-bold uppercase tracking-wider mb-1">Grupo y Grado</div>
                         <div className="text-xl font-bold">{group.grade}° "{group.section}"</div>

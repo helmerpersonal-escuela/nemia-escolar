@@ -87,6 +87,14 @@ const CardsPage = lazyNamed(() => import('./features/cards/pages/CardsPage'), 'C
 const CardLandingPage = lazyNamed(() => import('./features/cards/pages/CardLandingPage'), 'CardLandingPage')
 const ExtraAccessPage = lazyNamed(() => import('./features/family/pages/ExtraAccessPage'), 'ExtraAccessPage')
 const FamilyAccessAdminPage = lazyNamed(() => import('./features/family/pages/FamilyAccessAdminPage'), 'FamilyAccessAdminPage')
+const TutorSchedulePage = lazyNamed(() => import('./features/family/pages/TutorSchedulePage'), 'TutorSchedulePage')
+import { useTenant } from './hooks/useTenant'
+
+/** La pestaña Agenda: el tutor ve el horario de su hijo(a) y los avisos de la escuela; los demás, su agenda. */
+function AgendaRoute() {
+  const { data: tenant } = useTenant()
+  return String((tenant as any)?.role || '').toUpperCase() === 'TUTOR' ? <TutorSchedulePage /> : <AgendaPage />
+}
 const ActivityLogPage = lazyNamed(() => import('./features/support/pages/ActivityLogPage'), 'ActivityLogPage')
 const AdvisoryGroupPage = lazyNamed(() => import('./features/advisory/pages/AdvisoryGroupPage'), 'AdvisoryGroupPage')
 const PedagogyCatalogPage = lazyNamed(() => import('./features/pdas/pages/PedagogyCatalogPage'), 'PedagogyCatalogPage')
@@ -322,7 +330,7 @@ function App() {
           <Route path="onboarding/*" element={<OnboardingWizard onComplete={() => window.location.href = '/'} />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="schedule" element={<RequireSteps steps={['jornada', 'materias']} action="ver o armar el horario"><SchedulePage /></RequireSteps>} />
-          <Route path="agenda" element={<AgendaPage />} />
+          <Route path="agenda" element={<AgendaRoute />} />
           <Route path="formatos" element={
             <ProtectedRoute allowedRoles={['TEACHER', 'INDEPENDENT_TEACHER', 'DIRECTOR', 'ADMIN', 'ACADEMIC_COORD', 'TECH_COORD']}>
               <FormatsPage />

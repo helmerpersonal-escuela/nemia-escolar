@@ -160,7 +160,7 @@ export const StaffControlCenter = () => {
                             <option value="noclasses">Docentes sin clases asignadas</option>
                         </select>
                     </div>
-                    {shown.length === 0 && <p className="bg-white border border-slate-200 rounded-3xl py-12 text-center text-slate-600 font-bold">Nadie coincide con la búsqueda.</p>}
+                    {shown.length === 0 && <p className="bg-white border border-slate-200 rounded-3xl py-8 sm:py-12 text-center text-slate-600 font-bold">Nadie coincide con la búsqueda.</p>}
                     <ul className="space-y-2">
                         {shown.map(p => {
                             const classes = data.groupSubjects.filter(g => g.teacher_id === p.id)
@@ -269,7 +269,7 @@ const CommissionsTab = ({ data, missing, onChanged }: { data: Data; missing: Per
                 </p>
             )}
 
-            {data.commissions.length === 0 && <p className="bg-white border border-slate-200 rounded-3xl py-12 text-center text-slate-600 font-bold">Todavía no hay comisiones en este ciclo.</p>}
+            {data.commissions.length === 0 && <p className="bg-white border border-slate-200 rounded-3xl py-8 sm:py-12 text-center text-slate-600 font-bold">Todavía no hay comisiones en este ciclo.</p>}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {data.commissions.map(c => <CommissionCard key={c.id} commission={c} data={data} onChanged={onChanged} />)}
             </div>

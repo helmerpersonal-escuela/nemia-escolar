@@ -545,7 +545,7 @@ ${act.printable_resource ? `*RECURSO IMPRIMIBLE (${act.printable_resource.type})
                             </h3>
                             <div className="grid grid-cols-1 gap-3">
                                 {affectedClasses.length === 0 ? (
-                                    <div className="p-10 text-center bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
+                                    <div className="p-6 sm:p-10 text-center bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
                                         <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">No se encontraron clases en tu horario para estas fechas.</p>
                                     </div>
                                 ) : (
