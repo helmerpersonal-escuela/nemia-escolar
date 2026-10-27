@@ -8,10 +8,16 @@ git status --short
 echo.
 set N=0
 for /f %%i in ('git status --porcelain ^| find /c /v ""') do set N=%%i
-if "%N%"=="0" (
+if not "%N%"=="0" goto commit
+set P=0
+for /f %%i in ('git rev-list --count @{u}..HEAD') do set P=%%i
+if "%P%"=="0" (
   echo No hay cambios para publicar.
   goto fin
 )
+echo Hay cambios guardados sin subir. Subiendo...
+goto push
+:commit
 set "MSG="
 set /p MSG=Describe el cambio (Enter = "Actualizacion %date%"): 
 if not defined MSG set "MSG=Actualizacion %date%"
@@ -22,6 +28,7 @@ echo.
 git add -A
 git commit -m "%MSG%"
 if errorlevel 1 goto error
+:push
 git push
 if errorlevel 1 goto error
 echo.
