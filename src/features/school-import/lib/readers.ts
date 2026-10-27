@@ -76,7 +76,7 @@ export async function readDocx(data: ArrayBuffer): Promise<DocxBlock[]> {
     const visit = (parent: Element) => {
         for (const el of Array.from(parent.children)) {
             if (el.localName === 'p') {
-                const text = paragraphText(el).replace(/[  ]+/g, ' ').trim()
+                const text = paragraphText(el).replace(/[ \u00a0]+/g, ' ').trim()
                 if (text) blocks.push({ type: 'p', text })
             } else if (el.localName === 'tbl') {
                 blocks.push({ type: 'table', rows: tableRows(el) })

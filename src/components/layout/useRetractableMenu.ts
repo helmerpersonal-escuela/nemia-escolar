@@ -32,7 +32,7 @@ export function useRetractableMenu(isOpen: boolean, setOpen: (v: boolean) => voi
 
     // Gestos en pantallas táctiles
     const open = useRef(isOpen)
-    open.current = isOpen
+    useEffect(() => { open.current = isOpen }, [isOpen])
     useEffect(() => {
         let sx = 0, sy = 0, tracking: 'open' | 'close' | null = null
         const start = (e: TouchEvent) => {

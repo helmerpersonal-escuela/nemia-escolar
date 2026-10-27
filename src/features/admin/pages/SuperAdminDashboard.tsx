@@ -62,12 +62,12 @@ export const SuperAdminDashboard = () => {
     // Avisos de resultado (en lugar de ventanas emergentes y recargas de página)
     const [notice, setNotice] = useState<{ tone: 'success' | 'error' | 'info'; text: string } | null>(null)
     const noticeTimer = useRef<number | undefined>(undefined)
-    const notify: Notify = useCallback((tone, text) => {
+    const notify = useCallback<Notify>((tone, text) => {
         window.clearTimeout(noticeTimer.current)
         setNotice({ tone, text })
         // Los errores se quedan hasta que se cierran; lo demás se va solo
         if (tone !== 'error') noticeTimer.current = window.setTimeout(() => setNotice(null), 7000)
-    }, [])
+    }, [setNotice])
 
     const { data: people = [] } = useQuery({ queryKey: ADMIN_PEOPLE_KEY, queryFn: fetchAdminPeople, staleTime: 30_000 })
     const { data: spaces = [] } = useQuery({ queryKey: ADMIN_SPACES_KEY, queryFn: fetchAdminSpaces, staleTime: 30_000 })

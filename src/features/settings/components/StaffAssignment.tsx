@@ -28,7 +28,7 @@ export function StaffAssignmentFields({ role, value, onChange, level }: { role: 
     const withGrades = ROLES_WITH_GRADES.includes(role)
     const toggle = (g: number) => {
         const set = new Set(value.assigned_grades)
-        set.has(g) ? set.delete(g) : set.add(g)
+        if (set.has(g)) set.delete(g); else set.add(g)
         onChange({ ...value, assigned_grades: [...set].sort((a, b) => a - b) })
     }
     return (

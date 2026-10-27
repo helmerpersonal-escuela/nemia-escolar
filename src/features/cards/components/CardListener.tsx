@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
 import { QrCode, Nfc, Keyboard, CheckCircle2, XCircle, AlertTriangle, Radio, Square } from 'lucide-react'
 import { beep, listenNfc, nfcSupport, normalizeCode } from '../../../lib/cards'
@@ -25,9 +25,9 @@ export function CardListener({ onCode, title = 'Modo escucha' }: { onCode: (code
     const [error, setError] = useState<string | null>(null)
     const seen = useRef<Record<string, number>>({})
     const handler = useRef(onCode)
-    handler.current = onCode
+    useEffect(() => { handler.current = onCode }, [onCode])
     const inputRef = useRef<HTMLInputElement>(null)
-    const qrId = useRef(`qr-${Math.random().toString(36).slice(2)}`)
+    const qrId = `qr-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
 
     const handle = useCallback(async (raw: string, alt?: string | null) => {
         const code = normalizeCode(raw)
@@ -69,7 +69,7 @@ export function CardListener({ onCode, title = 'Modo escucha' }: { onCode: (code
         let stop: (() => void) | undefined
         let cancelled = false
         if (mode === 'QR') {
-            const qr = new Html5Qrcode(qrId.current)
+            const qr = new Html5Qrcode(qrId)
             // stop() lanza el error de forma síncrona si la cámara aún no termina de encender;
             // en ese caso se espera a que arranque y luego se detiene.
             const halt = () => { try { qr.stop().then(() => qr.clear()).catch(() => {}) } catch { /* no estaba corriendo */ } }
@@ -127,7 +127,7 @@ export function CardListener({ onCode, title = 'Modo escucha' }: { onCode: (code
                         <p className="text-2xl sm:text-3xl font-black leading-tight">{last?.title ?? (mode === 'QR' ? 'Muestra el código a la cámara' : mode === 'NFC' ? 'Acerca la credencial' : 'Pasa la credencial por el lector')}</p>
                         {last?.detail && <p className="text-base sm:text-lg font-bold opacity-90 mt-1">{last.detail}</p>}
                     </div>
-                    {mode === 'QR' && <div id={qrId.current} className="w-full max-w-sm mx-auto rounded-2xl overflow-hidden bg-slate-900 min-h-[240px]" />}
+                    {mode === 'QR' && <div id={qrId} className="w-full max-w-sm mx-auto rounded-2xl overflow-hidden bg-slate-900 min-h-[240px]" />}
                     {mode === 'LECTOR' && (
                         <form onSubmit={e => { e.preventDefault(); const v = inputRef.current?.value ?? ''; if (inputRef.current) inputRef.current.value = ''; handle(v) }}>
                             <input ref={inputRef} aria-label="Código leído por el lector" autoComplete="off" inputMode="none"

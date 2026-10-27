@@ -60,7 +60,7 @@ export async function applyPlan(plan: Plan, opts: ApplyOptions, tenantId: string
             if (current && !opts.overwriteJornada) r.skipped++
             else {
                 const { error } = current ? await supabase.from('schedule_settings').update(payload).eq('id', current.id) : await supabase.from('schedule_settings').insert(payload)
-                if (error) r.errors.push(error.message); else current ? r.updated++ : r.created++
+                if (error) r.errors.push(error.message); else if (current) r.updated++; else r.created++
             }
         }
     }
@@ -182,7 +182,7 @@ export async function applyPlan(plan: Plan, opts: ApplyOptions, tenantId: string
                 duties: s.duties.join('; ') || null, source: s.sources.join(' | ').slice(0, 500), updated_at: new Date().toISOString(),
             })), { onConflict: 'tenant_id,name_key' })
             if (error) r!.errors.push(error.message)
-            else for (const s of staffRows) had.has(s.key) ? r!.updated++ : r!.created++
+            else for (const s of staffRows) { if (had.has(s.key)) r!.updated++; else r!.created++ }
         }
         const { data: rows } = await supabase.from('staff_roster').select('id, name_key, full_name, profile_id').eq('tenant_id', tenantId)
         for (const row of rows ?? []) roster.set(row.name_key, { id: row.id, profile_id: row.profile_id })

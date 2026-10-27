@@ -24,7 +24,7 @@ export default function LocationMap({ center, pin, onPin }: Props) {
     const map = useRef<L.Map | null>(null)
     const marker = useRef<L.Marker | null>(null)
     const onPinRef = useRef(onPin)
-    onPinRef.current = onPin
+    useEffect(() => { onPinRef.current = onPin }, [onPin])
 
     useEffect(() => {
         if (!box.current || map.current) return

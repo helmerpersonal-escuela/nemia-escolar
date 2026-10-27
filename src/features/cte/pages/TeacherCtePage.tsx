@@ -58,11 +58,12 @@ export const TeacherCtePage = ({ canUpload = false }: { canUpload?: boolean }) =
     })
     const guides = docs.filter(d => d.session_id === sessionId || d.kind === 'GUIA_OFICIAL')
 
+    const profileId = profile?.id
     const loadWork = useCallback(async () => {
-        if (!sessionId || !profile?.id) return
-        const { data } = await supabase.from('cte_teacher_work').select('*').eq('session_id', sessionId).eq('profile_id', profile.id).maybeSingle()
+        if (!sessionId || !profileId) return
+        const { data } = await supabase.from('cte_teacher_work').select('*').eq('session_id', sessionId).eq('profile_id', profileId).maybeSingle()
         setWork(data ? { id: data.id, topics: data.topics ?? [], available_topics: data.available_topics ?? [], material: data.material, notes: data.notes } : { topics: [], available_topics: [], material: null, notes: null })
-    }, [sessionId, profile?.id])
+    }, [sessionId, profileId])
     useEffect(() => { loadWork() }, [loadWork])
 
     const saveWork = async (patch: Partial<Work>) => {

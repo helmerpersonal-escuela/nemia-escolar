@@ -84,9 +84,10 @@ export const CardsPage = () => {
     }, [])
 
     // Programación por NFC: al acercar la etiqueta se graba la dirección del alumno seleccionado y se liga su número de serie
-    const curRef = useRef<Student | null>(null); curRef.current = cur
-    const tokenRef = useRef(tokenOf); tokenRef.current = tokenOf
-    const advRef = useRef(advance); advRef.current = advance
+    const curRef = useRef<Student | null>(null)
+    const tokenRef = useRef(tokenOf)
+    const advRef = useRef(advance)
+    useEffect(() => { curRef.current = cur; tokenRef.current = tokenOf; advRef.current = advance })
     useEffect(() => {
         if (mode !== 'NFC') return
         let stop: (() => void) | undefined, cancelled = false

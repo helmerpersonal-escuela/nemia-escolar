@@ -7,6 +7,7 @@ import {
     Loader2, AlertCircle, CheckCircle2, Info, Bell
 } from 'lucide-react'
 import { AcademicAlerts } from './AcademicAlerts'
+import { PendingBySubject } from '../tutor/PendingBySubject'
 import { supabase } from '../../../../lib/supabase'
 import { useTenant } from '../../../../hooks/useTenant'
 import { useAlerts } from '../../../../hooks/useAlerts'
@@ -289,69 +290,27 @@ export const TutorDashboard = () => {
                 </div>
             )}
 
-            {/* SECTION 1: ACTVIDADES PENDIENTES (The #1 Priority) */}
-            <div className="space-y-3 md:space-y-6">
-                <div className="flex items-center gap-3 px-1 md:px-2">
-                    <div className="p-2 bg-amber-100 text-amber-700 rounded-xl">
-                        <AlertCircle className="w-5 h-5 md:w-6 md:h-6 stroke-[3]" />
-                    </div>
-                    <div>
-                        <h3 className="text-lg md:text-2xl font-black text-slate-900 tracking-tight leading-tight">Actividades pendientes</h3>
-                        <p className="text-slate-500 font-bold text-[11px] md:text-xs uppercase tracking-widest">Sin entregar ni calificar</p>
-                    </div>
-                    {pendingActivities.length > 0 && (
-                        <span className="ml-auto bg-amber-500 text-white px-4 py-1 rounded-full font-black text-base md:text-lg">
-                            {pendingActivities.length}
-                        </span>
-                    )}
+            {/* Lo que más le importa al tutor: qué falta entregar y las alertas, agrupado por materia */}
+            <section className="space-y-2">
+                <div className="flex items-baseline justify-between gap-2 px-1">
+                    <h3 className="text-lg md:text-2xl font-black text-slate-900 tracking-tight">Actividades sin entregar</h3>
+                    {pendingActivities.length > 0 && (() => {
+                        const late = pendingActivities.filter((p: any) => new Date(p.due_date) < new Date()).length
+                        return (
+                            <span className="text-xs md:text-sm font-bold text-slate-500 shrink-0">
+                                {pendingActivities.length}{late > 0 && <span className="text-rose-700"> · {late} {late === 1 ? 'atrasada' : 'atrasadas'}</span>}
+                            </span>
+                        )
+                    })()}
                 </div>
+                <PendingBySubject items={pendingActivities} />
+            </section>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                    {pendingActivities.length === 0 ? (
-                        <div className="col-span-full bg-emerald-50 rounded-3xl p-6 md:p-8 text-center border-2 border-dashed border-emerald-200">
-                            <div className="bg-white w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3">
-                                <CheckCircle2 className="w-8 h-8 text-emerald-700 stroke-[2.5]" />
-                            </div>
-                            <h4 className="text-lg font-black text-emerald-900 mb-1">¡Todo al día!</h4>
-                            <p className="text-emerald-700 font-bold text-sm">No hay actividades atrasadas ni pendientes.</p>
-                        </div>
-                    ) : (
-                        pendingActivities.map((item) => {
-                            const isOverdue = new Date(item.due_date) < new Date()
-                            return (
-                                <div
-                                    key={item.id}
-                                    className={`p-4 rounded-2xl border-2 flex items-center gap-3 ${isOverdue ? 'bg-rose-50 border-rose-100 text-rose-900' : 'bg-amber-50 border-amber-100 text-amber-900'
-                                        }`}
-                                >
-                                    <div className={`p-2.5 rounded-xl shrink-0 ${isOverdue ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-700'}`}>
-                                        <Clock className="w-5 h-5 stroke-[2.5]" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className="text-base font-black leading-tight tracking-tight">{item.title}</h4>
-                                        <p className="text-xs font-bold opacity-70 mt-0.5">
-                                            {item.subject?.name} • Límite: {new Date(item.due_date).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}
-                                        </p>
-                                        {isOverdue && (
-                                            <span className="inline-block mt-1.5 px-2.5 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded-full uppercase tracking-wider">
-                                                Atrasado
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                            )
-                        })
-                    )}
-                </div>
-
-                {selectedChild && (
-                    <div className="mt-4 px-2 md:px-4">
-                        <div className="bg-white rounded-[2rem] md:rounded-[3.5rem] p-5 md:p-8 border-4 border-slate-50 shadow-2xl shadow-slate-200/50">
-                            <AcademicAlerts studentId={selectedChild.id} />
-                        </div>
-                    </div>
-                )}
-            </div>
+            {selectedChild && (
+                <section>
+                    <AcademicAlerts studentId={selectedChild.id} />
+                </section>
+            )}
 
             {/* SECTION 2: ALERTAS Y SEGUIMIENTO (Real-time logs) */}
             {(alerts.length > 0 || unreadCount > 0) && (

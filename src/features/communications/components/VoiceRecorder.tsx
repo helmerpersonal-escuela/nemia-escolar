@@ -33,7 +33,7 @@ export const VoiceRecorder = ({ disabled, onRecorded, onRecordingChange, onError
         onRecordingChange?.(false)
     }
 
-    useEffect(() => () => { discardRef.current = true; recorderRef.current?.state === 'recording' && recorderRef.current.stop(); cleanup() },
+    useEffect(() => () => { discardRef.current = true; if (recorderRef.current?.state === 'recording') recorderRef.current.stop(); cleanup() },
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [])
 

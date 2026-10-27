@@ -40,7 +40,7 @@ export const DocumentEditor = ({ doc, ctx, related, canReview, independent, onCl
     const [busy, setBusy] = useState<string | null>(null)
     const [notes, setNotes] = useState('')
     const docRef = useRef(doc)
-    docRef.current = doc
+    useEffect(() => { docRef.current = doc }, [doc])
 
     useEffect(() => { setData(doc.data ?? {}); setDirty(false) }, [doc.id, doc.updated_at]) // eslint-disable-line react-hooks/exhaustive-deps
     const change = (patch: any) => { setData((d: any) => ({ ...d, ...patch })); setDirty(true) }

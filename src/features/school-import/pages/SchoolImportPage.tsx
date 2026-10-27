@@ -247,7 +247,7 @@ export const SchoolImportPage = () => {
 
                         {tab === 'avisos' && <IssueList issues={plan.issues} />}
                         {tab === 'grupos' && <GroupsTable plan={plan} />}
-                        {tab === 'personal' && <StaffTable staff={plan.staff} excluded={excluded} onToggle={k => setExcluded(x => { const n = new Set(x); n.has(k) ? n.delete(k) : n.add(k); return n })} />}
+                        {tab === 'personal' && <StaffTable staff={plan.staff} excluded={excluded} onToggle={k => setExcluded(x => { const n = new Set(x); if (n.has(k)) n.delete(k); else n.add(k); return n })} />}
                         {tab === 'materias' && <SubjectsTable plan={plan} />}
                     </section>
 

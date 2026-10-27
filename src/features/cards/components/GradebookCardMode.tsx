@@ -22,6 +22,7 @@ export function GradebookCardMode({ tenantId, groupId, subjectId, date, students
     const [codes, setCodes] = useState<Record<string, string>>({})
     const [delivered, setDelivered] = useState<Set<string>>(new Set())
     const marked = useRef<Set<string>>(new Set())
+    const [markedIds, setMarkedIds] = useState<Set<string>>(new Set())
 
     // Código → alumno (credenciales del grupo; también se aceptan las credenciales anteriores con CURP)
     useEffect(() => {
@@ -63,6 +64,7 @@ export function GradebookCardMode({ tenantId, groupId, subjectId, date, students
                 dedupeKey: `attendance:${groupId}:${date}:${subjectId || ''}:${s.id}`, label: `Asistencia de ${name} (${date})`,
             })
             marked.current.add(s.id)
+            setMarkedIds(m => new Set(m).add(s.id))
             onAttendance([row], queued)
             return { tone: 'ok', title: name, detail: queued ? 'Presente (se enviará al volver la señal)' : 'Presente' }
         }
@@ -79,8 +81,8 @@ export function GradebookCardMode({ tenantId, groupId, subjectId, date, students
         return { tone: 'ok', title: name, detail: 'Tarea entregada' }
     }, [codes, students, what, presentToday, tenantId, groupId, subjectId, date, assignmentId, delivered, onAttendance])
 
-    const done = what === 'ATTENDANCE' ? students.filter(s => presentToday.has(s.id) || marked.current.has(s.id)).length : delivered.size
-    const missing = students.filter(s => (what === 'ATTENDANCE' ? !(presentToday.has(s.id) || marked.current.has(s.id)) : !delivered.has(s.id)))
+    const done = what === 'ATTENDANCE' ? students.filter(s => presentToday.has(s.id) || markedIds.has(s.id)).length : delivered.size
+    const missing = students.filter(s => (what === 'ATTENDANCE' ? !(presentToday.has(s.id) || markedIds.has(s.id)) : !delivered.has(s.id)))
 
     return (
         <div className="w-full space-y-3 text-left">

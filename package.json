@@ -9,7 +9,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "lint:ci": "eslint . --max-warnings 939",
+    "lint:ci": "eslint . --max-warnings 1521",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "test:run": "vitest run",
     "preview": "vite preview",

@@ -17,7 +17,7 @@ export function useChatNotifications(enabled: boolean) {
     const navigate = useNavigate()
     const { showToast } = useToast()
     const path = useRef(location.pathname)
-    path.current = location.pathname
+    useEffect(() => { path.current = location.pathname }, [location.pathname])
 
     useEffect(() => { unlockAudioOnFirstGesture() }, [])
     useEffect(() => onNotificationTap(url => navigate(url)), [navigate])

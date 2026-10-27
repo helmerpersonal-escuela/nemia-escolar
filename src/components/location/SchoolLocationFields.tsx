@@ -44,7 +44,7 @@ export function SchoolLocationFields({ value, onChange }: { value: SchoolLocatio
 
     // Al cambiar lo capturado, el mapa se enfoca ahí (y coloca el pin aproximado si aún no se marcó)
     const valueRef = useRef(value)
-    valueRef.current = value
+    useEffect(() => { valueRef.current = value }, [value])
     useEffect(() => {
         if (!value.state) return
         const t = setTimeout(async () => {
